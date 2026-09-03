@@ -30,7 +30,7 @@
   <meta name="color-scheme" content="dark" />
 
   <title>Account · Libraries.dev</title>
-  <meta name="description" content="Manage your Libraries Pro plan — billing, team seats, and downloads." />
+  <meta name="description" content="Manage your Libraries Pro plan — billing and team seats." />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="noindex" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -51,7 +51,7 @@
   <meta property="og:url" content="https://libraries.dev/account.html" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Account · Libraries.dev" />
-  <meta property="og:description" content="Manage your Libraries Pro plan — billing, team seats, and downloads." />
+  <meta property="og:description" content="Manage your Libraries Pro plan — billing and team seats." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
@@ -59,7 +59,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta name="twitter:title" content="Account · Libraries.dev" />
-  <meta name="twitter:description" content="Manage your Libraries Pro plan — billing, team seats, and downloads." />
+  <meta name="twitter:description" content="Manage your Libraries Pro plan — billing and team seats." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -4768,42 +4768,9 @@
 
     .team-owner-actions { display: flex; gap: 8px; margin-top: 20px; }
 
-    /* Downloads agent block */
-    .account-agent { margin-top: 32px; }
-    .account-agent-title { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--text); }
-    .account-agent-sub { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: var(--text-muted, #6c6c6c); max-width: 620px; text-wrap: pretty; }
-    /* Matches the install-page command block (.skill-code-row in
-       skill.html): soft gray surface, 10px radius, transparent mono
-       text, with a ghost copy control. */
-    .account-agent-code {
-      position: relative;
-      padding: 14px 14px 14px 14px;
-      border-radius: 10px;
-      background: #f7f7f7;
-    }
-    html[data-theme="dark"] .account-agent-code { background: rgba(255, 255, 255, 0.04); }
-    .account-agent-code pre {
-      margin: 0; padding: 0 40px 0 0;
-      background: transparent; box-shadow: none;
-      font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-      font-size: 13px; line-height: 22px;
-      color: #3c3c3c; white-space: pre-wrap; overflow-wrap: anywhere;
-    }
-    html[data-theme="dark"] .account-agent-code pre { color: #d6d6d6; }
-    .account-agent-copy {
-      position: absolute; top: 10px; right: 10px; height: 26px; padding: 0 12px;
-      border: 0; border-radius: 50px; background: rgba(0,0,0,.05); color: inherit;
-      font: 500 12px/1 var(--font-sans); cursor: pointer;
-    }
-    .account-agent-copy:hover { background: rgba(0,0,0,.09); }
-    html[data-theme="dark"] .account-agent-copy { background: rgba(255,255,255,.08); }
-    .account-agent-copy { transition: background 120ms ease, scale 120ms cubic-bezier(0.22, 1, 0.36, 1); }
-    .account-agent-copy:active { scale: 0.96; }
-    .account-agent-copy::after { content: ""; position: absolute; inset: -9px; }
-
     @media (prefers-reduced-motion: reduce) {
       .account-tab.is-in { animation: none; }
-      .account-nav-item, .row-btn, .account-agent-copy { transition: none; }
+      .account-nav-item, .row-btn { transition: none; }
     }
 
     @media (max-width: 860px) {
@@ -4917,7 +4884,6 @@
         <nav class="account-sidebar-nav">
           <button type="button" class="account-nav-item is-active" data-acc-tab="account">Account</button>
           <button type="button" class="account-nav-item" data-acc-tab="members" id="acc-nav-members" hidden>Members</button>
-          <button type="button" class="account-nav-item" data-acc-tab="downloads">Downloads</button>
         </nav>
       </aside>
 
@@ -5022,47 +4988,6 @@
           <p class="account-note" id="acc-note-team" role="status" hidden></p>
         </section>
 
-        <!-- Downloads tab (Figma 2332:82372) -->
-        <section id="acc-tab-downloads" class="account-tab" hidden>
-          <h1 class="account-title">Downloads</h1>
-          <div class="settings-list">
-            <div class="settings-row">
-              <span class="settings-label">Download library bundle</span>
-              <button type="button" class="row-btn" id="acc-dl-library">Download</button>
-            </div>
-            <div class="settings-row">
-              <span class="settings-label">Download skills</span>
-              <button type="button" class="row-btn" id="acc-dl-skills">Download</button>
-            </div>
-          </div>
-          <div class="account-agent">
-            <p class="account-agent-title">Install with the CLI</p>
-            <p class="account-agent-sub">Run these in your project. The first time, each opens your browser to confirm this device — then your Pro plan is verified and the files are pulled in.</p>
-            <div class="skill-section-rows">
-              <div class="skill-command">
-                <div class="skill-code-row">
-                  <code id="acc-cmd-skill">npx libraries-pro skill</code>
-                  <button type="button" class="card-copy" aria-label="Copy Pro skill install command" data-copy-target="#acc-cmd-skill">
-                    <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                    <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-                  </button>
-                </div>
-                <p class="skill-section-note">Installs the Libraries Pro agent skill (all five libraries, React, TypeScript) into <code>~/.claude/skills/libraries-pro/</code>.</p>
-              </div>
-              <div class="skill-command">
-                <div class="skill-code-row">
-                  <code id="acc-cmd-recipes">npx libraries-pro add --pro</code>
-                  <button type="button" class="card-copy" aria-label="Copy Pro recipes install command" data-copy-target="#acc-cmd-recipes">
-                    <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                    <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-                  </button>
-                </div>
-                <p class="skill-section-note">Copies every Pro preset and recipe straight into your project's <code>./libraries/</code>.</p>
-              </div>
-            </div>
-          </div>
-          <p class="account-note" id="acc-note-dl" role="status" hidden></p>
-        </section>
       </div>
     </div>
 
@@ -5119,7 +5044,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       var TP = window.LibrariesPro;
       var el = function (id) { return document.getElementById(id); };
-      var tabs = { account: el("acc-tab-account"), members: el("acc-tab-members"), downloads: el("acc-tab-downloads") };
+      var tabs = { account: el("acc-tab-account"), members: el("acc-tab-members") };
       var navBtns = Array.prototype.slice.call(document.querySelectorAll(".account-nav-item"));
 
       function setNote(id, msg, kind) {
@@ -5172,7 +5097,6 @@
         el("acc-signedout").hidden = !(s && s.resolved && !authed);
         if (!authed) {
           if (tabs.account) tabs.account.hidden = true;
-          if (tabs.downloads) tabs.downloads.hidden = true;
           return;
         }
         el("acc-email").textContent = s.email || "—";
@@ -5496,35 +5420,6 @@
           .finally(function () { btn.disabled = false; });
       });
 
-      // Downloads — the endpoints stream a .zip with an attachment header, so a
-      // plain navigation triggers a browser download (session cookie is sent).
-      function downloadZip(path, btn, noteId) {
-        setNote(noteId, "", "");
-        btn.disabled = true;
-        // HEAD-check entitlement first so we can show an error instead of a broken download.
-        fetch(TP.apiBase + path, { credentials: "include" })
-          .then(function (r) {
-            if (r.ok) return r.blob().then(function (blob) {
-              var url = URL.createObjectURL(blob);
-              var a = document.createElement("a");
-              a.href = url;
-              a.download = path.indexOf("skills") >= 0 ? "libraries-pro-skill.zip" : "libraries-pro-library.zip";
-              document.body.appendChild(a); a.click(); a.remove();
-              setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-            });
-            return r.json().catch(function () { return {}; }).then(function (d) {
-              setNote(noteId, d && d.error === "no_pro_entitlement"
-                ? "This account (" + ((TP.state && TP.state.email) || "unknown") + ") has no active Pro plan. Bought with a different email? Sign out and use that one."
-                : "Download unavailable right now.", "err");
-            });
-          })
-          .catch(function () { setNote(noteId, "Download failed. Please try again.", "err"); })
-          .finally(function () { btn.disabled = false; });
-      }
-      el("acc-dl-library").addEventListener("click", function () { downloadZip("/download/library", el("acc-dl-library"), "acc-note-dl"); });
-      el("acc-dl-skills").addEventListener("click", function () { downloadZip("/download/skills", el("acc-dl-skills"), "acc-note-dl"); });
-      // The two CLI command blocks copy via the shared .card-copy[data-copy-target]
-      // handler (same as the install page) — no bespoke copy wiring needed here.
     });
   </script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
