@@ -762,7 +762,7 @@
 .mx-card-line--plan { align-items: baseline; gap: 6px; }
 .mx-plan {
   font: 500 24px/1.2 Inter, var(--font-sans), sans-serif;
-  color: #999999;
+  color: rgba(153, 153, 153, 0.6);
   white-space: nowrap;
 }
 .mx-live {

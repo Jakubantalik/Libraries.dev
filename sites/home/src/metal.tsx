@@ -88,7 +88,7 @@ function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, di
         `useMetalTextReflection(planRef); // "Plan" catches the metal`,
         ``,
         `<span ref={planRef}>Plan</span>`,
-        `<MetalText font="500 24px/1.2 Inter, sans-serif" color="#8C8C8C"${s}${disableReflection ? "" : " reflectionTargets={[{ ref: planRef, strength: 1.6 }]}"}>`,
+        `<MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2"${s}${disableReflection ? "" : " reflectionTargets={[{ ref: planRef, strength: 0.64 }]}"}>`,
         `  Pro`,
         `</MetalText>`,
       ].join("\n");
@@ -131,7 +131,7 @@ function StageV2({
   useMetalBend(sendRef);
   useMetalTextReflection(planRef);
   useMetalCursorSprite();
-  const planTargets = useMemo(() => [{ ref: planRef, strength: 1.6 }], []);
+  const planTargets = useMemo(() => [{ ref: planRef, strength: 0.64 }], []);
   const searchTargets = useMemo(() => [searchRef], []);
 
   if (type === "text") {
@@ -142,7 +142,7 @@ function StageV2({
           <MetalText
             key="text"
             font="500 24px/1.2 Inter, sans-serif"
-            color="#8C8C8C"
+            color="#E2E2E2"
             strength={strength}
             theme="dark"
             reflectionTargets={disableReflection ? undefined : planTargets}

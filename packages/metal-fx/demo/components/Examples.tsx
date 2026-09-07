@@ -52,7 +52,7 @@ export function Examples({
   useTextReflection(planRef);
   // Stable identity: MetalFx re-registers (tears down + rebuilds the
   // reflection wrapper) whenever this array's identity changes.
-  const planTargets = useMemo(() => [{ ref: planRef, strength: 1.6 }], []);
+  const planTargets = useMemo(() => [{ ref: planRef, strength: 1.6 * 0.4 }], []);
   // Same for "Live mode" and the New badge.
   const liveRef = useRef<HTMLSpanElement>(null);
   useTextReflection(liveRef);
@@ -115,12 +115,15 @@ export function Examples({
         <div className="flex items-baseline gap-1.5">
           <span
             ref={planRef}
-            className="whitespace-nowrap text-[#999999]"
+            // Colour alpha, not element opacity: the reflection wrapper lives
+            // inside this span, and dimming the element would dim the metal
+            // caught on the letterforms too.
+            className="whitespace-nowrap text-[#999999]/60"
             style={{ font: '500 24px/1.2 Inter, sans-serif' }}
           >
             Plan
           </span>
-          <MetalText font="500 24px/1.2 Inter, sans-serif" color="#8C8C8C" strength={strength} theme={theme} reflectionTargets={planTargets}>
+          <MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2" strength={strength} theme={theme} reflectionTargets={planTargets}>
             Pro
           </MetalText>
         </div>

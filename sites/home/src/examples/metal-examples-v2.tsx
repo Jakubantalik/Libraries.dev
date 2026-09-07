@@ -64,7 +64,7 @@ export function MetalExamplesV2({ strength = 1 }: { strength?: number }) {
   useMetalTextReflection(planRef);
   // Stable identity: MetalFx re-registers its reflection wrapper whenever
   // this array's identity changes.
-  const planTargets = useMemo(() => [{ ref: planRef, strength: 1.6 }], []);
+  const planTargets = useMemo(() => [{ ref: planRef, strength: 0.64 }], []);
 
   return (
     <div className="detail-examples" aria-label="Effect demonstrations">
@@ -112,7 +112,7 @@ export function MetalExamplesV2({ strength = 1 }: { strength?: number }) {
       <div className="example-row-full mx-row mx-row--card">
         <div className="mx-card-line mx-card-line--plan">
           <span ref={planRef} className="mx-plan">Plan</span>
-          <MetalText font="500 24px/1.2 Inter, sans-serif" color="#8C8C8C" strength={strength} theme="dark" reflectionTargets={planTargets}>
+          <MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2" strength={strength} theme="dark" reflectionTargets={planTargets}>
             Pro
           </MetalText>
         </div>
