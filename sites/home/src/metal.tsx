@@ -5,15 +5,16 @@ import { MetalExamples } from "./examples/metal-examples";
 import { MetalExamplesV2, useMetalCursorSprite } from "./examples/metal-examples-v2";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { MetalFx as MetalFxV1, type MetalFxPreset, type MetalFxVariant } from "metal-fx-v1";
-import { MetalBadge, MetalFx, MetalText, useMetalBend, useMetalTextReflection } from "metal-fx";
+import { MetalFx, MetalText, useMetalBend, useMetalTextReflection } from "metal-fx";
 
 /* Metal detail page — playground island (stage + controls + live snippet).
 
    Two families:
      v2 — metal-fx 2 (Paper Shaders liquidMetal engine). Types: Circle
-          button, Button, Text, Badge — each with the settings the v2 demo
-          page ships (rim on the circle, cursor bend, glyph metal with its
-          inner shadow, the New badge).
+          button, Button, Text — each with the settings the v2 demo page
+          ships (rim on the circle, cursor bend, glyph metal with its inner
+          shadow). The New badge shows in the examples above; as a type it
+          lives in the Studio only.
      v1 — metal-fx 1.0.4 as published, unchanged: Button / Circle.
 
    Preset and strength stay at the demo's baseline (chromatic at 90%)
@@ -28,12 +29,11 @@ const FAMILIES: Array<{ id: Family; label: string }> = [
   { id: "v1", label: "v1" },
 ];
 
-type V2Type = "circle" | "button" | "text" | "badge";
+type V2Type = "circle" | "button" | "text";
 const V2_TYPES: Array<{ id: V2Type; label: string }> = [
   { id: "circle", label: "Circle button" },
   { id: "button", label: "Button" },
   { id: "text", label: "Text" },
-  { id: "badge", label: "Badge" },
 ];
 
 const V1_VARIANTS: MetalFxVariant[] = ["button", "circle"];
@@ -68,7 +68,7 @@ function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, di
         `const ref = useRef(null);`,
         `useMetalBend(ref); // cursor-driven liquid dent`,
         ``,
-        `<MetalFx ref={ref} preset="gold" variant="circle" innerShadow${s}${g}${r}>`,
+        `<MetalFx ref={ref} preset="chromatic" variant="circle" innerShadow${s}${g}${r}>`,
         `  <button aria-label="Send"><ArrowUpIcon /></button>`,
         `</MetalFx>`,
       ].join("\n");
@@ -91,12 +91,6 @@ function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, di
         `<MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2"${s}${disableReflection ? "" : " reflectionTargets={[{ ref: planRef, strength: 0.64 }]}"}>`,
         `  Pro`,
         `</MetalText>`,
-      ].join("\n");
-    case "badge":
-      return [
-        `import { MetalBadge } from 'metal-fx';`,
-        ``,
-        `<MetalBadge${s}>New</MetalBadge>`,
       ].join("\n");
   }
 }
@@ -154,16 +148,6 @@ function StageV2({
       </div>
     );
   }
-  if (type === "badge") {
-    return (
-      <div className="metal-stage-row">
-        <div className="mx-card-line mx-card-line--live">
-          <span className="mx-live">Live mode</span>
-          <MetalBadge key="badge" strength={strength} theme="dark">New</MetalBadge>
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="metal-stage-row">
       <label ref={searchRef} className="metal-search">
@@ -174,7 +158,7 @@ function StageV2({
         <MetalFx
           key="circle"
           ref={sendRef}
-          preset="gold"
+          preset="chromatic"
           variant="circle"
           theme="dark"
           strength={strength * 0.9}

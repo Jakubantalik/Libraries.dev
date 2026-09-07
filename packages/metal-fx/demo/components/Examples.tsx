@@ -64,7 +64,7 @@ export function Examples({
       <div className={`relative w-full h-[314px] rounded-[30px] ${surface} flex items-center justify-center px-10 py-12 overflow-hidden max-sm:h-auto max-sm:min-h-[200px] max-sm:px-5 max-sm:py-8 max-sm:rounded-[20px]`}>
         {isolate ? (
           // Bare circle, full strength, no composer box — nothing else in frame.
-          <MetalFx preset="gold" variant="circle" theme={theme} scale={scaleFactor} strength={1} innerShadow style={{ background: '#0E0E0E' }}>
+          <MetalFx preset="chromatic" variant="circle" theme={theme} scale={scaleFactor} strength={1} innerShadow style={{ background: '#0E0E0E' }}>
             <button type="button" className={demoCircleClass} aria-label="Send" />
           </MetalFx>
         ) : (
@@ -85,7 +85,7 @@ export function Examples({
             <div className={chipClass} ref={autoChipRef}><span>Auto</span><ChevronDownIcon /></div>
             <MetalFx
               ref={sendRef}
-              preset="gold"
+              preset="chromatic"
               variant="circle"
               theme={theme}
               reflectionTargets={[autoChipRef]}

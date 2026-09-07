@@ -93,7 +93,7 @@ export function MetalExamplesV2({ strength = 1 }: { strength?: number }) {
             </div>
             <MetalFx
               ref={sendRef}
-              preset="gold"
+              preset="chromatic"
               variant="circle"
               theme="dark"
               reflectionTargets={[autoChipRef]}
