@@ -710,7 +710,9 @@ function stepInner(now: number): void {
     const reachC = cfg.cursor && cursorSwapAllowed() ? Math.max(1, cfg.cursorDistance) : 0;
     const reach = Math.max(reachA, reachC);
     for (const inst of SHARED.instances) {
-      if (!inst.visible || inst.paused || !inst.canvas.isConnected) continue;
+      // Paused instances still hold a painted ring — they can light the
+      // pointer; only their glow tick is skipped further down.
+      if (!inst.visible || !inst.canvas.isConnected) continue;
       const r = inst.canvas.getBoundingClientRect();
       if (r.width <= 0) continue;
       const o = inst.overscan;

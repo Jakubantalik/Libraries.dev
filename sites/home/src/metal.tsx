@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createRoot } from "react-dom/client";
 import { CodeBlock } from "./examples/CodeCopy";
 import { MetalExamples } from "./examples/metal-examples";
 import { MetalExamplesV2, useMetalCursorSprite } from "./examples/metal-examples-v2";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { MetalFx as MetalFxV1, type MetalFxPreset, type MetalFxVariant } from "metal-fx-v1";
-import { MetalFx, MetalText, useMetalBend, useMetalTextReflection } from "metal-fx";
+import { MetalFx, MetalText, setCursorLightConfig, useMetalBend, useMetalTextReflection } from "metal-fx";
 
 /* Metal detail page — playground island (stage + controls + live snippet).
 
@@ -56,10 +56,19 @@ function buildSnippetV1(
   return `// npm install metal-fx@1\nimport { MetalFx } from 'metal-fx';\n\n<MetalFx ${props.join(" ")}>\n${child}\n</MetalFx>`;
 }
 
-function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, disableReflection: boolean): string {
+function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, disableReflection: boolean, noCursor: boolean): string {
   const s = strength !== 1 ? ` strength={${strength.toFixed(2)}}` : "";
   const g = disableGlow ? " disableGlow" : "";
   const r = disableReflection ? "" : " reflectionTargets={[siblingRef]}";
+  const body = snippetBodyV2(type, s, g, r);
+  // Cursor reflection is global (one pointer): a sprite of the OS pointer
+  // gets lit by the nearest metal. Off = one config call.
+  return noCursor
+    ? `import { setCursorLightConfig } from 'metal-fx';\nsetCursorLightConfig({ cursor: false }); // no cursor reflection\n\n${body}`
+    : body;
+}
+
+function snippetBodyV2(type: V2Type, s: string, g: string, r: string): string {
   switch (type) {
     case "circle":
       return [
@@ -88,7 +97,7 @@ function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, di
         `useMetalTextReflection(planRef); // "Plan" catches the metal`,
         ``,
         `<span ref={planRef}>Plan</span>`,
-        `<MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2"${s}${disableReflection ? "" : " reflectionTargets={[{ ref: planRef, strength: 0.64 }]}"}>`,
+        `<MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2"${s}${r ? " reflectionTargets={[{ ref: planRef, strength: 0.64 }]}" : ""}>`,
         `  Pro`,
         `</MetalText>`,
       ].join("\n");
@@ -233,10 +242,17 @@ function MetalPlayground() {
   const [paused, setPaused] = useState(true);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
+  // v2 only: the ring lights the pointer (macOS sprite). Global config, so
+  // it is applied as an effect and restored when the page unmounts.
+  const [noCursor, setNoCursor] = useState(false);
+  useEffect(() => {
+    setCursorLightConfig({ cursor: family === "v2" && !noCursor });
+    return () => setCursorLightConfig({ cursor: true });
+  }, [family, noCursor]);
   const playPauseRef = useRef<HTMLButtonElement>(null);
 
   const snippet = family === "v2"
-    ? buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection)
+    ? buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection, noCursor)
     : buildSnippetV1(variant, PRESET, STRENGTH / 100, disableGlow, disableReflection);
 
   return (
@@ -338,6 +354,17 @@ function MetalPlayground() {
             >
               No Reflection
             </button>
+            {family === "v2" && (
+              <button
+                type="button"
+                className="pg-toggle"
+                aria-pressed={noCursor}
+                data-active={noCursor}
+                onClick={() => setNoCursor((c) => !c)}
+              >
+                No Cursor Reflection
+              </button>
+            )}
           </div>
         </div>
         <StudioTeaser
