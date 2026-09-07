@@ -748,3 +748,26 @@
   cursor: pointer;
   padding: 0;
 }
+
+/* ── Metal v2 examples: the two 170px cards + the composer tweaks ── */
+.mx-chat-input--short { width: 70%; }
+.mx-circle--send { cursor: default; }
+.mx-row--card {
+  height: 170px;
+  border-radius: 36px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 40px;
+}
+.mx-card-line { display: flex; align-items: center; gap: 12px; }
+.mx-card-line--plan { align-items: baseline; gap: 6px; }
+.mx-plan {
+  font: 500 24px/1.2 Inter, var(--font-sans), sans-serif;
+  color: #999999;
+  white-space: nowrap;
+}
+.mx-live {
+  font: 400 20px/1.2 Inter, var(--font-sans), sans-serif;
+  color: #999999;
+  white-space: nowrap;
+}
+.metal-pill--send { cursor: default; }

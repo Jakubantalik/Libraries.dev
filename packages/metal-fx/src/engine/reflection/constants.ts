@@ -32,6 +32,8 @@ export interface ReflectionTarget {
   el: HTMLElement;
   anchor: MetalFxInstance;
   anchorEl: HTMLElement;
+  /** Per-target alpha multiplier from the public API. 1 = canonical. */
+  strength: number;
   wrap: HTMLDivElement;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -44,4 +46,6 @@ export interface ReflectionTarget {
   appliedIsolation: boolean;
   resizeObserver: ResizeObserver | null;
   mutationObserver: MutationObserver | null;
+  /** Glyph-target canvas styling applied (see paint). */
+  glyphStyled?: boolean;
 }

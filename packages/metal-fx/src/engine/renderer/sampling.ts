@@ -123,3 +123,28 @@ export function sampleShaderRGBChromatic(inst: MetalFxInstance, cssPxX: number, 
   }
   return _rgb;
 }
+
+const _pk = { r: 255, g: 255, b: 255, lum: 0 };
+
+/** Brightest pixel in the window (not the mean) — for "is the ring shining
+ *  here" questions, where a dark stripe next to a bright one should still
+ *  read as lit. */
+export function sampleShaderPeakAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): typeof _pk {
+  _pk.r = 255; _pk.g = 255; _pk.b = 255; _pk.lum = 0;
+  if (!SHARED) return _pk;
+  ensureGlowPixels();
+  const m = mapToGlowBuf(inst, cssPxX, cssPxY);
+  const { glowPixels: buf, glowPixelsW: W, glowPixelsH: H } = SHARED;
+  const r = Math.max(1, radius | 0);
+  const x0 = Math.max(0, m.bx - r), x1 = Math.min(W, m.bx + r + 1);
+  const y0 = Math.max(0, m.by - r), y1 = Math.min(H, m.by + r + 1);
+  for (let py = y0; py < y1; py++) {
+    const row = py * W;
+    for (let px = x0; px < x1; px++) {
+      const i = (row + px) * 4;
+      const lum = (0.2126 * buf[i] + 0.7152 * buf[i + 1] + 0.0722 * buf[i + 2]) / 255;
+      if (lum > _pk.lum) { _pk.lum = lum; _pk.r = buf[i]; _pk.g = buf[i + 1]; _pk.b = buf[i + 2]; }
+    }
+  }
+  return _pk;
+}

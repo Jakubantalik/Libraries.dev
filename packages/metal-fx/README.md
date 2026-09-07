@@ -4,6 +4,21 @@ Animated WebGL "liquid metal" effect for React. Wrap a button, chip, or icon and
 
 [Live demo](https://metal.jakubantalik.com) · [Repository](https://github.com/Jakubantalik/metal-fx) · [Report an issue](https://github.com/Jakubantalik/metal-fx/issues)
 
+## v2
+
+v2 replaces the plasma shader with [Paper Shaders'](https://github.com/paper-design/shaders) `liquidMetal` (Apache-2.0, see `NOTICE`) and adds:
+
+- `MetalText` — metal inside the glyphs of any text, with an inner-shadow rim.
+- `MetalBadge` — the "New" pill: white fill, metal rim, clean core under the label.
+- `useMetalBend(ref)` — cursor-driven liquid dent of the ring (spring physics, vector outline).
+- `useMetalTextReflection(ref)` — a neighbouring text catches the metal on its letterforms.
+- `innerShadow` prop — light rim along the ring's top inside edge.
+- Cursor light — the ring lights the pointer (`setCursorSprite`, `setCursorLightConfig`); opt-in, macOS sprite required.
+- Baked-sprite glow: ~10× cheaper than v1's SVG filters, same look.
+- Live-tunable `GLOW`, `REFLECTION_OCCLUDER` and `CURSOR_LIGHT` configs.
+
+Requires WebGL2 (`isMetalFxSupported()`); unsupported browsers render the plain child. Presets, variants and the `MetalFx` props from v1 are unchanged. To stay on the old engine: `npm install metal-fx@1`.
+
 ## Install
 
 ```bash

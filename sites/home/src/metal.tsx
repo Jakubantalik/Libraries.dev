@@ -1,24 +1,44 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState, type RefObject } from "react";
 import { createRoot } from "react-dom/client";
 import { CodeBlock } from "./examples/CodeCopy";
 import { MetalExamples } from "./examples/metal-examples";
+import { MetalExamplesV2, useMetalCursorSprite } from "./examples/metal-examples-v2";
 import { StudioTeaser } from "./examples/StudioTeaser";
-import { MetalFx, type MetalFxPreset, type MetalFxVariant } from "metal-fx-v1";
+import { MetalFx as MetalFxV1, type MetalFxPreset, type MetalFxVariant } from "metal-fx-v1";
+import { MetalBadge, MetalFx, MetalText, useMetalBend, useMetalTextReflection } from "metal-fx";
 
 /* Metal detail page — playground island (stage + controls + live snippet).
-   Button/circle type tabs and the No Glow / No Reflection toggles; the
-   preset and strength stay at the demo's own baseline (chromatic at 90%)
-   rather than being exposed here, since the Studio tunes them in full.
-   The preview pairs a search-input pill (reflection target) with the
-   MetalFx-wrapped button, like the live demo. */
 
-/* The demo's baseline, fixed for this page. */
+   Two families:
+     v2 — metal-fx 2 (Paper Shaders liquidMetal engine). Types: Circle
+          button, Button, Text, Badge — each with the settings the v2 demo
+          page ships (rim on the circle, cursor bend, glyph metal with its
+          inner shadow, the New badge).
+     v1 — metal-fx 1.0.4 as published, unchanged: Button / Circle.
+
+   Preset and strength stay at the demo's baseline (chromatic at 90%)
+   rather than being exposed here, since the Studio tunes them in full. */
+
 const PRESET: MetalFxPreset = "chromatic";
 const STRENGTH = 90;
 
-const VARIANTS: MetalFxVariant[] = ["button", "circle"];
+type Family = "v2" | "v1";
+const FAMILIES: Array<{ id: Family; label: string }> = [
+  { id: "v2", label: "v2" },
+  { id: "v1", label: "v1" },
+];
 
-function buildSnippet(
+type V2Type = "circle" | "button" | "text" | "badge";
+const V2_TYPES: Array<{ id: V2Type; label: string }> = [
+  { id: "circle", label: "Circle button" },
+  { id: "button", label: "Button" },
+  { id: "text", label: "Text" },
+  { id: "badge", label: "Badge" },
+];
+
+const V1_VARIANTS: MetalFxVariant[] = ["button", "circle"];
+
+function buildSnippetV1(
   variant: MetalFxVariant,
   preset: MetalFxPreset,
   strength: number,
@@ -33,22 +53,52 @@ function buildSnippet(
   const child = variant === "circle"
     ? `  <button aria-label="Send"><ArrowUpIcon /></button>`
     : `  <button>Upgrade to Pro</button>`;
-  return `import { MetalFx } from 'metal-fx';\n\n<MetalFx ${props.join(" ")}>\n${child}\n</MetalFx>`;
+  return `// npm install metal-fx@1\nimport { MetalFx } from 'metal-fx';\n\n<MetalFx ${props.join(" ")}>\n${child}\n</MetalFx>`;
 }
 
-function CopyIcon() {
-  return (
-    <svg className="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg className="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-  );
+function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, disableReflection: boolean): string {
+  const s = strength !== 1 ? ` strength={${strength.toFixed(2)}}` : "";
+  const g = disableGlow ? " disableGlow" : "";
+  const r = disableReflection ? "" : " reflectionTargets={[siblingRef]}";
+  switch (type) {
+    case "circle":
+      return [
+        `import { MetalFx, useMetalBend } from 'metal-fx';`,
+        ``,
+        `const ref = useRef(null);`,
+        `useMetalBend(ref); // cursor-driven liquid dent`,
+        ``,
+        `<MetalFx ref={ref} preset="gold" variant="circle" innerShadow${s}${g}${r}>`,
+        `  <button aria-label="Send"><ArrowUpIcon /></button>`,
+        `</MetalFx>`,
+      ].join("\n");
+    case "button":
+      return [
+        `import { MetalFx } from 'metal-fx';`,
+        ``,
+        `<MetalFx preset="chromatic"${s}${g}${r}>`,
+        `  <button>Upgrade to Pro</button>`,
+        `</MetalFx>`,
+      ].join("\n");
+    case "text":
+      return [
+        `import { MetalText, useMetalTextReflection } from 'metal-fx';`,
+        ``,
+        `const planRef = useRef(null);`,
+        `useMetalTextReflection(planRef); // "Plan" catches the metal`,
+        ``,
+        `<span ref={planRef}>Plan</span>`,
+        `<MetalText font="500 24px/1.2 Inter, sans-serif" color="#8C8C8C"${s}${disableReflection ? "" : " reflectionTargets={[{ ref: planRef, strength: 1.6 }]}"}>`,
+        `  Pro`,
+        `</MetalText>`,
+      ].join("\n");
+    case "badge":
+      return [
+        `import { MetalBadge } from 'metal-fx';`,
+        ``,
+        `<MetalBadge${s}>New</MetalBadge>`,
+      ].join("\n");
+  }
 }
 
 function ArrowUpIcon() {
@@ -69,60 +119,155 @@ function SearchIcon() {
   );
 }
 
+/* ── v2 stage ─────────────────────────────────────────────────────────── */
+
+function StageV2({
+  type, paused, disableGlow, disableReflection,
+}: { type: V2Type; paused: boolean; disableGlow: boolean; disableReflection: boolean }) {
+  const strength = STRENGTH / 100;
+  const searchRef = useRef<HTMLLabelElement>(null);
+  const sendRef = useRef<HTMLDivElement>(null);
+  const planRef = useRef<HTMLSpanElement>(null);
+  useMetalBend(sendRef);
+  useMetalTextReflection(planRef);
+  useMetalCursorSprite();
+  const planTargets = useMemo(() => [{ ref: planRef, strength: 1.6 }], []);
+  const searchTargets = useMemo(() => [searchRef], []);
+
+  if (type === "text") {
+    return (
+      <div className="metal-stage-row">
+        <div className="mx-card-line mx-card-line--plan">
+          <span ref={planRef} className="mx-plan">Plan</span>
+          <MetalText
+            key="text"
+            font="500 24px/1.2 Inter, sans-serif"
+            color="#8C8C8C"
+            strength={strength}
+            theme="dark"
+            reflectionTargets={disableReflection ? undefined : planTargets}
+            glow={false}
+          >
+            Pro
+          </MetalText>
+        </div>
+      </div>
+    );
+  }
+  if (type === "badge") {
+    return (
+      <div className="metal-stage-row">
+        <div className="mx-card-line mx-card-line--live">
+          <span className="mx-live">Live mode</span>
+          <MetalBadge key="badge" strength={strength} theme="dark">New</MetalBadge>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="metal-stage-row">
+      <label ref={searchRef} className="metal-search">
+        <SearchIcon />
+        <input type="search" placeholder="Search" spellCheck={false} tabIndex={-1} aria-label="Search" />
+      </label>
+      {type === "circle" ? (
+        <MetalFx
+          key="circle"
+          ref={sendRef}
+          preset="gold"
+          variant="circle"
+          theme="dark"
+          strength={strength * 0.9}
+          paused={paused}
+          disableGlow={disableGlow}
+          innerShadow
+          reflectionTargets={disableReflection ? undefined : searchTargets}
+        >
+          <button type="button" className="metal-pill metal-pill--circle metal-pill--send" aria-label="Send">
+            <ArrowUpIcon />
+          </button>
+        </MetalFx>
+      ) : (
+        <MetalFx
+          key="button"
+          preset={PRESET}
+          variant="button"
+          theme="dark"
+          strength={strength * 0.7}
+          paused={paused}
+          disableGlow={disableGlow}
+          reflectionTargets={disableReflection ? undefined : searchTargets}
+        >
+          <button type="button" className="metal-pill">Upgrade to Pro</button>
+        </MetalFx>
+      )}
+    </div>
+  );
+}
+
+/* ── v1 stage (as published) ──────────────────────────────────────────── */
+
+function StageV1({
+  variant, paused, disableGlow, disableReflection, playPauseRef,
+}: { variant: MetalFxVariant; paused: boolean; disableGlow: boolean; disableReflection: boolean; playPauseRef: RefObject<HTMLButtonElement> }) {
+  const searchRef = useRef<HTMLLabelElement>(null);
+  const reflectionTargets = disableReflection ? undefined : [searchRef, playPauseRef];
+  return (
+    <div className="metal-stage-row">
+      <label ref={searchRef} className="metal-search">
+        <SearchIcon />
+        <input type="search" placeholder="Search" spellCheck={false} tabIndex={-1} aria-label="Search" />
+      </label>
+      {/* key remounts the WebGL instance on variant change, matching the live demo */}
+      <MetalFxV1
+        key={variant}
+        preset={PRESET}
+        variant={variant}
+        theme="dark"
+        strength={STRENGTH / 100}
+        paused={paused}
+        disableGlow={disableGlow}
+        reflectionTargets={reflectionTargets}
+      >
+        {variant === "circle" ? (
+          <button type="button" className="metal-pill metal-pill--circle" aria-label="Send">
+            <ArrowUpIcon />
+          </button>
+        ) : (
+          <button type="button" className="metal-pill">Upgrade to Pro</button>
+        )}
+      </MetalFxV1>
+    </div>
+  );
+}
+
 function MetalPlayground() {
+  const [family, setFamily] = useState<Family>("v2");
+  const [v2Type, setV2Type] = useState<V2Type>("circle");
   const [variant, setVariant] = useState<MetalFxVariant>("button");
   // Starts paused so the page loads quietly (same as the live playground).
   const [paused, setPaused] = useState(true);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
   const playPauseRef = useRef<HTMLButtonElement>(null);
-  const searchRef = useRef<HTMLLabelElement>(null);
 
-  const snippet = buildSnippet(variant, PRESET, STRENGTH / 100, disableGlow, disableReflection);
-  const reflectionTargets = disableReflection ? undefined : [searchRef, playPauseRef];
+  const snippet = family === "v2"
+    ? buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection)
+    : buildSnippetV1(variant, PRESET, STRENGTH / 100, disableGlow, disableReflection);
 
   return (
     <>
-      <MetalExamples strength={STRENGTH / 100} />
+      {family === "v2" ? <MetalExamplesV2 key="ex-v2" strength={STRENGTH / 100} /> : <MetalExamples key="ex-v1" strength={STRENGTH / 100} />}
 
       <p className="detail-playground-label">Playground</p>
 
       <div className="pg">
       <div className="pg-stage">
-        <div className="metal-stage-row">
-          <label ref={searchRef} className="metal-search">
-            <SearchIcon />
-            <input
-              type="search"
-              placeholder="Search"
-              spellCheck={false}
-              tabIndex={-1}
-              aria-label="Search"
-            />
-          </label>
-
-          {/* key remounts the WebGL instance on variant change, matching the live demo */}
-          <MetalFx
-            key={variant}
-            preset={PRESET}
-            variant={variant}
-            theme="dark"
-            strength={STRENGTH / 100}
-            paused={paused}
-            disableGlow={disableGlow}
-            reflectionTargets={reflectionTargets}
-          >
-            {variant === "circle" ? (
-              <button type="button" className="metal-pill metal-pill--circle" aria-label="Send">
-                <ArrowUpIcon />
-              </button>
-            ) : (
-              <button type="button" className="metal-pill">
-                Upgrade to Pro
-              </button>
-            )}
-          </MetalFx>
-        </div>
+        {family === "v2" ? (
+          <StageV2 key="stage-v2" type={v2Type} paused={paused} disableGlow={disableGlow} disableReflection={disableReflection} />
+        ) : (
+          <StageV1 key="stage-v1" variant={variant} paused={paused} disableGlow={disableGlow} disableReflection={disableReflection} playPauseRef={playPauseRef} />
+        )}
 
         <button
           ref={playPauseRef}
@@ -136,22 +281,55 @@ function MetalPlayground() {
       </div>
 
       <div className="pg-controls">
-        <div className="pg-field" role="radiogroup" aria-label="Component type">
-          <span className="pg-label">Type</span>
+        <div className="pg-field" role="radiogroup" aria-label="Version">
+          <span className="pg-label">Version</span>
           <div className="pg-tabs">
-            {VARIANTS.map((v) => (
+            {FAMILIES.map((f) => (
               <button
-                key={v}
+                key={f.id}
                 type="button"
                 className="pg-tab"
                 role="radio"
-                aria-checked={variant === v}
-                data-active={variant === v}
-                onClick={() => setVariant(v)}
+                aria-checked={family === f.id}
+                data-active={family === f.id}
+                onClick={() => setFamily(f.id)}
               >
-                {v.charAt(0).toUpperCase() + v.slice(1)}
+                {f.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="pg-field" role="radiogroup" aria-label="Component type">
+          <span className="pg-label">Type</span>
+          <div className="pg-tabs">
+            {family === "v2"
+              ? V2_TYPES.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="pg-tab"
+                    role="radio"
+                    aria-checked={v2Type === t.id}
+                    data-active={v2Type === t.id}
+                    onClick={() => setV2Type(t.id)}
+                  >
+                    {t.label}
+                  </button>
+                ))
+              : V1_VARIANTS.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className="pg-tab"
+                    role="radio"
+                    aria-checked={variant === v}
+                    data-active={variant === v}
+                    onClick={() => setVariant(v)}
+                  >
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                ))}
           </div>
         </div>
 
@@ -183,7 +361,7 @@ function MetalPlayground() {
             { kind: "tabs", label: "Color", options: ["Chromatic", "Silver", "Gold"] },
             { kind: "slider", label: "Strength", value: "90%", fill: 90 },
             { kind: "slider", label: "Glow strength", value: "100%", fill: 100 },
-            { kind: "slider", label: "Shader scale", value: "1.6\u00d7", fill: 42 },
+            { kind: "slider", label: "Shader scale", value: "1.6×", fill: 42 },
           ]}
         />
       </div>
@@ -198,7 +376,7 @@ function MetalPlayground() {
 const el = document.getElementById("playground-root");
 if (el) {
   createRoot(el).render(
-    /* No StrictMode: metal-fx v1 keeps one shared renderer, and the
+    /* No StrictMode: metal-fx keeps one shared renderer per engine, and the
        simulated double-mount destroys it in a state its loop never
        recovers from — everything paints one frame and freezes. The
        library's own demo mounts without StrictMode too. */

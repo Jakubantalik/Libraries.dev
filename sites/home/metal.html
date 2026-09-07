@@ -252,7 +252,7 @@
           <div class="detail-titles">
             <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/tile-metal.png" alt="" width="46" height="46" decoding="async" /></span>
             <h1 class="detail-title">Metal</h1>
-            <p class="detail-sub">A real-time WebGL liquid-metal ring around buttons and icons, with a wandering halo of animated chrome.</p>
+            <p class="detail-sub">Real-time liquid metal for buttons, icons, text and badges — a wandering halo, reflections on neighbours, a cursor that bends the ring. v2 on Paper Shaders; v1 still available.</p>
           </div>
 
           <div class="detail-head-row">
@@ -309,11 +309,16 @@
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
               <div class="code-block">
-              <pre id="usage-code">import { MetalFx } from 'metal-fx';
+              <pre id="usage-code">import { MetalFx, MetalText, MetalBadge } from 'metal-fx';
 
 &lt;MetalFx preset="chromatic" strength={1}&gt;
   &lt;button&gt;Upgrade to Pro&lt;/button&gt;
-&lt;/MetalFx&gt;</pre>
+&lt;/MetalFx&gt;
+
+&lt;MetalText font="500 24px/1.2 Inter" color="#8C8C8C"&gt;Pro&lt;/MetalText&gt;
+&lt;MetalBadge&gt;New&lt;/MetalBadge&gt;
+
+// v1 engine: npm install metal-fx@1</pre>
               <button type="button" class="code-copy" data-copy-target="#usage-code" aria-label="Copy usage example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -338,20 +343,32 @@ Add the Metal effect from Libraries.dev to my React app.
 Install:
 npm install metal-fx
 
-Usage:
-import { MetalFx } from 'metal-fx';
+Usage (v2):
+import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } from 'metal-fx';
 
 &lt;MetalFx preset="chromatic" strength={1}&gt;
   &lt;button&gt;Upgrade to Pro&lt;/button&gt;
 &lt;/MetalFx&gt;
 
-Props:
+&lt;MetalFx preset="gold" variant="circle" innerShadow ref={ref}&gt;   // useMetalBend(ref) for the cursor dent
+  &lt;button aria-label="Send"&gt;&lt;ArrowUpIcon /&gt;&lt;/button&gt;
+&lt;/MetalFx&gt;
+
+&lt;MetalText font="500 24px/1.2 Inter" color="#8C8C8C"&gt;Pro&lt;/MetalText&gt;
+&lt;MetalBadge&gt;New&lt;/MetalBadge&gt;
+
+Props (MetalFx):
 - preset: "chromatic" | "silver" | "gold" — each ships dark and light tunings
+- variant: "button" | "circle"
 - strength: 0-1, multiplies the shader opacity and glow alpha
 - theme: "light" | "dark", picks the preset's matching side
+- innerShadow: light rim on the ring's top inside edge
+- reflectionTargets: refs of neighbours that catch the metal
+- disableGlow, glowGain, paused
 
-Metal wraps a button or icon in a real-time WebGL liquid-metal ring with a
-wandering halo. Needs React 18 or newer.
+Metal wraps a button, icon, text or badge in a real-time WebGL liquid-metal
+effect with a wandering halo. Needs React 18+ and WebGL2 (falls back to the
+plain child). v1 engine: npm install metal-fx@1.
 Docs: https://libraries.dev/metal.html
     </pre>
 

@@ -1,7 +1,7 @@
 {
   "name": "metal-fx",
-  "version": "1.0.4",
-  "description": "Animated WebGL metal shader effect for React buttons and UI components",
+  "version": "2.0.0",
+  "description": "Liquid metal shader effects for React: rings, buttons, metal text and badges, with glow, proximity reflections and cursor light (v2 \u2014 Paper Shaders liquidMetal engine)",
   "type": "module",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -19,7 +19,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE",
+    "LICENSE",
+    "README.md"
   ],
   "sideEffects": false,
   "scripts": {
