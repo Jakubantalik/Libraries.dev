@@ -18,6 +18,7 @@ import {
   setSharedPreset,
   unregisterGlowInstance,
   updateInstance,
+  refreshInstanceDpr,
 } from './engine/renderer/loop';
 import { carryGlowState, injectGlow, updateGlow, updateGlowMask, type GlowOptions } from './engine/glow/glow';
 import { attachCursorLight, detachCursorLight } from './engine/cursor/light';
@@ -340,6 +341,23 @@ export const MetalFx = forwardRef<HTMLDivElement, MetalFxProps>(function MetalFx
     });
     ro.observe(root);
 
+    // Browser zoom changes the DPR but not the CSS box, so the observer above
+    // stays quiet and every raster (metal, glow, rim) would stay at the old
+    // resolution. A resolution query fires once per DPR change; re-arm it
+    // for the new value each time.
+    let dprMql: MediaQueryList | null = null;
+    const onDpr = () => {
+      const inst = instanceRef.current;
+      if (inst && refreshInstanceDpr(inst)) { const next = measure(); rebuildGlow(next); rebuildRim(next); }
+      watchDpr();
+    };
+    const watchDpr = () => {
+      dprMql?.removeEventListener('change', onDpr);
+      dprMql = typeof window.matchMedia === 'function' ? window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`) : null;
+      dprMql?.addEventListener('change', onDpr);
+    };
+    watchDpr();
+
     // Glow markup params (stroke widths, blurs, blob lengths) are baked into
     // the SVG, so a live config change to one of them means a rebuild. Runtime
     // params are read per-frame and need nothing here.
@@ -371,6 +389,7 @@ export const MetalFx = forwardRef<HTMLDivElement, MetalFxProps>(function MetalFx
       removeRim(rimHandlesRef.current);
       rimHandlesRef.current = null;
       ro.disconnect();
+      dprMql?.removeEventListener('change', onDpr);
       io?.disconnect();
       unsubGlow();
       if (resizeRaf !== 0) cancelAnimationFrame(resizeRaf);

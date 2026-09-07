@@ -178,6 +178,17 @@ export function setInstanceDeform(
   return true;
 }
 
+/** Re-rasterise an instance after the devicePixelRatio changed (browser
+ *  zoom, a display switch). The CSS box is unchanged, so no ResizeObserver
+ *  fires; without this the canvas stays at the old backing resolution. */
+export function refreshInstanceDpr(inst: MetalFxInstance): boolean {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  if (dpr === inst.dpr) return false;
+  resizeInstanceCanvas(inst);
+  copyShaderToInstance(inst);
+  return true;
+}
+
 /** Re-composite one instance now — for callers driving `deform` per frame at
  *  a higher rate than the shared 15 fps loop. */
 export function redrawInstance(canvas: HTMLCanvasElement): void {

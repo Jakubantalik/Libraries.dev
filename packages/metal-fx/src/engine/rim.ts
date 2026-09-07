@@ -103,11 +103,14 @@ export function updateRim(h: RimHandles, deform: DeformFn | null, force = false)
   const a = new Float32Array(n);
   for (let i = 0, j = 3; i < n; i++, j += 4) a[i] = d[j] / 255;
   const shift = Math.round(opts.offsetY * dpr) * w;
+  // Coverage the shifted band doesn't cover. A difference, not a product:
+  // on anti-aliased edges both values are partial and a product lit every
+  // edge instead of only the top one.
   const rim = new Float32Array(n);
   if (shift >= 0) {
-    for (let i = 0; i < n; i++) rim[i] = a[i] * (1 - (i >= shift ? a[i - shift] : 0));
+    for (let i = 0; i < n; i++) rim[i] = Math.max(0, a[i] - (i >= shift ? a[i - shift] : 0));
   } else {
-    for (let i = 0; i < n; i++) rim[i] = a[i] * (1 - (i - shift < n ? a[i - shift] : 0));
+    for (let i = 0; i < n; i++) rim[i] = Math.max(0, a[i] - (i - shift < n ? a[i - shift] : 0));
   }
   const blurred = gaussBlur(rim, w, hh, opts.blur * dpr);
 
@@ -116,7 +119,8 @@ export function updateRim(h: RimHandles, deform: DeformFn | null, force = false)
   const o = img.data;
   for (let i = 0, j = 0; i < n; i++, j += 4) {
     o[j] = cr; o[j + 1] = cg; o[j + 2] = cb;
-    o[j + 3] = Math.round(Math.min(1, blurred[i] * opts.alpha) * 255);
+    // Inner shadow: clipped to the band so the blur never leaks outside it.
+    o[j + 3] = Math.round(Math.min(1, blurred[i] * a[i] * opts.alpha) * 255);
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.putImageData(img, 0, 0);

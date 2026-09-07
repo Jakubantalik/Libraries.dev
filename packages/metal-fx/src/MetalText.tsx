@@ -46,7 +46,10 @@ function drawInnerShadow(cv: HTMLCanvasElement, root: HTMLElement, textEl: HTMLE
   const rim = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const above = i >= shift ? a[i - shift] : 0;
-    rim[i] = a[i] * (1 - above);
+    // Coverage the shifted glyph doesn't cover — the strip along the top
+    // edge. A difference, not a product: on anti-aliased side edges both
+    // values are partial and a product lit every edge of every glyph.
+    rim[i] = Math.max(0, a[i] - above);
   }
   const blurred = gaussBlur(rim, w, h, sh.blur * dpr);
   cv.width = w; cv.height = h;
@@ -55,7 +58,9 @@ function drawInnerShadow(cv: HTMLCanvasElement, root: HTMLElement, textEl: HTMLE
   const o = img.data;
   for (let i = 0, j = 0; i < n; i++, j += 4) {
     o[j] = 255; o[j + 1] = 255; o[j + 2] = 255;
-    o[j + 3] = Math.round(Math.min(1, blurred[i] * sh.alpha) * 255);
+    // Inner shadow: clipped to the glyph, so the blur never leaks outside
+    // the letterform (it read as a halo, worst when zoomed in).
+    o[j + 3] = Math.round(Math.min(1, blurred[i] * a[i] * sh.alpha) * 255);
   }
   g.putImageData(img, 0, 0);
 }
@@ -134,7 +139,17 @@ export function MetalText({
     document.fonts?.ready.then(() => { if (alive) draw(); });
     const ro = new ResizeObserver(draw);
     ro.observe(root);
-    return () => { alive = false; ro.disconnect(); cv.remove(); };
+    // Browser zoom changes the DPR without changing the CSS box, so the
+    // ResizeObserver stays quiet; re-rasterise from a resolution query.
+    let mql: MediaQueryList | null = null;
+    const watchDpr = () => {
+      mql?.removeEventListener('change', onDpr);
+      mql = typeof window.matchMedia === 'function' ? window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`) : null;
+      mql?.addEventListener('change', onDpr);
+    };
+    const onDpr = () => { if (!alive) return; draw(); watchDpr(); };
+    watchDpr();
+    return () => { alive = false; ro.disconnect(); mql?.removeEventListener('change', onDpr); cv.remove(); };
   }, [innerShadow]);
 
   const mask = useCallback<MaskFn>((ctx, _w, _h, dpr) => {
