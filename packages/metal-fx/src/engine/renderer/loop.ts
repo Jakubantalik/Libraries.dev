@@ -546,8 +546,9 @@ function tick(now: number): void {
 
   renderSharedFrame(now);
 
+  // The only readback: after the draw, before the frame is transferred away.
+  ensureGlowPixels();
   if (SHARED.useOffscreen) {
-    if (SHARED.glowQueue.length > 0) ensureGlowPixels();
     SHARED.frameBitmap?.close();
     SHARED.frameBitmap = (SHARED.glCanvas as OffscreenCanvas).transferToImageBitmap();
   }

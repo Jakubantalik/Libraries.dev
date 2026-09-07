@@ -4,8 +4,17 @@
  * All glow luminance/color sampling reads from a shared pixel buffer
  * (SHARED.glowPixels). The buffer is refreshed via gl.readPixels at most
  * every GLOW_READBACK_INTERVAL_MS to avoid the expensive GPU→CPU pipeline
- * flush on every frame. The plasma shader evolves slowly so 200ms-stale
- * data is visually indistinguishable.
+ * flush on every frame. The plasma shader evolves slowly so stale data is
+ * visually indistinguishable.
+ *
+ * The readback happens in exactly one place: the render loop, right after
+ * the shader frame is drawn and before the OffscreenCanvas frame is
+ * transferred (`transferToImageBitmap` leaves the drawing buffer cleared).
+ * The samplers below never read back on their own — they used to, and any
+ * sample taken between shader frames (fast glow ticks while a fade runs,
+ * the cursor-light loop at pointer rate) that landed on an elapsed interval
+ * read the cleared buffer: black tint, zero luminance, a halo that vanished
+ * with no fade and stayed gone for the next interval.
  */
 import { GLOW_READBACK_INTERVAL_MS } from '../perfConfig';
 import { SHARED, CANONICAL_PILL_W, CANONICAL_PILL_H, type MetalFxInstance, type ShaderRGB } from './core';
@@ -84,7 +93,6 @@ const _rgb: ShaderRGB = { r: 255, g: 255, b: 255 };
 
 export function sampleShaderLumAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): number {
   if (!SHARED) return 0;
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const s = sampleRegion(SHARED.glowPixels, SHARED.glowPixelsW, SHARED.glowPixelsH, m.bx, m.by, radius);
   return s.count > 0 ? s.lum / s.count : 0;
@@ -92,7 +100,6 @@ export function sampleShaderLumAt(inst: MetalFxInstance, cssPxX: number, cssPxY:
 
 export function sampleShaderRGBAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): ShaderRGB {
   if (!SHARED) { _rgb.r = 255; _rgb.g = 255; _rgb.b = 255; return _rgb; }
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const s = sampleRegion(SHARED.glowPixels, SHARED.glowPixelsW, SHARED.glowPixelsH, m.bx, m.by, radius);
   if (s.count === 0) { _rgb.r = 255; _rgb.g = 255; _rgb.b = 255; return _rgb; }
@@ -102,7 +109,6 @@ export function sampleShaderRGBAt(inst: MetalFxInstance, cssPxX: number, cssPxY:
 
 export function sampleShaderRGBChromatic(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): ShaderRGB {
   if (!SHARED) { _rgb.r = 255; _rgb.g = 255; _rgb.b = 255; return _rgb; }
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const { glowPixels: buf, glowPixelsW: W, glowPixelsH: H } = SHARED;
   const r = Math.max(1, radius | 0);
@@ -132,7 +138,6 @@ const _pk = { r: 255, g: 255, b: 255, lum: 0 };
 export function sampleShaderPeakAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): typeof _pk {
   _pk.r = 255; _pk.g = 255; _pk.b = 255; _pk.lum = 0;
   if (!SHARED) return _pk;
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const { glowPixels: buf, glowPixelsW: W, glowPixelsH: H } = SHARED;
   const r = Math.max(1, radius | 0);
