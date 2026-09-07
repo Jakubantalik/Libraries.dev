@@ -572,7 +572,7 @@ function drawCursor(inst: MetalFxInstance, cfg: CursorLightConfig, env: number):
   // itself is anti-aliased toward transparent and reads dark.
   const bcx = inst.cssWidth / 2, bcy = inst.cssHeight / 2;
   const inx = bcx - _near.nx, iny = bcy - _near.ny, inl = Math.hypot(inx, iny) || 1;
-  const ins = inst.ringCssPx * 0.5 + 1;
+  const ins = inst.mask ? 0 : inst.ringCssPx * 0.5 + 1;
   const sxp = _near.nx + (inx / inl) * ins, syp = _near.ny + (iny / inl) * ins;
   const pk = sampleShaderPeakAt(inst, sxp, syp, 4);
   const lum = pk.lum;
@@ -605,8 +605,9 @@ function drawCursor(inst: MetalFxInstance, cfg: CursorLightConfig, env: number):
       const passes = Math.max(1, Math.ceil(spec));
       rctx.globalAlpha = Math.min(1, spec / passes);
       rctx.globalCompositeOperation = 'lighter';
+      const srcCanvas = inst.mask && inst.rawCanvas ? inst.rawCanvas : inst.canvas;
       for (let i = 0; i < passes; i++) {
-        rctx.drawImage(inst.canvas, -(_near.nx + o) * k, -(_near.ny + o) * k, (inst.cssWidth + 2 * o) * k, (inst.cssHeight + 2 * o) * k);
+        rctx.drawImage(srcCanvas, -(_near.nx + o) * k, -(_near.ny + o) * k, (inst.cssWidth + 2 * o) * k, (inst.cssHeight + 2 * o) * k);
       }
       rctx.restore();
       // Fade into the body away from the mirror plane.
@@ -728,6 +729,13 @@ function stepInner(now: number): void {
     if (best) {
       if (bestAbs <= reachA) { const t = 1 - bestAbs / reachA; u = t * t * (3 - 2 * t); }
       if (bestAbs <= reachC) uC = Math.min(1, (1 - bestAbs / reachC) * 3);
+      if (best.mask) {
+        // Metal text: the light is the word itself, not its box edge. Point
+        // the light at the box centre and keep the unmasked sheet around for
+        // the mirror image — three thin glyphs mirror as almost nothing.
+        _near.nx = best.cssWidth / 2; _near.ny = best.cssHeight / 2;
+        best.wantRaw = true;
+      }
     }
   }
 
