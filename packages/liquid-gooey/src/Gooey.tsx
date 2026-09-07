@@ -127,14 +127,7 @@ export const GooeyRoot = forwardRef<HTMLDivElement, GooeyProps>(function Gooey(
   // 5-25% alphas shadows use, that cross-term is under 1% alpha, invisible.
   // The filter pad also shrinks to what the REMAINING svg layers reach,
   // which cuts the rasterised area again.
-  const svgShadows = shadows.filter(s => s.inset || s.spread !== 0)
-  const cssShadowFilter = shadows
-    .filter(s => !s.inset && s.spread === 0)
-    // box-shadow lists paint the FIRST layer on top; drop-shadow chains
-    // paint later filters behind earlier output, so document order already
-    // matches.
-    .map(s => `drop-shadow(${s.x}px ${s.y}px ${s.blur}px ${s.color})`)
-    .join(' ')
+  const svgShadows = shadows
   const shadowExtent = svgShadows.reduce(
     (m, s) => Math.max(m, Math.max(Math.abs(s.x), Math.abs(s.y)) + s.blur * 1.5 + Math.max(0, s.spread)),
     0,
@@ -162,8 +155,6 @@ export const GooeyRoot = forwardRef<HTMLDivElement, GooeyProps>(function Gooey(
           overflow: 'visible',
           pointerEvents: 'none',
           zIndex: -1,
-          // The GPU half of the shadow stack (see above).
-          filter: cssShadowFilter || undefined,
           // Promote the filtered layer: WebKit otherwise repaints the goo a
           // frame or two behind the plain-DOM content.
           willChange: 'filter, transform',

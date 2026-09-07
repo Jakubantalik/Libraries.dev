@@ -23,17 +23,15 @@ const p3 = (tpl: string) =>
  *  support. */
 export const SHADOWS: Record<Theme, Record<string, string>> = {
   light: {
-    'Figma soft':
-      '0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05), 0 4px 42px rgba(0, 0, 0, 0.06)',
-    Floating: '0 2px 6px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.18)',
+    'Figma soft': '0 0 0 1px rgba(0, 0, 0, 0.06) inset',
+    Floating: '',
     None: '',
   },
   dark: {
     'Figma soft': p3(
-      '0 0 0 1px {w4} inset, 0 1px 0 0 {w3} inset, ' +
-        '0 0 0 1px {k6}, 0 2px 6px 0 {k5}, 0 4px 42px 0 {k24}',
+      '0 0 0 1px {w4} inset, 0 1px 0 0 {w3} inset',
     ),
-    Floating: '0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.55)',
+    Floating: '',
     None: '',
   },
 }
