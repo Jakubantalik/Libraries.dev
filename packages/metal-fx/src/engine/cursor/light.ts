@@ -29,9 +29,10 @@
  * Fail-safes for the cursor swap (the only part that can hurt someone):
  *   • off under `prefers-reduced-motion`, `forced-colors`, coarse/no-hover
  *     pointers, and pen/touch input;
- *   • off while the page is zoomed (DPR differs from when the sprite was
- *     registered, or pinch-zoomed) — the sprite would scale, the OS cursor
- *     wouldn't;
+ *   • browser zoom is compensated: the sprite is scaled by the display's
+ *     backing scale over the current DPR, so it keeps the OS cursor's
+ *     device-pixel size while the page zooms around it; off only while
+ *     pinch-zoomed (the visual viewport, which the fixed sprite can't track);
  *   • the OS cursor is hidden by an inline style on one element only, never
  *     a stylesheet, restored on every leave/blur/hide/keydown, when that
  *     element is detached, and on any exception (which also disables the
@@ -163,9 +164,26 @@ export interface CursorSprite {
 
 let sprite: CursorSprite | null = null;
 let spriteImg: HTMLImageElement | null = null;
-/** DPR when the sprite was registered — a change means browser zoom or a
- *  different display, where the sprite no longer matches the OS cursor. */
+/** The display's backing scale (1 or 2 on a Mac). The OS cursor is drawn at
+ *  this scale regardless of page zoom; `devicePixelRatio` is backing scale
+ *  × browser zoom, so the sprite is drawn at `spriteDpr / devicePixelRatio`
+ *  of its CSS size to stay the cursor's true size. A page loaded already
+ *  zoomed can't tell the two apart; ≥ 1.5 reads as a Retina display. */
 let spriteDpr = 0;
+
+/** CSS scale that keeps the sprite at the OS cursor's device-pixel size. */
+function zoomScale(): number {
+  const dpr = window.devicePixelRatio || 1;
+  return spriteDpr > 0 ? spriteDpr / dpr : 1;
+}
+
+/** Put the sprite's hotspot on the pointer, at the zoom-compensated size. */
+function placeCursor(x: number, y: number): void {
+  if (!curEl || !sprite) return;
+  const k = zoomScale();
+  const tx = (x - sprite.hotX * k).toFixed(2), ty = (y - sprite.hotY * k).toFixed(2);
+  curEl.style.transform = k === 1 ? `translate3d(${tx}px,${ty}px,0)` : `translate3d(${tx}px,${ty}px,0) scale(${k.toFixed(4)})`;
+}
 /** Off-switch flipped by the fail-safes. An exception disables for the
  *  session; the frame-time watchdog only pauses for a while (`disabledUntil`). */
 let cursorDisabled = false;
@@ -268,7 +286,8 @@ export function setCursorSprite(next: CursorSprite | null): void {
   sprite = next;
   spriteImg = null; bodyPts = null; bodyMask = null; bodyAlpha = null;
   cursorDisabled = false; disabledUntil = 0; slowFrames = 0;
-  spriteDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const dprNow = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  spriteDpr = dprNow >= 1.5 ? 2 : 1;
   hideCursor();
   if (!next || typeof Image === 'undefined') return;
   const img = new Image();
@@ -317,7 +336,6 @@ function cursorSwapAllowed(): boolean {
   if (cursorDisabled || performance.now() < disabledUntil || !sprite || !spriteImg) return false;
   if (mq('(prefers-reduced-motion: reduce)') || mq('(forced-colors: active)')) return false;
   if (!mq('(pointer: fine)') || !mq('(hover: hover)')) return false;
-  if ((window.devicePixelRatio || 1) !== spriteDpr) return false;
   const vv = window.visualViewport;
   if (vv && Math.abs(vv.scale - 1) > 0.001) return false;
   return true;
@@ -369,8 +387,7 @@ function onMove(e: PointerEvent): void {
   // next move. Moving the sprite here also trims a frame of lag.
   if (curShown && curEl) {
     if (pointerIsMouse && claimCursor(px, py)) {
-      const sp = sprite;
-      if (sp) curEl.style.transform = `translate3d(${(px - sp.hotX).toFixed(2)}px,${(py - sp.hotY).toFixed(2)}px,0)`;
+      placeCursor(px, py);
     } else {
       hideCursor();
     }
@@ -466,7 +483,7 @@ function ensureCursor(): boolean {
   const el = document.createElement('div');
   el.className = 'metal-fx-cursor';
   el.setAttribute('aria-hidden', 'true');
-  el.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:2147483001;will-change:transform;display:none';
+  el.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;z-index:2147483001;will-change:transform;transform-origin:0 0;display:none';
   const c = document.createElement('canvas');
   c.style.display = 'block';
   el.appendChild(c);
@@ -643,7 +660,7 @@ function drawCursor(inst: MetalFxInstance, cfg: CursorLightConfig, env: number):
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  curEl.style.transform = `translate3d(${(lpx - sp.hotX).toFixed(2)}px,${(lpy - sp.hotY).toFixed(2)}px,0)`;
+  placeCursor(lpx, lpy);
   if (!curShown) { curEl.style.display = ''; curShown = true; }
 }
 
