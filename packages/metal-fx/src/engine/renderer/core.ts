@@ -74,6 +74,10 @@ export interface MetalFxInstance {
    *  instance that mounts already paused still gets one frame painted before
    *  it freezes (otherwise it would render a blank canvas). */
   everCopied: boolean;
+  /** The shader frame this instance froze on when paused. While paused every
+   *  composite (a bend redraw, a resize) draws from this copy, so the ring
+   *  keeps its still texture while the shared loop runs on for others. */
+  frozen: HTMLCanvasElement | null;
   dpr: number;
   /** Master scale multiplier for absolute-pixel internals (glow stroke
    *  widths/blurs, reflection stroke band, etc.). 1 is the baseline. Set to

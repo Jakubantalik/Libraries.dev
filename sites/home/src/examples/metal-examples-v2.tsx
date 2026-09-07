@@ -1,23 +1,22 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   MetalBadge,
   MetalFx,
-  MetalText,
   setCursorSprite,
   useMetalBend,
-  useMetalTextReflection,
 } from "metal-fx";
 import { MAC_ARROW, isMacPointer } from "./metal-cursor-sprite";
 
-/* Metal v2 examples — the metal-fx v2 demo page's three cards, on the site's
-   mx-* classes. Same presets, strengths and per-card settings as the demo:
+/* Metal v2 examples — two of the metal-fx v2 demo page's cards, on the
+   site's mx-* classes. Same presets, strengths and per-card settings as the
+   demo:
 
-   1. Composer: gold circle send button with the inner-shadow rim, the
+   1. Composer: circle send button with the inner-shadow rim, the
       cursor-driven liquid bend, reflection onto the Auto chip, and the
       cursor light (the ring lights the pointer; macOS sprite only).
-   2. "Plan Pro": metal inside the glyphs of "Pro" (with its inner shadow),
-      "Plan" catches the metal on its letterforms.
-   3. "Live mode · New": the New badge — white pill, metal rim, clean core. */
+   2. "Live mode · New": the New badge — white pill, metal rim, clean core.
+
+   The "Plan Pro" text card is the playground's Text type instead. */
 
 function PlusIcon() {
   return (
@@ -60,12 +59,6 @@ export function MetalExamplesV2({ strength = 1 }: { strength?: number }) {
   useMetalBend(sendRef);
   useMetalCursorSprite();
 
-  const planRef = useRef<HTMLSpanElement>(null);
-  useMetalTextReflection(planRef);
-  // Stable identity: MetalFx re-registers its reflection wrapper whenever
-  // this array's identity changes.
-  const planTargets = useMemo(() => [{ ref: planRef, strength: 0.64 }], []);
-
   return (
     <div className="detail-examples" aria-label="Effect demonstrations">
       {/* Composer */}
@@ -105,16 +98,6 @@ export function MetalExamplesV2({ strength = 1 }: { strength?: number }) {
               </button>
             </MetalFx>
           </div>
-        </div>
-      </div>
-
-      {/* Plan · Pro — metal in the glyphs */}
-      <div className="example-row-full mx-row mx-row--card">
-        <div className="mx-card-line mx-card-line--plan">
-          <span ref={planRef} className="mx-plan">Plan</span>
-          <MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2" strength={strength} theme="dark" reflectionTargets={planTargets}>
-            Pro
-          </MetalText>
         </div>
       </div>
 

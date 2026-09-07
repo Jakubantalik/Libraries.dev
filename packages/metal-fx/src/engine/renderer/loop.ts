@@ -75,6 +75,7 @@ export function createInstance(opts: CreateInstanceOptions): MetalFxInstance {
     visible: true,
     paused: opts.paused ?? false,
     everCopied: false,
+    frozen: null,
     dpr: typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1,
     scale,
     onAfterFrame: opts.onAfterFrame,
@@ -137,6 +138,9 @@ export function updateInstance(
   if (patch.glowGain !== undefined) inst.glowGain = patch.glowGain;
   if (patch.paused !== undefined && patch.paused !== inst.paused) {
     inst.paused = patch.paused;
+    // Freeze on the frame the instance is showing right now; drop the copy
+    // on unpause so composites go back to the live frame.
+    if (patch.paused) freezeFrame(inst); else inst.frozen = null;
     // Unpausing should kick the loop if it had idled because every visible
     // instance was paused.
     if (!patch.paused && SHARED && SHARED.rafId === 0 && SHARED.pausedAtMs === null && !SHARED.contextLost) {
@@ -307,9 +311,27 @@ function traceDeformedRoundRect(
   ctx.closePath();
 }
 
+/** Copy the current shared frame into the instance's own still. */
+function freezeFrame(inst: MetalFxInstance): HTMLCanvasElement | null {
+  if (!SHARED) return null;
+  const live: CanvasImageSource = SHARED.frameBitmap ?? SHARED.glCanvas;
+  const w = SHARED.glCanvas.width, h = SHARED.glCanvas.height;
+  if (w < 1 || h < 1) return null;
+  let fc = inst.frozen;
+  if (!fc) { fc = document.createElement('canvas'); inst.frozen = fc; }
+  if (fc.width !== w || fc.height !== h) { fc.width = w; fc.height = h; }
+  const g = fc.getContext('2d');
+  if (!g) { inst.frozen = null; return null; }
+  g.clearRect(0, 0, w, h);
+  g.drawImage(live, 0, 0);
+  return fc;
+}
+
 function copyShaderToInstance(inst: MetalFxInstance): void {
   if (!SHARED) return;
-  const src: CanvasImageSource = SHARED.frameBitmap ?? SHARED.glCanvas;
+  // A paused instance composites from its frozen frame — a bend or a resize
+  // must not pull in the live shader, or the "paused" ring plays on hover.
+  const src: CanvasImageSource = (inst.paused ? (inst.frozen ?? freezeFrame(inst)) : null) ?? SHARED.frameBitmap ?? SHARED.glCanvas;
   const dpr = inst.dpr;
   const dw = inst.canvas.width, dh = inst.canvas.height;
   if (dw < 1 || dh < 1) return;
@@ -319,7 +341,7 @@ function copyShaderToInstance(inst: MetalFxInstance): void {
   const bh = Math.max(1, Math.round(inst.cssHeight * dpr));
   const od = inst.overscan * dpr;
 
-  const cw = SHARED.glCanvas.width, ch = SHARED.glCanvas.height;
+  const cw = (src as { width: number }).width, ch = (src as { height: number }).height;
   const bdW = CANONICAL_PILL_W * dpr, bdH = CANONICAL_PILL_H * dpr;
   let srcW = (bw * (cw / bdW)) / inst.shaderScale;
   let srcH = (bh * (ch / bdH)) / inst.shaderScale;
