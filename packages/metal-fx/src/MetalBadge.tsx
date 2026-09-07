@@ -30,6 +30,8 @@ const W = 45, H = 25;
 const TEXT_W = 26.667, TEXT_H = 13.333;
 const PAD_X = (W - TEXT_W) / 2;
 
+const LAYER: React.CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' };
+
 /** `glow` scales the two soft inner glows; the hairline rims stay as designed. */
 const shadowFor = (k: number, glow: number) =>
   `inset 0px 0px ${8.333 * k}px 0px rgba(255,255,255,${glow}), ` +
@@ -101,12 +103,14 @@ export function MetalBadge({
       borderRadius={RADIUS * scale}
       style={{ background: '#ffffff', borderRadius: RADIUS * scale }}
     >
-      <div className="relative" style={{ width: W * scale, height: H * scale, borderRadius: RADIUS * scale }}>
+      {/* Inline layout only — no utility classes, so the badge renders the
+          same with or without a CSS framework on the host page. */}
+      <div style={{ position: 'relative', width: W * scale, height: H * scale, borderRadius: RADIUS * scale }}>
         {/* layer 3b — clean white core under the label (rim-only metal) */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
           style={{
+            ...LAYER,
             borderRadius: RADIUS * scale,
             // Stops are relative to the ellipse radius, so 100% = its edge.
             background: `radial-gradient(ellipse ${core.size}% ${core.size}% at 50% 50%, rgba(255,255,255,1) ${core.r}%, rgba(255,255,255,0) ${Math.min(100, core.r + core.blur)}%)`,
@@ -116,16 +120,20 @@ export function MetalBadge({
         {/* layers 3 + 5 — white gradient and inset rims, over the metal */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
           style={{
+            ...LAYER,
             borderRadius: RADIUS * scale,
             background: `linear-gradient(to bottom, rgba(255,255,255,${gradient}), rgba(255,255,255,0))`,
             boxShadow: shadowFor(scale, glow),
           }}
         />
         <span
-          className="relative flex items-center justify-center"
           style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxSizing: 'border-box',
             width: W * scale,
             height: H * scale,
             paddingLeft: PAD_X * scale,

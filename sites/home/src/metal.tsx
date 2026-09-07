@@ -11,10 +11,10 @@ import { MetalFx, MetalText, setCursorLightConfig, useMetalBend, useMetalTextRef
 
    Two families:
      v2 — metal-fx 2 (Paper Shaders liquidMetal engine). Types: Circle
-          button, Button, Text — each with the settings the v2 demo page
-          ships (rim on the circle, cursor bend, glyph metal with its inner
-          shadow). The New badge shows in the examples above; as a type it
-          lives in the Studio only.
+          button, Text — each with the settings the v2 demo page ships
+          (rim on the circle, cursor bend, glyph metal with its inner
+          shadow). The pill button and the New badge show in the examples
+          above; as types they live in the Studio only.
      v1 — metal-fx 1.0.4 as published, unchanged: Button / Circle.
 
    Preset and strength stay at the demo's baseline (chromatic at 90%)
@@ -29,10 +29,9 @@ const FAMILIES: Array<{ id: Family; label: string }> = [
   { id: "v1", label: "v1" },
 ];
 
-type V2Type = "circle" | "button" | "text";
+type V2Type = "circle" | "text";
 const V2_TYPES: Array<{ id: V2Type; label: string }> = [
   { id: "circle", label: "Circle button" },
-  { id: "button", label: "Button" },
   { id: "text", label: "Text" },
 ];
 
@@ -81,14 +80,6 @@ function snippetBodyV2(type: V2Type, s: string, g: string, r: string): string {
         `  <button aria-label="Send"><ArrowUpIcon /></button>`,
         `</MetalFx>`,
       ].join("\n");
-    case "button":
-      return [
-        `import { MetalFx } from 'metal-fx';`,
-        ``,
-        `<MetalFx preset="chromatic"${s}${g}${r}>`,
-        `  <button>Upgrade to Pro</button>`,
-        `</MetalFx>`,
-      ].join("\n");
     case "text":
       return [
         `import { MetalText, useMetalTextReflection } from 'metal-fx';`,
@@ -127,73 +118,69 @@ function SearchIcon() {
 function StageV2({
   type, paused, disableGlow, disableReflection,
 }: { type: V2Type; paused: boolean; disableGlow: boolean; disableReflection: boolean }) {
+  useMetalCursorSprite();
+  // Each type is its own component so the hooks that need a mounted element
+  // (useMetalBend on the send button, useMetalTextReflection on "Plan") run
+  // against it. One component with a conditional return ran them once, with
+  // a null ref, and the type mounted later never got its bend / glyph mask.
+  return type === "text"
+    ? <TextStageV2 disableReflection={disableReflection} />
+    : <CircleStageV2 paused={paused} disableGlow={disableGlow} disableReflection={disableReflection} />;
+}
+
+function TextStageV2({ disableReflection }: { disableReflection: boolean }) {
+  const strength = STRENGTH / 100;
+  const planRef = useRef<HTMLSpanElement>(null);
+  useMetalTextReflection(planRef);
+  const planTargets = useMemo(() => [{ ref: planRef, strength: 0.64 }], []);
+  return (
+    <div className="metal-stage-row">
+      <div className="mx-card-line mx-card-line--plan">
+        <span ref={planRef} className="mx-plan">Plan</span>
+        <MetalText
+          font="500 24px/1.2 Inter, sans-serif"
+          color="#E2E2E2"
+          strength={strength}
+          theme="dark"
+          reflectionTargets={disableReflection ? undefined : planTargets}
+          glow={false}
+        >
+          Pro
+        </MetalText>
+      </div>
+    </div>
+  );
+}
+
+function CircleStageV2({
+  paused, disableGlow, disableReflection,
+}: { paused: boolean; disableGlow: boolean; disableReflection: boolean }) {
   const strength = STRENGTH / 100;
   const searchRef = useRef<HTMLLabelElement>(null);
   const sendRef = useRef<HTMLDivElement>(null);
-  const planRef = useRef<HTMLSpanElement>(null);
   useMetalBend(sendRef);
-  useMetalTextReflection(planRef);
-  useMetalCursorSprite();
-  const planTargets = useMemo(() => [{ ref: planRef, strength: 0.64 }], []);
   const searchTargets = useMemo(() => [searchRef], []);
-
-  if (type === "text") {
-    return (
-      <div className="metal-stage-row">
-        <div className="mx-card-line mx-card-line--plan">
-          <span ref={planRef} className="mx-plan">Plan</span>
-          <MetalText
-            key="text"
-            font="500 24px/1.2 Inter, sans-serif"
-            color="#E2E2E2"
-            strength={strength}
-            theme="dark"
-            reflectionTargets={disableReflection ? undefined : planTargets}
-            glow={false}
-          >
-            Pro
-          </MetalText>
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="metal-stage-row">
       <label ref={searchRef} className="metal-search">
         <SearchIcon />
         <input type="search" placeholder="Search" spellCheck={false} tabIndex={-1} aria-label="Search" />
       </label>
-      {type === "circle" ? (
-        <MetalFx
-          key="circle"
-          ref={sendRef}
-          preset="chromatic"
-          variant="circle"
-          theme="dark"
-          strength={strength * 0.9}
-          paused={paused}
-          disableGlow={disableGlow}
-          innerShadow
-          reflectionTargets={disableReflection ? undefined : searchTargets}
-        >
-          <button type="button" className="metal-pill metal-pill--circle metal-pill--send" aria-label="Send">
-            <ArrowUpIcon />
-          </button>
-        </MetalFx>
-      ) : (
-        <MetalFx
-          key="button"
-          preset={PRESET}
-          variant="button"
-          theme="dark"
-          strength={strength * 0.7}
-          paused={paused}
-          disableGlow={disableGlow}
-          reflectionTargets={disableReflection ? undefined : searchTargets}
-        >
-          <button type="button" className="metal-pill">Upgrade to Pro</button>
-        </MetalFx>
-      )}
+      <MetalFx
+        ref={sendRef}
+        preset="chromatic"
+        variant="circle"
+        theme="dark"
+        strength={strength * 0.9}
+        paused={paused}
+        disableGlow={disableGlow}
+        innerShadow
+        reflectionTargets={disableReflection ? undefined : searchTargets}
+      >
+        <button type="button" className="metal-pill metal-pill--circle metal-pill--send" aria-label="Send">
+          <ArrowUpIcon />
+        </button>
+      </MetalFx>
     </div>
   );
 }
