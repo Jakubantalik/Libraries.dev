@@ -311,10 +311,11 @@ export function updateGlow(h: GlowHandles, inst: MetalFxInstance, nowMs: number,
   const rate = (perTick: number) => 1 - Math.pow(1 - perTick, dtMs / RATE_TICK_MS);
 
   // Relocation rules: a hotspot holds for at least `minDwellMs`; moving is
-  // always disappear-in-place (relocFadeMs) then appear at the new point
+  // always disappear-in-place (relocFadeOutMs) then appear at the new point
   // (relocFadeMs). The halo never slides along the ring — except in cursor
   // mode, where the light source itself is moving.
   const fadeMs = Math.max(1, GLOW.relocFadeMs);
+  const fadeOutMs = Math.max(1, GLOW.relocFadeOutMs);
   const CURSOR_ENTER = -2, CURSOR_EXIT = -3;
   const fadeIn = () => {
     h.appearedAt = nowMs;
@@ -324,7 +325,7 @@ export function updateGlow(h: GlowHandles, inst: MetalFxInstance, nowMs: number,
   };
   const fadeOut = (next: number) => {
     h.relocNextIdx = next;
-    h.relocTween = tween(1, 0, fadeMs, ease.smoothstep);
+    h.relocTween = tween(1, 0, fadeOutMs, ease.smoothstep);
     tweenStart(h.relocTween, h.envClock);
   };
   if (h.relocTween?.done && h.relocTween.to === 0) {

@@ -41,9 +41,11 @@ export interface GlowConfig {
   lumHi: number;
   /** Minimum time at a hotspot before a brighter rival can steal it. */
   minDwellMs: number;
-  /** Appear / disappear duration, ms. A relocation is a full fade-out at
-   *  the old spot then a full fade-in at the new one — the glow never slides. */
+  /** Appear duration, ms. A relocation is a full fade-out at the old spot
+   *  then a full fade-in at the new one — the glow never slides. */
   relocFadeMs: number;
+  /** Disappear duration, ms. Slower than the appear so a hotspot lingers. */
+  relocFadeOutMs: number;
   /** Point-mode (masked text/glyph) intensity multiplier. The mask discards
    *  most of the halo's blur, so what survives inside the strokes needs a
    *  boost to read at all. */
@@ -101,6 +103,7 @@ export const GLOW_DEFAULTS: Readonly<GlowConfig> = Object.freeze({
   lumHi: 0.32,
   minDwellMs: 1500,
   relocFadeMs: 300,
+  relocFadeOutMs: 450,
   pointGain: 2.5,
 
   haloHalfLen: 7.8,

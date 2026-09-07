@@ -25,7 +25,8 @@ const RUNTIME: Row[] = [
   ['lumLo', 'Lum lo', 0, 1, 0.01],
   ['lumHi', 'Lum hi', 0, 1, 0.01],
   ['minDwellMs', 'Min dwell ms', 0, 10000, 100],
-  ['relocFadeMs', 'Appear/disappear ms', 0, 2000, 10],
+  ['relocFadeMs', 'Appear ms', 0, 2000, 10],
+  ['relocFadeOutMs', 'Disappear ms', 0, 3000, 10],
   ['pointGain', 'Text gain', 0, 6, 0.05],
 ];
 

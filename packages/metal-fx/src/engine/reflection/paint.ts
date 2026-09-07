@@ -68,8 +68,8 @@ export interface ReflectionOccluderConfig {
 
 export const REFLECTION_OCCLUDER_DEFAULTS: Readonly<ReflectionOccluderConfig> = Object.freeze({
   enabled: true,
-  radius: 20,
-  strength: 1,
+  radius: 11.5,
+  strength: 0.57,
   penumbra: 0.55,
   falloff: 0.21,
   edgeFade: 0.7,
