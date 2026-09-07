@@ -29,9 +29,8 @@ jobs:
 
       # Publish; --access public is required for unscoped packages on a
       # personal account so the registry knows the package is open. The
-      # NPM_TOKEN secret must be a "Granular Access" or "Automation" token
-      # created at https://www.npmjs.com/settings/jakubkubo/tokens with
-      # publish rights to the metal-fx package.
+      # `metal2` secret is a "Granular Access" or "Automation" npm token
+      # with publish rights to the metal-fx package. v2 is published from the Libraries.dev monorepo (METAL2 secret).
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

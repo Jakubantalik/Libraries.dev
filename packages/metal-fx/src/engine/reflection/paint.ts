@@ -191,10 +191,13 @@ function applyOccluderShadow(
 
   // 0 at the target's edge, 1 at the anchor's edge.
   const t = Math.max(0, Math.min(1, Math.abs(along - gapStart) / gapW));
-  // Fade at the gap's ends so entering/leaving doesn't pop.
+  // Fade at the region's edges on both axes so entering/leaving from any
+  // side eases in instead of popping — coming at the gap from above or
+  // below used to land the full band in one frame.
   const fadePx = Math.max(0.5, r * cfg.edgeFade);
   const endFade = Math.min(1, Math.min(along - (lo - r), (hi + r) - along) / fadePx);
-  const depth = cfg.strength * (1 - cfg.falloff * t) * endFade;
+  const sideFade = Math.min(1, Math.min(across - (bandLo - r), (bandHi + r) - across) / fadePx);
+  const depth = cfg.strength * (1 - cfg.falloff * t) * endFade * sideFade;
   if (depth <= 0.001) return;
 
   const halfBand = r * dpr * (1 + cfg.penumbra * t);
@@ -202,25 +205,44 @@ function applyOccluderShadow(
   const c = horiz
     ? (across - tRect.top + overscanCssPx) * dpr
     : (across - tRect.left + overscanCssPx) * dpr;
+  // softness 1 → triangle; 0 → flat plateau across the whole band.
+  const core = Math.max(0, Math.min(0.5, (1 - cfg.softness) * 0.5));
+  const ramp = Math.max(1e-3, 0.5 - core);
 
+  // Cut the band out in pixel data. Not `destination-out`: WebKit
+  // intermittently misapplies composite ops on accelerated canvases and
+  // paints the band's rectangle instead — a flash at the band's edges.
+  const span = horiz ? th : tw;
+  const p0 = Math.max(0, Math.floor(c - halfBand)), p1 = Math.min(span, Math.ceil(c + halfBand));
+  if (p1 <= p0) return;
+  const factor = new Float32Array(p1 - p0);
+  for (let i = p0; i < p1; i++) {
+    const p = (i + 0.5 - (c - halfBand)) / (2 * halfBand);
+    const a = p < ramp ? p / ramp : p > 1 - ramp ? (1 - p) / ramp : 1;
+    factor[i - p0] = 1 - depth * Math.max(0, Math.min(1, a));
+  }
   for (const c2d of [ctx, strokeCtx]) {
-    c2d.save();
-    c2d.setTransform(1, 0, 0, 1, 0, 0);
-    c2d.globalCompositeOperation = 'destination-out';
-    const g = horiz
-      ? c2d.createLinearGradient(0, c - halfBand, 0, c + halfBand)
-      : c2d.createLinearGradient(c - halfBand, 0, c + halfBand, 0);
-    // softness 1 → triangle; 0 → flat plateau across the whole band.
-    const core = Math.max(0, Math.min(0.5, (1 - cfg.softness) * 0.5));
-    const d = `rgba(0,0,0,${depth.toFixed(3)})`;
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.5 - core, d);
-    g.addColorStop(0.5 + core, d);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    c2d.fillStyle = g;
-    if (horiz) c2d.fillRect(0, c - halfBand, tw, halfBand * 2);
-    else c2d.fillRect(c - halfBand, 0, halfBand * 2, th);
-    c2d.restore();
+    const x = horiz ? 0 : p0, y = horiz ? p0 : 0;
+    const w = horiz ? tw : p1 - p0, h = horiz ? p1 - p0 : th;
+    const img = c2d.getImageData(x, y, w, h);
+    const d = img.data;
+    if (horiz) {
+      for (let row = 0; row < h; row++) {
+        const f = factor[row];
+        if (f >= 0.999) continue;
+        for (let j = row * w * 4 + 3, e = (row + 1) * w * 4; j < e; j += 4) d[j] = d[j] * f;
+      }
+    } else {
+      for (let row = 0; row < h; row++) {
+        for (let col = 0; col < w; col++) {
+          const f = factor[col];
+          if (f >= 0.999) continue;
+          const j = (row * w + col) * 4 + 3;
+          d[j] = d[j] * f;
+        }
+      }
+    }
+    c2d.putImageData(img, x, y);
   }
 }
 
@@ -269,12 +291,12 @@ export function addReflectionTarget(
 
   const canvas = document.createElement('canvas');
   canvas.className = 'metal-fx-reflection-canvas';
-  const ctx = canvas.getContext('2d', { alpha: true });
+  const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
   if (!ctx) return null;
 
   const strokeCanvas = document.createElement('canvas');
   strokeCanvas.className = 'metal-fx-reflection-stroke-canvas';
-  const strokeCtx = strokeCanvas.getContext('2d', { alpha: true });
+  const strokeCtx = strokeCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
   if (!strokeCtx) return null;
 
   wrap.appendChild(canvas);
@@ -407,7 +429,11 @@ export function paintReflections(): void {
     // give mostly transparency with a few slivers.
     const useRaw = glyph && !!t.anchor.mask;
     if (useRaw && !t.anchor.wantRaw) t.anchor.wantRaw = true;
-    const anchorCanvas = (useRaw && t.anchor.rawCanvas) ? t.anchor.rawCanvas : t.anchor.canvas;
+    if (!t.anchor.wantRing) t.anchor.wantRing = true;
+    // While bending, mirror the ring-only snapshot, not the canvas that also
+    // carries the host's bent fill and rims.
+    const bending = !!t.anchor.deform && !!t.anchor.ringCanvas;
+    const anchorCanvas = (useRaw && t.anchor.rawCanvas) ? t.anchor.rawCanvas : bending ? t.anchor.ringCanvas! : t.anchor.canvas;
     // Sample only the anchor's CSS box. While a vector bend is active the
     // canvas carries an `overscan` margin on every side; reading it whole
     // would shrink the ring to the middle of the slice and miss the band.

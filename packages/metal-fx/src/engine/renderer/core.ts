@@ -93,6 +93,12 @@ export interface MetalFxInstance {
    *  Allocated on demand when a glyph reflection target asks for it. */
   rawCanvas: HTMLCanvasElement | null;
   wantRaw: boolean;
+  /** Ring-only copy while a deform is active. The bend draws the host's
+   *  fill / rim / hairline into the main canvas so they bend along; a
+   *  reflection that mirrored that would jump from "ring" to "filled disc"
+   *  the moment the bend starts. Allocated on demand by reflection targets. */
+  ringCanvas: HTMLCanvasElement | null;
+  wantRing: boolean;
   /** See `DeformFn`. Null = rigid rounded-rect mask. */
   deform: DeformFn | null;
   deformLayers: DeformLayers | null;

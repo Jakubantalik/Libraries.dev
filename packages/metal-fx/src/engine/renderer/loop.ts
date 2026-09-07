@@ -88,6 +88,8 @@ export function createInstance(opts: CreateInstanceOptions): MetalFxInstance {
     glowFast: false,
     rawCanvas: null,
     wantRaw: false,
+    ringCanvas: null,
+    wantRing: false,
   };
   resizeInstanceCanvas(inst);
   renderer.instances.add(inst);
@@ -394,6 +396,33 @@ function copyShaderToInstance(inst: MetalFxInstance): void {
     ctx.globalCompositeOperation = 'destination-out';
     traceDeformedRoundRect(ctx, ring, ring, W - 2 * ring, H - 2 * ring, Math.max(0, R - ring), deform, dpr);
     ctx.fill();
+
+    if (inst.wantRing) {
+      // For reflections: the same thing the rigid path produces — the full
+      // texture with the (deformed) inner hole punched, no outer mask. The
+      // rigid canvas is never outer-masked either (CSS border-radius clips
+      // it on screen), so mirroring a masked ring here would dim the
+      // reflection the moment a bend starts.
+      let rc = inst.ringCanvas;
+      if (!rc) { rc = document.createElement('canvas'); inst.ringCanvas = rc; }
+      if (rc.width !== dw || rc.height !== dh) { rc.width = dw; rc.height = dh; }
+      const rg = rc.getContext('2d');
+      if (rg) {
+        rg.setTransform(1, 0, 0, 1, 0, 0);
+        rg.globalCompositeOperation = 'source-over';
+        rg.clearRect(0, 0, dw, dh);
+        rg.translate(od, od);
+        if (alpha < 1) rg.globalAlpha = alpha;
+        rg.drawImage(src, esx, esy, esW, esH, bw / 2 - dW / 2, bh / 2 - dH / 2, dW, dH);
+        rg.globalAlpha = 1;
+        rg.globalCompositeOperation = 'destination-out';
+        traceDeformedRoundRect(rg, ring, ring, W - 2 * ring, H - 2 * ring, Math.max(0, R - ring), deform, dpr);
+        rg.fillStyle = '#000';
+        rg.fill();
+        rg.globalCompositeOperation = 'source-over';
+        rg.setTransform(1, 0, 0, 1, 0, 0);
+      }
+    }
 
     if (layers?.hairline) {
       const hl = layers.hairline;
