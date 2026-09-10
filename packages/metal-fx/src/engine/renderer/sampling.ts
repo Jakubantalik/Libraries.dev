@@ -4,8 +4,17 @@
  * All glow luminance/color sampling reads from a shared pixel buffer
  * (SHARED.glowPixels). The buffer is refreshed via gl.readPixels at most
  * every GLOW_READBACK_INTERVAL_MS to avoid the expensive GPU→CPU pipeline
- * flush on every frame. The plasma shader evolves slowly so 200ms-stale
- * data is visually indistinguishable.
+ * flush on every frame. The plasma shader evolves slowly so stale data is
+ * visually indistinguishable.
+ *
+ * The readback happens in exactly one place: the render loop, right after
+ * the shader frame is drawn and before the OffscreenCanvas frame is
+ * transferred (`transferToImageBitmap` leaves the drawing buffer cleared).
+ * The samplers below never read back on their own — they used to, and any
+ * sample taken between shader frames (fast glow ticks while a fade runs,
+ * the cursor-light loop at pointer rate) that landed on an elapsed interval
+ * read the cleared buffer: black tint, zero luminance, a halo that vanished
+ * with no fade and stayed gone for the next interval.
  */
 import { GLOW_READBACK_INTERVAL_MS } from '../perfConfig';
 import { SHARED, CANONICAL_PILL_W, CANONICAL_PILL_H, type MetalFxInstance, type ShaderRGB } from './core';
@@ -84,7 +93,6 @@ const _rgb: ShaderRGB = { r: 255, g: 255, b: 255 };
 
 export function sampleShaderLumAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): number {
   if (!SHARED) return 0;
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const s = sampleRegion(SHARED.glowPixels, SHARED.glowPixelsW, SHARED.glowPixelsH, m.bx, m.by, radius);
   return s.count > 0 ? s.lum / s.count : 0;
@@ -92,7 +100,6 @@ export function sampleShaderLumAt(inst: MetalFxInstance, cssPxX: number, cssPxY:
 
 export function sampleShaderRGBAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): ShaderRGB {
   if (!SHARED) { _rgb.r = 255; _rgb.g = 255; _rgb.b = 255; return _rgb; }
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const s = sampleRegion(SHARED.glowPixels, SHARED.glowPixelsW, SHARED.glowPixelsH, m.bx, m.by, radius);
   if (s.count === 0) { _rgb.r = 255; _rgb.g = 255; _rgb.b = 255; return _rgb; }
@@ -102,7 +109,6 @@ export function sampleShaderRGBAt(inst: MetalFxInstance, cssPxX: number, cssPxY:
 
 export function sampleShaderRGBChromatic(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): ShaderRGB {
   if (!SHARED) { _rgb.r = 255; _rgb.g = 255; _rgb.b = 255; return _rgb; }
-  ensureGlowPixels();
   const m = mapToGlowBuf(inst, cssPxX, cssPxY);
   const { glowPixels: buf, glowPixelsW: W, glowPixelsH: H } = SHARED;
   const r = Math.max(1, radius | 0);
@@ -122,4 +128,28 @@ export function sampleShaderRGBChromatic(inst: MetalFxInstance, cssPxX: number, 
     }
   }
   return _rgb;
+}
+
+const _pk = { r: 255, g: 255, b: 255, lum: 0 };
+
+/** Brightest pixel in the window (not the mean) — for "is the ring shining
+ *  here" questions, where a dark stripe next to a bright one should still
+ *  read as lit. */
+export function sampleShaderPeakAt(inst: MetalFxInstance, cssPxX: number, cssPxY: number, radius: number): typeof _pk {
+  _pk.r = 255; _pk.g = 255; _pk.b = 255; _pk.lum = 0;
+  if (!SHARED) return _pk;
+  const m = mapToGlowBuf(inst, cssPxX, cssPxY);
+  const { glowPixels: buf, glowPixelsW: W, glowPixelsH: H } = SHARED;
+  const r = Math.max(1, radius | 0);
+  const x0 = Math.max(0, m.bx - r), x1 = Math.min(W, m.bx + r + 1);
+  const y0 = Math.max(0, m.by - r), y1 = Math.min(H, m.by + r + 1);
+  for (let py = y0; py < y1; py++) {
+    const row = py * W;
+    for (let px = x0; px < x1; px++) {
+      const i = (row + px) * 4;
+      const lum = (0.2126 * buf[i] + 0.7152 * buf[i + 1] + 0.0722 * buf[i + 2]) / 255;
+      if (lum > _pk.lum) { _pk.lum = lum; _pk.r = buf[i]; _pk.g = buf[i + 1]; _pk.b = buf[i + 2]; }
+    }
+  }
+  return _pk;
 }

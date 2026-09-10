@@ -20,7 +20,7 @@ export const PLATFORM_OPTIONS: { value: Platform; label: string }[] = [
 
 export const INSTALL_BY_PLATFORM: Record<Platform, string> = {
   react: 'npm install thinking-orbs',
-  swiftui: '.package(url: "https://github.com/Jakubantalik/Libraries.git", from: "0.3.1")',
+  swiftui: '.package(url: "https://github.com/Jakubantalik/Libraries.dev.git", from: "0.3.1")',
   native: 'npm install @shopify/react-native-skia react-native-reanimated',
 };
 
@@ -39,7 +39,7 @@ ThinkingOrb(state: .working, size: .px64, displaySize: 133)`,
 <ThinkingOrb state="listening" size={64} />`,
 };
 
-const REPO_TREE = 'https://github.com/Jakubantalik/Libraries/tree/main';
+const REPO_TREE = 'https://github.com/Jakubantalik/Libraries.dev/tree/main';
 
 export interface InstallNote {
   text: string;

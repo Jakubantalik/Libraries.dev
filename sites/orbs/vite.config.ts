@@ -23,7 +23,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
+        // The root is the "moved to libraries.dev" page; the playground
+        // that used to be the root now lives under /demo/.
+        index: resolve(__dirname, 'index.html'),
+        demo: resolve(__dirname, 'demo/index.html'),
         simple: resolve(__dirname, 'simple.html'),
       },
     },

@@ -1659,6 +1659,12 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  /* Bottom edge fade driven by --fade-bottom (set from the scroll position
+     in controls.tsx): content slides out through a gradient instead of a
+     hard cut. The top clips at the head's rule, as the manual tab does. */
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade-bottom)), transparent 100%);
   gap: 10px;
   max-height: 340px;
   overflow-y: auto;
@@ -1670,6 +1676,7 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
    flex column, and balanced wrapping keeps its lines even instead of
    leaving a short last one. */
 .st-chat-empty {
+  padding: 0 12px;
   margin: auto 0;
   font-size: 13px;
   line-height: 20px;
@@ -1907,7 +1914,7 @@ html[data-theme="light"] .st-chat-thinking { --think-base: #7c7c7c; --think-high
 
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   min-height: 39px;
   padding: 0 6px 0 12px;
@@ -1937,10 +1944,18 @@ html[data-theme="light"] .st-chat-thinking { --think-base: #7c7c7c; --think-high
   font-size: 13px;
   line-height: 14px;
   color: var(--cmp-text-filled);
-  /* One line, like the frame: no scrollbar can appear inside a 14px box. */
-  overflow: hidden;
+  /* 12.5px above and below the 14px line makes the single-line field the
+     frame's 39px; each extra line adds 14px, to seven lines, then the
+     field scrolls inside. The height itself is set from scrollHeight in
+     controls.tsx. */
+  padding: 12.5px 0;
+  max-height: calc(7 * 14px + 25px);
+  overflow-y: auto;
   transition: color 140ms ease;
 }
+/* The send button keeps the single-line field's centring (5.5px above the
+   composer's floor) and stays put as the field grows. */
+.st-chat-send { margin-bottom: 5.5px; }
 .st-chat-input::placeholder { color: var(--cmp-text); }
 .st-chat-input:focus { outline: none; }
 .st-chat-composer[data-busy] .st-chat-input,

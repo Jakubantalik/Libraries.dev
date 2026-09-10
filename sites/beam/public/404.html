@@ -4,32 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Border Beam</title>
-    <!-- GitHub Pages SPA fallback (single-page-apps-for-github-pages technique).
-         Encodes the requested path into the query and redirects to the app,
-         which restores it via the inline script in index.html.
-         pathSegmentsToKeep = 0 because the site is served from a root domain. -->
+    <!-- GitHub Pages fallback. The playground used to be a single-page app at
+         the root with /pulse as a route; it now lives under /demo/ and keeps
+         its family in the hash, so there are no routes left to restore. Any
+         path that does not exist (old /pulse links included) goes to the
+         root, which says where the library moved. -->
     <script type="text/javascript">
-      var pathSegmentsToKeep = 0;
-      var l = window.location;
-      l.replace(
-        l.protocol +
-          '//' +
-          l.hostname +
-          (l.port ? ':' + l.port : '') +
-          l.pathname
-            .split('/')
-            .slice(0, 1 + pathSegmentsToKeep)
-            .join('/') +
-          '/?/' +
-          l.pathname
-            .slice(1)
-            .split('/')
-            .slice(pathSegmentsToKeep)
-            .join('/')
-            .replace(/&/g, '~and~') +
-          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-          l.hash
-      );
+      window.location.replace('/');
     </script>
   </head>
   <body></body>

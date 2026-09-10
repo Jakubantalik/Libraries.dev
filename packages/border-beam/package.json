@@ -57,11 +57,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jakubantalik/Libraries.git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
     "directory": "packages/border-beam"
   },
   "bugs": {
-    "url": "https://github.com/Jakubantalik/Libraries/issues"
+    "url": "https://github.com/Jakubantalik/Libraries.dev/issues"
   },
   "homepage": "https://beam.jakubantalik.com"
 }

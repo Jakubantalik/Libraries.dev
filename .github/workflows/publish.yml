@@ -12,6 +12,7 @@ on:
           - liquid-gooey
           - border-beam
           - thinking-orbs
+          - metal-fx
   release:
     types: [published]
 
@@ -49,4 +50,5 @@ jobs:
           NODE_AUTH_TOKEN: >-
             ${{ (inputs.package || 'border-beam') == 'liquid-gooey' && secrets.GOOEY
              || (inputs.package || 'border-beam') == 'thinking-orbs' && secrets.ORBS
+             || (inputs.package || 'border-beam') == 'metal-fx' && secrets.METAL2
              || secrets.BEAM2 }}

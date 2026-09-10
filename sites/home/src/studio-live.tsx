@@ -26,3 +26,15 @@ if (beam) {
     </BorderBeam>,
   );
 }
+
+/* The overlay frames are designed in the card's desktop pixel frame; scale
+   them to the card's rendered width so they keep their spot on the
+   screenshot when the grid collapses on a phone. */
+for (const frame of document.querySelectorAll<HTMLElement>(".studio-live-frame")) {
+  const card = frame.parentElement;
+  if (!card) continue;
+  const designWidth = parseFloat(frame.style.getPropertyValue("--frame-w")) || card.clientWidth;
+  const fit = () => card.style.setProperty("--studio-k", String(card.clientWidth / designWidth));
+  fit();
+  new ResizeObserver(fit).observe(card);
+}

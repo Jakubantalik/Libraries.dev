@@ -74,7 +74,7 @@ export function Header({
             SM
           </button>
         )}
-        <a className={iconBtnClass} href="https://github.com/Jakubantalik/Libraries" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
+        <a className={iconBtnClass} href="https://github.com/Jakubantalik/Libraries.dev" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
           <GitHubIcon />
         </a>
         <a className={iconBtnClass} href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer" aria-label="Follow on X (Twitter)">

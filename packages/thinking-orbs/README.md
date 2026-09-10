@@ -2,7 +2,7 @@
 
 Dotted thought-orb loading indicators for AI & agent UIs. Nine hand-tuned animated states, each shipped at two purpose-tuned sizes, rendered on a plain 2D canvas — no WebGL, no filters, works identically in Chrome, Safari and Firefox.
 
-[Live demo](https://orbs.jakubantalik.com) · [Repository](https://github.com/Jakubantalik/Libraries) · [Report an issue](https://github.com/Jakubantalik/Libraries/issues)
+[Live demo](https://orbs.jakubantalik.com) · [Repository](https://github.com/Jakubantalik/Libraries.dev) · [Report an issue](https://github.com/Jakubantalik/Libraries.dev/issues)
 
 ## Install
 

@@ -30,7 +30,7 @@
   <meta name="color-scheme" content="dark" />
 
   <title>Libraries Pro: Unlock the Studio for every library</title>
-  <meta name="description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), plus Pro variants and every future update." />
+  <meta name="description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), with a built-in agent, plus Pro variants and every future update." />
   <meta name="keywords" content="Libraries Pro, Studio, UI effect libraries, React effects, WebGL, Beam, Orb, Gooey, Metal, Image" />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -53,7 +53,7 @@
   <meta property="og:url" content="https://libraries.dev/pro.html" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Libraries Pro: Unlock the Studio for every library" />
-  <meta property="og:description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), plus Pro variants and every future update." />
+  <meta property="og:description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), with a built-in agent, plus Pro variants and every future update." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
@@ -61,7 +61,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta name="twitter:title" content="Libraries Pro: Unlock the Studio for every library" />
-  <meta name="twitter:description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), plus Pro variants and every future update." />
+  <meta name="twitter:description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), with a built-in agent, plus Pro variants and every future update." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -4438,20 +4438,15 @@
       gap: 18px;
       align-items: stretch;
     }
+    /* Same material as the homepage testimonials (site.css, Figma
+       1411:37077): a #1a1a1a fill under a single hairline ring with a
+       brighter top edge, no drop shadow. Ported by value — this page links
+       no shared stylesheet. */
     .pro-quote {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      min-width: 0;
-      min-height: 205px;
-      padding: 32px;
-      border-radius: 24px;
-      background: rgba(246, 246, 246, 0.7);
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02), inset 0 -1px 0 0 rgba(0, 0, 0, 0.03);
-    }
-    html[data-theme="dark"] .pro-quote {
-      background: #141414;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 -1px 0 0 rgba(255, 255, 255, 0.03);
+      display: flex; flex-direction: column; gap: 24px; min-width: 0;
+      min-height: 240px; padding: 32px; border-radius: 24px;
+      background-color: #1a1a1a;
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.02), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
     }
     /* A quiet X mark in the card's top-right corner, so the quotes read as
        posts. Linked where the card already links to the author's profile;
@@ -4481,10 +4476,9 @@
       flex: 1 1 auto;
       font-size: 16px;
       line-height: 24.2px;
-      color: #393939;
+      color: #c9c9c9;
       overflow-wrap: anywhere;
     }
-    html[data-theme="dark"] .pro-quote-text { color: #c9c9c9; }
     .pro-quote-author { display: flex; align-items: center; gap: 11px; min-width: 0; }
     /* Avatar links to the same X profile as the name. It's skipped in the
        tab order (tabindex="-1") because the adjacent name link already
@@ -4507,13 +4501,12 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.03);
+      background: rgba(255, 255, 255, 0.06);
       color: var(--text-muted);
       font-size: 13px;
       font-weight: 500;
       overflow: hidden;
     }
-    html[data-theme="dark"] .pro-quote-avatar { background: rgba(255, 255, 255, 0.06); }
     /* Real photo when one is installed; the initial stays underneath as the
        fallback, and a missing file drops the img so the initial shows. */
     .pro-quote-avatar { position: relative; }
@@ -4529,7 +4522,7 @@
       font-size: 13px;
       line-height: 16px;
       font-weight: 500;
-      color: #0d0d0d;
+      color: #ededed;
       text-decoration: none;
     }
     /* A name in a byline is not a link inside a sentence: no underline at
@@ -4537,7 +4530,6 @@
        hover, so the ones that link out stay discoverable. */
     a.pro-quote-name { text-decoration: none; text-underline-offset: 2px; transition: text-decoration-color 180ms ease; }
     a.pro-quote-name:hover { text-decoration: underline; text-decoration-color: currentColor; }
-    html[data-theme="dark"] .pro-quote-name { color: #ededed; }
     .pro-quote-role { font-size: 13px; line-height: 16px; color: #737373; overflow-wrap: anywhere; }
     @media (max-width: 900px) {
       .pro-quotes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -5120,7 +5112,7 @@
           <a
             class="icon-btn-pill"
             id="gh-stars-btn"
-            href="https://github.com/Jakubantalik/Libraries"
+            href="https://github.com/Jakubantalik/Libraries.dev"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub repository star count"
@@ -5181,8 +5173,8 @@
       <h1 class="title">Libraries <span class="title-pro">Pro</span></h1>
       <p class="subtitle">
         Unlock the Studio: deep customization of all five libraries<br />
-        (Beam, Orb, Gooey, Metal and Image), plus Pro variants<br />
-        and every future update, right in your browser.
+        (Beam, Orb, Gooey, Metal and Image) with a built-in agent,<br />
+        plus Pro variants and every future update, in your browser.
       </p>
     </header>
 
@@ -5272,34 +5264,40 @@
     <section class="pro-section pro-block" aria-label="Kind words">
       <ul class="pro-quotes">
         <li class="pro-quote">
-          <span class="pro-quote-x" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
+          <a class="pro-quote-x" href="https://x.com/rauchg" target="_blank" rel="noopener noreferrer" aria-label="Guillermo Rauch on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
           <p class="pro-quote-text">Generational cook!</p>
           <div class="pro-quote-author">
-            <span class="pro-quote-avatar" aria-hidden="true">G<img class="pro-quote-avatar-img" src="/assets/avatars/rauchg.jpg" alt="" onerror="this.remove()" /></span>
+            <a class="pro-quote-avatar-link" href="https://x.com/rauchg" target="_blank" rel="noopener noreferrer" aria-label="Guillermo Rauch on X" tabindex="-1">
+              <span class="pro-quote-avatar" aria-hidden="true">G<img class="pro-quote-avatar-img" src="/assets/avatars/rauchg.jpg" alt="" onerror="this.remove()" /></span>
+            </a>
             <span class="pro-quote-id">
-              <span class="pro-quote-name">Guillermo Rauch</span>
+              <a class="pro-quote-name" href="https://x.com/rauchg" target="_blank" rel="noopener noreferrer">Guillermo Rauch</a>
               <span class="pro-quote-role">CEO, Vercel</span>
             </span>
           </div>
         </li>
         <li class="pro-quote">
-          <span class="pro-quote-x" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
+          <a class="pro-quote-x" href="https://x.com/destraynor" target="_blank" rel="noopener noreferrer" aria-label="Des Traynor on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
           <p class="pro-quote-text">Very cool</p>
           <div class="pro-quote-author">
-            <span class="pro-quote-avatar" aria-hidden="true">D<img class="pro-quote-avatar-img" src="/assets/avatars/destraynor.jpg" alt="" onerror="this.remove()" /></span>
+            <a class="pro-quote-avatar-link" href="https://x.com/destraynor" target="_blank" rel="noopener noreferrer" aria-label="Des Traynor on X" tabindex="-1">
+              <span class="pro-quote-avatar" aria-hidden="true">D<img class="pro-quote-avatar-img" src="/assets/avatars/destraynor.jpg" alt="" onerror="this.remove()" /></span>
+            </a>
             <span class="pro-quote-id">
-              <span class="pro-quote-name">Des Traynor</span>
+              <a class="pro-quote-name" href="https://x.com/destraynor" target="_blank" rel="noopener noreferrer">Des Traynor</a>
               <span class="pro-quote-role">Co-founder of Intercom</span>
             </span>
           </div>
         </li>
         <li class="pro-quote">
-          <span class="pro-quote-x" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
+          <a class="pro-quote-x" href="https://x.com/krispuckett" target="_blank" rel="noopener noreferrer" aria-label="Kris Puckett on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
           <p class="pro-quote-text">INSANELY AMAZING</p>
           <div class="pro-quote-author">
-            <span class="pro-quote-avatar" aria-hidden="true">K<img class="pro-quote-avatar-img" src="/assets/avatars/krispuckett.jpg" alt="" onerror="this.remove()" /></span>
+            <a class="pro-quote-avatar-link" href="https://x.com/krispuckett" target="_blank" rel="noopener noreferrer" aria-label="Kris Puckett on X" tabindex="-1">
+              <span class="pro-quote-avatar" aria-hidden="true">K<img class="pro-quote-avatar-img" src="/assets/avatars/krispuckett.jpg" alt="" onerror="this.remove()" /></span>
+            </a>
             <span class="pro-quote-id">
-              <span class="pro-quote-name">Kris Puckett</span>
+              <a class="pro-quote-name" href="https://x.com/krispuckett" target="_blank" rel="noopener noreferrer">Kris Puckett</a>
               <span class="pro-quote-role">Design manager at Stripe</span>
             </span>
           </div>
@@ -5341,7 +5339,7 @@
 
         <div class="pro-bento-card pro-bento-card--tall">
           <h3 class="pro-bento-title">Studio access</h3>
-          <p class="pro-bento-desc">Customize every library in detail in the Studio: tune parameters live, preview the result, and export the exact configuration. Plus extended docs, presets and recipes, and the Pro skill for your AI coding agent.</p>
+          <p class="pro-bento-desc">Tune every library live in the Studio, or ask the built-in AI agent to do it, and export the exact configuration. Plus presets, recipes and the Pro skill for your coding agent.</p>
           <!-- The Studio screenshot itself (not the Studio page's framed card),
                anchored to the bento's right edge so the control panel is whole
                and the stage runs off the left. -->
@@ -5426,7 +5424,7 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p>Hit <strong>Get access</strong> above to start, or email <a href="mailto:jakubja@gmail.com">jakubja@gmail.com</a> with any questions. You can also open an issue on <a href="https://github.com/Jakubantalik/Libraries" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+            <p>Hit <strong>Get access</strong> above to start, or email <a href="mailto:jakubja@gmail.com">jakubja@gmail.com</a> with any questions. You can also open an issue on <a href="https://github.com/Jakubantalik/Libraries.dev" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
           </div></div>
         </div>
       </div>

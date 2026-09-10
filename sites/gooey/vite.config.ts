@@ -14,6 +14,16 @@ export default defineConfig({
       ),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        // The root is the "moved to libraries.dev" page; the playground
+        // that used to be the root now lives under /demo/.
+        index: fileURLToPath(new URL('index.html', import.meta.url)),
+        demo: fileURLToPath(new URL('demo/index.html', import.meta.url)),
+      },
+    },
+  },
   server: {
     // Honour PORT so a busy 5173 reassigns cleanly — the two sites in this
     // repo are often run side by side.

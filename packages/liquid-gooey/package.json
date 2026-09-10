@@ -20,11 +20,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jakubantalik/Libraries.git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
     "directory": "packages/liquid-gooey"
   },
   "bugs": {
-    "url": "https://github.com/Jakubantalik/Libraries/issues"
+    "url": "https://github.com/Jakubantalik/Libraries.dev/issues"
   },
   "homepage": "https://gooey.jakubantalik.com",
   "author": "Jakub Antalik",

@@ -50,7 +50,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jakubantalik/Libraries.git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
     "directory": "packages/thinking-orbs/ports/react-native/thinking-orbs-native"
   },
   "homepage": "https://orbs.jakubantalik.com"

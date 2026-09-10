@@ -1,15 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { describePatch, streamAgentTurn, type ChatTurn } from "./agent";
 import type { CoreWiring } from "./core";
 import { useScrollFade } from "../examples/useScrollFade";
@@ -684,6 +673,43 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  /* The field takes the height of its text, to the CSS max (seven lines),
+     then scrolls inside. Measured again when the tab is shown: a hidden
+     field measures zero, which would leave it collapsed once visible. */
+  const autosizeInput = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    if (!el.scrollHeight) return;
+    const max = parseFloat(getComputedStyle(el).maxHeight) || Infinity;
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  }, []);
+  useLayoutEffect(autosizeInput, [draft, autosizeInput]);
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(autosizeInput);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [autosizeInput]);
+  /* A soft edge where the log scrolls out under the composer, sized to
+     zero when nothing is past it, so a short log has no fade at all. The
+     top clips at the head's rule, as the manual tab's knob list does. */
+  const updateLogFade = useCallback(() => {
+    const el = logRef.current;
+    if (!el) return;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight > 2 ? "36px" : "0px";
+    el.style.setProperty("--fade-bottom", bottom);
+  }, []);
+  useEffect(() => {
+    updateLogFade();
+    const el = logRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateLogFade);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   /* Distinct from `busy`: the thinking dots stand in only until the first
      token lands, after which the streaming text is its own progress. */
   const [streaming, setStreaming] = useState(false);
@@ -858,7 +884,7 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
 
   return (
     <div className="st-chat">
-      <div className="st-chat-log" ref={logRef} role="log" aria-label="Agent conversation">
+      <div className="st-chat-log" ref={logRef} role="log" aria-label="Agent conversation" onScroll={updateLogFade}>
         {messages.length === 0 ? (
           <p className="st-chat-empty">
             Describe the look you want and the agent tunes {library} for you: “make the
@@ -876,6 +902,7 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
 
       <div className="st-chat-composer" data-filled={draft.trim() ? "" : undefined} data-busy={busy ? "" : undefined}>
         <textarea
+          ref={inputRef}
           className="st-chat-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

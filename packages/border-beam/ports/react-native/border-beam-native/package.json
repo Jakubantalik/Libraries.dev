@@ -38,7 +38,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jakubantalik/Libraries.git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
     "directory": "packages/border-beam/ports/react-native/border-beam-native"
   }
 }

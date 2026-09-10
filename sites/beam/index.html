@@ -1,67 +1,235 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- SPA fallback restore: 404.html encodes the requested path into the query
-         (?/pulse); rewrite it back to a real path before the app mounts so deep
-         links like /pulse work on GitHub Pages. -->
-    <script type="text/javascript">
-      (function (l) {
-        if (l.search[1] === '/') {
-          var decoded = l.search
-            .slice(1)
-            .split('&')
-            .map(function (s) {
-              return s.replace(/~and~/g, '&');
-            })
-            .join('?');
-          window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
-        }
-      })(window.location);
-    </script>
-    <!-- Apply the saved theme before first paint to avoid a flash of the wrong mode. -->
-    <script type="text/javascript">
-      (function () {
-        try {
-          var t = localStorage.getItem('theme');
-          document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
-        } catch (e) {
-          document.documentElement.dataset.theme = 'dark';
-        }
-      })();
-    </script>
-    <title>Border Beam – Animated border beam component for React</title>
-    <meta name="description" content="A lightweight React component that renders an animated glowing border beam effect. Supports multiple sizes, color variants, and themes." />
+    <title>Border beam moved to a new home</title>
+    <meta name="description" content="Border beam has moved to a new home: libraries.dev/beam, accessible from one place together with the other libraries. The npm package is unchanged: border-beam." />
+    <meta name="author" content="Jakub Antalik" />
     <meta name="theme-color" content="#070707" />
-    <meta property="og:title" content="Border Beam" />
-    <meta property="og:description" content="Animated border beam component for React" />
+    <!-- The library's page on libraries.dev is the one search engines should
+         keep; this page only says where it went. -->
+    <link rel="canonical" href="https://libraries.dev/beam" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Border beam" />
+    <meta property="og:url" content="https://beam.jakubantalik.com/" />
+    <meta property="og:title" content="Border beam moved to a new home" />
+    <meta property="og:description" content="Border beam has moved to a new home: libraries.dev/beam, accessible from one place together with the other libraries. The npm package is unchanged: border-beam." />
+    <meta name="twitter:title" content="Border beam moved to a new home" />
+    <meta name="twitter:description" content="Border beam has moved to a new home: libraries.dev/beam, accessible from one place together with the other libraries. The npm package is unchanged: border-beam." />
     <meta property="og:image" content="https://beam.jakubantalik.com/og-v2.jpg" />
-    <meta property="og:image:url" content="https://beam.jakubantalik.com/og-v2.jpg" />
-    <meta property="og:image:secure_url" content="https://beam.jakubantalik.com/og-v2.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:url" content="https://beam.jakubantalik.com" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Border Beam" />
-    <meta name="twitter:description" content="Animated border beam component for React" />
     <meta name="twitter:image" content="https://beam.jakubantalik.com/og-v2.jpg" />
-    <meta name="twitter:image:alt" content="Border Beam demo preview image" />
-    <link rel="icon" type="image/png" sizes="32x32" href="https://beam.jakubantalik.com/favicon.png" />
-    <link rel="icon" type="image/x-icon" href="https://beam.jakubantalik.com/favicon.ico" />
-    <link rel="shortcut icon" href="https://beam.jakubantalik.com/favicon.ico" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400&display=swap"
       rel="stylesheet"
     />
+    <style>
+      /* Dark only, tokens lifted from libraries.dev's site.css so the page
+         reads as part of that site rather than a leftover of this one. */
+      :root {
+        color-scheme: dark;
+        --bg: #070707;
+        --accent: #0071fc;
+        --text: #ffffff;
+        --text-muted: rgba(202, 202, 202, 0.7);
+        --pill-bg: rgba(255, 255, 255, 0.07);
+        --pill-bg-hover: rgba(255, 255, 255, 0.1);
+        --pill-bg-press: rgba(255, 255, 255, 0.08);
+        --pill-text: #ededed;
+        --code-chip-bg: rgba(255, 255, 255, 0.05);
+        --code-chip-ring: rgba(255, 255, 255, 0.09);
+        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-size-adjust: 100%; }
+      body {
+        min-height: 100vh;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 24px;
+      }
+      .app {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 883px;
+        margin: 0 auto;
+        padding: 0 24px 64px;
+      }
+
+      /* ─── Top bar: back pill left, X pill right ─────────────── */
+      .top-bar {
+        position: relative;
+        height: 68px;
+        flex-shrink: 0;
+      }
+      .top-bar-back,
+      .icon-btn {
+        position: absolute;
+        top: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 36px;
+        border: 0;
+        border-radius: 50px;
+        background: var(--pill-bg);
+        color: var(--pill-text);
+        text-decoration: none;
+        transition: background-color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .top-bar-back { left: 0; padding: 0 12px 0 10px; font-size: 13px; line-height: 14px; }
+      .icon-btn { right: 0; width: 36px; }
+      .top-bar-back:hover, .icon-btn:hover { background: var(--pill-bg-hover); }
+      .top-bar-back:active, .icon-btn:active { background: var(--pill-bg-press); }
+      .top-bar-back:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--pill-text); outline-offset: 2px; }
+      .top-bar-back-inner {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        opacity: 0.6;
+        transition: opacity 0.15s ease;
+      }
+      .top-bar-back:hover .top-bar-back-inner { opacity: 1; }
+      .top-bar-back svg { display: block; flex-shrink: 0; }
+      .icon-btn svg {
+        display: block;
+        width: 16px;
+        height: 17px;
+        fill: currentColor;
+        color: rgba(237, 237, 237, 0.6);
+        transition: color 0.15s ease;
+      }
+      .icon-btn:hover svg { color: var(--pill-text); }
+
+      /* ─── The notice (Figma: Portfolio / demo page, node 1443:40724) ── */
+      .moved {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 0 56px;
+      }
+      .moved-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 13px;
+        width: 316px;
+        max-width: 100%;
+        text-align: center;
+      }
+      .moved-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 100%;
+        overflow-wrap: break-word;
+      }
+      .title {
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 34px;
+        color: #ffffff;
+      }
+      .subtitle {
+        font-size: 14px;
+        line-height: 21.2px;
+        color: #cacaca;
+        opacity: 0.7;
+      }
+      .subtitle a {
+        color: #ededed;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-thickness: 1px;
+        text-decoration-color: rgba(237, 237, 237, 0.5);
+        transition: text-decoration-color 150ms ease;
+      }
+      .subtitle a:hover { text-decoration-color: #ededed; }
+
+      /* Button/Small/Select/Primary/Token from the design system. */
+      .btn-go {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 24px;
+        background: var(--accent);
+        color: #ffffff;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 13px;
+        text-decoration: none;
+        white-space: nowrap;
+        box-shadow:
+          0 1px 3px 0 rgba(0, 0, 0, 0.04),
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 200ms var(--ease);
+      }
+      .btn-go:hover { background: #0a7dff; }
+      .btn-go:active { background: #0062d6; }
+      .btn-go:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+
+      @media (max-width: 600px) {
+        .app { padding: 0 20px 48px; }
+        /* Chevron only on phones: the pill becomes a 36px circle like the X. */
+        .top-bar-back { width: 36px; padding: 0; justify-content: center; }
+        .top-bar-back span > span { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .top-bar-back, .icon-btn, .btn-go, .top-bar-back-inner, .icon-btn svg { transition: none; }
+      }
+    </style>
+    <script data-goatcounter="https://beam.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script data-goatcounter="https://beam.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <main class="app">
+      <header class="top-bar">
+        <a class="top-bar-back" href="https://www.jakubantalik.com">
+          <span class="top-bar-back-inner">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11L6 8L9 5" /></svg>
+            <span>jakubantalik.com</span>
+          </span>
+        </a>
+        <a class="icon-btn" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer" aria-label="Follow on X (Twitter)">
+          <svg aria-hidden="true" viewBox="0 0 1200 1227"><path d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z" /></svg>
+        </a>
+      </header>
+
+      <section class="moved" aria-labelledby="moved-title">
+        <div class="moved-inner">
+          <div class="moved-copy">
+            <h1 class="title" id="moved-title">Border beam moved to a new home</h1>
+            <p class="subtitle">Border beam has moved to a new home: <a href="https://libraries.dev/beam">libraries.dev</a> to be accessible from one place together with other libraries.</p>
+          </div>
+          <a class="btn-go" href="https://libraries.dev/beam">Go to libraries.dev</a>
+        </div>
+      </section>
+    </main>
   </body>
 </html>

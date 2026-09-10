@@ -47,9 +47,12 @@ jobs:
       - name: Build home site
         run: npm run build:site-home
 
+      # Runs inside sites/home so wrangler picks up sites/home/functions, the
+      # Pages Functions that gate the Studio app at the edge.
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy sites/home/dist --project-name libraries-home --branch main --commit-dirty=true
+          workingDirectory: sites/home
+          command: pages deploy dist --project-name libraries-home --branch main --commit-dirty=true

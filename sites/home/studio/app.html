@@ -386,7 +386,11 @@
     .st-main .pg-controls:has(.st-panel-body--chat:not([hidden])) { height: calc(100dvh - 68px - 24px); }
     .st-main .st-panel-body--chat:not([hidden]) { display: flex; flex: 1 1 auto; }
     .st-main .st-panel-body--chat .st-chat { flex: 1 1 auto; }
-    .st-main .st-panel-body--chat .st-chat-log { flex: 1 1 0; max-height: none; min-height: 120px; }
+    /* The log is the chat's scroll box, so it (not the body) starts at the
+       head's rule and carries the 16px of air inside, exactly like the
+       manual tab's knob list: scrolling content clips at the line itself. */
+    .st-main .st-panel-body--chat:not([hidden]) { padding-top: 0; }
+    .st-main .st-panel-body--chat .st-chat-log { flex: 1 1 0; max-height: none; min-height: 120px; padding-top: 16px; }
     /* The panel-title / separator / swatch rules moved to playground.css —
        the Gooey detail page renders the same Studio controls. */
 

@@ -16,13 +16,13 @@ import { StudioThemeContext } from "./controls";
    early from its optimistic cache. `?dev` unlocks locally so the app can
    be developed without the API Worker.
 
-   GATE_ENABLED is the switch: it's off while the Studio is open to
-   everyone (the API Worker that answers /me isn't deployed yet). Flip it
-   to true to make the Studio Pro-only — the gate below is otherwise
-   complete, and /me entitlement still drives the "Get Pro" chip either
+   GATE_ENABLED is the switch. It was off while the Studio was open to
+   everyone (before the API Worker that answers /me was deployed); now
+   the Studio is Pro-only. Flip it to false to open the workbench to
+   everyone again: /me entitlement still drives the "Get Pro" chip either
    way, so nothing else has to change. */
 
-const GATE_ENABLED = false;
+const GATE_ENABLED = true;
 
 type GateState = "pending" | "locked" | "open";
 
@@ -50,7 +50,11 @@ declare global {
   }
 }
 
-const DEV_UNLOCK = new URLSearchParams(window.location.search).has("dev");
+/* `?dev` opens the gate on a local dev server only, so the Studio can be
+   worked on without the API Worker; on the live site the flag is inert. */
+const DEV_UNLOCK =
+  new URLSearchParams(window.location.search).has("dev") &&
+  /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
 
 function useProGate(): { gate: GateState; email: string | null; entitled: boolean } {
   const gateOff = !GATE_ENABLED || DEV_UNLOCK;
@@ -61,7 +65,7 @@ function useProGate(): { gate: GateState; email: string | null; entitled: boolea
   useEffect(() => {
     /* Sticky gate: once we've left the skeleton, an unresolved /me
        re-dispatch (network retry, tab un-freeze) must not drop the app
-       back to the skeleton. */
+       back to the skeleton; only the fallback below may still run. */
     let settled = false;
     const render = (s: ProState | undefined) => {
       const isPro = !!(s && s.pro);
@@ -71,10 +75,12 @@ function useProGate(): { gate: GateState; email: string | null; entitled: boolea
       /* With the gate off the workbench is already showing — /me still
          runs, but only to fill in the email and the "Get Pro" chip. */
       if (gateOff) return;
-      if (!resolved && !isPro && settled) return;
-      if (resolved || isPro) settled = true;
-      if (isPro) setGate("open");
-      else if (resolved) setGate("locked");
+      /* Only an answered /me opens the gate: the optimistic localStorage
+         cache paints the chrome early but is the visitor's to edit, so it
+         may not unlock the workbench on its own. */
+      if (!resolved) return;
+      settled = true;
+      setGate(isPro ? "open" : "locked");
     };
 
     const onMe = (e: Event) => render((e as CustomEvent<ProState>).detail);
@@ -85,7 +91,7 @@ function useProGate(): { gate: GateState; email: string | null; entitled: boolea
        visitors on the skeleton — fall through to the locked hero. */
     const fallback = window.setTimeout(() => {
       const s = window.LibrariesPro?.state;
-      if (!(s && (s.resolved || s.pro))) render({ resolved: true, pro: false });
+      if (!settled && !(s && s.resolved)) render({ resolved: true, pro: false });
     }, 4000);
 
     return () => {
@@ -381,7 +387,7 @@ function Locked() {
         </span>
         <h1 className="st-locked-title">The Studio is a Pro feature</h1>
         <p className="st-locked-sub">
-          Deep customization of all five libraries — Beam, Orb, Gooey, Metal
+          Deep customization of all five libraries: Beam, Orb, Gooey, Metal
           and Image. Tune every parameter live, preview the result, and export
           the exact configuration for your project. Get Libraries Pro to
           unlock it, or sign in if you already have access.

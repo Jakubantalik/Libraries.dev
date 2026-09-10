@@ -94,7 +94,7 @@
   ];
   var ACTIONS = [
     { label: "Get Pro access", href: "/pro.html" },
-    { label: "View on GitHub", href: "https://github.com/Jakubantalik/Libraries", external: true },
+    { label: "View on GitHub", href: "https://github.com/Jakubantalik/Libraries.dev", external: true },
     { label: "Contact support", href: "mailto:jakubja@gmail.com" }
   ];
 
@@ -216,7 +216,7 @@
   /* ── GitHub stars ────────────────────────────────────────── */
   var starsBtn = document.getElementById("gh-stars-btn");
   var starsCount = document.getElementById("gh-stars-count");
-  var GH_REPO = "Jakubantalik/Libraries";
+  var GH_REPO = "Jakubantalik/Libraries.dev";
   var GH_KEY = "ldev:gh-stars";
   var GH_TTL = 5 * 60 * 1000;
 

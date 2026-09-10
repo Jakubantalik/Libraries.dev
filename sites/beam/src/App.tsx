@@ -276,12 +276,15 @@ const DEFAULT_SIZE_BY_FAMILY: Record<BeamFamily, BorderBeamSize> = {
 // URL <-> tab mapping. `/pulse` deep-links to the Pulse tab; everything else
 // (including `/`) is Rotate. GitHub Pages serves the SPA fallback (404.html)
 // so a direct visit to /pulse resolves before React mounts.
-function familyFromPath(pathname: string): BeamFamily {
-  return /\/pulse\/?$/i.test(pathname) ? 'pulse' : 'rotate';
+// The playground lives under /demo/ now (the root is the "moved to
+// libraries.dev" page), so the family rides in the hash rather than the
+// path: /demo/#pulse. A hash needs no SPA fallback on GitHub Pages.
+function familyFromPath(hash: string): BeamFamily {
+  return /^#pulse$/i.test(hash) ? 'pulse' : 'rotate';
 }
 
 function pathForFamily(family: BeamFamily): string {
-  return family === 'pulse' ? '/pulse' : '/';
+  return family === 'pulse' ? '#pulse' : window.location.pathname;
 }
 
 type ThemeMode = 'dark' | 'light';
@@ -313,7 +316,7 @@ const PLATFORM_OPTIONS: { value: Platform; label: string }[] = [
 
 const INSTALL_BY_PLATFORM: Record<Platform, string> = {
   react: 'npm install border-beam',
-  swiftui: '.package(url: "https://github.com/Jakubantalik/Libraries.git", from: "1.4.0")',
+  swiftui: '.package(url: "https://github.com/Jakubantalik/Libraries.dev.git", from: "1.4.0")',
   native: 'npm install @shopify/react-native-skia react-native-reanimated',
 };
 
@@ -357,10 +360,10 @@ const COLOR_OPTIONS: { value: BorderBeamColorVariant; label: string }[] = [
 ];
 
 export default function App() {
-  const [family, setFamily] = useState<BeamFamily>(() => familyFromPath(window.location.pathname));
+  const [family, setFamily] = useState<BeamFamily>(() => familyFromPath(window.location.hash));
   const [playgroundActive, setPlaygroundActive] = useState(true);
   const [playgroundSize, setPlaygroundSize] = useState<BorderBeamSize>(
-    () => DEFAULT_SIZE_BY_FAMILY[familyFromPath(window.location.pathname)]
+    () => DEFAULT_SIZE_BY_FAMILY[familyFromPath(window.location.hash)]
   );
   const [playgroundColorVariant, setPlaygroundColorVariant] = useState<BorderBeamColorVariant>('colorful');
   const [playgroundStrength, setPlaygroundStrength] = useState(70);
@@ -387,7 +390,7 @@ export default function App() {
     setFamily(next);
     setPlaygroundSize(DEFAULT_SIZE_BY_FAMILY[next]);
     const path = pathForFamily(next);
-    if (window.location.pathname !== path) {
+    if (window.location.pathname + window.location.hash !== path) {
       window.history.pushState(null, '', path);
     }
   }, []);
@@ -395,7 +398,7 @@ export default function App() {
   // Keep the tab in sync with browser back/forward navigation.
   useEffect(() => {
     const onPopState = () => {
-      const next = familyFromPath(window.location.pathname);
+      const next = familyFromPath(window.location.hash);
       setFamily(next);
       setPlaygroundSize(DEFAULT_SIZE_BY_FAMILY[next]);
     };
@@ -544,7 +547,7 @@ export default function App() {
                 </span>
               </button>
             )}
-            <a className="icon-btn" href="https://github.com/Jakubantalik/Libraries" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
+            <a className="icon-btn" href="https://github.com/Jakubantalik/Libraries.dev" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
               <GitHubIcon />
             </a>
             <a className="icon-btn" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer" aria-label="Follow on X (Twitter)">
