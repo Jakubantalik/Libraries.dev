@@ -55,6 +55,7 @@
     if (!moreMenu) return;
     clearTimeout(menuCloseTimer);
     moreMenu.classList.remove("is-closing");
+    setView("1");
     moreMenu.classList.add("is-open");
     if (moreBtn) moreBtn.setAttribute("aria-expanded", "true");
   }
@@ -66,6 +67,7 @@
     clearTimeout(menuCloseTimer);
     menuCloseTimer = setTimeout(function () {
       moreMenu.classList.remove("is-closing");
+      resetFeedback();
     }, MENU_CLOSE_MS);
   }
   if (moreBtn) {
@@ -79,6 +81,115 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeMore();
     });
+  }
+
+  /* ── Menu pages + Feedback ───────────────────────────────── */
+  // The menu is a two-page slide (transitions.dev page side-by-side, as
+  // the Appearance item on transitions.dev): page 1 the list, page 2 the
+  // feedback form behind a back button. The slide's height follows the
+  // active page; the menu widens for the form.
+  var pmSlide = document.getElementById("pm-slide");
+  var fbItem = document.getElementById("pm-feedback");
+  var fbBack = document.getElementById("pm-back");
+  var fbForm = document.getElementById("pm-feedback-form");
+  var fbInput = fbForm && fbForm.querySelector(".pm-feedback-input");
+  var fbNote = fbForm && fbForm.querySelector(".pm-feedback-note");
+  var fbBtn = fbForm && fbForm.querySelector(".pm-feedback-btn");
+  var FEEDBACK_API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? "http://localhost:8787"
+    : "https://api.libraries.dev";
+  var fbSending = false;
+
+  function syncSlideHeight() {
+    if (!pmSlide) return;
+    var page = pmSlide.getAttribute("data-page");
+    var active = pmSlide.querySelector('.t-page[data-page-id="' + page + '"]');
+    if (active) pmSlide.style.height = active.offsetHeight + "px";
+  }
+  function setView(page) {
+    if (!pmSlide) return;
+    pmSlide.setAttribute("data-page", page);
+    if (moreMenu) moreMenu.classList.toggle("is-feedback", page === "2");
+    syncSlideHeight();
+  }
+  // After the menu has closed: back to the list, keep an unsent draft,
+  // drop any note.
+  function resetFeedback() {
+    setView("1");
+    if (fbInput) fbInput.classList.remove("is-error");
+    fbNoteSet(null, "");
+  }
+  function fbNoteSet(kind, html) {
+    if (!fbNote) return;
+    if (!html) { fbNote.hidden = true; fbNote.removeAttribute("data-kind"); fbNote.innerHTML = ""; }
+    else { fbNote.hidden = false; fbNote.setAttribute("data-kind", kind); fbNote.innerHTML = html; }
+    syncSlideHeight();
+  }
+  function openFeedback() {
+    setView("2");
+    if (fbInput) fbInput.focus({ preventScroll: true });
+  }
+  function shakeInput() {
+    if (!fbInput) return;
+    fbInput.classList.add("is-error");
+    fbInput.classList.remove("is-shaking");
+    void fbInput.offsetWidth;
+    fbInput.classList.add("is-shaking");
+    fbInput.addEventListener("animationend", function () { fbInput.classList.remove("is-shaking"); }, { once: true });
+  }
+  function sendFeedback() {
+    if (fbSending || !fbInput) return;
+    var message = fbInput.value.trim();
+    if (!message) {
+      shakeInput();
+      fbNoteSet("err", "Write a few words first.");
+      fbInput.focus();
+      return;
+    }
+    fbSending = true;
+    fbBtn.disabled = true;
+    fbBtn.textContent = "Sending…";
+    fbNoteSet(null, "");
+    fetch(FEEDBACK_API + "/feedback", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: message, page: location.href })
+    })
+      .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+      .then(function () {
+        fbInput.value = "";
+        fbInput.classList.remove("is-error");
+        fbNoteSet("ok", "Sent — thank you.");
+        setTimeout(function () { if (menuIsOpen()) closeMore(); }, 1400);
+      })
+      .catch(function () {
+        var subject = encodeURIComponent("Feedback on Libraries.dev");
+        var body = encodeURIComponent(message + "\n\n— from " + location.href);
+        fbNoteSet("err", 'Could not send. <a href="mailto:jakubja@gmail.com?subject=' + subject + "&body=" + body + '">Email it instead</a>.');
+      })
+      .then(function () {
+        fbSending = false;
+        fbBtn.disabled = false;
+        fbBtn.textContent = "Send feedback";
+      });
+  }
+  if (pmSlide && fbItem && fbForm) {
+    fbItem.addEventListener("click", function (e) { e.preventDefault(); openFeedback(); });
+    fbItem.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFeedback(); }
+    });
+    if (fbBack) fbBack.addEventListener("click", function () { setView("1"); fbItem.focus({ preventScroll: true }); });
+    fbForm.addEventListener("submit", function (e) { e.preventDefault(); sendFeedback(); });
+    fbInput.addEventListener("input", function () {
+      fbInput.classList.remove("is-error");
+      if (fbNote && fbNote.getAttribute("data-kind") === "err") fbNoteSet(null, "");
+    });
+    fbInput.addEventListener("keydown", function (e) {
+      // ⌘/Ctrl+Enter sends; Escape is the menu's (bubbles to the document).
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendFeedback(); }
+    });
+    window.addEventListener("resize", function () { if (menuIsOpen()) syncSlideHeight(); });
   }
 
   /* ── ⌘K command palette ──────────────────────────────────── */
