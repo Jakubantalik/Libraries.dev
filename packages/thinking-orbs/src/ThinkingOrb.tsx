@@ -10,6 +10,7 @@ import { scaleCounts, scaleRadii } from './engine/profiles';
 import { MODE_FRAMES } from './engine/registry';
 import { resolvePreset } from './presets';
 import { useReducedMotion, useResolvedDark } from './theme';
+import { attachGravity } from './gravity';
 import type { ThinkingOrbProps } from './types';
 
 /** Parse a CSS color into an RGB triple for the tinted ink painter.
@@ -51,6 +52,7 @@ export function ThinkingOrb({
   dotSize = 1,
   opts: optsOverride,
   frame: customFrame,
+  gravity,
   style,
   'aria-label': ariaLabel,
   ...rest
@@ -58,6 +60,16 @@ export function ThinkingOrb({
   const ref = useRef<HTMLCanvasElement | null>(null);
   const optsKey = optsOverride ? JSON.stringify(optsOverride) : '';
   const dark = useResolvedDark(theme, ref);
+
+  // Gravity attaches the canvas to the document-level tracker; compared by
+  // content so an inline options literal does not re-attach every render.
+  const gravityKey = gravity ? JSON.stringify(gravity) : '';
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas || !gravity) return;
+    return attachGravity(canvas, gravity === true ? true : gravity);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gravityKey]);
   const reduced = useReducedMotion();
 
   useEffect(() => {

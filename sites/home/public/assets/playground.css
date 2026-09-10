@@ -876,10 +876,17 @@ html[data-theme="light"] .st-preset-save:active { background: #fafafa; }
   padding: 0 16px 16px;
   min-height: 196px;
 }
+/* The replica is a hint, not a second panel: it lists everything the
+   Studio adds, but only the first rows are ever legible under the scrim,
+   so the stack is clipped to that depth. Without the cap a long list
+   stretches the whole playground — the grid stretches the stage to match
+   this column. */
 .pg-teaser-locked {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  max-height: 200px;
+  overflow: hidden;
   opacity: 0.2;
   pointer-events: none;
   user-select: none;
@@ -2072,3 +2079,60 @@ html[data-theme="light"] .st-core-restore {
 .st-core-restore:hover,
 html[data-theme="dark"] .st-core-restore:hover { background: rgba(255, 255, 255, 0.04); }
 html[data-theme="light"] .st-core-restore:hover { background: rgba(0, 0, 0, 0.04); }
+
+/* A one-line aside under a control, for the case it cannot act on. */
+.pg-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pg-label);
+}
+
+/* ── Gravity dev panel (localhost / ?dev only) ─────────────────────── */
+.gdev {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483000;
+  width: 280px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--pg-panel-bg, #1b1b1b);
+  box-shadow: var(--pg-panel-shadow, 0 4px 42px rgba(0,0,0,.24));
+  font-family: var(--font-sans);
+  color: var(--pg-title);
+}
+.gdev-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gdev-title { font-size: 13px; font-weight: 500; }
+.gdev-actions { display: flex; gap: 4px; }
+.gdev-btn, .gdev-fab {
+  height: 26px; padding: 0 10px; border: 0; border-radius: 60px;
+  background: var(--pg-control-bg); color: var(--pg-control-text);
+  font: 500 12px/16px var(--font-sans); cursor: pointer;
+}
+.gdev-btn:hover, .gdev-fab:hover { background: var(--pg-control-bg-hover); color: var(--pg-control-text-hover); }
+.gdev-fab { position: fixed; right: 16px; bottom: 16px; z-index: 2147483000; }
+.gdev-hint { font-size: 11px; line-height: 15px; color: var(--pg-label); }
+.gdev-row { display: flex; flex-direction: column; gap: 4px; }
+.gdev-row-head { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; color: var(--pg-label); }
+.gdev-changed { color: var(--pg-title); }
+.gdev-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gdev-row input[type="range"] { width: 100%; accent-color: #8ab4ff; }
+.gdev-code {
+  display: block; padding: 8px 10px; border-radius: 8px;
+  background: rgba(127,127,127,.12); font: 11px/16px var(--font-mono);
+  color: var(--pg-title); white-space: pre-wrap; word-break: break-all;
+}
+.gdev-btn[data-on="true"] { background: var(--pg-control-active-bg); color: var(--pg-control-active-text); box-shadow: var(--pg-control-active-shadow); }
+.gdev-status { margin: -4px 0 0; font-size: 11px; line-height: 15px; color: var(--pg-label); }
+.gdev-status[data-state="active"] { color: #4ade80; }
+.gdev-status[data-state="blocked"], .gdev-status[data-state="off"] { color: #f59e0b; }
+.gdev-link { padding: 0; border: 0; background: none; color: var(--pg-title); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.gdev-code-row { display: flex; gap: 6px; align-items: flex-start; }
+.gdev-code-row .gdev-code { flex: 1 1 auto; min-width: 0; }

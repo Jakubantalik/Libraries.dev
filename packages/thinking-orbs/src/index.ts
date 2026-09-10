@@ -13,3 +13,7 @@ export {
   finalizeFrame, makeProj, radiusScale, fibDir, hashD, vnoise, lerp, frac, angleDelta,
 } from './engine/core';
 export type { ModeFrame, ModeOpts, OrbFrame, Dot, Line } from './engine/index';
+// Gravity: the orb pulls the pointer in. The sprite has to be the
+// platform's real pointer, so the consumer supplies it.
+export { attachGravity, setGravitySprite, setGravityConfig, getGravityConfig, getGravityStatus, resetGravity, GRAVITY_DEFAULTS } from './gravity';
+export type { GravityOptions, CursorSprite } from './gravity';

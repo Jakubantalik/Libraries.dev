@@ -20,10 +20,12 @@
   --c-mock-text: #c0c0c0;
   --c-mock-text-strong: #ffffff;
   --shimmer-band: 400%;
-  --shimmer-base: #6f6c6c;
+  /* The orb demo site's own shimmer ink (sites/orbs/styles.css), so a
+     label reads the same here as on the page these pills come from. */
+  --shimmer-base: rgba(251, 251, 251, 0.5);
   --shimmer-dur: 2000ms;
   --shimmer-ease: linear;
-  --shimmer-highlight: #ededed;
+  --shimmer-highlight: #ffffff;
 }
 
 /* The examples block and the playground beneath it. */
@@ -362,6 +364,11 @@
    these are the same mocks rebuilt in plain CSS rather than a verbatim
    port: the status pills and chat chrome those pages show, on the
    example chrome above. */
+/* Figma 1480:40970: a translucent dark fill with a cool-grey border,
+   rather than the white-tint-plus-inset-ring the other example chrome
+   uses. The border is drawn as a ring rather than a real border so the
+   pill's height and padding stay as authored, and at 1px rather than the
+   frame's 2px — the frame is drawn at 2x. */
 .ex-pill {
   display: inline-flex;
   align-items: center;
@@ -369,14 +376,13 @@
   height: 74px;
   padding: 0 32px 0 9px;
   border-radius: 50px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+  background: rgba(29, 29, 29, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(44, 47, 54, 0.22);
   color: #ededed;
   font-size: 18px;
   line-height: 24px;
 }
+/* Same surface as the pill above. */
 .ex-chip {
   display: inline-flex;
   align-items: center;
@@ -384,10 +390,8 @@
   height: 36px;
   padding: 0 14px 0 8px;
   border-radius: 50px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+  background: rgba(29, 29, 29, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(44, 47, 54, 0.22);
   color: #cfcfcf;
   font-size: 13px;
   line-height: 14px;
