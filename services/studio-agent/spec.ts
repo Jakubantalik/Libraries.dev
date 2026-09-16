@@ -452,6 +452,64 @@ export const ORB_SPEC: LibrarySpec = {
       kind: "boolean",
       describe: "Freeze the animation. Set true only if the user asks to pause or stop it.",
     },
+    gravity: {
+      kind: "boolean",
+      describe:
+        "The orb pulls at the pointer: as the cursor nears, the side of it facing the orb trails toward the " +
+        "orb's centre — the pointer itself stays exactly where it is, nothing rotates or scales. An interaction " +
+        "effect, not a look — turn it on when the request is about the cursor, hover, or the orb feeling " +
+        "physical or magnetic.",
+    },
+    gravityReach: {
+      kind: "number", min: 24, max: 240, step: 4,
+      describe: "How far outside the orb's edge the pull is felt, in px.",
+      when: "gravity is true",
+    },
+    gravityPull: {
+      kind: "number", min: 0, max: 48, step: 1,
+      describe: "How far the pointer trails toward the orb on contact, in px. The pointer itself never moves.",
+      when: "gravity is true",
+    },
+    gravityBend: {
+      kind: "number", min: 0, max: 24, step: 0.5,
+      describe: "How far the pointer's body leans toward the orb on contact, in px. The tip stays pinned.",
+      when: "gravity is true",
+    },
+    gravityTaper: {
+      kind: "number", min: 1, max: 4, step: 0.05,
+      describe: "How the bend is spread along the body: 1 bends evenly from the tip out; higher keeps the tip end firm and bends the far end hardest.",
+      when: "gravity is true",
+    },
+    gravityCurve: {
+      kind: "number", min: 1, max: 4, step: 0.05,
+      describe: "How late the pull builds: higher keeps the pointer free until it is close, then grabs.",
+      when: "gravity is true",
+    },
+    gravityFalloff: {
+      kind: "number", min: 2, max: 120, step: 2,
+      describe: "Width in px of the band across the pointer over which the tail fades from the side facing the orb to the far side: small keeps it to the facing edge, large lets the whole body trail.",
+      when: "gravity is true",
+    },
+    gravityInertia: {
+      kind: "number", min: 0, max: 1, step: 0.05,
+      describe: "How much the pointer lags behind the pull. 0 follows instantly; higher reads heavier.",
+      when: "gravity is true",
+    },
+    gravityHandover: {
+      kind: "number", min: 0, max: 1, step: 0.05,
+      describe: "How slowly the pull swings to the next orb when the nearest changes. 0 flips at once; higher glides.",
+      when: "gravity is true",
+    },
+    gravitySquash: {
+      kind: "number", min: 0, max: 3, step: 0.05,
+      describe: "Extra bend and tail when the orb lies off the pointer tip's side (up-left), where the pull shortens the body and reads weaker than a stretch. 0 leaves both sides equal in pixels; higher evens the feel.",
+      when: "gravity is true",
+    },
+    gravityBlur: {
+      kind: "number", min: 0, max: 24, step: 0.5,
+      describe: "Progressive blur along the pointer's tail, in px: crisp at the pointer, this soft at the far end. 0 keeps the tail sharp.",
+      when: "gravity is true",
+    },
     core: {
       kind: "code",
       lang: "js",
@@ -475,7 +533,8 @@ export const ORB_SPEC: LibrarySpec = {
   },
   relevant(params) {
     const state = String(params.state ?? "working");
-    const keys = ["state", "size", "speed", "ink", "dots", "dotSize", "paused", "core"];
+    const keys = ["state", "size", "speed", "ink", "dots", "dotSize", "paused", "core", "gravity"];
+    if (params.gravity === true) keys.push("gravityReach", "gravityPull", "gravityBend", "gravityTaper", "gravityCurve", "gravityFalloff", "gravityInertia", "gravityHandover", "gravitySquash", "gravityBlur");
     if (state === "shaping") keys.push("shape", "spread");
     if (state === "connecting") keys.push("spread", "linkThreshold", "signals", "lineWidth");
     if (state === "working") keys.push("ghostOpacity", "particles");

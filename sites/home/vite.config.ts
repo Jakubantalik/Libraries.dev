@@ -77,6 +77,7 @@ export default defineConfig({
         accessibility: resolve(__dirname, "accessibility.html"),
         beam: resolve(__dirname, "beam.html"),
         orbs: resolve(__dirname, "orbs.html"),
+        "orbs-carousel": resolve(__dirname, "orbs-carousel.html"),
         gooey: resolve(__dirname, "gooey.html"),
         metal: resolve(__dirname, "metal.html"),
         image: resolve(__dirname, "image.html"),

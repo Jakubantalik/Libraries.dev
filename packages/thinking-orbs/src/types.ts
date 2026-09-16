@@ -1,6 +1,7 @@
 import type { CSSProperties, CanvasHTMLAttributes } from 'react';
 import type { ModeOpts } from './engine/profiles';
 import type { ModeFrame } from './engine/types';
+import type { GravityOptions } from './gravity';
 
 /**
  * The nine shipped states — each a hand-tuned animation:
@@ -117,6 +118,17 @@ export interface ThinkingOrbProps extends Omit<CanvasHTMLAttributes<HTMLCanvasEl
    * offscreen handling all stay the library's.
    */
   frame?: ModeFrame;
+
+  /**
+   * Gravity: the orb pulls at the pointer. As the pointer nears, a raster
+   * of the platform's cursor is drawn in its place with its body warped
+   * toward the orb — the tip stays put, nothing rotates or scales. Needs the
+   * platform's real pointer raster (`gravity.sprite`, or
+   * `setGravitySprite`) or it stays off; off automatically under reduced
+   * motion, forced colours, coarse pointers, zoom, and over anything but
+   * the plain arrow. `true` takes the defaults. See gravity.ts.
+   */
+  gravity?: boolean | GravityOptions;
 
   style?: CSSProperties;
 }

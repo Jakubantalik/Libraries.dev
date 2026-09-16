@@ -415,13 +415,35 @@
               </svg>
             </button>
             <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
-              <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
-                <span class="tl-menu-item-label">Sign in</span>
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
               </div>
-              <div class="tl-menu-divider"></div>
-              <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
-                <span class="tl-menu-item-label">Support</span>
-              </a>
             </div>
           </div>
           <button

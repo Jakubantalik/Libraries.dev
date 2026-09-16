@@ -14,6 +14,12 @@ import {
 } from "thinking-orbs";
 import { ControlsPanel, PgTabs, PgSlider, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { indent, type CoreWiring } from "./core";
+import { MAC_ARROW, isMacPointer } from "../examples/macCursor";
+
+/* Gravity draws the platform's pointer, and the raster bundled here is
+   the macOS arrow — so the effect only shows on a Mac. */
+const GRAVITY_AVAILABLE = isMacPointer();
+const GRAVITY_DEFAULTS = { reach: 160, strength: 11, deform: 19, taper: 1.95, curve: 2.8, falloff: 24, smoothing: 0.3, handover: 0.6, squash: 1.2, blur: 1 } as const;
 
 /* ── Rebuilt core: a frame function the agent wrote ───────────────────
    The library's own geometry toolkit is handed in twice — as `h` and as
@@ -140,6 +146,17 @@ const ORB_PARAM_LABELS: Record<string, string> = {
   dotSize: "Dot size",
   shape: "Shape",
   core: "Core",
+  gravity: "Cursor gravity",
+  gravityReach: "Reach",
+  gravityPull: "Tail",
+  gravityBend: "Bend",
+  gravityTaper: "Taper",
+  gravityCurve: "Curve",
+  gravityFalloff: "Falloff",
+  gravityInertia: "Inertia",
+  gravityHandover: "Handover",
+  gravitySquash: "Squash",
+  gravityBlur: "Blur",
   paused: "Paused",
   ...Object.fromEntries(Object.entries(ENGINE_KNOBS).map(([k, v]) => [k, v.label])),
 };
@@ -161,6 +178,21 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
      belongs to the state it was written for, so choosing another state
      drops it. */
   const [core, setCore] = useState("");
+  /* Gravity: the orb pulls the pointer in (see thinking-orbs/gravity.ts). */
+  const [gravity, setGravity] = useState(false);
+  const [gravityReach, setGravityReach] = useState<number>(GRAVITY_DEFAULTS.reach);
+  const [gravityPull, setGravityPull] = useState<number>(GRAVITY_DEFAULTS.strength);
+  const [gravityBend, setGravityBend] = useState<number>(GRAVITY_DEFAULTS.deform);
+  const [gravityTaper, setGravityTaper] = useState<number>(GRAVITY_DEFAULTS.taper);
+  const [gravityCurve, setGravityCurve] = useState<number>(GRAVITY_DEFAULTS.curve);
+  const [gravityFalloff, setGravityFalloff] = useState<number>(GRAVITY_DEFAULTS.falloff);
+  const [gravityInertia, setGravityInertia] = useState<number>(GRAVITY_DEFAULTS.smoothing);
+  const [gravityHandover, setGravityHandover] = useState<number>(GRAVITY_DEFAULTS.handover);
+  const [gravitySquash, setGravitySquash] = useState<number>(GRAVITY_DEFAULTS.squash);
+  const [gravityBlur, setGravityBlur] = useState<number>(GRAVITY_DEFAULTS.blur);
+  const gravityProp = gravity && GRAVITY_AVAILABLE
+    ? { sprite: MAC_ARROW, reach: gravityReach, strength: gravityPull, deform: gravityBend, taper: gravityTaper, curve: gravityCurve, falloff: gravityFalloff, smoothing: gravityInertia, handover: gravityHandover, squash: gravitySquash, blur: gravityBlur }
+    : false;
   const customFrame = useMemo<ModeFrame | undefined>(() => {
     if (!core) return undefined;
     const c = compileFrame(core);
@@ -195,6 +227,7 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
      library only offers two hand-tuned presets rather than a range. */
   const agentParams: Record<string, unknown> = {
     state, size: String(size), speed, ink, dots, dotSize, paused, core,
+    gravity, gravityReach, gravityPull, gravityBend, gravityTaper, gravityCurve, gravityFalloff, gravityInertia, gravityHandover, gravitySquash, gravityBlur,
     ...(state === "shaping" ? { shape } : {}),
     ...Object.fromEntries(liveKnobs.map((k) => [k, knobValue(k)])),
   };
@@ -213,6 +246,17 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
     if (typeof patch.dots === "number") setDots(patch.dots);
     if (typeof patch.dotSize === "number") setDotSize(patch.dotSize);
     if (typeof patch.shape === "string" && patch.shape in SHAPE_INDEX) setShape(patch.shape as Shape);
+    if (typeof patch.gravity === "boolean") setGravity(patch.gravity);
+    if (typeof patch.gravityReach === "number") setGravityReach(patch.gravityReach);
+    if (typeof patch.gravityPull === "number") setGravityPull(patch.gravityPull);
+    if (typeof patch.gravityBend === "number") setGravityBend(patch.gravityBend);
+    if (typeof patch.gravityTaper === "number") setGravityTaper(patch.gravityTaper);
+    if (typeof patch.gravityCurve === "number") setGravityCurve(patch.gravityCurve);
+    if (typeof patch.gravityFalloff === "number") setGravityFalloff(patch.gravityFalloff);
+    if (typeof patch.gravityInertia === "number") setGravityInertia(patch.gravityInertia);
+    if (typeof patch.gravityHandover === "number") setGravityHandover(patch.gravityHandover);
+    if (typeof patch.gravitySquash === "number") setGravitySquash(patch.gravitySquash);
+    if (typeof patch.gravityBlur === "number") setGravityBlur(patch.gravityBlur);
     if (typeof patch.paused === "boolean") setPaused(patch.paused);
     const knobs = Object.entries(patch).filter(([k, v]) => k in ENGINE_KNOBS && typeof v === "number") as Array<[string, number]>;
     if (knobs.length) {
@@ -241,11 +285,25 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
     props.push(`opts={{ ${Object.entries(engineOpts).map(([k, v]) => `${k}: ${num(v)}`).join(", ")} }}`);
   }
   if (core) props.push("frame={frame}");
+  if (gravity) {
+    const g: string[] = ["sprite: macArrow"];
+    if (gravityReach !== GRAVITY_DEFAULTS.reach) g.push(`reach: ${num(gravityReach)}`);
+    if (gravityPull !== GRAVITY_DEFAULTS.strength) g.push(`strength: ${num(gravityPull)}`);
+    if (gravityBend !== GRAVITY_DEFAULTS.deform) g.push(`deform: ${num(gravityBend)}`);
+    if (gravityTaper !== GRAVITY_DEFAULTS.taper) g.push(`taper: ${num(gravityTaper)}`);
+    if (gravityCurve !== GRAVITY_DEFAULTS.curve) g.push(`curve: ${num(gravityCurve)}`);
+    if (gravityFalloff !== GRAVITY_DEFAULTS.falloff) g.push(`falloff: ${num(gravityFalloff)}`);
+    if (gravityInertia !== GRAVITY_DEFAULTS.smoothing) g.push(`smoothing: ${num(gravityInertia)}`);
+    if (gravityHandover !== GRAVITY_DEFAULTS.handover) g.push(`handover: ${num(gravityHandover)}`);
+    if (gravitySquash !== GRAVITY_DEFAULTS.squash) g.push(`squash: ${num(gravitySquash)}`);
+    if (gravityBlur !== GRAVITY_DEFAULTS.blur) g.push(`blur: ${num(gravityBlur)}`);
+    props.push(`gravity={{ ${g.join(", ")} }}`);
+  }
   const snippet = core
     ? `import { ThinkingOrb, ${HELPER_NAMES.join(", ")} } from 'thinking-orbs';\n\n` +
       `const h = { ${HELPER_NAMES.join(", ")} };\nconst frame = (size, t, o) => {\n${indent(core)}\n};\n\n` +
       `<ThinkingOrb ${props.join(" ")} />`
-    : `import { ThinkingOrb } from 'thinking-orbs';\n\n<ThinkingOrb ${props.join(" ")} />`;
+    : `import { ThinkingOrb } from 'thinking-orbs';\n${gravity ? "// A raster of the platform's own pointer — see the Gravity docs.\nimport { macArrow } from './cursors';\n" : ""}\n<ThinkingOrb ${props.join(" ")} />`;
 
   /* The ports take state / size / theme / speed / paused only
      (thinking-orbs-native/src/types.ts, ThinkingOrbsKit/ThinkingOrb.swift):
@@ -298,6 +356,7 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
             dotSize={dotSize}
             opts={hasOpts ? engineOpts : undefined}
             frame={customFrame}
+            gravity={gravityProp}
             paused={paused}
             theme={theme}
           />
@@ -357,6 +416,34 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
             onChange={setDots}
           />
           <PgSlider label="Dot size" value={dotSize} min={0.5} max={2} step={0.05} display={`${num(dotSize)}×`} onChange={setDotSize} />
+        </PgGroup>
+        <PanelSep />
+        {/* The orb pulling the pointer in. Draws the platform's own
+            pointer, and the raster here is the macOS arrow. */}
+        <PgGroup label="Cursor gravity">
+          <PgTabs
+            label="Cursor gravity"
+            options={[{ value: "off", label: "Off" }, { value: "on", label: "On" }] as const}
+            value={gravity ? "on" : "off"}
+            onChange={(v) => setGravity(v === "on")}
+          />
+          {gravity && !GRAVITY_AVAILABLE && (
+            <span className="pg-note">Draws the macOS pointer, so it only shows on a Mac.</span>
+          )}
+          {gravity && (
+            <>
+              <PgSlider label="Reach" value={gravityReach} min={24} max={240} step={4} display={`${gravityReach}px`} onChange={setGravityReach} />
+              <PgSlider label="Tail" value={gravityPull} min={0} max={48} step={1} display={`${gravityPull}px`} onChange={setGravityPull} />
+              <PgSlider label="Bend" value={gravityBend} min={0} max={24} step={0.5} display={`${num(gravityBend)}px`} onChange={setGravityBend} />
+              <PgSlider label="Taper" value={gravityTaper} min={1} max={4} step={0.05} display={`${num(gravityTaper)}`} onChange={setGravityTaper} />
+              <PgSlider label="Curve" value={gravityCurve} min={1} max={4} step={0.05} display={`${num(gravityCurve)}`} onChange={setGravityCurve} />
+              <PgSlider label="Falloff" value={gravityFalloff} min={2} max={120} step={2} display={`${gravityFalloff}px`} onChange={setGravityFalloff} />
+              <PgSlider label="Inertia" value={gravityInertia} min={0} max={1} step={0.05} display={`${Math.round(gravityInertia * 100)}%`} onChange={setGravityInertia} />
+              <PgSlider label="Handover" value={gravityHandover} min={0} max={1} step={0.05} display={`${Math.round(gravityHandover * 100)}%`} onChange={setGravityHandover} />
+              <PgSlider label="Squash" value={gravitySquash} min={0} max={3} step={0.05} display={`${gravitySquash.toFixed(2)}×`} onChange={setGravitySquash} />
+              <PgSlider label="Blur" value={gravityBlur} min={0} max={24} step={0.5} display={`${gravityBlur}px`} onChange={setGravityBlur} />
+            </>
+          )}
         </PgGroup>
         {/* The engine's own knobs for this state, on top of its tuned
             preset — the same reach the agent has. Listening and solving

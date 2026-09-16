@@ -7,7 +7,9 @@
 
 export type TeaserRow =
   | { kind: "tabs"; label: string; options: string[] }
-  | { kind: "slider"; label: string; value: string; fill: number };
+  | { kind: "slider"; label: string; value: string; fill: number }
+  /** The Studio's colour picker row: a run of swatches, the first selected. */
+  | { kind: "swatches"; label: string; colors: string[] };
 
 export function StudioTeaser({ rows }: { rows: TeaserRow[] }) {
   return (
@@ -23,6 +25,12 @@ export function StudioTeaser({ rows }: { rows: TeaserRow[] }) {
                     <div className="pg-tab" data-active={i === 0 ? "true" : "false"} key={o}>
                       {o}
                     </div>
+                  ))}
+                </div>
+              ) : row.kind === "swatches" ? (
+                <div className="pg-swatches">
+                  {row.colors.map((c, i) => (
+                    <div className="pg-swatch" data-active={i === 0 ? "true" : "false"} style={{ background: c }} key={c} />
                   ))}
                 </div>
               ) : (
