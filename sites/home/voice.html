@@ -22,14 +22,14 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Beam: animated border beam for React | Libraries.dev</title>
+  <title>Voice: voice-beam playground | Libraries.dev</title>
   <meta
     name="description"
-    content="Beam (border-beam) is an animated rainbow glow that rides the border of any card, button or input. Interactive playground, installation and usage."
+    content="A sound-reactive glow along the bottom edge of a chat input or a phone screen, rising and blooming with the voice. Try it live and install voice-beam from npm."
   />
   <meta
     name="keywords"
-    content="react, border beam, animated border, glow border, rainbow border, UI effects, border-beam"
+    content="react, effects, voice, microphone, audio-reactive, glow, border beam, thinking orb, gooey, liquid metal, image loader, UI libraries"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -40,27 +40,27 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/beam.html" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/beam.html" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/beam.html" />
+  <link rel="canonical" href="https://libraries.dev/voice.html" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/voice.html" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/voice.html" />
 
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/beam.html" />
+  <meta property="og:url" content="https://libraries.dev/voice.html" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Beam: animated border beam for React" />
-  <meta property="og:description" content="An animated rainbow glow that rides the border of any card, button or input. Install border-beam from npm." />
+  <meta property="og:title" content="Voice: voice-beam playground | Libraries.dev" />
+  <meta property="og:description" content="A sound-reactive glow along the bottom edge of a chat input or a phone screen, rising and blooming with the voice. Try it live and install voice-beam from npm." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
-  <meta name="twitter:title" content="Beam: animated border beam for React" />
-  <meta name="twitter:description" content="An animated rainbow glow that rides the border of any card, button or input. Install border-beam from npm." />
+  <meta name="twitter:title" content="Voice: voice-beam playground | Libraries.dev" />
+  <meta name="twitter:description" content="A sound-reactive glow along the bottom edge of a chat input or a phone screen, rising and blooming with the voice. Try it live and install voice-beam from npm." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -92,10 +92,10 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    /* Beam page only. */
-    .pg-snippet { margin-top: 24px; }
-
-    /* Copy-button icon crossfade (playground.css styles the button shell). */
+    /* Copy-button icon crossfade, as beam and gooey do it. The older
+       display:none swap lost to playground.css's `.code-block .code-copy svg
+       { display: block }` once these buttons moved onto the Studio's stage
+       card, and both icons showed at once; opacity has nothing to fight. */
     .code-copy svg {
       position: absolute;
       top: 50%;
@@ -106,20 +106,28 @@
     .code-copy .icon-check { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-copy { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
-
-    /* Demo card wrapped by the beam on the playground stage */
-    .beam-card {
-      width: 250px;
-      padding: 24px 26px;
-      border-radius: 16px;
-      background: #1d1d1d;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    /* Voice-only: the stage takes the Studio's padding and height, so
+       the phone mock's crop (margin-top -48px, flush with the top edge)
+       sits as it does there and still clears the Play button. */
+    #playground .pg-stage { min-height: 480px; padding: 48px 40px; }
+    /* The taller stage stretches the options panel past its two controls,
+       so the teaser grows to the panel's foot: its scrim then resolves
+       into the surface at the real bottom edge instead of 70px above it,
+       where the blur edge and the rounded corners showed as a seam. The
+       scrim's ramps are the stock ones (5% / 69% and 30% of a 230px
+       layer) pinned in px, so the taller layer does not stretch them
+       and leave the first locked row half-uncovered; the extra height is
+       plain panel. */
+    #playground .pg-teaser { flex: 1; }
+    #playground .pg-teaser-scrim {
+      background: linear-gradient(to bottom, rgba(27, 27, 27, 0) 12px, #1b1b1b 159px);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 69px);
+      mask-image: linear-gradient(to bottom, transparent 0, #000 69px);
     }
-    .beam-card-line { height: 8px; border-radius: 4px; background: rgba(238, 238, 239, 0.08); }
-    .beam-card-line--title { height: 10px; width: 55%; background: rgba(238, 238, 239, 0.14); }
-    .beam-card-line--short { width: 78%; }
+    /* The phone row: the crop is flush with the top edge (its -48px
+       margin eats the row's top padding) and the row grows to leave 40px
+       under it, rather than the fixed 370px that left 13. */
+    .example-row-full--phone { height: auto; padding-bottom: 40px; }
   </style>
 </head>
 <body>
@@ -236,31 +244,31 @@
         <div class="docs-group">
           <div class="docs-group-label">Libraries</div>
           <nav class="docs-list" aria-label="Libraries">
-            <a class="docs-link is-active" href="/beam.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
+            <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
             <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
             <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
             <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
             <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
-            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link is-active" href="/voice.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
           </nav>
         </div>
       </aside>
 
       <div class="docs-main">
         <div class="detail-topbar">
-          <a class="detail-arrow" href="/voice.html" aria-label="Previous library — Voice">
+          <a class="detail-arrow" href="/image.html" aria-label="Previous library — Image">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.667 8H3.333M6.667 4.667 3.333 8l3.334 3.333" /></svg>
           </a>
-          <a class="detail-arrow" href="/orbs.html" aria-label="Next library — Orb">
+          <a class="detail-arrow" href="/beam.html" aria-label="Next library — Beam">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.333 8h9.334M9.333 4.667 12.667 8l-3.334 3.333" /></svg>
           </a>
         </div>
 
         <header class="detail-head">
           <div class="detail-titles">
-            <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/tile-beam.png" alt="" width="46" height="46" decoding="async" /></span>
-            <h1 class="detail-title">Border beam</h1>
-            <p class="detail-sub">An animated rainbow glow that rides the border of any card, button or input.</p>
+            <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/figma-voice.png" alt="" width="46" height="46" decoding="async" /></span>
+            <h1 class="detail-title">Voice</h1>
+            <p class="detail-sub">A sound-reactive glow along the bottom edge of a chat input or a phone screen — a centered, colorful beam that rises and blooms with the voice, and gathers into a travelling beam while the reply is thought through.</p>
           </div>
 
           <div class="detail-head-row">
@@ -271,7 +279,7 @@
             </div>
 
             <div class="detail-head-actions">
-              <a class="t-pro-btn detail-studio" href="/studio/app.html#beam">
+              <a class="t-pro-btn detail-studio" href="/studio/app.html#voice">
                 <img src="/assets/icons/magic-wand.svg" alt="" width="16" height="16" decoding="async" />
                 <span class="detail-studio-sparks" aria-hidden="true"><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 900ms; --sdelay: 0ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 1000ms; --sdelay: 120ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 950ms; --sdelay: 240ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 1000ms; --sdelay: 360ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 920ms; --sdelay: 480ms;"></i><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 950ms; --sdelay: 520ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 900ms; --sdelay: 650ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 1000ms; --sdelay: 760ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 930ms; --sdelay: 180ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 980ms; --sdelay: 300ms;"></i></span>
                 <span class="t-pro-btn-label">Tune in Studio</span>
@@ -301,20 +309,11 @@
           <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
           <div class="st-stage-panel">
           
-          <!-- Ports, as the Studio's Install & Usage has them: the row swaps
-               the whole install+usage pair rather than a single block. -->
-          <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
-            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="react" aria-selected="true" data-active="true">React</button>
-            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="rn" aria-selected="false">React Native</button>
-            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="false">Swift UI</button>
-          </div>
-          
-          <div class="detail-platform" data-platform="react">
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
-              <pre>npm install border-beam</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+              <pre id="install-code">npm install voice-beam</pre>
+              <button type="button" class="code-copy" data-copy-target="#install-code" aria-label="Copy install command">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -326,12 +325,16 @@
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
               <div class="code-block">
-              <pre>import { BorderBeam } from 'border-beam';
+              <pre id="usage-code">import { VoiceBeam, useMicrophone } from 'voice-beam';
 
-&lt;BorderBeam&gt;
-  &lt;YourCard&gt;Content&lt;/YourCard&gt;
-&lt;/BorderBeam&gt;</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+const mic = useMicrophone();
+
+&lt;VoiceBeam stream={mic.stream}&gt;
+  &lt;ChatInput /&gt;
+&lt;/VoiceBeam&gt;
+
+&lt;button onClick={mic.start}&gt;Listen&lt;/button&gt;</pre>
+              <button type="button" class="code-copy" data-copy-target="#usage-code" aria-label="Copy usage example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -340,76 +343,6 @@
               </button>
             </div>
             </div>
-          </div>
-          <div class="detail-platform" data-platform="rn" hidden>
-            <div class="st-code-group">
-              <span class="st-code-title">Installation</span>
-              <div class="code-block">
-              <pre>npm install border-beam-native @shopify/react-native-skia react-native-reanimated</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
-              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-              </button>
-            </div>
-            <span class="st-code-note">border-beam-native is not on npm yet — it lives in this repo at packages/border-beam/ports/react-native/border-beam-native. Expo needs expo run:ios / run:android (native modules).</span>
-            </div>
-            <div class="st-code-group">
-              <span class="st-code-title">Usage</span>
-              <div class="code-block">
-              <pre>import { BorderBeam } from &#x27;border-beam-native&#x27;;
-
-&lt;BorderBeam&gt;
-  &lt;Card /&gt;
-&lt;/BorderBeam&gt;</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
-              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-              </button>
-            </div>
-            </div>
-          </div>
-          <div class="detail-platform" data-platform="swift" hidden>
-            <div class="st-code-group">
-              <span class="st-code-title">Installation</span>
-              <div class="code-block">
-              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: &quot;packages/border-beam/ports/ios/BorderBeamKit&quot;)</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
-              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-              </button>
-            </div>
-            <span class="st-code-note">Build through Xcode: the Metal shader is compiled by Xcode&#x27;s build system, not by SwiftPM alone.</span>
-            </div>
-            <div class="st-code-group">
-              <span class="st-code-title">Usage</span>
-              <div class="code-block">
-              <pre>import BorderBeamKit
-
-BorderBeam(
-    borderRadius: 16
-) {
-    Card()
-}</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
-              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-              </button>
-            </div>
-            </div>
-          </div>
           </div>
         </div>
 </div>
@@ -420,28 +353,46 @@ BorderBeam(
          rather than a <script>: script content is raw text, so the
          escaped tags below would reach the clipboard still escaped. -->
     <pre id="agent-prompt" hidden>
-Add the Beam effect from Libraries.dev to my React app.
+Add the Voice effect from Libraries.dev to my React app.
 
 Install:
-npm install border-beam
+npm install voice-beam
 
 Usage:
-import { BorderBeam } from 'border-beam';
+import { VoiceBeam, useMicrophone } from 'voice-beam';
 
-&lt;BorderBeam size="md" colorVariant="colorful" strength={0.7}&gt;
-  &lt;YourCard&gt;Content&lt;/YourCard&gt;
-&lt;/BorderBeam&gt;
+const mic = useMicrophone();
+
+&lt;VoiceBeam stream={mic.stream} processing={thinking}&gt;
+  &lt;ChatInput /&gt;
+&lt;/VoiceBeam&gt;
+
+&lt;button onClick={mic.state === 'live' ? mic.stop : mic.start}&gt;
+  {mic.state === 'live' ? 'Stop' : 'Listen'}
+&lt;/button&gt;
+
+// Without a microphone, drive it yourself (0–1, a number or a per-frame getter):
+&lt;VoiceBeam level={() =&gt; meter.current}&gt;
+  &lt;Card /&gt;
+&lt;/VoiceBeam&gt;
 
 Props:
-- size: "md" | "sm" | "line" | "pulse-inner" | "pulse-outside"
-- colorVariant: "colorful" | "mono" | "ocean" | "sunset"
-- strength: 0-1, glow intensity
-- active: boolean, pauses the animation when false
-- theme: "light" | "dark"
+- type: "default" | "pill" | "mobile" — geometry preset for a ~350px chat input, a ~150×44 recording pill or the bottom of a phone screen
+- stream: MediaStream to react to (wins over level); level: 0–1 number or getter
+- processing: boolean, gathers the glow into a beam that travels its range while work is in progress
+- colorVariant: "colorful" | "mono" | "ocean" | "sunset" | "forest" | "candy" | "ice" | "gold"
+- colors: up to 7 lobe colours; bandColors: { core, above, mid, below }
+- sensitivity, threshold, attack, release: the input chain (gain, gate, envelope)
+- reach, spread, flow, bend, idle: the shape of the reaction
+- theme: "dark" | "light" | "auto"
+- strength: 0-1, effect opacity; active, paused; scale
 
-Beam wraps a child element and rides an animated glow around its border.
-It ships zero runtime dependencies and needs React 18 or newer.
-Docs: https://libraries.dev/beam.html
+Voice wraps a child element and overlays a sound-reactive glow along its
+bottom edge: a centered, colorful beam that rises and blooms with the
+voice. It auto-detects the child's border radius, ships zero runtime
+dependencies and needs React 18 or newer. The microphone needs a secure
+context (https or localhost) and mic.start() called from a user gesture.
+Docs: https://libraries.dev/voice.html
     </pre>
 
     <footer class="footer">
@@ -492,7 +443,7 @@ Docs: https://libraries.dev/beam.html
 
   <script src="/assets/site.js" defer></script>
   <script src="/assets/pro-client.js" defer></script>
-  <script type="module" src="/src/beam.tsx"></script>
+  <script type="module" src="/src/voice.tsx"></script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
   <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
