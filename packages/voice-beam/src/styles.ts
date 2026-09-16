@@ -698,12 +698,15 @@ ${coreLight > 0 ? (() => {
    1px stroke stays full-res where a screen can show it, and joins on
    dense screens (2.5dppx and up), where half-res still leaves it more
    than a device pixel. \`@supports\` keeps engines without \`zoom\` on the
-   full-res path. */
+   full-res path, and the component sets \`data-voice-halfres\` only off
+   WebKit: WebKit rasters a scaled layer at its final scale, so there is
+   nothing to gain there, and Safari 18's \`zoom\` leaves the px inside
+   the halved layers unscaled, so the compensating scale doubled the glow. */
 @supports (zoom: 0.5) {
-  [data-voice-beam="${id}"]::before,
-  [data-voice-beam="${id}"] [data-voice-beam-warp],
-  [data-voice-beam="${id}"] [data-voice-beam-bloom],
-  [data-voice-beam="${id}"] [data-voice-beam-core] {
+  [data-voice-beam="${id}"][data-voice-halfres]::before,
+  [data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-warp],
+  [data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-bloom],
+  [data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-core] {
     zoom: 0.5;
     inset: auto;
     left: 0;
@@ -714,7 +717,7 @@ ${coreLight > 0 ? (() => {
     transform-origin: 0 0;
   }
   @media (min-resolution: 2.5dppx) {
-    [data-voice-beam="${id}"]::after {
+    [data-voice-beam="${id}"][data-voice-halfres]::after {
       zoom: 0.5;
       inset: auto;
       left: 0;

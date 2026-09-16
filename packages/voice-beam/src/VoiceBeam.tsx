@@ -545,6 +545,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           ref={setRefs}
           data-voice-beam={id}
           data-voice-type={type}
+          data-voice-halfres={IS_WEBKIT ? undefined : ''}
           data-active={isActive && !isFading ? '' : undefined}
           data-fading={isFading ? '' : undefined}
           data-paused={isActive && !isFading && (!isVisible || paused) ? '' : undefined}
