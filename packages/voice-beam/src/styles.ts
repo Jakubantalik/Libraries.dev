@@ -254,7 +254,7 @@ function scaleBlur(px: number, glowSize = 1): number {
  *  carries the whole beam sideways) plus its own driven offset (`--vb-xN`),
  *  spread by the level. */
 function lobeX(index: number, id: string): string {
-  return `calc(50% + (var(--vb-cx-${id}) + var(--vb-x${index}-${id})) * var(--vb-w-${id}))`;
+  return `calc(50% + (var(--vb-cx-${id}) + var(--vb-x${index}-${id})) * var(--vb-w-${id}) * var(--vb-z-${id}, 1))`;
 }
 
 interface LobeLayerOptions {
@@ -279,11 +279,11 @@ function lobeGradients({ id, colors, alpha, sw, sh, y, fade, count }: LobeLayerO
   return lobes
     .map((lobe, i) => {
       const color = alpha >= 1 ? colors[i % colors.length] : withAlpha(colors[i % colors.length], alpha);
-      const w = `calc(${Math.round(lobe.w * sw)}px * var(--vb-w-${id}))`;
-      const h = `calc(${Math.round(lobe.h * sh)}px * var(--vb-h-${id}) * var(--vb-l${i}-${id}))`;
+      const w = `calc(${Math.round(lobe.w * sw)}px * var(--vb-w-${id}) * var(--vb-z-${id}, 1))`;
+      const h = `calc(${Math.round(lobe.h * sh)}px * var(--vb-h-${id}) * var(--vb-l${i}-${id}) * var(--vb-z-${id}, 1))`;
       // `--vb-yN` lifts the lobe along the element's corner arc while the
       // beam travels through it (processing).
-      const yStr = `calc(100% + ${y}px + var(--vb-y${i}-${id}))`;
+      const yStr = `calc(100% + (${y}px + var(--vb-y${i}-${id})) * var(--vb-z-${id}, 1))`;
       return `radial-gradient(ellipse ${w} ${h} at ${lobeX(i, id)} ${yStr}, ${color} 0%, transparent ${fade}%)`;
     })
     .join(',\n    ');
@@ -390,6 +390,13 @@ export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): strin
   const gw = (m: number) => glowWidth * m;
   const gh = (m: number) => glowHeight * m;
   const px = (v: number) => Math.round(v * 10) / 10;
+  // The layer's raster factor: 1 on the root, 0.5 on a layer rastered at
+  // half size and scaled back (see the resolution block). Every length
+  // rides it, so the halved layer is the same picture at a quarter of the
+  // pixels — done explicitly rather than with `zoom`, which Safari 18
+  // applies to the box but not to the px inside it.
+  const Z = `var(--vb-z-${id}, 1)`;
+  const zpx = (v: number) => `calc(${px(v)}px * ${Z})`;
   const isDark = theme === 'dark';
   const paletteColors = voicePalettes[colorVariant][isDark ? 'dark' : 'light'];
   // A custom palette fills the slots it names; the variant's own colour
@@ -414,16 +421,16 @@ export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): strin
   const warp = distortion ? ` url(#vb-distort-${id})` : '';
   const layerFilter = `filter: ${hue} brightness(${b}) saturate(${s});`;
   const innerFilter = `filter: ${hue} brightness(${b}) saturate(${s})${warp};`;
-  const bloomFilter = `filter: blur(${scaleBlur(10, glowSize)}px) ${hue} brightness(${b}) saturate(${s});`;
-  const bloomWarpFilter = `filter: blur(${scaleBlur(10, glowSize)}px) ${hue} brightness(${b}) saturate(${s})${warp};`;
+  const bloomFilter = `filter: blur(${zpx(scaleBlur(10, glowSize))}) ${hue} brightness(${b}) saturate(${s});`;
+  const bloomWarpFilter = `filter: blur(${zpx(scaleBlur(10, glowSize))}) ${hue} brightness(${b}) saturate(${s})${warp};`;
 
   // Where the beam sits: centre at rest, carried sideways by `--vb-cx`
   // while processing travels the whole cluster like border-beam's line.
-  const beamX = `calc(50% + var(--vb-cx-${id}) * var(--vb-w-${id}))`;
+  const beamX = `calc(50% + var(--vb-cx-${id}) * var(--vb-w-${id}) * ${Z})`;
 
   // A hot white core at the very centre of the edge — the "light source"
   // the colours fan out from. Black on light so the edge still reads.
-  const coreY = `calc(100% + 2px + var(--vb-cy-${id}))`;
+  const coreY = `calc(100% + (2px + var(--vb-cy-${id})) * ${Z})`;
 
   // The bend: the glow's ceiling. The ellipse the stroke and inner light are
   // masked to gets `--vb-bh` extra height at the centre as the voice rises,
@@ -431,8 +438,8 @@ export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): strin
   // the canvas layer by the driver (an organic bell, not an ellipse), so
   // nothing about it lives here except the layer's own rule below.
   const highlight = isDark
-    ? `radial-gradient(ellipse calc(${px(30 * coreSize)}px * var(--vb-w-${id})) calc(${px(30 * coreSize)}px * var(--vb-h-${id})) at ${beamX} ${coreY}, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.14) 30%, transparent 65%)`
-    : `radial-gradient(ellipse calc(${px(40 * coreSize)}px * var(--vb-w-${id})) calc(${px(30 * coreSize)}px * var(--vb-h-${id})) at ${beamX} ${coreY}, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.22) 35%, transparent 70%)`;
+    ? `radial-gradient(ellipse calc(${px(30 * coreSize)}px * var(--vb-w-${id}) * ${Z}) calc(${px(30 * coreSize)}px * var(--vb-h-${id}) * ${Z}) at ${beamX} ${coreY}, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.14) 30%, transparent 65%)`
+    : `radial-gradient(ellipse calc(${px(40 * coreSize)}px * var(--vb-w-${id}) * ${Z}) calc(${px(30 * coreSize)}px * var(--vb-h-${id}) * ${Z}) at ${beamX} ${coreY}, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.22) 35%, transparent 70%)`;
 
   const strokeGradients = lobeGradients({ id, colors, alpha: 1, sw: gw(strokeScale), sh: gh(strokeScale), y: 2, fade });
   const innerGradients = lobeGradients({ id, colors, alpha: 0.46, sw: gw(0.9 * innerScale), sh: gh(0.9 * innerScale * innerHeight), y: 0, fade });
@@ -441,7 +448,7 @@ export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): strin
   // The ellipse every layer is masked to — on the beam, growing with the
   // level; `--vb-mw` narrows it into a beam while processing.
   const edgeMask = (w: number, h: number, mid: number, tail = 0) =>
-    `radial-gradient(ellipse calc(${px(w * rangeWidth)}px * var(--vb-w-${id}) * var(--vb-mw-${id})) calc(${px(h * rangeHeight)}px * var(--vb-h-${id}) + var(--vb-bh-${id})) at ${beamX} calc(100% + var(--vb-cy-${id})), white 0%, rgba(255, 255, 255, 0.5) ${mid}%${tail > 0 ? `, rgba(255, 255, 255, ${tail}) 85%` : ''}, transparent 100%)`;
+    `radial-gradient(ellipse calc(${px(w * rangeWidth)}px * var(--vb-w-${id}) * var(--vb-mw-${id}) * ${Z}) calc((${px(h * rangeHeight)}px * var(--vb-h-${id}) + var(--vb-bh-${id})) * ${Z}) at ${beamX} calc(100% + var(--vb-cy-${id}) * ${Z}), white 0%, rgba(255, 255, 255, 0.5) ${mid}%${tail > 0 ? `, rgba(255, 255, 255, ${tail}) 85%` : ''}, transparent 100%)`;
 
   const opacity = (layer: string, preset: string) =>
     `opacity: calc(var(--vb-opacity-${id}, 1) * var(--vb-glow-${id}) * ${preset} * var(--voice-${layer}-opacity, 1) * var(--voice-strength, 1));`;
@@ -452,18 +459,18 @@ export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): strin
   ${head}
   position: absolute;
   inset: 0;
-  border-radius: ${borderRadius}px;
+  border-radius: ${zpx(borderRadius)};
   background: ${innerGradients};
-  box-shadow: inset 0 0 ${insetBlur}px 1px ${innerShadow};
+  box-shadow: inset 0 0 ${zpx(insetBlur)} 1px ${innerShadow};
   -webkit-mask-image:
     ${edgeMask(170, 64, 45, 0.3)},
-    linear-gradient(white, transparent ${cornerFade}px, transparent calc(100% - ${cornerFade}px), white),
-    linear-gradient(to right, white, transparent ${cornerFade}px, transparent calc(100% - ${cornerFade}px), white);
+    linear-gradient(white, transparent ${zpx(cornerFade)}, transparent calc(100% - ${cornerFade}px * ${Z}), white),
+    linear-gradient(to right, white, transparent ${zpx(cornerFade)}, transparent calc(100% - ${cornerFade}px * ${Z}), white);
   -webkit-mask-composite: source-in, source-over;
   mask-image:
     ${edgeMask(170, 64, 45, 0.3)},
-    linear-gradient(white, transparent ${cornerFade}px, transparent calc(100% - ${cornerFade}px), white),
-    linear-gradient(to right, white, transparent ${cornerFade}px, transparent calc(100% - ${cornerFade}px), white);
+    linear-gradient(white, transparent ${zpx(cornerFade)}, transparent calc(100% - ${cornerFade}px * ${Z}), white),
+    linear-gradient(to right, white, transparent ${zpx(cornerFade)}, transparent calc(100% - ${cornerFade}px * ${Z}), white);
   mask-composite: intersect, add;
   pointer-events: none;
   /* Its own compositing layer: WebKit otherwise re-rasterizes the
@@ -494,6 +501,7 @@ ${voiceLobes.map((lobe, i) => `  --vb-x${i}-${id}: ${lobe.x}px;
   --vb-l${i}-${id}: 1;
   --vb-y${i}-${id}: 0px;`).join('\n')}
   --vb-glow-${id}: 0.4;
+  --vb-z-${id}: 1;
   --vb-cx-${id}: 0px;
   --vb-cy-${id}: 0px;
   --vb-bh-${id}: 0px;
@@ -517,9 +525,9 @@ ${voiceLobes.map((lobe, i) => `  --vb-x${i}-${id}: ${lobe.x}px;
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: ${innerRadius}px;
-  padding: ${borderWidth}px;
-  clip-path: inset(0 round ${borderRadius}px);
+  border-radius: ${zpx(innerRadius)};
+  padding: ${zpx(borderWidth)};
+  clip-path: inset(0 round ${zpx(borderRadius)});
   background:
     ${highlight},
     ${strokeGradients};
@@ -556,7 +564,7 @@ ${distortion ? innerRule(`[data-voice-beam="${id}"][data-active] [data-voice-bea
   display: none;
   position: absolute;
   inset: 0;
-  border-radius: ${innerRadius}px;
+  border-radius: ${zpx(innerRadius)};
   pointer-events: none;
   /* Its own compositing layer: WebKit otherwise re-rasterizes the
      filtered layer into the parent every frame on the CPU (a phone-sized
@@ -625,7 +633,7 @@ ${coreLight > 0 ? (() => {
   display: none;
   position: absolute;
   inset: 0;
-  border-radius: ${innerRadius}px;
+  border-radius: ${zpx(innerRadius)};
   overflow: hidden;
   pointer-events: none;
   /* Its own compositing layer: WebKit otherwise re-rasterizes the
@@ -634,14 +642,14 @@ ${coreLight > 0 ? (() => {
   will-change: transform;
   /* The blur sits on this wrapper and the band-line clip on the child,
      so the cut edge is blurred too rather than left hard. */
-  filter: blur(${scaleBlur(8, glowSize)}px);
+  filter: blur(${zpx(scaleBlur(8, glowSize))});
   z-index: 4;
 }
 
 [data-voice-beam="${id}"] [data-voice-beam-core] > div {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse calc(${px(120 * coreLightWidth * grow * scale)}px * var(--vb-w-${id})) calc(${px(70 * coreLightHeight * grow * scale)}px * var(--vb-h-${id}) + var(--vb-bh-${id})) at ${beamX} calc(100% + var(--vb-cy-${id})), white 0%, white ${solid}%, rgba(255, 255, 255, ${midAlpha}) ${midStop}%, transparent ${endStop}%);
+  background: radial-gradient(ellipse calc(${px(120 * coreLightWidth * grow * scale)}px * var(--vb-w-${id}) * ${Z}) calc((${px(70 * coreLightHeight * grow * scale)}px * var(--vb-h-${id}) + var(--vb-bh-${id})) * ${Z}) at ${beamX} calc(100% + var(--vb-cy-${id}) * ${Z}), white 0%, white ${solid}%, rgba(255, 255, 255, ${midAlpha}) ${midStop}%, transparent ${endStop}%);
   clip-path: var(--vb-clip-below-${id}, none);
 }
 
@@ -688,26 +696,50 @@ ${coreLight > 0 ? (() => {
 }
 
 /* Resolution. The soft layers — inner light and its warp mirror, bloom and
-   its mirror, the epicentre — are rastered at half resolution and scaled
-   back up by the compositor: \`zoom\` halves every length inside (gradient
-   sizes, blur radii, masks, the driver's px variables and clip polygons
-   keep their numbers, so the layer keeps the root's coordinate space at
-   half the pixels) and the will-change transform is rastered pre-scale.
-   For blurred gradients that is the same picture at a quarter of the
-   raster and filter work, which is what a phone at 3x runs out of. The
-   1px stroke stays full-res where a screen can show it, and joins on
-   dense screens (2.5dppx and up), where half-res still leaves it more
-   than a device pixel. \`@supports\` keeps engines without \`zoom\` on the
-   full-res path, and the component sets \`data-voice-halfres\` only off
-   WebKit: WebKit rasters a scaled layer at its final scale, so there is
-   nothing to gain there, and Safari 18's \`zoom\` leaves the px inside
-   the halved layers unscaled, so the compensating scale doubled the glow. */
-@supports (zoom: 0.5) {
-  [data-voice-beam="${id}"][data-voice-halfres]::before,
-  [data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-warp],
-  [data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-bloom],
-  [data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-core] {
-    zoom: 0.5;
+   its mirror, the epicentre — are rastered at half size and scaled back
+   up by the compositor: the box is halved, every length inside rides the
+   layer's factor \`--vb-z\` at 0.5 (the driver also writes the band-line
+   clips at half scale), and the will-change transform is rastered
+   pre-scale where the engine does that (Chromium, Safari 18). For blurred
+   gradients that is the same picture at a quarter of the raster and
+   filter work, which is what a phone at 3x runs out of. The 1px stroke
+   stays full-res where a screen can show it, and joins on dense screens
+   (2.5dppx and up), where half-res still leaves it more than a device
+   pixel. The component sets \`data-voice-halfres\`. */
+[data-voice-beam="${id}"][data-voice-halfres]::before,
+[data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-warp],
+[data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-bloom],
+[data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-core] {
+  --vb-z-${id}: 0.5;
+  inset: auto;
+  left: 0;
+  top: 0;
+  width: 50%;
+  height: 50%;
+  transform: translateZ(0) scale(2);
+  transform-origin: 0 0;
+}
+${distortion ? `[data-voice-beam="${id}"][data-voice-halfres][data-active]::before,
+[data-voice-beam="${id}"][data-voice-halfres][data-fading]::before,
+[data-voice-beam="${id}"][data-voice-halfres][data-active] [data-voice-beam-bloom],
+[data-voice-beam="${id}"][data-voice-halfres][data-fading] [data-voice-beam-bloom] {
+  clip-path: var(--vb-clip-above-z-${id}, inset(0 round ${zpx(borderRadius)}));
+}
+[data-voice-beam="${id}"][data-voice-halfres][data-active] [data-voice-beam-warp],
+[data-voice-beam="${id}"][data-voice-halfres][data-fading] [data-voice-beam-warp] {
+  clip-path: var(--vb-clip-below-z-${id}, inset(0 round ${zpx(borderRadius)}));
+}` : `[data-voice-beam="${id}"][data-voice-halfres][data-active]::before,
+[data-voice-beam="${id}"][data-voice-halfres][data-fading]::before,
+[data-voice-beam="${id}"][data-voice-halfres][data-active] [data-voice-beam-bloom],
+[data-voice-beam="${id}"][data-voice-halfres][data-fading] [data-voice-beam-bloom] {
+  clip-path: inset(0 round ${zpx(borderRadius)});
+}`}
+[data-voice-beam="${id}"][data-voice-halfres] [data-voice-beam-core] > div {
+  clip-path: var(--vb-clip-below-z-${id}, none);
+}
+@media (min-resolution: 2.5dppx) {
+  [data-voice-beam="${id}"][data-voice-halfres]::after {
+    --vb-z-${id}: 0.5;
     inset: auto;
     left: 0;
     top: 0;
@@ -715,18 +747,6 @@ ${coreLight > 0 ? (() => {
     height: 50%;
     transform: translateZ(0) scale(2);
     transform-origin: 0 0;
-  }
-  @media (min-resolution: 2.5dppx) {
-    [data-voice-beam="${id}"][data-voice-halfres]::after {
-      zoom: 0.5;
-      inset: auto;
-      left: 0;
-      top: 0;
-      width: 50%;
-      height: 50%;
-      transform: translateZ(0) scale(2);
-      transform-origin: 0 0;
-    }
   }
 }
 

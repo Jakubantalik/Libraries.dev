@@ -32,7 +32,9 @@ const DEFAULT_RADIUS = 16;
    a chat input (~39k px²) or a pill keeps it, the phone crop (~97k px²)
    and any real screen do not. Its 2D canvas also has no \`filter\`, so the
    band's blur is done in CSS on two canvases instead (the ridge and its
-   wider halo), keeping Chromium's look. */
+   wider halo), keeping Chromium's look. The half-resolution soft layers
+   are explicit (a per-layer factor on every length, not \`zoom\`), so they
+   run on every engine; Safari 18 rasters them pre-scale as Chromium does. */
 const WEBKIT_WARP_MAX_AREA = 60_000;
 const IS_WEBKIT =
   typeof navigator !== 'undefined' &&
@@ -545,7 +547,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           ref={setRefs}
           data-voice-beam={id}
           data-voice-type={type}
-          data-voice-halfres={IS_WEBKIT ? undefined : ''}
+          data-voice-halfres=""
           data-active={isActive && !isFading ? '' : undefined}
           data-fading={isFading ? '' : undefined}
           data-paused={isActive && !isFading && (!isVisible || paused) ? '' : undefined}

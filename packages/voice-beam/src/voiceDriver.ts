@@ -357,12 +357,17 @@ function bandPoints(config: VoiceDriverConfig, f: BandFrame, cw: number, ch: num
 /** The regions above and below the band line as clip-path polygons, so
  *  the distortion can be confined to the glow under the line. */
 function writeClips(el: HTMLElement, id: string, pts: Array<[number, number]>, cw: number, ch: number): void {
-  const px = (v: number) => v.toFixed(1) + 'px';
-  const line = pts.map(([x, y]) => `${px(x)} ${px(y)}`);
-  const below = `polygon(0 ${px(ch)}, ${line.join(', ')}, ${px(cw)} ${px(ch)})`;
-  const above = `polygon(0 0, ${px(cw)} 0, ${px(cw)} ${px(ch)}, ${line.slice().reverse().join(', ')}, 0 ${px(ch)})`;
-  el.style.setProperty(`--vb-clip-below-${id}`, below);
-  el.style.setProperty(`--vb-clip-above-${id}`, above);
+  // Full scale for the layers that raster at the host's size, and half
+  // scale for the layers that raster at half size and are scaled back
+  // (see the stylesheet's resolution block).
+  for (const [suffix, k] of [['', 1], ['-z', 0.5]] as const) {
+    const px = (v: number) => (v * k).toFixed(1) + 'px';
+    const line = pts.map(([x, y]) => `${px(x)} ${px(y)}`);
+    const below = `polygon(0 ${px(ch)}, ${line.join(', ')}, ${px(cw)} ${px(ch)})`;
+    const above = `polygon(0 0, ${px(cw)} 0, ${px(cw)} ${px(ch)}, ${line.slice().reverse().join(', ')}, 0 ${px(ch)})`;
+    el.style.setProperty(`--vb-clip-below${suffix}-${id}`, below);
+    el.style.setProperty(`--vb-clip-above${suffix}-${id}`, above);
+  }
 }
 
 /** Draw the band: an organic bell traced by a core light with a red fringe
