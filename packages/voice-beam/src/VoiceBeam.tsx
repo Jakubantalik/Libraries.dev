@@ -580,7 +580,9 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           {distortion > 0 && (
             /* The distortion filter: drifting fractal noise, its green
                channel pinned to 0.5 so only x displaces, driven per frame by
-               the driver (scale and offset). Zero-sized, so it takes no room. */
+               the driver (scale and offset), which also narrows the region
+               to the strip under the band line once it runs — the full box
+               here is only the first frame. Zero-sized, so it takes no room. */
             <svg aria-hidden="true" width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
               <filter
                 id={`vb-distort-${id}`}

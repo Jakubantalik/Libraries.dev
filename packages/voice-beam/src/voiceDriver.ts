@@ -133,6 +133,10 @@ interface VoiceInstance {
   /** The distortion filter's displacement and noise-offset primitives. */
   displace: SVGFEDisplacementMapElement | null;
   noiseShift: SVGFEOffsetElement | null;
+  /** The distortion filter itself, whose region the driver keeps to the glow under the band line. */
+  filter: SVGFilterElement | null;
+  /** The filter region's top last written, as a fraction of the host's height (-1 before the first). */
+  filterTop: number;
   // Analyser (when a stream is attached) and its scratch buffers.
   analyser: AnalyserNode | null;
   releaseAnalyser: (() => void) | null;
@@ -237,6 +241,20 @@ const BAND_DPR_MAX = 2;
 const WARP_OUT_TAU = 0.06;
 const WARP_IN_TAU = 0.35;
 const WARP_OFF_BELOW = 0.03;
+// The distortion filter only has to cover the glow under the band line:
+// the warp layers are clipped to it, and the host crops at its own box.
+// Its region is kept to that strip — from a little above the line's
+// highest point, in steps so the attribute rarely changes, to a little
+// below the host — with a small side margin. The margins are the smallest
+// that leave the picture identical (a tighter bottom or side changes the
+// last rows in Chromium); the strip is typically 3–5× fewer pixels than
+// the full box with its 20% margins, and the filter's cost is per pixel
+// wherever it runs in software (Firefox, WebKit, and a phone).
+const FILTER_TOP_STEP = 0.05;
+const FILTER_TOP_MARGIN = 6;
+const FILTER_BOTTOM_MARGIN = 12;
+const FILTER_BOTTOM_FRACTION = 0.1;
+const FILTER_SIDE = 0.1;
 
 // Ceiling geometry the stylesheet uses (px at multiplier 1) — the band is
 // drawn to sit on the same hump the glow is masked to.
@@ -368,6 +386,23 @@ function writeClips(el: HTMLElement, id: string, pts: Array<[number, number]>, c
     el.style.setProperty(`--vb-clip-below${suffix}-${id}`, below);
     el.style.setProperty(`--vb-clip-above${suffix}-${id}`, above);
   }
+}
+
+/** Keep the distortion filter's region to the strip under the band line
+ *  (see FILTER_TOP_STEP). Fractions of the layer's box, so the half-size
+ *  warp layers get the same strip. */
+function fitFilterRegion(inst: VoiceInstance, pts: Array<[number, number]>, ch: number): void {
+  let minY = ch;
+  for (let i = 0; i < pts.length; i++) if (pts[i][1] < minY) minY = pts[i][1];
+  const top = Math.max(0, Math.min(0.9, Math.floor((minY - FILTER_TOP_MARGIN) / ch / FILTER_TOP_STEP) * FILTER_TOP_STEP));
+  if (top === inst.filterTop) return;
+  inst.filterTop = top;
+  const bottom = 1 + Math.max(FILTER_BOTTOM_FRACTION, FILTER_BOTTOM_MARGIN / ch);
+  const f = inst.filter as SVGFilterElement;
+  f.setAttribute('x', `${-FILTER_SIDE * 100}%`);
+  f.setAttribute('width', `${(1 + 2 * FILTER_SIDE) * 100}%`);
+  f.setAttribute('y', `${(top * 100).toFixed(0)}%`);
+  f.setAttribute('height', `${((bottom - top) * 100).toFixed(1)}%`);
 }
 
 /** Draw the band: an organic bell traced by a core light with a red fringe
@@ -700,6 +735,7 @@ function frame(ts: number): void {
     if (cw && ch && (inst.ctx || inst.displace)) {
       const pts = bandPoints(config, frame, cw, ch);
       if ((inst.displace && !warpOff) || config.coreLight > 0) writeClips(el, config.id, pts, cw, ch);
+      if (inst.filter && !warpOff) fitFilterRegion(inst, pts, ch);
       if (inst.ctx) drawBand(inst, frame, pts);
     }
     if (inst.displace && !warpOff) {
@@ -782,6 +818,8 @@ export function registerVoiceInstance(
     haloCtx: null,
     displace: null,
     noiseShift: null,
+    filter: null,
+    filterTop: -1,
     s: stateFor(el),
     paintedConfig: null,
     cssBlur: null,
@@ -791,6 +829,7 @@ export function registerVoiceInstance(
   if (config.distortion > 0) {
     inst.displace = el.querySelector<SVGFEDisplacementMapElement>(':scope > svg feDisplacementMap');
     inst.noiseShift = el.querySelector<SVGFEOffsetElement>(':scope > svg feOffset');
+    inst.filter = el.querySelector<SVGFilterElement>(':scope > svg filter');
   }
   const canvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-band]');
   if (canvas) {
