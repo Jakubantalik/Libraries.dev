@@ -177,6 +177,28 @@
       box-shadow: none;
     }
     .st-top-right { display: flex; align-items: center; gap: 8px; }
+    /* Dev-only stage-fill toggle: a small chip, dim when the fill is off. */
+    .st-dev-btn {
+      height: 26px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 40px;
+      background: var(--pg-control-bg, rgba(255, 255, 255, 0.06));
+      color: var(--icon-color-muted);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 26px;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.15s ease, color 0.15s ease;
+    }
+    .st-dev-btn[aria-pressed="true"] { opacity: 1; color: var(--icon-color); }
+    .st-dev-btn:hover { opacity: 1; }
+    /* With the fill off the stage cards sit on the bare ground; the panel
+       and snippet keep theirs. */
+    html[data-stage-fill="off"] .st-main .pg-stage,
+    html[data-theme="dark"][data-stage-fill="off"] .st-main .pg-stage { background: transparent; }
     /* Theme toggle sits with the avatar; same 36px chip as the nav icons. */
     .st-theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; }
     .st-theme-btn { color: var(--icon-color-muted); }

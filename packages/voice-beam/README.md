@@ -131,7 +131,7 @@ The **band** is the light along that contour — an organic bell, `exp(-(|x| / s
 
 ```tsx
 <VoiceBeam
-  bandStrength={2.4}    // opacity; 0 hides it
+  bandStrength={1.55}   // opacity; 0 hides it
   bandWidth={2.15}      // thickness
   bandPosition={0.35}   // peak height as a fraction of the glow's ceiling
   bandCurve={1.75}      // bell exponent: < 2 exponential / cusp-like, 2 gaussian, > 2 flat-topped
@@ -242,7 +242,7 @@ Slots you leave out keep the variant's colour for the theme. Light mode ships a 
 | `processingDuration` | `number` | `1.1` | Seconds per beam pass (1.05 for `mobile`) |
 | `processingLevel` | `number` | `0.55` | Level the glow is held at while processing (0.35 for `mobile`) |
 | `processingEase` | `number` | `0.6` | Seconds the morph into / out of processing takes |
-| `cornerFollow` | `number` | `0.45` | The glow rides the corner arcs while processing; the band line always does (0 for `pill`, 1 for `mobile`) |
+| `cornerFollow` | `number` | `0.45` | The glow rides the corner arcs while processing; the band line always does (0 for `pill`, 0.4 for `mobile`) |
 | `processingTravel` | `number` | `1.55` | How far the beam travels to each side, × half the lobe ring (2 for `pill`, 1 for `mobile`) |
 | `processingCurve` | `number` | `2.1` | How the sweep eases into each turn: 1 constant speed with sharp turns, 2 smooth, higher dwells at the ends |
 | `colorVariant` | `'colorful' \| 'mono' \| 'ocean' \| 'sunset' \| 'forest' \| 'candy' \| 'ice' \| 'gold'` | `'colorful'` | Color palette |
@@ -260,7 +260,7 @@ Slots you leave out keep the variant's colour for the theme. Light mode ships a 
 | `glowSize` | `number` | `1` | Multiplies the bloom blur radius |
 | `strokeOpacity` / `innerOpacity` / `bloomOpacity` | `number` | `1` | Per-layer opacity multipliers on the theme's own (same as the `--voice-*-opacity` CSS hooks) |
 | `bend` | `number` | `60` | Px the glow's top contour humps up at the centre at full level; 0 is the plain ellipse |
-| `bandStrength` | `number` | `2.4` (`1.7` on light) | Opacity of the band along the contour; 0 hides it |
+| `bandStrength` | `number` | `1.55` (1.8 for `mobile`; on light 1.7, or 2 for `pill`) | Opacity of the band along the contour; 0 hides it |
 | `bandWidth` | `number` | `2.15` | Thickness of the band |
 | `bandPosition` | `number` | `0.35` | Peak height as a fraction of the glow's ceiling |
 | `bandCurve` | `number` | `1.75` | Bell exponent; < 2 exponential, 2 gaussian, > 2 flat-topped |
@@ -358,6 +358,7 @@ voice-beam/
 - React 18+
 - Web Audio API and `getUserMedia` for the microphone path (every modern browser; a secure context — `https` or `localhost` — is required for the microphone)
 - CSS `@property` for the interpolated fade in / out (Chrome 85+, Safari 15.4+, Firefox 128+); without it the fade steps rather than tweens
+- Phones: the soft layers (inner light, bloom, their warp mirrors, the epicentre) are rastered at half resolution and scaled back up by the compositor — the same picture for blurred gradients at a quarter of the raster and filter work — the band canvas caps its backing store at 2×, and when a device still cannot hold 60 the driver updates every other frame (the glow's dynamics are far slower than 30 Hz) and probes full rate again every few seconds. Engines without CSS `zoom` keep the full-resolution path.
 - WebKit / Safari notes: the `distortion` warp is off there on hosts larger than about 400×400 px (Safari evaluates SVG filters on HTML content on the CPU every paint, which on a phone-sized host costs an order of magnitude in frame rate; a chat input or pill keeps it), and the band's blur runs in CSS on two canvases instead of the 2D context's `filter`, which Safari lacks. The look otherwise matches Chromium.
 
 ## Accessibility

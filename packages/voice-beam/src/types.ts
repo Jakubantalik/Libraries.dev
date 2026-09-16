@@ -228,7 +228,7 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    * processing, 0–1: 0 keeps it flat along the bottom edge, 1 lifts it
    * along the rounded corner as it passes through. The band line follows
    * the corner either way.
-   * @default 0.45 (0 for `type="pill"`, 1 for `type="mobile"`)
+   * @default 0.45 (0 for `type="pill"`, 0.4 for `type="mobile"`)
    */
   cornerFollow?: number;
 
@@ -350,7 +350,7 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    * the fringes split further and the band thickens as the level rises,
    * and it turns with the hue drift. */
 
-  /** Opacity of the band, 0 hides it. @default 2.4 (1.7 on light) */
+  /** Opacity of the band, 0 hides it. @default 1.55 (1.8 for `mobile`; on light 1.7, or 2 for `pill`) */
   bandStrength?: number;
   /** Thickness of the band. @default 2.15 */
   bandWidth?: number;

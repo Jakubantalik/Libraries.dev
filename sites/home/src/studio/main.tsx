@@ -223,6 +223,43 @@ function useStudioTheme(): [StudioTheme, () => void] {
   return [theme, toggle];
 }
 
+/* Dev only (`?dev` on localhost): a top-bar toggle that drops the fill of
+   the stage cards the examples sit on, so a mock can be judged on the bare
+   ground. Stored under ldev:studio-stage-fill ("off"); flips the root's
+   data-stage-fill, which the Studio's CSS reads. */
+const STAGE_FILL_KEY = "ldev:studio-stage-fill";
+
+function StageFillToggle() {
+  const [filled, setFilled] = useState(() => {
+    try {
+      return localStorage.getItem(STAGE_FILL_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    if (filled) document.documentElement.removeAttribute("data-stage-fill");
+    else document.documentElement.setAttribute("data-stage-fill", "off");
+    try {
+      if (filled) localStorage.removeItem(STAGE_FILL_KEY);
+      else localStorage.setItem(STAGE_FILL_KEY, "off");
+    } catch {
+      /* storage may be unavailable; the attribute still applies */
+    }
+  }, [filled]);
+  return (
+    <button
+      type="button"
+      className="st-dev-btn"
+      aria-pressed={filled}
+      title="Dev: toggle the stage cards' fill"
+      onClick={() => setFilled((f) => !f)}
+    >
+      Fill
+    </button>
+  );
+}
+
 function TopBar({ email, pro }: { email: string | null; pro: boolean }) {
   return (
     <div className="st-top">
@@ -245,6 +282,7 @@ function TopBar({ email, pro }: { email: string | null; pro: boolean }) {
       {/* The address itself belongs on the account page — here the avatar
           (and its Account item) is the identity. */}
       <div className="st-top-right">
+        {DEV_UNLOCK && <StageFillToggle />}
         {/* TEMP: signed-out fallback initial so the avatar is visible for
             testing before the auth Worker is deployed. */}
         <AvatarMenu email={email ?? "j"} />

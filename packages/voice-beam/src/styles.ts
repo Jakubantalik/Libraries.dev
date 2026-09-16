@@ -470,7 +470,6 @@ export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): strin
      filtered layer into the parent every frame on the CPU (a phone-sized
      host runs at a sixth of the frame rate without this). */
   will-change: transform;
-  transform: translateZ(0);
   z-index: 1;
   ${clip}
   ${opacity('inner', sInner)}
@@ -539,7 +538,6 @@ ${voiceLobes.map((lobe, i) => `  --vb-x${i}-${id}: ${lobe.x}px;
      filtered layer into the parent every frame on the CPU (a phone-sized
      host runs at a sixth of the frame rate without this). */
   will-change: transform;
-  transform: translateZ(0);
   z-index: 2;
   ${opacity('stroke', sStroke)}
   ${layerFilter}
@@ -564,7 +562,6 @@ ${distortion ? innerRule(`[data-voice-beam="${id}"][data-active] [data-voice-bea
      filtered layer into the parent every frame on the CPU (a phone-sized
      host runs at a sixth of the frame rate without this). */
   will-change: transform;
-  transform: translateZ(0);
   opacity: 0;
 }
 
@@ -635,7 +632,6 @@ ${coreLight > 0 ? (() => {
      filtered layer into the parent every frame on the CPU (a phone-sized
      host runs at a sixth of the frame rate without this). */
   will-change: transform;
-  transform: translateZ(0);
   /* The blur sits on this wrapper and the band-line clip on the child,
      so the cut edge is blurred too rather than left hard. */
   filter: blur(${scaleBlur(8, glowSize)}px);
@@ -670,7 +666,6 @@ ${coreLight > 0 ? (() => {
      filtered layer into the parent every frame on the CPU (a phone-sized
      host runs at a sixth of the frame rate without this). */
   will-change: transform;
-  transform: translateZ(0);
   z-index: 4;
 }
 
@@ -690,6 +685,46 @@ ${coreLight > 0 ? (() => {
 [data-voice-beam="${id}"][data-active] [data-voice-beam-band-halo],
 [data-voice-beam="${id}"][data-fading] [data-voice-beam-band-halo] {
   filter: blur(var(--vb-band-halo-blur-${id}, 0px)) ${hue} brightness(${b}) saturate(${s});
+}
+
+/* Resolution. The soft layers — inner light and its warp mirror, bloom and
+   its mirror, the epicentre — are rastered at half resolution and scaled
+   back up by the compositor: \`zoom\` halves every length inside (gradient
+   sizes, blur radii, masks, the driver's px variables and clip polygons
+   keep their numbers, so the layer keeps the root's coordinate space at
+   half the pixels) and the will-change transform is rastered pre-scale.
+   For blurred gradients that is the same picture at a quarter of the
+   raster and filter work, which is what a phone at 3x runs out of. The
+   1px stroke stays full-res where a screen can show it, and joins on
+   dense screens (2.5dppx and up), where half-res still leaves it more
+   than a device pixel. \`@supports\` keeps engines without \`zoom\` on the
+   full-res path. */
+@supports (zoom: 0.5) {
+  [data-voice-beam="${id}"]::before,
+  [data-voice-beam="${id}"] [data-voice-beam-warp],
+  [data-voice-beam="${id}"] [data-voice-beam-bloom],
+  [data-voice-beam="${id}"] [data-voice-beam-core] {
+    zoom: 0.5;
+    inset: auto;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 50%;
+    transform: translateZ(0) scale(2);
+    transform-origin: 0 0;
+  }
+  @media (min-resolution: 2.5dppx) {
+    [data-voice-beam="${id}"]::after {
+      zoom: 0.5;
+      inset: auto;
+      left: 0;
+      top: 0;
+      width: 50%;
+      height: 50%;
+      transform: translateZ(0) scale(2);
+      transform-origin: 0 0;
+    }
+  }
 }
 
 @keyframes vb-fade-in-${id} {

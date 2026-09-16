@@ -164,6 +164,22 @@ let lastFrame = 0;
 
 // ~60 fps. Subtract a small slack so a frame that lands a hair early still runs.
 const FRAME_INTERVAL = 1000 / 60 - 2;
+
+// Adaptive pacing. A phone that cannot hold 60 with every layer repainting
+// each frame stutters between 20 and 40; the glow's own dynamics (a 325 ms
+// attack, a 5 s breath, a 1 s sweep) are far slower than 30 Hz, so a
+// steady half rate reads better than a ragged full one. When the frame
+// gap stays above PACE_SLOW_GAP for PACE_SLOW_FOR, the driver runs every
+// other frame; every PACE_PROBE_EVERY it tries full rate again and stays
+// there if the gaps have closed. Capable devices never leave full rate.
+const PACE_SLOW_GAP = 22;
+const PACE_SLOW_FOR = 500;
+const PACE_PROBE_EVERY = 4000;
+let lastRaf = 0;
+let paceHalf = false;
+let paceSkip = false;
+let slowSince = 0;
+let probeAt = 0;
 const TWO_PI = Math.PI * 2;
 
 // Gain applied before the user's `sensitivity`: a laptop microphone at
@@ -217,6 +233,7 @@ function follow(prev: number, target: number, dt: number, attack: number, releas
 // and it eases back over roughly a second once processing ends. Below this
 // share (3% of the full displacement, about a pixel) the warp layers are
 // taken out of the paint altogether, so the swap is invisible.
+const BAND_DPR_MAX = 2;
 const WARP_OUT_TAU = 0.06;
 const WARP_IN_TAU = 0.35;
 const WARP_OFF_BELOW = 0.03;
@@ -357,7 +374,9 @@ function drawBand(inst: VoiceInstance, f: BandFrame, pts: Array<[number, number]
   const ch = el.clientHeight;
   if (!cw || !ch) return;
 
-  const dpr = Math.min(3, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+  // The band is blurred, so its backing store never needs more than 2x:
+  // a 3x phone draws 2.25x fewer pixels and looks the same.
+  const dpr = Math.min(BAND_DPR_MAX, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
   const pw = Math.round(cw * dpr);
   const ph = Math.round(ch * dpr);
   if (canvas.width !== pw || canvas.height !== ph) {
@@ -407,14 +426,19 @@ function drawBand(inst: VoiceInstance, f: BandFrame, pts: Array<[number, number]
   // CSS instead, at the same two radii: the ridge on this canvas
   // (\`--vb-band-blur\`), the halo on its own canvas beneath
   // (\`--vb-band-halo-blur\`, 3× wider), read by the layers' rules.
-  const blurPx = 3.5 * config.bandWidth;
+  // The blur is canonical in CSS px — the look of the reference (a 2x
+  // display, where Chromium's device-px canvas blur of 3.5 * bandWidth
+  // came out at half that in CSS px) — so every DPR and both engines
+  // draw the same band. Chromium applies the canvas blur in device pixels,
+  // ignoring the DPR transform, so it is scaled by the backing DPR; the
+  // CSS stand-in (WebKit) takes the CSS px directly.
+  const blurCss = (3.5 * config.bandWidth) / 2;
+  const blurPx = blurCss * dpr;
   const canBlur: boolean = typeof (ctx as { filter?: unknown }).filter === 'string';
-  // Chromium applies the canvas blur in device pixels, ignoring the DPR
-  // transform, so the CSS stand-in (CSS px) is divided by the DPR to match.
-  const cssBlur = canBlur ? '0px' : `${(blurPx / dpr).toFixed(2)}px`;
+  const cssBlur = canBlur ? '0px' : `${blurCss.toFixed(2)}px`;
   if (inst.cssBlur !== cssBlur) {
     el.style.setProperty(`--vb-band-blur-${config.id}`, cssBlur);
-    el.style.setProperty(`--vb-band-halo-blur-${config.id}`, canBlur ? '0px' : `${((blurPx * 3) / dpr).toFixed(2)}px`);
+    el.style.setProperty(`--vb-band-halo-blur-${config.id}`, canBlur ? '0px' : `${(blurCss * 3).toFixed(2)}px`);
     inst.cssBlur = cssBlur;
   }
   const ramp: ReadonlyArray<readonly [number, number]> = [
@@ -508,6 +532,27 @@ const scratch = { level: 0, bands: [0, 0, 0] as [number, number, number] };
 
 function frame(ts: number): void {
   rafId = requestAnimationFrame(frame);
+
+  // ── Pacing ───────────────────────────────────────────────────────
+  const gap = lastRaf ? ts - lastRaf : 0;
+  lastRaf = ts;
+  if (paceHalf) {
+    paceSkip = !paceSkip;
+    if (paceSkip) return;
+    if (ts >= probeAt) {
+      paceHalf = false;
+      slowSince = 0;
+    }
+  } else if (gap > PACE_SLOW_GAP) {
+    if (!slowSince) slowSince = ts;
+    else if (ts - slowSince > PACE_SLOW_FOR) {
+      paceHalf = true;
+      paceSkip = false;
+      probeAt = ts + PACE_PROBE_EVERY;
+    }
+  } else {
+    slowSince = 0;
+  }
 
   if (ts - lastFrame < FRAME_INTERVAL) return;
   lastFrame = ts;
@@ -692,6 +737,8 @@ function frame(ts: number): void {
 function startLoop(): void {
   if (rafId == null) {
     lastFrame = 0;
+    lastRaf = 0;
+    slowSince = 0;
     rafId = requestAnimationFrame(frame);
   }
 }

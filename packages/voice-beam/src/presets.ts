@@ -81,7 +81,7 @@ export const voiceDefaults: VoiceGeometry = {
   spread: 1.05,
   flow: 48,
   bend: 60,
-  bandStrength: 2.4,
+  bandStrength: 1.55,
   bandWidth: 2.15,
   bandPosition: 0.35,
   bandCurve: 1.75,
@@ -133,7 +133,7 @@ export const voiceTypePresets: Record<VoiceBeamType, Partial<VoiceGeometry>> = {
     spread: 1.1,
     flow: 0,
     bend: 23,
-    bandStrength: 2,
+    bandStrength: 1.55,
     bandWidth: 1.85,
     bandCurve: 1.95,
     bandSpread: 0.38,
@@ -172,7 +172,8 @@ export const voiceTypePresets: Record<VoiceBeamType, Partial<VoiceGeometry>> = {
     processingDuration: 1.05,
     processingLevel: 0.35,
     processingTravel: 1,
-    cornerFollow: 1,
+    cornerFollow: 0.4,
+    bandStrength: 1.8,
     distortionDetail: 2,
     glowWidth: 1.15,
     glowHeight: 2.1,
@@ -225,16 +226,24 @@ export function resolveVoiceStyle(
  * and, for what the type leaves alone, the theme's own (the light chat
  * input carries a band strength, reach and spread of its own).
  */
+/** What the light theme changes per type, on top of the type's preset. */
+const lightTypeOverrides: Partial<Record<VoiceBeamType, Partial<VoiceGeometry>>> = {
+  // The band on white, whatever the dark strengths: 1.7 for the chat
+  // input and the phone, 2 for the pill.
+  default: { bandStrength: 1.7 },
+  pill: { bandStrength: 2 },
+  mobile: { bandStrength: 1.7 },
+};
+
 export function resolveVoiceDefaults(type: VoiceBeamType = 'default', theme: 'dark' | 'light' = 'dark'): VoiceGeometry {
   const typePreset = voiceTypePresets[type];
   const themeOverrides: Partial<VoiceGeometry> = {};
   if (theme === 'light') {
-    if (typePreset.bandStrength === undefined) themeOverrides.bandStrength = 1.7;
     // The light card was tuned taller and narrower than the dark one.
     if (typePreset.reach === undefined) themeOverrides.reach = 1.8;
     if (typePreset.spread === undefined) themeOverrides.spread = 0.8;
     // On white the epicentre reads lighter than the band; dark keeps it off.
     if (typePreset.coreLight === undefined) themeOverrides.coreLight = 1.8;
   }
-  return { ...voiceDefaults, ...themeOverrides, ...typePreset };
+  return { ...voiceDefaults, ...themeOverrides, ...typePreset, ...(theme === 'light' ? lightTypeOverrides[type] : undefined) };
 }
