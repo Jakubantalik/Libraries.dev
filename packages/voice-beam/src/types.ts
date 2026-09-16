@@ -179,7 +179,8 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    * that travels the glow's range left to right and back, eased at each
    * end and looped — border-beam's `line` type, confined to the voice
    * glow — and the glow is held lit at `processingLevel` so the beam has
-   * colour. Both blend in and out smoothly.
+   * colour. Both blend in and out smoothly. The distortion settles out in
+   * about a quarter second and stays off while processing.
    * @default false
    */
   processing?: boolean;

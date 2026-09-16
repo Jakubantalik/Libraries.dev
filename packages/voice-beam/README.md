@@ -121,7 +121,7 @@ Once the voice is captured and something is working on it — transcribing, thin
 >
 ```
 
-The wrapper carries `data-processing` while it is on.
+The wrapper carries `data-processing` while it is on. The distortion settles out in about a quarter second and stays off while processing — once it is gone the wrapper also carries `data-voice-warp="off"` and the warp layers leave the paint, so the travelling beam stays smooth where SVG filters are slow (WebKit) — and it eases back over about a second as processing ends.
 
 ## Shape
 
@@ -146,7 +146,7 @@ The **band** is the light along that contour — an organic bell, `exp(-(|x| / s
 >
 ```
 
-**Distortion** warps the glow under the band sideways: a slowly drifting noise field displaces the inner light and the bloom horizontally (an SVG `feDisplacementMap`), stronger as the voice rises, so the colours shimmer and stretch like light through bent space. Only the glow *under* the band line warps — the layers are split at the line with a per-frame `clip-path` — and it is independent of `bandStrength`, so the line can be invisible and the warp strong. The edge stroke stays crisp.
+**Distortion** warps the glow under the band sideways: a slowly drifting noise field displaces the inner light and the bloom horizontally (an SVG `feDisplacementMap`), stronger as the voice rises, so the colours shimmer and stretch like light through bent space. Only the glow *under* the band line warps — the layers are split at the line with a per-frame `clip-path` — and it is independent of `bandStrength`, so the line can be invisible and the warp strong. The edge stroke stays crisp. It is off while `processing` (see above).
 
 ```tsx
 <VoiceBeam

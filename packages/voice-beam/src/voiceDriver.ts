@@ -115,6 +115,8 @@ interface VoiceState {
   /** The instance's own clock in seconds — advances only while running, so a pause holds every drift and resumes without a jump. */
   t: number;
   lastTs: number;
+  /** The distortion's share, 0–1: 1 while listening, settling to 0 for processing. */
+  warp: number;
 }
 
 interface VoiceInstance {
@@ -141,6 +143,8 @@ interface VoiceInstance {
   paintedConfig: VoiceDriverConfig | null;
   /** The CSS blur last written for the band canvas (WebKit fallback). */
   cssBlur: string | null;
+  /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped for processing. */
+  warpOff: boolean;
 }
 
 const stateByElement = new WeakMap<HTMLElement, VoiceState>();
@@ -148,7 +152,7 @@ const stateByElement = new WeakMap<HTMLElement, VoiceState>();
 function stateFor(el: HTMLElement): VoiceState {
   let s = stateByElement.get(el);
   if (!s) {
-    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0 };
+    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1 };
     stateByElement.set(el, s);
   }
   return s;
@@ -205,6 +209,17 @@ function follow(prev: number, target: number, dt: number, attack: number, releas
   const a = 1 - Math.exp(-dt / Math.max(0.001, tau));
   return prev + (target - prev) * a;
 }
+
+// Processing drops the distortion. Its share settles out on its own clock,
+// well ahead of the morph: a 60 ms time constant has it gone in about a
+// quarter second — inside the effect's own voice dynamics (the attack is
+// 325 ms), so it reads as the shimmer coming to rest rather than a cut —
+// and it eases back over roughly a second once processing ends. Below this
+// share (3% of the full displacement, about a pixel) the warp layers are
+// taken out of the paint altogether, so the swap is invisible.
+const WARP_OUT_TAU = 0.06;
+const WARP_IN_TAU = 0.35;
+const WARP_OFF_BELOW = 0.03;
 
 // Ceiling geometry the stylesheet uses (px at multiplier 1) — the band is
 // drawn to sit on the same hump the glow is masked to.
@@ -614,18 +629,31 @@ function frame(ts: number): void {
     const arcRadius = paintedRadius(config.radius, cw, ch);
     const cornerBlend = morph * config.cornerFollow;
     el.style.setProperty(`--vb-cy-${config.id}`, `${(-cornerLift(beamAbsX, cw, arcRadius, lobeReach * 1.4) * cornerBlend).toFixed(1)}px`);
-    if (cw && ch && (inst.ctx || inst.displace)) {
-      const pts = bandPoints(config, frame, cw, ch);
-      if (inst.displace || config.coreLight > 0) writeClips(el, config.id, pts, cw, ch);
-      if (inst.ctx) drawBand(inst, frame, pts);
-    }
-
     // ── Distortion: the glow under the band warps sideways ───────────
     // A displacement map on the inner light and the bloom, its strength
     // following the voice and its noise drifting slowly, so the colours
     // shimmer and stretch horizontally like light through bent space.
-    if (inst.displace) {
-      const amount = config.reducedMotion ? 0 : config.distortion * 120 * config.scale * (0.15 + 0.85 * eff);
+    // Processing drops it: the warp settles out fast (see WARP_OUT_TAU),
+    // and once it is gone the wrapper is marked so its two layers leave the
+    // paint and the base layers give up their split at the band line — the
+    // reference filter is the costliest thing here where SVG filters run in
+    // software, and the travelling beam is the one fast motion in the
+    // effect. It eases back the same way as processing ends.
+    s.warp = follow(s.warp, config.processing ? 0 : 1, dt, WARP_IN_TAU, WARP_OUT_TAU);
+    const warp = s.warp;
+    const warpOff = inst.displace != null && warp < WARP_OFF_BELOW;
+    if (warpOff !== inst.warpOff) {
+      inst.warpOff = warpOff;
+      if (warpOff) el.setAttribute('data-voice-warp', 'off');
+      else el.removeAttribute('data-voice-warp');
+    }
+    if (cw && ch && (inst.ctx || inst.displace)) {
+      const pts = bandPoints(config, frame, cw, ch);
+      if ((inst.displace && !warpOff) || config.coreLight > 0) writeClips(el, config.id, pts, cw, ch);
+      if (inst.ctx) drawBand(inst, frame, pts);
+    }
+    if (inst.displace && !warpOff) {
+      const amount = config.reducedMotion ? 0 : config.distortion * 120 * config.scale * (0.15 + 0.85 * eff) * warp;
       inst.displace.scale.baseVal = amount;
       if (inst.noiseShift) {
         inst.noiseShift.dx.baseVal = 8 * config.scale * Math.sin(tSec * 0.9);
@@ -705,6 +733,8 @@ export function registerVoiceInstance(
     s: stateFor(el),
     paintedConfig: null,
     cssBlur: null,
+    // Match the mark a previous registration may have left on the element.
+    warpOff: el.hasAttribute('data-voice-warp'),
   };
   if (config.distortion > 0) {
     inst.displace = el.querySelector<SVGFEDisplacementMapElement>(':scope > svg feDisplacementMap');

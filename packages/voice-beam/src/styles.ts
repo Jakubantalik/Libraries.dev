@@ -590,6 +590,18 @@ ${distortion ? `
   clip-path: var(--vb-clip-below-${id}, inset(0 round ${borderRadius}px));
   ${opacity('bloom', sBloom)}
   ${bloomWarpFilter}
+}
+
+/* Processing drops the distortion: the driver marks the wrapper once the
+   warp has faded out, the warp layers leave the paint and the base layers
+   give up their split at the band line. */
+[data-voice-beam="${id}"][data-voice-warp="off"]::before,
+[data-voice-beam="${id}"][data-voice-warp="off"] [data-voice-beam-bloom] {
+  clip-path: inset(0 round ${borderRadius}px);
+}
+
+[data-voice-beam="${id}"][data-voice-warp="off"] [data-voice-beam-warp] {
+  display: none;
 }` : ''}
 
 /* Epicentre — a soft white wash at the source, under the band line (the
