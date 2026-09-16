@@ -888,15 +888,31 @@
     inset 0 0 50px 0 rgba(255, 255, 255, 0.02);
   font-family: Inter, var(--font-sans);
 }
-.mock-vchat-placeholder {
+/* The field: the design's placeholder text (14px at 14 / 20), typable;
+   a transparent box so the glow shows through it. Above the beam layers
+   like the buttons. */
+.mock-vchat-input {
   position: absolute;
   left: 14px;
   top: 20px;
+  right: 14px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
   font-size: 14px;
   font-weight: 400;
   line-height: 16px;
+  color: #eaeaea;
+  caret-color: #eaeaea;
+  z-index: 5;
+}
+.mock-vchat-input::placeholder {
   color: #4e4e4e;
-  white-space: nowrap;
+  opacity: 1;
 }
 .mock-vchat-row {
   position: absolute;
@@ -932,7 +948,30 @@
   gap: 4px;
   color: #eaeaea;
   box-sizing: border-box;
+  /* Real buttons: reset the UA look, keep the design's, and give a press.
+     Hover is a 2% wash over the fill (white on dark, black on light). */
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
+.mock-vchat-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.15s ease;
+  pointer-events: none;
+}
+.mock-vchat-btn:hover::after { background: rgba(255, 255, 255, 0.02); }
+.mock-vchat-btn:active { transform: scale(0.96); }
+.mock-vchat-btn:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.35); outline-offset: 2px; }
 .mock-vchat-agent {
   padding: 0 10px 0 14px;
   font-size: 12px;
@@ -1177,11 +1216,19 @@ html[data-theme="light"] .mock-vchat {
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.05),
     inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
-html[data-theme="light"] .mock-vchat-placeholder {
+html[data-theme="light"] .mock-vchat-input {
   left: 15px;
   top: 21px;
+  right: 15px;
+  color: #1a1a1a;
+  caret-color: #1a1a1a;
+}
+html[data-theme="light"] .mock-vchat-input::placeholder {
+  color: #4e4e4e;
   opacity: 0.5;
 }
+html[data-theme="light"] .mock-vchat-btn:hover::after { background: rgba(0, 0, 0, 0.02); }
+html[data-theme="light"] .mock-vchat-btn:focus-visible { outline-color: rgba(0, 0, 0, 0.25); }
 html[data-theme="light"] .mock-vchat-row {
   left: 12px;
   right: 12px;

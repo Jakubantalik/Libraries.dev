@@ -605,18 +605,25 @@ ${distortion ? `
 }` : ''}
 
 /* Epicentre — a soft white wash at the source, under the band line (the
-   driver's clip; unclipped when no line is drawn), sitting above the bloom
-   so the centre reads lighter than the band. Sized by the voice like the
+   driver's clip; unclipped when no line is drawn), sitting above every
+   glow layer and the band's halo so the centre reads lighter than the
+   band (same z as the band canvases, painted after them). Sized by the voice like the
    other layers; off unless \`coreLight\` is set (the light theme sets it).
    Up to 1 it is the wash's opacity; past 1 the solid white core widens
    too, for a centre that stays lighter than a strong band. It follows the
    glow's presence but not \`strength\`, which would only dim it. */
 ${coreLight > 0 ? (() => {
-  const boost = Math.max(0, Math.min(1, coreLight - 1));
-  const solid = px(45 * boost);
-  const midStop = px(40 + 25 * boost);
-  const midAlpha = (0.55 + 0.35 * boost).toFixed(2);
-  const endStop = px(72 + 14 * boost);
+  // Past 1 the wash keeps growing: white is already white, so "brighter"
+  // means a wider solid core, a later fade and a larger ellipse — more of
+  // the colour beneath washed out. Two stops of boost, to 3.
+  const boost = Math.max(0, Math.min(2, coreLight - 1));
+  const b1 = Math.min(1, boost);
+  const b2 = Math.max(0, boost - 1);
+  const grow = 1 + 0.3 * boost;
+  const solid = px(45 * b1 + 27 * b2);
+  const midStop = px(40 + 25 * b1 + 15 * b2);
+  const midAlpha = Math.min(1, 0.55 + 0.35 * b1 + 0.1 * b2).toFixed(2);
+  const endStop = px(72 + 14 * b1 + 8 * b2);
   return `[data-voice-beam="${id}"] [data-voice-beam-core] {
   display: none;
   position: absolute;
@@ -632,20 +639,20 @@ ${coreLight > 0 ? (() => {
   /* The blur sits on this wrapper and the band-line clip on the child,
      so the cut edge is blurred too rather than left hard. */
   filter: blur(${scaleBlur(8, glowSize)}px);
-  z-index: 3;
+  z-index: 4;
 }
 
 [data-voice-beam="${id}"] [data-voice-beam-core] > div {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse calc(${px(120 * coreLightWidth * scale)}px * var(--vb-w-${id})) calc(${px(70 * coreLightHeight * scale)}px * var(--vb-h-${id}) + var(--vb-bh-${id})) at ${beamX} calc(100% + var(--vb-cy-${id})), white 0%, white ${solid}%, rgba(255, 255, 255, ${midAlpha}) ${midStop}%, transparent ${endStop}%);
+  background: radial-gradient(ellipse calc(${px(120 * coreLightWidth * grow * scale)}px * var(--vb-w-${id})) calc(${px(70 * coreLightHeight * grow * scale)}px * var(--vb-h-${id}) + var(--vb-bh-${id})) at ${beamX} calc(100% + var(--vb-cy-${id})), white 0%, white ${solid}%, rgba(255, 255, 255, ${midAlpha}) ${midStop}%, transparent ${endStop}%);
   clip-path: var(--vb-clip-below-${id}, none);
 }
 
 [data-voice-beam="${id}"][data-active] [data-voice-beam-core],
 [data-voice-beam="${id}"][data-fading] [data-voice-beam-core] {
   display: block;
-  opacity: calc(var(--vb-opacity-${id}, 1) * min(1, var(--vb-glow-${id}) * ${Math.min(1, coreLight).toFixed(2)} * 1.6) * var(--voice-core-light-opacity, 1));
+  opacity: calc(var(--vb-opacity-${id}, 1) * min(1, var(--vb-glow-${id}) * ${Math.min(1, coreLight).toFixed(2)} * ${(1.6 + 1.4 * boost).toFixed(2)}) * var(--voice-core-light-opacity, 1));
 }
 `; })() : ''}
 /* Band — the canvas the driver draws the bend's contour on: an organic

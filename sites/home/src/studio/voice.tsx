@@ -646,7 +646,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           <PgSlider label="Inner height" value={geo.innerHeight} min={0.3} max={3} step={0.05} display={`${num(geo.innerHeight)}×`} onChange={setG("innerHeight")} />
           <PgSlider label="Bloom size" value={geo.bloomScale} min={0.3} max={3} step={0.05} display={`${num(geo.bloomScale)}×`} onChange={setG("bloomScale")} />
           <PgSlider label="Bloom height" value={geo.bloomHeight} min={0.3} max={3} step={0.05} display={`${num(geo.bloomHeight)}×`} onChange={setG("bloomHeight")} />
-          <PgSlider label="Epicentre" value={geo.coreLight} min={0} max={2} step={0.05} display={`${Math.round(geo.coreLight * 100)}%`} onChange={setG("coreLight")} />
+          <PgSlider label="Epicentre" value={geo.coreLight} min={0} max={3} step={0.05} display={`${Math.round(geo.coreLight * 100)}%`} onChange={setG("coreLight")} />
           <PgSlider label="Epicentre width" value={geo.coreLightWidth} min={0.3} max={3} step={0.05} display={`${num(geo.coreLightWidth)}×`} onChange={setG("coreLightWidth")} />
           <PgSlider label="Epicentre height" value={geo.coreLightHeight} min={0.3} max={3} step={0.05} display={`${num(geo.coreLightHeight)}×`} onChange={setG("coreLightHeight")} />
         </PgGroup>

@@ -137,6 +137,8 @@ html[data-theme="light"] .docs-link-icon[src*="figma-metal"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-metal"] { content: url("/assets/icons/figma-metal-light.png"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-image"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-image"] { content: url("/assets/icons/figma-image-light.png"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-voice"],
+html[data-theme="light"] .st-lib-ico img[src*="figma-voice"] { content: url("/assets/icons/figma-voice-light.png"); }
 
 
 .docs-main { position: relative; min-width: 0; }

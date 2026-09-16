@@ -234,7 +234,7 @@ export function resolveVoiceDefaults(type: VoiceBeamType = 'default', theme: 'da
     if (typePreset.reach === undefined) themeOverrides.reach = 1.8;
     if (typePreset.spread === undefined) themeOverrides.spread = 0.8;
     // On white the epicentre reads lighter than the band; dark keeps it off.
-    if (typePreset.coreLight === undefined) themeOverrides.coreLight = 0.75;
+    if (typePreset.coreLight === undefined) themeOverrides.coreLight = 1.8;
   }
   return { ...voiceDefaults, ...themeOverrides, ...typePreset };
 }

@@ -230,7 +230,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
     const rangeHeight = (rangeHeightProp ?? d.rangeHeight) * sc;
     const softness = softnessProp ?? d.softness;
     const coreSize = (coreSizeProp ?? d.coreSize) * sc;
-    const coreLight = Math.max(0, Math.min(2, coreLightProp ?? d.coreLight));
+    const coreLight = Math.max(0, Math.min(3, coreLightProp ?? d.coreLight));
     const coreLightWidth = coreLightWidthProp ?? d.coreLightWidth;
     const coreLightHeight = coreLightHeightProp ?? d.coreLightHeight;
     const strokeScale = strokeScaleProp ?? d.strokeScale;
@@ -563,13 +563,16 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
               <div data-voice-beam-warp="bloom" />
             </>
           )}
+          {!CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
+          <canvas data-voice-beam-band aria-hidden="true" />
+          {/* After the band canvases, so the wash sits over the band's halo
+              under the line (it is clipped to below the line, so the ridge
+              itself stays) while the host's own content stays above it. */}
           {coreLight > 0 && (
             <div data-voice-beam-core>
               <div />
             </div>
           )}
-          {!CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
-          <canvas data-voice-beam-band aria-hidden="true" />
           {distortion > 0 && (
             /* The distortion filter: drifting fractal noise, its green
                channel pinned to 0.5 so only x displaces, driven per frame by

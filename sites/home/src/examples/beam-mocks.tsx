@@ -133,25 +133,27 @@ export function MockSearchBar() {
    plus and close glyphs are CSS bars (the Figma export collapsed them). */
 export function ChatInputMock({ radius = 20 }: { radius?: number }) {
   return (
-    <div className="mock-vchat" role="img" aria-label="Chat input UI example" style={radius !== 20 ? { borderRadius: radius } : undefined}>
-      <div className="mock-vchat-placeholder">Ask me anything..</div>
+    <form className="mock-vchat" aria-label="Chat input UI example" style={radius !== 20 ? { borderRadius: radius } : undefined} onSubmit={(e) => e.preventDefault()}>
+      {/* A real field and real buttons, so the mock can be typed into and
+          pressed while the beam runs; nothing is sent anywhere. */}
+      <input className="mock-vchat-input" type="text" placeholder="Ask me anything.." aria-label="Message" autoComplete="off" spellCheck={false} />
       <div className="mock-vchat-row">
-        <span className="mock-vchat-btn">
+        <button type="button" className="mock-vchat-btn" aria-label="Add">
           <span className="vb-ico vb-ico-plus" />
-        </span>
+        </button>
         <div className="mock-vchat-actions">
-          <span className="mock-vchat-btn mock-vchat-agent">
+          <button type="button" className="mock-vchat-btn mock-vchat-agent">
             Agent
             <span className="vb-ico vb-ico-chevron" />
-          </span>
-          <span className="mock-vchat-btn">
+          </button>
+          <button type="button" className="mock-vchat-btn" aria-label="Voice">
             <span className="vb-ico vb-ico-mic" />
-          </span>
-          <span className="mock-vchat-btn mock-vchat-close">
+          </button>
+          <button type="button" className="mock-vchat-btn mock-vchat-close" aria-label="Close">
             <span className="vb-ico vb-ico-plus vb-ico-x" />
-          </span>
+          </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

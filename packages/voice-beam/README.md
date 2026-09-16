@@ -279,7 +279,7 @@ Slots you leave out keep the variant's colour for the theme. Light mode ships a 
 | `rangeWidth` / `rangeHeight` | `number` | `0.75` / `1` | The visible ellipse the glow is masked to |
 | `softness` | `number` | `1.07` | Lobe edge fade: below 1 crisper, above 1 softer |
 | `coreSize` | `number` | `1` | The white hot spot at the centre |
-| `coreLight` | `number` | `0` | The epicentre: a white wash under the band line so the source reads lighter than the band, 0–2 (0.75 on light; past 1 the solid core widens) |
+| `coreLight` | `number` | `0` | The epicentre: a white wash under the band line so the source reads lighter than the band, 0–3 (1.8 on light; past 1 the solid core widens and the wash grows) |
 | `coreLightWidth` / `coreLightHeight` | `number` | `1` | Size of the epicentre wash |
 | `strokeScale` | `number` | `1` | Size of the colours in the edge stroke |
 | `innerScale` / `innerHeight` | `number` | `1` | Size and reach of the inner light |

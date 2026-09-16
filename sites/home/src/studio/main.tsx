@@ -259,7 +259,7 @@ const LIBS = [
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
-  { id: "voice", label: "Voice", icon: "/assets/icons/figma-beam.png" },
+  { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
 ] as const;
 
 type LibId = (typeof LIBS)[number]["id"];

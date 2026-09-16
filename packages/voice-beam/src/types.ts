@@ -405,9 +405,10 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   coreSize?: number;
   /**
    * The epicentre: a soft white wash under the band line at the centre of
-   * the edge, so the source reads lighter than the band. 0–2: up to 1 the
-   * wash's opacity, past 1 its solid white core widens as well.
-   * @default 0 (0.75 on the light theme)
+   * the edge, so the source reads lighter than the band. 0–3: up to 1 the
+   * wash's opacity, past 1 its solid white core widens and the whole wash
+   * grows, washing out more of the colour beneath.
+   * @default 0 (1.8 on the light theme)
    */
   coreLight?: number;
   /** Width of the epicentre wash. @default 1 */
