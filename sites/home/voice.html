@@ -110,6 +110,9 @@
        the phone mock's crop (margin-top -48px, flush with the top edge)
        sits as it does there and still clears the Play button. */
     #playground .pg-stage { min-height: 480px; padding: 48px 40px; }
+    /* The chat host: 371px where it fits, the card's width where it does
+       not; the glow follows through the library's \`scale\`. */
+    .voice-fit { width: 100%; max-width: 371px; }
     /* The taller stage stretches the options panel past its two controls,
        so the teaser grows to the panel's foot: its scrim then resolves
        into the surface at the real bottom edge instead of 70px above it,

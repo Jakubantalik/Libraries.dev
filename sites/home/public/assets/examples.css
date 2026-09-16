@@ -997,11 +997,19 @@
   height: 357px;
   position: relative;
   overflow: hidden;
-  /* Flush with the stage's top edge (the stage pads 48px; the crop
-     reads as the screen running on past the card), leaving the room
-     below for the Play button. */
+}
+/* The beam wraps the crop, not the screen behind it: its layers raster
+   273×357 instead of 402×874, 3.6× fewer pixels, with \`scale\` 0.68 of the
+   phone's own so the glow is the same picture. Its root is the flex item:
+   flush with the stage's top edge (the stage pads 48px; the crop reads as
+   the screen running on past the card) with room below for Play. The
+   crop's top is mid-screen, so only the bottom corners round — the
+   screen's own, at 66 × 0.68. */
+.mock-phone-host {
   align-self: flex-start;
   margin-top: -48px;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
 }
 .mock-phone-scale-inner {
   width: 402px;

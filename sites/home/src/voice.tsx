@@ -1,4 +1,4 @@
-import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
+import { StrictMode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { VoiceBeam, useMicrophone, type VoiceBeamType } from "voice-beam";
 import { ChatInputMock } from "./examples/beam-mocks";
@@ -44,6 +44,31 @@ const CHILD_BY_TYPE: Record<PageType, string> = {
 /* The two examples share the demo envelope, half a phrase apart, so they
    take turns speaking instead of pulsing in unison. */
 const phoneGetter = () => demoLevel(performance.now() / 1000 + 4.5);
+
+/* The phone crop: the beam wraps the visible 273×357 of the screen, not
+   the 402×874 behind it, so its layers raster 3.6× fewer pixels; the
+   glow keeps the phone's tuning at the crop's 0.68. */
+const PHONE_CROP = 0.68;
+const PHONE_SCALE = 1.25 * PHONE_CROP;
+const PHONE_RADIUS = 66 * PHONE_CROP;
+
+/* The chat input is authored at 371px; on a narrow screen it shrinks to
+   its card, and the glow — authored in px — must shrink with it. */
+const CHAT_WIDTH = 371;
+function useFitScale(): [React.RefObject<HTMLDivElement>, number] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setScale(Math.min(1, el.clientWidth / CHAT_WIDTH));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, scale];
+}
 
 function PgTabs<T extends string>({
   label,
@@ -132,12 +157,23 @@ function useDemoTranscript() {
 function PhoneExample() {
   const { transcript, runKey, onLevel } = useDemoTranscript();
   return (
-    <div className="mock-phone-scale">
-      <div className="mock-phone-scale-inner">
-        <VoiceBeam type="mobile" level={phoneGetter} theme="dark" onLevel={onLevel}>
+    <VoiceBeam type="mobile" level={phoneGetter} theme="dark" onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
+      <div className="mock-phone-scale">
+        <div className="mock-phone-scale-inner">
           <PhoneScreen promptKey={runKey} transcript={transcript} />
-        </VoiceBeam>
+        </div>
       </div>
+    </VoiceBeam>
+  );
+}
+
+function ChatExample() {
+  const [ref, scale] = useFitScale();
+  return (
+    <div ref={ref} className="voice-fit">
+      <VoiceBeam type="default" level={demoGetter} theme="dark" scale={scale}>
+        <ChatInputMock />
+      </VoiceBeam>
     </div>
   );
 }
@@ -199,23 +235,23 @@ function VoicePlayground() {
   const decl = isMic ? "const mic = useMicrophone();\n\n" : "";
   const snippet = `${imports}\n\n${decl}<VoiceBeam${attrs}>\n  ${CHILD_BY_TYPE[type]}\n</VoiceBeam>${isMic ? "\n\n<button onClick={mic.start}>Listen</button>" : ""}`;
 
-  const beam = (
-    <VoiceBeam
-      type={type}
-      stream={stream}
-      level={level}
-      processing={processing}
-      theme="dark"
-      paused={paused}
-      onLevel={onLevel}
-    >
-      {type === "mobile" ? (
-        <PhoneScreen promptKey={runKey} transcript={transcript} />
-      ) : (
-        <ChatInputMock />
-      )}
-    </VoiceBeam>
-  );
+  const [fitRef, fitScale] = useFitScale();
+  const beam =
+    type === "mobile" ? (
+      <VoiceBeam type="mobile" stream={stream} level={level} processing={processing} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
+        <div className="mock-phone-scale">
+          <div className="mock-phone-scale-inner">
+            <PhoneScreen promptKey={runKey} transcript={transcript} />
+          </div>
+        </div>
+      </VoiceBeam>
+    ) : (
+      <div ref={fitRef} className="voice-fit">
+        <VoiceBeam type="default" stream={stream} level={level} processing={processing} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
+          <ChatInputMock />
+        </VoiceBeam>
+      </div>
+    );
 
   return (
     <>
@@ -227,9 +263,7 @@ function VoicePlayground() {
           <PhoneExample />
         </div>
         <div className="example-row-full">
-          <VoiceBeam type="default" level={demoGetter} theme="dark">
-            <ChatInputMock />
-          </VoiceBeam>
+          <ChatExample />
         </div>
       </div>
 
@@ -237,13 +271,7 @@ function VoicePlayground() {
 
       <div className="pg">
         <div className="pg-stage" id="playground-stage">
-          {type === "mobile" ? (
-            <div className="mock-phone-scale">
-              <div className="mock-phone-scale-inner">{beam}</div>
-            </div>
-          ) : (
-            beam
-          )}
+          {beam}
           <button
             type="button"
             className="btn-animate pg-play"

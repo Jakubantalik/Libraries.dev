@@ -28,11 +28,12 @@ const DEFAULT_RADIUS = 16;
 
 /* WebKit (Safari) evaluates SVG filters on HTML content on the CPU every
    paint, which on a phone-sized host drops the frame rate by an order of
-   magnitude, so the displacement warp is off there above this host area
-   (a chat input or pill keeps it). Its 2D canvas also has no \`filter\`,
-   so the band's blur is done in CSS on two canvases instead (the ridge
-   and its wider halo), keeping Chromium's look. */
-const WEBKIT_WARP_MAX_AREA = 160_000;
+   magnitude, so the displacement warp is off there above this host area:
+   a chat input (~39k px²) or a pill keeps it, the phone crop (~97k px²)
+   and any real screen do not. Its 2D canvas also has no \`filter\`, so the
+   band's blur is done in CSS on two canvases instead (the ridge and its
+   wider halo), keeping Chromium's look. */
+const WEBKIT_WARP_MAX_AREA = 60_000;
 const IS_WEBKIT =
   typeof navigator !== 'undefined' &&
   /AppleWebKit/.test(navigator.userAgent) &&

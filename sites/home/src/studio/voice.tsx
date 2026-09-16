@@ -39,6 +39,8 @@ const TYPE_OPTIONS = [
 ] as const;
 
 const RADIUS_BY_TYPE: Record<VoiceBeamType, number> = { default: 20, pill: 106, mobile: 66 };
+/* The phone mock is 402×874 shown at 0.68 in a 273×357 crop; the beam wraps the crop. */
+const PHONE_CROP = 0.68;
 const CHILD_BY_TYPE: Record<VoiceBeamType, string> = {
   default: "<ChatInput />",
   pill: "<RecordingPill />",
@@ -291,8 +293,6 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
       <StageBar library="Voice" prompt={{ pkg: "voice-beam", docsPath: "/studio/app.html#voice", snippet }} />
       <div className="pg-stage">
         {visible && (
-          <div className={type === "mobile" ? "mock-phone-scale" : undefined}>
-          <div className={type === "mobile" ? "mock-phone-scale-inner" : undefined}>
           <VoiceBeam
             type={type}
             stream={stream}
@@ -311,8 +311,13 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             theme={theme}
             paused={paused}
             strength={strength / 100}
-            borderRadius={radius}
             {...geo}
+            /* The phone host wraps its crop (273×357 of the 402×874
+               screen), so the glow runs at the crop's 0.68 of the knobs;
+               the snippet keeps the real phone's values. */
+            scale={type === "mobile" ? geo.scale * PHONE_CROP : geo.scale}
+            borderRadius={type === "mobile" ? radius * PHONE_CROP : radius}
+            className={type === "mobile" ? "mock-phone-host" : undefined}
             brightness={brightness}
             saturation={saturation}
             hueRange={hueRange}
@@ -324,13 +329,15 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             {type === "pill" ? (
               <RecordingPill running={!processing} paused={paused} resetKey={runKey} />
             ) : type === "mobile" ? (
-              <PhoneScreen promptKey={runKey} transcript={transcript} />
+              <div className="mock-phone-scale">
+                <div className="mock-phone-scale-inner">
+                  <PhoneScreen promptKey={runKey} transcript={transcript} />
+                </div>
+              </div>
             ) : (
               <ChatInputMock radius={radius} />
             )}
           </VoiceBeam>
-          </div>
-          </div>
         )}
         {/* Level meter: a hairline above the Play button that the driver
             scales every frame, so what the knobs do to the envelope is
