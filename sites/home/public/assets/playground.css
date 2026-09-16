@@ -896,6 +896,9 @@ html[data-theme="light"] .st-preset-save:active { background: #fafafa; }
 /* The locked rows never react — freeze the vslider's hover chrome. */
 .pg-teaser-locked .pg-vslider:hover { background: rgba(255, 255, 255, 0.06); }
 .pg-teaser-locked .pg-vslider-fill::after { display: none; }
+/* The locked tabs are divs, not buttons, so they don't centre their text
+   on their own: same 32px pill, label on the middle line. */
+.pg-teaser-locked .pg-tab { display: inline-flex; align-items: center; }
 
 /* Scrim: transparent over the tail of the real controls, solid panel by
    two-thirds down (Figma stops 5% -> 69%). The mask ramps the whole
