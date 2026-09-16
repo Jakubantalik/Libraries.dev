@@ -728,6 +728,12 @@ ${distortion ? `[data-voice-beam="${id}"][data-voice-halfres][data-active]::befo
 [data-voice-beam="${id}"][data-voice-halfres][data-active] [data-voice-beam-warp],
 [data-voice-beam="${id}"][data-voice-halfres][data-fading] [data-voice-beam-warp] {
   clip-path: var(--vb-clip-below-z-${id}, inset(0 round ${zpx(borderRadius)}));
+}
+/* Processing (warp off): the mirrors are gone, so the base layers paint
+   the whole box again — this must outweigh the split above. */
+[data-voice-beam="${id}"][data-voice-halfres][data-voice-warp="off"]::before,
+[data-voice-beam="${id}"][data-voice-halfres][data-voice-warp="off"] [data-voice-beam-bloom] {
+  clip-path: inset(0 round ${zpx(borderRadius)});
 }` : `[data-voice-beam="${id}"][data-voice-halfres][data-active]::before,
 [data-voice-beam="${id}"][data-voice-halfres][data-fading]::before,
 [data-voice-beam="${id}"][data-voice-halfres][data-active] [data-voice-beam-bloom],
