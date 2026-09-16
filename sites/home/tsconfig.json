@@ -11,5 +11,5 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true
   },
-  "include": ["src", "playgrounds"]
+  "include": ["src", "playgrounds", "private"]
 }

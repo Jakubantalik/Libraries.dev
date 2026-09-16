@@ -1074,10 +1074,11 @@ html[data-theme="dark"] .skill-btn--secondary:active {
   gap: 24px;
   align-items: start;
 }
-/* Two rows of three: six libraries fill the six tracks evenly, where the
-   old lead pair of Beam and Orb left the sixth card alone on a third row.
-   The cards drop their fixed 320px so the tracks size them. */
-.cards > .lib-card { width: auto; grid-column: span 2; }
+/* Beam and Orb lead on a row of two; the other three follow at the old
+   width. The cards drop their fixed 320px so the tracks size them. */
+.cards > .lib-card { width: auto; }
+.cards > .lib-card:nth-child(-n + 2) { grid-column: span 3; }
+.cards > .lib-card:nth-child(n + 3) { grid-column: span 2; }
 /* The stage is absolutely placed, so it needs both insets to follow a
    card that is no longer a fixed width. */
 .cards > .lib-card .card-stage { right: 12px; width: auto; max-width: none; }
@@ -1773,7 +1774,8 @@ html[data-theme="dark"] .footer-name:hover {
 /* ─── Responsive ──────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 664px; }
-  .cards > .lib-card { grid-column: span 1; }
+  .cards > .lib-card:nth-child(-n + 2),
+  .cards > .lib-card:nth-child(n + 3) { grid-column: span 1; }
   .footer { max-width: 664px; }
 }
 @media (max-width: 900px) {

@@ -54,3 +54,8 @@ docs/vc-pitch.md
 
 # Compiled by scripts/posters/build.sh on demand; macOS-only.
 sites/home/scripts/posters/extract
+
+# Unreleased work kept out of the public repo (a library and its site
+# pages); the local build picks it up when present.
+private/
+sites/home/vite.local.mjs

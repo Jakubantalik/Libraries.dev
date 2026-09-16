@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BeamStudio } from "./beam";
@@ -5,7 +6,6 @@ import { OrbStudio } from "./orb";
 import { GooeyStudio } from "./gooey";
 import { MetalStudio } from "./metal";
 import { ImageStudio } from "./image";
-import { VoiceStudio } from "./voice";
 import { StudioThemeContext } from "./controls";
 
 /* Studio app — Pro-gated workbench for all five libraries.
@@ -297,10 +297,21 @@ const LIBS = [
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
-  { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
-] as const;
+  ...Object.values(
+    import.meta.glob<{ bench: PrivateBench }>("./private/*.tsx", { eager: true })
+  ).map((m) => m.bench),
+];
 
-type LibId = (typeof LIBS)[number]["id"];
+/* A bench kept out of the repo: any module in ./private (untracked, see
+   .gitignore) that exports `bench` joins the sidebar after the five. */
+interface PrivateBench {
+  id: string;
+  label: string;
+  icon: string;
+  Component: (props: { visible: boolean; theme: StudioTheme }) => JSX.Element;
+}
+
+type LibId = string;
 
 function Workbench({ theme }: { theme: StudioTheme }) {
   const [lib, setLib] = useState<LibId>(() => {
@@ -344,7 +355,7 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         ))}
       </nav>
 
-      {/* All six stay mounted so tuning survives switching; the hidden
+      {/* All benches stay mounted so tuning survives switching; the hidden
           ones render no stage content (WebGL / canvas / rAF all stop). */}
       <div className="st-main">
         <div hidden={lib !== "beam"}><BeamStudio visible={lib === "beam"} theme={theme} /></div>
@@ -352,7 +363,11 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         <div hidden={lib !== "gooey"}><GooeyStudio visible={lib === "gooey"} theme={theme} /></div>
         <div hidden={lib !== "metal"}><MetalStudio visible={lib === "metal"} theme={theme} /></div>
         <div hidden={lib !== "image"}><ImageStudio visible={lib === "image"} theme={theme} /></div>
-        <div hidden={lib !== "voice"}><VoiceStudio visible={lib === "voice"} theme={theme} /></div>
+        {LIBS.map((l) =>
+          "Component" in l ? (
+            <div key={l.id} hidden={lib !== l.id}><l.Component visible={lib === l.id} theme={theme} /></div>
+          ) : null
+        )}
       </div>
     </div>
   );

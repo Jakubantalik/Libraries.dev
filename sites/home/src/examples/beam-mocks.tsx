@@ -127,7 +127,7 @@ export function MockSearchBar() {
 }
 
 /* Studio chat input (Figma 1561:44249 dark, 1567:44998 light), shared by
-   the Voice and Border beam benches: the prompt,
+   the chat benches: the prompt,
    an add button on the left and the Agent chip, mic and close on the
    right. Icons are masked spans so each theme sets their colour; the
    plus and close glyphs are CSS bars (the Figma export collapsed them). */
@@ -139,18 +139,18 @@ export function ChatInputMock({ radius = 20 }: { radius?: number }) {
       <input className="mock-vchat-input" type="text" placeholder="Ask me anything.." aria-label="Message" autoComplete="off" spellCheck={false} />
       <div className="mock-vchat-row">
         <button type="button" className="mock-vchat-btn" aria-label="Add">
-          <span className="vb-ico vb-ico-plus" />
+          <span className="mk-ico mk-ico-plus" />
         </button>
         <div className="mock-vchat-actions">
           <button type="button" className="mock-vchat-btn mock-vchat-agent">
             Agent
-            <span className="vb-ico vb-ico-chevron" />
+            <span className="mk-ico mk-ico-chevron" />
           </button>
           <button type="button" className="mock-vchat-btn" aria-label="Voice">
-            <span className="vb-ico vb-ico-mic" />
+            <span className="mk-ico mk-ico-mic" />
           </button>
           <button type="button" className="mock-vchat-btn mock-vchat-close" aria-label="Close">
-            <span className="vb-ico vb-ico-plus vb-ico-x" />
+            <span className="mk-ico mk-ico-plus mk-ico-x" />
           </button>
         </div>
       </div>

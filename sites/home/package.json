@@ -18,7 +18,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "thinking-orbs": "*",
-    "voice-beam": "*",
     "three": "^0.149.0"
   },
   "devDependencies": {
