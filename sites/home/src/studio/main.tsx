@@ -5,6 +5,7 @@ import { OrbStudio } from "./orb";
 import { GooeyStudio } from "./gooey";
 import { MetalStudio } from "./metal";
 import { ImageStudio } from "./image";
+import { VoiceStudio } from "./voice";
 import { StudioThemeContext } from "./controls";
 
 /* Studio app — Pro-gated workbench for all five libraries.
@@ -258,6 +259,7 @@ const LIBS = [
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
+  { id: "voice", label: "Voice", icon: "/assets/icons/figma-beam.png" },
 ] as const;
 
 type LibId = (typeof LIBS)[number]["id"];
@@ -304,7 +306,7 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         ))}
       </nav>
 
-      {/* All five stay mounted so tuning survives switching; the hidden
+      {/* All six stay mounted so tuning survives switching; the hidden
           ones render no stage content (WebGL / canvas / rAF all stop). */}
       <div className="st-main">
         <div hidden={lib !== "beam"}><BeamStudio visible={lib === "beam"} theme={theme} /></div>
@@ -312,6 +314,7 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         <div hidden={lib !== "gooey"}><GooeyStudio visible={lib === "gooey"} theme={theme} /></div>
         <div hidden={lib !== "metal"}><MetalStudio visible={lib === "metal"} theme={theme} /></div>
         <div hidden={lib !== "image"}><ImageStudio visible={lib === "image"} theme={theme} /></div>
+        <div hidden={lib !== "voice"}><VoiceStudio visible={lib === "voice"} theme={theme} /></div>
       </div>
     </div>
   );

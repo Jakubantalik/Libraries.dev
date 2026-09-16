@@ -5,6 +5,7 @@ React libraries by [Jakub Antalik](https://github.com/Jakubantalik), and the sit
 | Package | npm | Demo |
 | --- | --- | --- |
 | [`border-beam`](packages/border-beam) — animated border beam | `npm install border-beam` | [beam.jakubantalik.com](https://beam.jakubantalik.com) |
+| [Voice](packages/voice-beam) (`voice-beam`) — sound-reactive bottom-edge glow | `npm install voice-beam` | Studio bench: `/studio/app.html#voice` |
 | [`liquid-gooey`](packages/liquid-gooey) — liquid Morph & Move effects | `npm install liquid-gooey` | [gooey.jakubantalik.com](https://gooey.jakubantalik.com) |
 | [`thinking-orbs`](packages/thinking-orbs) — dotted thought-orb loaders | `npm install thinking-orbs` | [orbs.jakubantalik.com](https://orbs.jakubantalik.com) |
 
@@ -37,6 +38,7 @@ hot-reloads its site with no rebuild.
 npm run build:beam              # build one library
 npm run build:gooey
 npm run build:orbs
+npm run build:voice             # voice-beam (the home site's Studio imports its dist)
 npm run build:site-beam         # library + its site, as CI does
 npm run build:site-gooey
 npm run build:site-orbs

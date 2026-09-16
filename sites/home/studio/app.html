@@ -17,7 +17,7 @@
        every local sheet has loaded (script below); a 1.5s timeout reveals it
        regardless, so a failed sheet can never leave the page blank. -->
   <style>
-    html { background: #121212; }
+    html { background: #070707; }
     html:not(.css-ready) body { visibility: hidden; }
   </style>
   <meta name="color-scheme" content="dark" />
@@ -27,7 +27,7 @@
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="noindex, follow" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta name="theme-color" content="#121212" />
+  <meta name="theme-color" content="#070707" />
 
   <link rel="canonical" href="https://libraries.dev/studio/app.html" />
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
@@ -99,7 +99,17 @@
     .code-copy[data-copied="true"] .icon-copy { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
 
+    /* Voice bench colour rows: nine discs (eight variants + the picker)
+       on one line inside the 273px panel — 24px discs at a 5px gap. */
+    .vb-colors .pg-swatches { flex-wrap: nowrap; gap: 5px; }
+    .vb-colors .pg-swatch { width: 24px; height: 24px; flex: 0 0 24px; }
+
     /* ── App shell ─────────────────────────────────────────────── */
+    /* The workbench sits on a deeper ground than the rest of the site
+       (site.css --bg is #121212), so the stages and panels read as
+       surfaces above it. Dark only; light keeps the site's paper. */
+    html[data-theme="dark"] body { background: #070707; }
+
     .st-app {
       min-height: 100dvh;
       display: flex;
@@ -308,7 +318,14 @@
       background: var(--stage-bg);
       gap: 17px;
     }
-    html[data-theme="dark"] .st-main .st-stage-panel { background: #171717; }
+    /* The workbench's surfaces are a 4% white tint over the app's own
+       #070707 ground rather than the detail pages' flat #171717, so stage,
+       snippet and panel all sit on the same translucent step above it. */
+    html[data-theme="dark"] .st-main .st-stage-panel,
+    html[data-theme="dark"] .st-main .pg-stage,
+    html[data-theme="dark"] .st-main .code-block {
+      background: rgba(255, 255, 255, 0.04);
+    }
     .st-main .st-stage-panel > .st-platform-tabs { margin-bottom: 8px; }
     .st-main .st-stage-bar:not([data-view="preview"]) ~ .pg-stage,
     .st-main .st-stage-bar:not([data-view="preview"]) ~ .pg-snippet { display: none; }
