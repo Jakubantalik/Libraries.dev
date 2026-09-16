@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { POSTERS } from "./posters";
 import { useCallback, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useEffect } from "react";
 
-/* Hero tiles — the five floating library previews, upgraded from static
+/* Hero tiles — the six floating library previews, upgraded from static
    links to draggable cards.
 
    The markup mirrors index.html's static version class for class, so the
@@ -32,6 +32,7 @@ const TILES: Tile[] = [
   { key: "metal", videos: ["/assets/videos/metal-small-card.mp4"], href: "/metal.html", label: "Liquid metal" },
   { key: "gooey", videos: ["/assets/videos/gooey-small-card.mp4"], href: "/gooey.html", label: "Gooey" },
   { key: "image", videos: ["/assets/videos/image-small-card.mp4"], href: "/image.html", label: "Image generation" },
+  { key: "voice", href: "/voice.html", label: "Voice" },
 ];
 
 /* Past this the gesture is a drag, and the click that follows it is not a
