@@ -1,5 +1,5 @@
 {
-  "name": "voice-beam",
+  "name": "voice-glow",
   "version": "0.2.0",
   "description": "Sound-reactive glow for React — a centered, colorful beam along the bottom edge that rises and blooms with voice intensity",
   "type": "module",
@@ -58,7 +58,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
-    "directory": "packages/voice-beam"
+    "directory": "packages/voice-glow"
   },
   "bugs": {
     "url": "https://github.com/Jakubantalik/Libraries.dev/issues"

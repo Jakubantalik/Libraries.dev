@@ -1,6 +1,6 @@
 # Voice
 
-`voice-beam` on npm.
+`voice-glow` on npm.
 
 Sound-reactive glow for React. A centered, colorful beam along the bottom edge of any element — a chat input, a search bar, a card — that rises and blooms with the intensity of a voice. Feed it a microphone stream, or drive it yourself.
 
@@ -9,13 +9,13 @@ It is the voice-shaped sibling of [`border-beam`](../border-beam)'s `line` type:
 ## Install
 
 ```bash
-npm install voice-beam
+npm install voice-glow
 ```
 
 ## Quick start
 
 ```tsx
-import { VoiceBeam, useMicrophone } from 'voice-beam';
+import { VoiceBeam, useMicrophone } from 'voice-glow';
 
 function Composer() {
   const mic = useMicrophone();
@@ -338,7 +338,7 @@ The Web Audio graph is one shared `AudioContext`, one source node per stream (re
 ## Project structure
 
 ```
-voice-beam/
+voice-glow/
 ├── src/
 │   ├── index.ts           # Public exports
 │   ├── VoiceBeam.tsx      # React component

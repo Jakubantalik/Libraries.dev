@@ -9,7 +9,7 @@ import {
   type VoiceBeamColorVariant,
   type VoiceBeamType,
   type VoiceGeometry,
-} from "voice-beam";
+} from "voice-glow";
 import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { ChatInputMock } from "../examples/beam-mocks";
 import { RecordingPill, PhoneScreen, DEMO_TRANSCRIPT, demoGetter, MIC_STATUS } from "../examples/voice-mocks";
@@ -282,7 +282,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     props.push(`style={{ ${varLines} }}`);
   }
   const attrs = "\n  " + props.join("\n  ") + "\n";
-  const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-beam';" : "import { VoiceBeam } from 'voice-beam';";
+  const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';";
   const decl = isMic ? "const mic = useMicrophone();\n\n" : "";
   const snippet = `${imports}\n\n${decl}<VoiceBeam${attrs}>\n  ${CHILD_BY_TYPE[type]}\n</VoiceBeam>${isMic ? "\n\n<button onClick={mic.start}>Listen</button>" : ""}`;
 
@@ -296,7 +296,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   return (
     <div className="pg">
-      <StageBar library="Voice" prompt={{ pkg: "voice-beam", docsPath: "/studio/app.html#voice", snippet }} />
+      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet }} />
       <div className="pg-stage">
         {visible && (
           <VoiceBeam

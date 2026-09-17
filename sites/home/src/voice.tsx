@@ -1,6 +1,6 @@
 import { StrictMode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { VoiceBeam, useMicrophone, type VoiceBeamType } from "voice-beam";
+import { VoiceBeam, useMicrophone, type VoiceBeamType } from "voice-glow";
 import { ChatInputMock } from "./examples/beam-mocks";
 import { PhoneScreen, DEMO_TRANSCRIPT, demoLevel, demoGetter, MIC_STATUS } from "./examples/voice-mocks";
 import { CodeBlock } from "./examples/CodeCopy";
@@ -231,7 +231,7 @@ function VoicePlayground() {
   else props.push("level={() => yourLevel}");
   if (paused) props.push("paused");
   const attrs = "\n  " + props.join("\n  ") + "\n";
-  const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-beam';" : "import { VoiceBeam } from 'voice-beam';";
+  const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';";
   const decl = isMic ? "const mic = useMicrophone();\n\n" : "";
   const snippet = `${imports}\n\n${decl}<VoiceBeam${attrs}>\n  ${CHILD_BY_TYPE[type]}\n</VoiceBeam>${isMic ? "\n\n<button onClick={mic.start}>Listen</button>" : ""}`;
 

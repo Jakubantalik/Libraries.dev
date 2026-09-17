@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-- First public release (0.1.0 was withdrawn before launch).
+- First public release, as `voice-glow` (a `voice-beam` 0.1.0 was withdrawn before launch).
 - Half-resolution soft layers on every engine through an explicit per-layer length factor, so Safari 18 rasters them at half size with the right geometry.
 - The distortion filter's region follows the band line (Chromium, Firefox); WebKit keeps the full region, where its noise is anchored to the region.
 - The 1px edge stroke stays full-resolution on dense screens.

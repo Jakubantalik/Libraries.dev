@@ -1,6 +1,6 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { VoiceBeam, type VoiceBeamType } from "voice-beam";
+import { VoiceBeam, type VoiceBeamType } from "voice-glow";
 import { ChatInputMock } from "./examples/beam-mocks";
 import { DEMO_TRANSCRIPT, PhoneScreen, RecordingPill, demoGetter } from "./examples/voice-mocks";
 

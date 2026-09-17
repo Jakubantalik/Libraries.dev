@@ -13,7 +13,7 @@ on:
           - border-beam
           - thinking-orbs
           - metal-fx
-          - voice-beam
+          - voice-glow
   release:
     types: [published]
 
