@@ -160,6 +160,23 @@ html[data-theme="light"] .st-lib-ico img[src*="figma-image"] { content: url("/as
 /* Effect icon sits above the name, at the tile art's natural 46px. */
 .detail-icon { width: 46px; height: 46px; display: block; }
 .detail-icon img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 12px; }
+/* The tile as code (Figma 1580:45647): a translucent dark square with the
+   hairline ring, top light and bottom shade, holding an SVG glyph at the
+   glyph's own size. */
+.detail-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(59, 59, 59, 0.7);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+}
+.detail-tile img { width: auto; height: auto; border-radius: 0; }
 /* The image-generation export carries its drop shadow in the bitmap (a
    52px canvas for a 46px tile), so scaled into the box it rendered a size
    smaller than its siblings and the 12px clip cut its shadow. Same fix
