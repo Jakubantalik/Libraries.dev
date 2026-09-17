@@ -224,9 +224,9 @@
     { label: "Beam", href: "/beam.html" },
     { label: "Orb", href: "/orbs.html" },
     { label: "Gooey", href: "/gooey.html" },
+    { label: "Voice", href: "/voice.html" },
     { label: "Metal", href: "/metal.html" },
     { label: "Image", href: "/image.html" },
-    { label: "Voice", href: "/voice.html" },
     { label: "Studio", href: "/studio.html" },
     { label: "Libraries Pro", href: "/pro.html" }
   ];
