@@ -1,4 +1,0 @@
-# A page that no longer exists but whose old copy Cloudflare kept serving
-# on the custom domain for its s-maxage after the asset was removed; a
-# redirect is evaluated before the asset cache, so it takes effect at once.
-/voice / 302

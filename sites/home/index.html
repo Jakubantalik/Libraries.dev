@@ -279,6 +279,9 @@
       .hero-tile--metal { top: 171px; left: calc(50% + min(317px, 24.8vw)); }
       .hero-tile--gooey { top: 432px; left: calc(50% - min(351px, 27.4vw)); }
       .hero-tile--image { top: 475px; left: calc(50% + min(90px, 7vw)); }
+      /* Mirrors the gooey tile on the right. 29vw, not 27.4: at 761px the
+         image tile's halo would otherwise touch this one's. */
+      .hero-tile--voice { top: 432px; left: calc(50% + min(351px, 29vw)); }
     }
     /* The halo can only widen once the tiles are far enough apart for two
        of them never to overlap. */
@@ -361,7 +364,8 @@
         width: 100%;
         height: calc(var(--hero-tile) * 3 + var(--hero-tile-gap) * 2);
       }
-      /* A 2-1-2 stagger rather than a row: it reads as a loose cluster while
+      /* A 2-2-2 stagger rather than a grid: the outer rows sit at the edges
+         and the middle pair is centred, so it reads as a loose cluster while
          keeping every tile's tap target clear of its neighbours, so the halo
          goes to zero. */
       .hero-tile { position: absolute; --tile-safe: 0px; }
@@ -369,7 +373,11 @@
       .hero-tile--metal { top: 0; left: calc(100% - 12px - var(--hero-tile)); }
       .hero-tile--orb   {
         top: calc(var(--hero-tile) + var(--hero-tile-gap));
-        left: calc(50% - var(--hero-tile) / 2);
+        left: calc(50% - var(--hero-tile) - var(--hero-tile-gap) / 2);
+      }
+      .hero-tile--voice {
+        top: calc(var(--hero-tile) + var(--hero-tile-gap));
+        left: calc(50% + var(--hero-tile-gap) / 2);
       }
       .hero-tile--gooey {
         top: calc((var(--hero-tile) + var(--hero-tile-gap)) * 2);
@@ -389,11 +397,10 @@
     /* ── Library grid cards (Figma 1413-37519): icon + meta row ── */
     .lib-card-hit { position: absolute; inset: 0; z-index: 6; border-radius: 24px; }
     .lib-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    /* The beam and orb clips are 1.66:1, wider than the small card's 1.17
-       slot, so below the wide grid they crop at the sides. Their subject
-       sits at the left edge - anchor there rather than centring, which was
-       cutting the composer in half. At the wide size nothing crops
-       horizontally, so this is a no-op there. */
+    /* The beam and orb clips are 1.66:1, wider than the card's 1.17 slot,
+       so they crop at the sides. Their subject sits at the left edge -
+       anchor there rather than centring, which was cutting the composer
+       in half. */
     .lib-card[data-lib="beam"] .lib-video,
     .lib-card[data-lib="orb"] .lib-video { object-position: left center; }
     /* 254 leaves 16px between the stage and the icon — the same gap the
@@ -809,6 +816,10 @@
           <span class="hero-tile-stage"></span>
           <span class="hero-tile-pill">Image generation <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.47 6.22a.75.75 0 0 1 1.06 0L8 8.69l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 0-1.06Z" fill="currentColor"/></svg></span>
         </a>
+        <a class="hero-tile hero-tile--voice" href="/voice.html" aria-label="Voice">
+          <span class="hero-tile-stage"></span>
+          <span class="hero-tile-pill">Voice <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.47 6.22a.75.75 0 0 1 1.06 0L8 8.69l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 0-1.06Z" fill="currentColor"/></svg></span>
+        </a>
         </div>
       </div>
       <script type="module" src="/src/hero-tiles.tsx"></script>
@@ -947,6 +958,20 @@
           <span class="lib-meta-text">
             <span class="lib-name">Image generation</span>
             <span class="lib-desc">WebGL image-generation loader for cards</span>
+          </span>
+        </div>
+      </article>
+
+      <article class="card lib-card" data-lib="voice">
+        <a class="lib-card-hit" href="/voice.html" aria-label="Voice playground"></a>
+        <div class="card-stage">
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAMBBv/EAB0QAAMBAAEFAAAAAAAAAAAAAAABAhEhAwQSMVH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5hLfRvi/jE05ep4yl9z1bWVSzM4lLgCQAAAAAAAP/9k=&quot;)"><video class="lib-video" src="/assets/videos/voice-main-card.mp4" poster="/assets/videos/posters/voice-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico"><img src="/assets/icons/figma-voice.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Voice</span>
+            <span class="lib-desc">Sound-reactive glow for voice-driven UI</span>
           </span>
         </div>
       </article>
@@ -1143,6 +1168,7 @@
             <a href="/gooey.html">Gooey</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
+            <a href="/voice.html">Voice</a>
           </div>
           <div class="footer-col">
             <p class="footer-col-title">Product</p>

@@ -6,6 +6,7 @@ import { OrbStudio } from "./orb";
 import { GooeyStudio } from "./gooey";
 import { MetalStudio } from "./metal";
 import { ImageStudio } from "./image";
+import { VoiceStudio } from "./voice";
 import { StudioThemeContext } from "./controls";
 
 /* Studio app — Pro-gated workbench for all five libraries.
@@ -430,6 +431,7 @@ const LIBS = [
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
+  { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
   ...Object.values(
     import.meta.glob<{ bench: PrivateBench }>("./private/*.tsx", { eager: true })
   ).map((m) => m.bench),
@@ -496,6 +498,7 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         <div hidden={lib !== "gooey"}><GooeyStudio visible={lib === "gooey"} theme={theme} /></div>
         <div hidden={lib !== "metal"}><MetalStudio visible={lib === "metal"} theme={theme} /></div>
         <div hidden={lib !== "image"}><ImageStudio visible={lib === "image"} theme={theme} /></div>
+        <div hidden={lib !== "voice"}><VoiceStudio visible={lib === "voice"} theme={theme} /></div>
         {LIBS.map((l) =>
           "Component" in l ? (
             <div key={l.id} hidden={lib !== l.id}><l.Component visible={lib === l.id} theme={theme} /></div>

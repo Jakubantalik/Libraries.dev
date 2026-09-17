@@ -87,6 +87,8 @@ export default mergeConfig(defineConfig({
         gooey: resolve(__dirname, "gooey.html"),
         metal: resolve(__dirname, "metal.html"),
         image: resolve(__dirname, "image.html"),
+        voice: resolve(__dirname, "voice.html"),
+        "voice-phone": resolve(__dirname, "voice-phone.html"),
         pro: resolve(__dirname, "pro.html"),
         studio: resolve(__dirname, "studio.html"),
         "studio-app": resolve(__dirname, "studio/app.html"),
