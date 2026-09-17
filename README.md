@@ -1,6 +1,8 @@
-# Libraries
+# Libraries.dev
 
-React UI effects by [Jakub Antalik](https://github.com/Jakubantalik). Try every one on [libraries.dev](https://libraries.dev), tune it in the Studio, then install the package.
+**High-crafted UI libraries for AI agents.** Six React libraries for the effects that make an interface feel alive: a beam of light travelling a card's border, orbs that think while a model works, shapes that merge like liquid, a glow that rises with your voice, brushed metal that catches the light, and an image loader that dissolves a pixel mosaic into a real photo.
+
+Each one installs from npm and drops into your app as a single component that wraps the element you already have. Your markup keeps its semantics, the effect renders around or behind it, and the whole thing is tuned by props rather than hand-written WebGL.
 
 | Library | What it does | npm | Page |
 | --- | --- | --- | --- |
@@ -11,46 +13,56 @@ React UI effects by [Jakub Antalik](https://github.com/Jakubantalik). Try every 
 | [Metal](packages/metal-fx) | Liquid metal for buttons, icons, text and badges, with reflections and cursor light | `npm install metal-fx` | [libraries.dev/metal](https://libraries.dev/metal) |
 | [Image](packages/img-fx) | A loader that becomes the image — a WebGL pixel mosaic that settles into the picture | `npm install img-fx` | [libraries.dev/image](https://libraries.dev/image) |
 
-## Layout
+Try each one on [libraries.dev](https://libraries.dev): a live preview to play with, the install command, the usage code, and a playground that copies the exact configuration.
 
+## How to use
+
+Every library ships as a prompt. Copy it, paste it into your coding agent, and make it yours — three steps, no setup.
+
+1. **Copy the prompt.** Every library page has a *Copy prompt* button. One paste gives your agent the whole library: its parameter vocabulary and your current settings.
+2. **Paste it into your agent.** Drop it into Claude Code, Cursor or Codex. The agent installs the package and wires it in, matched to your theme.
+3. **Make it yours.** Open the [Studio](https://libraries.dev/studio.html) with Pro for every knob, tune it live and copy the result as props.
+
+Or the plain way:
+
+```bash
+npm install border-beam   # or thinking-orbs, liquid-gooey, voice-glow, metal-fx, img-fx
 ```
-packages/       published libraries — one folder per npm package
-sites/          the demo site for each library
+
+```tsx
+import { BorderBeam } from "border-beam";
+
+<BorderBeam>
+  <button>Get started</button>
+</BorderBeam>
 ```
 
-Each package owns its own README and LICENSE, because npm renders the readme
-from the package directory rather than the repo root.
+Each package's README documents its props.
 
-## Working on it
+## FAQ
 
-npm workspaces, so one install at the root covers everything:
+**What do I need?** React 18 or newer. Each library is a standalone package with zero runtime dependencies, except Image, which also needs `three` as a peer dependency.
+
+**Do they work with coding agents?** Yes — that is the point. Every library installs and configures cleanly from Cursor, Claude Code and Codex, and each playground's copy-prompt button hands your agent the library's full parameter vocabulary along with your current settings.
+
+**Light and dark mode?** Both, detected for you. The default `theme="auto"` resolves a `data-theme` attribute or `dark` class on an ancestor, then falls back to `prefers-color-scheme`, updating live when either changes. Pass `theme="dark"` or `theme="light"` to pin one.
+
+**What are Pro and the Studio?** One plan across every library. Pro unlocks the [Studio](https://libraries.dev/studio.html) — deep, per-library customization beyond the public playgrounds, with export of the exact configuration — plus Pro presets and every future library and update. See [pricing](https://libraries.dev/pro.html).
+
+**Commercial projects?** The libraries are MIT — use them anywhere, including commercial work. Pro content (Studio exports, Pro presets and recipes) is licensed to you or your team under the plan you buy, for unlimited projects.
+
+## Working in this repo
+
+npm workspaces: `packages/` holds the published libraries (one folder per npm package, each with its own README and LICENSE), `sites/` the demo sites — `sites/home` is libraries.dev.
 
 ```bash
 npm install
-
-npm run dev -w @sites/home      # libraries.dev: every library's page and the Studio
-npm run dev -w @sites/beam      # the standalone beam demo
-npm run dev -w @sites/gooey     # the standalone gooey demo
-npm run dev -w @sites/orbs      # the standalone orbs demo
-```
-
-The standalone demos alias their library to its **source**, so editing a
-library hot-reloads the site with no rebuild. The home site imports the
-built packages, so build a library (below) before its page or bench.
-
-```bash
-npm run build:beam              # build one library
-npm run build:orbs
-npm run build:gooey
-npm run build:voice
-npm run build:metal
-npm run build:image
 npm run build:site-home         # every library + libraries.dev, as CI does
-npm run build:site-beam         # a library + its standalone demo
-npm run build:site-gooey
-npm run build:site-orbs
+npm run dev -w @sites/home      # libraries.dev with every page and the Studio
 npm run typecheck               # every workspace
 ```
+
+The home site imports the built packages, so build a library (`npm run build:beam`, `build:orbs`, `build:gooey`, `build:voice`, `build:metal`, `build:image`) before its page or bench. The standalone demos (`@sites/beam`, `@sites/gooey`, `@sites/orbs`) alias their library to its source and hot-reload without a rebuild.
 
 ## Releasing
 
