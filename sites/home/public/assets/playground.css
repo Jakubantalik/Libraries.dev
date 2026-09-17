@@ -1482,9 +1482,9 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
    ::before; a second copy on ::after sits behind the button at 1.2×.
    Selecting shrinks the colour to 0.8 and shows the copy, so the chosen
    one reads as a ring, a panel-coloured gap and a dot — all in its own
-   colour (the marker picker in Agentation's settings). The colour comes
-   in through --swatch; the faint inset ring keeps pale colours visible
-   on the panel. */
+   colour (the marker picker in Agentation's settings), switching at once
+   like a radio — animating the swap flashed. The colour comes in through
+   --swatch; the faint inset ring keeps pale colours visible on the panel. */
 .pg-swatch {
   position: relative;
   width: 26px;
@@ -1494,7 +1494,6 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
   border-radius: 50%;
   background: var(--pg-panel-bg);
   cursor: pointer;
-  transition: transform 200ms var(--ease-smooth-out);
   -webkit-tap-highlight-color: transparent;
 }
 .pg-swatch::before,
@@ -1504,7 +1503,6 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
   inset: 0;
   border-radius: 50%;
   background: var(--swatch);
-  transition: transform 200ms var(--ease-smooth-out), opacity 200ms ease;
 }
 .pg-swatch::before,
 .pg-swatch::after { box-shadow: inset 0 0 0 1px var(--pg-swatch-ring); }
@@ -1513,7 +1511,6 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
   transform: scale(1.2);
   opacity: 0;
 }
-.pg-swatch:hover { transform: scale(1.15); }
 .pg-swatch[data-active="true"]::before { transform: scale(0.8); }
 .pg-swatch[data-active="true"]::after { opacity: 1; }
 .pg-swatch:focus-visible { outline: 2px solid var(--icon-color); outline-offset: 4px; }
