@@ -837,12 +837,20 @@ html[data-theme="dark"] .tl-set-back-ic { color: #8b8b8b; }
   background: #fff; border: 1px solid #dcdcdc; border-radius: 12px; outline: none;
   transition: border-color 120ms ease;
 }
-.pm-feedback-input::placeholder { color: #828282; }
-.pm-feedback-input:focus { border-color: #585858; }
-.pm-feedback-input.is-error, .pm-feedback-input.is-error:focus { border-color: #e23014; }
-html[data-theme="dark"] .pm-feedback-input { background: #151517; color: #f2f2f2; border-color: #3a3a3d; }
-html[data-theme="dark"] .pm-feedback-input:focus { border-color: #a5a5a5; }
-html[data-theme="dark"] .pm-feedback-input.is-error { border-color: #e23014; }
+/* The optional address: the same field, one line. */
+.pm-feedback-email {
+  width: 100%; box-sizing: border-box; height: 40px; padding: 0 12px; display: block;
+  font-family: var(--font-sans); font-size: 13px; line-height: 1.4; color: #0f0f0f;
+  background: #fff; border: 1px solid #dcdcdc; border-radius: 12px; outline: none;
+  transition: border-color 120ms ease;
+}
+.pm-feedback-input::placeholder, .pm-feedback-email::placeholder { color: #828282; }
+.pm-feedback-input:focus, .pm-feedback-email:focus { border-color: #585858; }
+.pm-feedback-input.is-error, .pm-feedback-input.is-error:focus,
+.pm-feedback-email.is-error, .pm-feedback-email.is-error:focus { border-color: #e23014; }
+html[data-theme="dark"] .pm-feedback-input, html[data-theme="dark"] .pm-feedback-email { background: #151517; color: #f2f2f2; border-color: #3a3a3d; }
+html[data-theme="dark"] .pm-feedback-input:focus, html[data-theme="dark"] .pm-feedback-email:focus { border-color: #a5a5a5; }
+html[data-theme="dark"] .pm-feedback-input.is-error, html[data-theme="dark"] .pm-feedback-email.is-error { border-color: #e23014; }
 .pm-feedback-btn {
   width: 100%; height: 40px; border: 0; border-radius: 26px; background: #17181c; color: #fff;
   font-family: var(--font-sans); font-size: 13px; line-height: 13px; font-weight: 500; cursor: pointer;
@@ -862,7 +870,7 @@ html[data-theme="dark"] .pm-feedback-btn:not([disabled]):active { background: #d
 .pm-feedback-note[data-kind="err"] { color: #d62b11; }
 .pm-feedback-note a { color: inherit; font-weight: 500; }
 /* Error-state shake (transitions.dev 12) on an empty send. */
-.pm-feedback-input.is-shaking { animation: pm-shake 280ms linear; }
+.pm-feedback-input.is-shaking, .pm-feedback-email.is-shaking { animation: pm-shake 280ms linear; }
 @keyframes pm-shake {
   0% { transform: translateX(0); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
   28.57% { transform: translateX(6px); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
@@ -872,7 +880,7 @@ html[data-theme="dark"] .pm-feedback-btn:not([disabled]):active { background: #d
 }
 @media (prefers-reduced-motion: reduce) {
   .tl-menu.t-dropdown.is-open, .tl-set-slide, .tl-set-slide .t-page { transition: none !important; }
-  .pm-feedback-input { animation: none !important; }
+  .pm-feedback-input, .pm-feedback-email { animation: none !important; }
 }
 
 /* ─── Command palette (⌘K) ───────────────────────────────── */

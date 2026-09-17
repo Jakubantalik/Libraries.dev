@@ -93,6 +93,7 @@
   var fbBack = document.getElementById("pm-back");
   var fbForm = document.getElementById("pm-feedback-form");
   var fbInput = fbForm && fbForm.querySelector(".pm-feedback-input");
+  var fbEmail = fbForm && fbForm.querySelector(".pm-feedback-email");
   var fbNote = fbForm && fbForm.querySelector(".pm-feedback-note");
   var fbBtn = fbForm && fbForm.querySelector(".pm-feedback-btn");
   var FEEDBACK_API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
@@ -117,6 +118,7 @@
   function resetFeedback() {
     setView("1");
     if (fbInput) fbInput.classList.remove("is-error");
+    if (fbEmail) fbEmail.classList.remove("is-error");
     fbNoteSet(null, "");
   }
   function fbNoteSet(kind, html) {
@@ -127,16 +129,24 @@
   }
   function openFeedback() {
     setView("2");
+    // A signed-in visitor's address is known; fill it in so a reply can
+    // reach them without typing. Anyone else may leave it empty.
+    if (fbEmail && !fbEmail.value) {
+      var LP = window.LibrariesPro;
+      if (LP && LP.state && LP.state.email) fbEmail.value = LP.state.email;
+    }
     if (fbInput) fbInput.focus({ preventScroll: true });
   }
-  function shakeInput() {
-    if (!fbInput) return;
-    fbInput.classList.add("is-error");
-    fbInput.classList.remove("is-shaking");
-    void fbInput.offsetWidth;
-    fbInput.classList.add("is-shaking");
-    fbInput.addEventListener("animationend", function () { fbInput.classList.remove("is-shaking"); }, { once: true });
+  function shakeInput(el) {
+    el = el || fbInput;
+    if (!el) return;
+    el.classList.add("is-error");
+    el.classList.remove("is-shaking");
+    void el.offsetWidth;
+    el.classList.add("is-shaking");
+    el.addEventListener("animationend", function () { el.classList.remove("is-shaking"); }, { once: true });
   }
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   function sendFeedback() {
     if (fbSending || !fbInput) return;
     var message = fbInput.value.trim();
@@ -144,6 +154,13 @@
       shakeInput();
       fbNoteSet("err", "Write a few words first.");
       fbInput.focus();
+      return;
+    }
+    var email = fbEmail ? fbEmail.value.trim() : "";
+    if (email && !EMAIL_RE.test(email)) {
+      shakeInput(fbEmail);
+      fbNoteSet("err", "That email doesn't look right.");
+      fbEmail.focus();
       return;
     }
     fbSending = true;
@@ -154,7 +171,7 @@
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: message, page: location.href })
+      body: JSON.stringify({ message: message, page: location.href, email: email || undefined })
     })
       .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
       .then(function () {
@@ -185,6 +202,15 @@
       fbInput.classList.remove("is-error");
       if (fbNote && fbNote.getAttribute("data-kind") === "err") fbNoteSet(null, "");
     });
+    if (fbEmail) {
+      fbEmail.addEventListener("input", function () {
+        fbEmail.classList.remove("is-error");
+        if (fbNote && fbNote.getAttribute("data-kind") === "err") fbNoteSet(null, "");
+      });
+      fbEmail.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); sendFeedback(); }
+      });
+    }
     fbInput.addEventListener("keydown", function (e) {
       // ⌘/Ctrl+Enter sends; Escape is the menu's (bubbles to the document).
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendFeedback(); }
