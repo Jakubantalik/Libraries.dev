@@ -809,7 +809,12 @@ html[data-theme="dark"] .tl-menu-check { color: #fbfbfb; }
   will-change: opacity, transform, filter; }
 .tl-set-slide[data-page="1"] .t-page[data-page-id="1"],
 .tl-set-slide[data-page="2"] .t-page[data-page-id="2"] {
-  opacity: 1; pointer-events: auto; transform: translateX(0); filter: blur(0); }
+  opacity: 1; transform: translateX(0); filter: blur(0); }
+/* Only an open menu's page takes the pointer: the closed menu is kept in
+   the layout at opacity 0, and an active page that accepted clicks there
+   swallowed whatever sat under it (the Studio panel's Agent tab). */
+.tl-menu.is-open .tl-set-slide[data-page="1"] .t-page[data-page-id="1"],
+.tl-menu.is-open .tl-set-slide[data-page="2"] .t-page[data-page-id="2"] { pointer-events: auto; }
 .tl-set-back { display: flex; align-items: center; gap: 4px; width: 100%; box-sizing: border-box;
   min-height: 32px; padding: 0 8px 0 4px; border: none; background: transparent; border-radius: 8px;
   font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 16px; color: #1b1b1b;
