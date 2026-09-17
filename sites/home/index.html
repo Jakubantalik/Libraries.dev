@@ -279,9 +279,6 @@
       .hero-tile--metal { top: 171px; left: calc(50% + min(317px, 24.8vw)); }
       .hero-tile--gooey { top: 432px; left: calc(50% - min(351px, 27.4vw)); }
       .hero-tile--image { top: 475px; left: calc(50% + min(90px, 7vw)); }
-      /* Mirrors the gooey tile on the right. 29vw, not 27.4: at 761px the
-         image tile's halo would otherwise touch this one's. */
-      .hero-tile--voice { top: 432px; left: calc(50% + min(351px, 29vw)); }
     }
     /* The halo can only widen once the tiles are far enough apart for two
        of them never to overlap. */
@@ -364,8 +361,7 @@
         width: 100%;
         height: calc(var(--hero-tile) * 3 + var(--hero-tile-gap) * 2);
       }
-      /* A 2-2-2 stagger rather than a grid: the outer rows sit at the edges
-         and the middle pair is centred, so it reads as a loose cluster while
+      /* A 2-1-2 stagger rather than a row: it reads as a loose cluster while
          keeping every tile's tap target clear of its neighbours, so the halo
          goes to zero. */
       .hero-tile { position: absolute; --tile-safe: 0px; }
@@ -373,11 +369,7 @@
       .hero-tile--metal { top: 0; left: calc(100% - 12px - var(--hero-tile)); }
       .hero-tile--orb   {
         top: calc(var(--hero-tile) + var(--hero-tile-gap));
-        left: calc(50% - var(--hero-tile) - var(--hero-tile-gap) / 2);
-      }
-      .hero-tile--voice {
-        top: calc(var(--hero-tile) + var(--hero-tile-gap));
-        left: calc(50% + var(--hero-tile-gap) / 2);
+        left: calc(50% - var(--hero-tile) / 2);
       }
       .hero-tile--gooey {
         top: calc((var(--hero-tile) + var(--hero-tile-gap)) * 2);
@@ -815,10 +807,6 @@
         <a class="hero-tile hero-tile--image" href="/image.html" aria-label="Image generation">
           <span class="hero-tile-stage"></span>
           <span class="hero-tile-pill">Image generation <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.47 6.22a.75.75 0 0 1 1.06 0L8 8.69l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 0-1.06Z" fill="currentColor"/></svg></span>
-        </a>
-        <a class="hero-tile hero-tile--voice" href="/voice.html" aria-label="Voice">
-          <span class="hero-tile-stage"></span>
-          <span class="hero-tile-pill">Voice <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.47 6.22a.75.75 0 0 1 1.06 0L8 8.69l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 0-1.06Z" fill="currentColor"/></svg></span>
         </a>
         </div>
       </div>
