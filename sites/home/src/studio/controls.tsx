@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type CSSProperties } from "react";
 import { describePatch, streamAgentTurn, type ChatTurn } from "./agent";
 import type { CoreWiring } from "./core";
 import { useScrollFade } from "../examples/useScrollFade";
@@ -505,7 +505,7 @@ export function PgSwatches({
             aria-checked={value === o.value}
             aria-label={o.label}
             data-active={value === o.value ? "true" : undefined}
-            style={{ background: o.swatch ?? o.value }}
+            style={{ "--swatch": o.swatch ?? o.value } as CSSProperties}
             onClick={() => onChange(o.value)}
           />
         ))}
@@ -514,7 +514,7 @@ export function PgSwatches({
             type="button"
             className="pg-swatch pg-swatch--custom"
             data-active={isCustom ? "true" : undefined}
-            style={isCustom ? { background: value } : undefined}
+            style={isCustom ? ({ "--swatch": value } as CSSProperties) : undefined}
             title="Custom color"
             aria-label="Custom color"
             aria-expanded={pickerOpen}
