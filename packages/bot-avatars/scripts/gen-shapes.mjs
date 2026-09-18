@@ -183,7 +183,13 @@ const cat = `M${pt([50, 20])}A36 36 0 1 1 ${pt([50, 92])}A36 36 0 1 1 ${pt([50, 
   roundedPolygon([[16, 52], [21, 10], [48, 25]], 4.5) +
   roundedPolygon([[84, 52], [52, 25], [79, 10]], 4.5);
 
-const shapes = { clover, flower, triangle: tri, square, blob: blobShape, ghost, circle, drop, star, droid, mech, alien, hexagon, cat };
+/* Cloud: three bumps over a flat base, as four subpaths of one outline. */
+const cloud = "M13 58A17 17 0 1 1 47 58A17 17 0 1 1 13 58Z" +
+  "M28 46A24 24 0 1 1 76 46A24 24 0 1 1 28 46Z" +
+  "M54 58A18 18 0 1 1 90 58A18 18 0 1 1 54 58Z" +
+  "M13 60H90V70C90 74.42 86.42 78 82 78H21C16.58 78 13 74.42 13 70Z";
+
+const shapes = { clover, flower, triangle: tri, square, blob: blobShape, ghost, circle, drop, star, droid, mech, alien, hexagon, cat, cloud };
 
 /* Thin parts drawn with less depth than the body they sit on. */
 const parts = { droid: droidParts, mech: mechParts };
