@@ -8,7 +8,7 @@ Each one installs from npm and drops into your app as a single component that wr
 | --- | --- | --- | --- |
 | [Border beam](packages/border-beam) | A soft glow that rides the border of a card, button or input | `npm install border-beam` | [libraries.dev/beam](https://libraries.dev/beam) |
 | [Thinking orbs](packages/thinking-orbs) | Orbs that think while you wait — nine loading states for AI interfaces | `npm install thinking-orbs` | [libraries.dev/orbs](https://libraries.dev/orbs) |
-| [Bot avatars](packages/bot-avatars) | Animated bot avatars with living faces — ten glossy shapes, four states, for AI agents | `npm install bot-avatars` | [libraries.dev/avatars](https://libraries.dev/avatars) |
+| [Bot avatars](packages/bot-avatars) | Animated bot avatars with living faces — twelve glossy shapes, four states, for AI agents | `npm install bot-avatars` | [libraries.dev/avatars](https://libraries.dev/avatars) |
 | [Gooey](packages/liquid-gooey) | Pieces that merge like goo and morph like jelly while text stays crisp | `npm install liquid-gooey` | [libraries.dev/gooey](https://libraries.dev/gooey) |
 | [Voice](packages/voice-glow) | A glow that rises with your voice from the bottom of a chat input or phone screen | `npm install voice-glow` | [libraries.dev/voice](https://libraries.dev/voice) |
 | [Metal](packages/metal-fx) | Liquid metal for buttons, icons, text and badges, with reflections and cursor light | `npm install metal-fx` | [libraries.dev/metal](https://libraries.dev/metal) |

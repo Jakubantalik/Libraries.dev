@@ -1,7 +1,7 @@
 import type { BotAvatarFace, BotAvatarPreset, BotAvatarState, BotAvatarType } from './types';
 
 /**
- * The ten types: each body has its own colour and says where on it the
+ * The twelve types: each body has its own colour and says where on it the
  * face sits. Every type wears the eyes alone by default.
  */
 export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
@@ -15,6 +15,8 @@ export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
   drop: { label: 'Drop', color: '#1ED3C6', face: 'eyes', faceX: 50, faceY: 62, faceScale: 0.9 },
   star: { label: 'Star', color: '#FFD32B', face: 'eyes', faceX: 50, faceY: 52, faceScale: 0.82 },
   robot: { label: 'Robot', color: '#B9C6DA', face: 'eyes', faceX: 50, faceY: 58, faceScale: 0.95 },
+  droid: { label: 'Droid', color: '#D5DBEA', face: 'eyes', faceX: 50, faceY: 60, faceScale: 0.95 },
+  mech: { label: 'Mech', color: '#95A6C4', face: 'eyes', faceX: 50, faceY: 59, faceScale: 1 },
 };
 
 export const botAvatarTypes = Object.keys(botAvatarPresets) as BotAvatarType[];

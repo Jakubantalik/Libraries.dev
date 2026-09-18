@@ -1,6 +1,6 @@
 import type { CanvasHTMLAttributes, CSSProperties } from 'react';
 
-/** The ten body shapes. */
+/** The twelve body shapes. */
 export type BotAvatarType =
   | 'clover'
   | 'flower'
@@ -11,7 +11,9 @@ export type BotAvatarType =
   | 'circle'
   | 'drop'
   | 'star'
-  | 'robot';
+  | 'robot'
+  | 'droid'
+  | 'mech';
 
 /**
  * What the face is made of. The eyes alone by default; `mouth` adds a
