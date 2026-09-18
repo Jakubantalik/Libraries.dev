@@ -1,6 +1,6 @@
 # bot-avatars
 
-Animated bot avatars for React. Nine simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and four states an agent can be in: idle, thinking, happy and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, rounded extrusion: no WebGL, no runtime dependencies.
+Animated bot avatars for React. Ten simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and four states an agent can be in: idle, thinking, happy and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, rounded extrusion: no WebGL, no runtime dependencies.
 
 [Live demo](https://libraries.dev/avatars) · [Repository](https://github.com/Jakubantalik/Libraries.dev) · [Report an issue](https://github.com/Jakubantalik/Libraries.dev/issues)
 
@@ -22,7 +22,7 @@ function Agent({ busy }: { busy: boolean }) {
 
 ## Types
 
-Nine bodies, each with its own colour:
+Ten bodies, each with its own colour:
 
 ```tsx
 <BotAvatar type="clover" />    {/* sky */}
@@ -34,6 +34,7 @@ Nine bodies, each with its own colour:
 <BotAvatar type="circle" />    {/* lavender */}
 <BotAvatar type="drop" />      {/* teal */}
 <BotAvatar type="star" />      {/* yellow */}
+<BotAvatar type="robot" />     {/* steel */}
 ```
 
 ## Faces
