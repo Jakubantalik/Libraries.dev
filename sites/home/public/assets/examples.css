@@ -1313,3 +1313,91 @@ html[data-theme="light"] .mock-phone-chevron { background: rgba(0, 0, 0, 0.4); }
 html[data-theme="light"] .mock-phone-btn img { filter: invert(1) brightness(0.15); }
 html[data-theme="light"] .mock-phone-close::before,
 html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
+
+/* ── Bot avatars ── */
+/* The team row: ten seats, wrapping on a narrow card. */
+.example-row-full--team { height: auto; min-height: 200px; padding: 40px 32px; }
+.ex-avatars-team {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px 12px;
+  width: 100%;
+}
+.ex-avatars-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 84px;
+  cursor: default;
+}
+.ex-avatars-name { font-size: 12px; line-height: 14px; color: #767676; }
+
+.example-row-split--avatars { grid-template-columns: 1fr 1fr; }
+.example-row-split--avatars .example-cell { padding: 32px 28px; }
+@media (max-width: 740px) {
+  .example-row-split--avatars { grid-template-columns: 1fr; }
+}
+
+/* The roster: a compact agent list. */
+.mock-bots {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 16px;
+  background: var(--c-mock-bg);
+  box-shadow: inset 0 0 0 1px var(--c-mock-border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.mock-bots-head {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--c-mock-placeholder);
+  padding: 6px 10px 8px;
+}
+.mock-bots-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.mock-bots-row:hover { background: var(--c-mock-chip-bg); }
+.mock-bots-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mock-bots-name { font-size: 13px; font-weight: 500; line-height: 16px; color: var(--c-mock-text-strong); }
+.mock-bots-status {
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--c-mock-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mock-bots-status.t-shimmer { display: inline-block; }
+
+/* The thread: a question and the bot's answer. */
+.mock-thread {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mock-thread-user {
+  align-self: flex-end;
+  max-width: 82%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--c-mock-chip-bg);
+  box-shadow: inset 0 0 0 1px var(--c-mock-border);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--c-mock-text-strong);
+}
+.mock-thread-bot { display: flex; align-items: flex-start; gap: 10px; }
+.mock-thread-body { min-height: 32px; display: flex; align-items: center; padding-top: 1px; }
+.mock-thread-body .t-shimmer { font-size: 13px; line-height: 18px; }
+.mock-thread-reply { margin: 0; font-size: 13px; line-height: 18px; color: var(--c-mock-text); }

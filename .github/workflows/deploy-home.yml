@@ -42,7 +42,7 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      # The home site imports all five libraries from the workspace, so they
+      # The home site imports every library from the workspace, so they
       # have to be built before Vite resolves them.
       - name: Build home site
         run: npm run build:site-home

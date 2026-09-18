@@ -223,6 +223,7 @@
     { label: "Home", href: "/" },
     { label: "Beam", href: "/beam.html" },
     { label: "Orb", href: "/orbs.html" },
+    { label: "Avatars", href: "/avatars.html" },
     { label: "Gooey", href: "/gooey.html" },
     { label: "Voice", href: "/voice.html" },
     { label: "Metal", href: "/metal.html" },

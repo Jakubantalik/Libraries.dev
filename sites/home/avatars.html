@@ -22,14 +22,14 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Gooey: liquid UI effects for React | Libraries.dev</title>
+  <title>Bot avatars: bot-avatars playground | Libraries.dev</title>
   <meta
     name="description"
-    content="Gooey (liquid-gooey) is liquid UI for React. Touching pieces merge like goo and morph like jelly while text and images stay crisp. Playground, installation and usage."
+    content="Animated bot avatars for AI agents: nine glossy 3D shapes with living faces that turn, hop and flip, in four states: idle, thinking, happy and sleeping. Try them live and install bot-avatars from npm."
   />
   <meta
     name="keywords"
-    content="react, gooey, liquid UI, goo effect, morph, svg filter, liquid-gooey"
+    content="react, avatars, bot, agent, ai, animated face, mascot, svg, border beam, thinking orb, gooey, liquid metal, image loader, UI libraries"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -40,27 +40,27 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/gooey.html" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/gooey.html" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/gooey.html" />
+  <link rel="canonical" href="https://libraries.dev/avatars.html" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/avatars.html" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/avatars.html" />
 
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/gooey.html" />
+  <meta property="og:url" content="https://libraries.dev/avatars.html" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Gooey: liquid UI effects for React" />
-  <meta property="og:description" content="Liquid UI for React. Touching pieces merge like goo and morph like jelly while text and images stay crisp. Install liquid-gooey from npm." />
+  <meta property="og:title" content="Bot avatars: bot-avatars playground | Libraries.dev" />
+  <meta property="og:description" content="Animated bot avatars for AI agents: nine glossy 3D shapes with living faces that turn, hop and flip, in four states: idle, thinking, happy and sleeping. Try them live and install bot-avatars from npm." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
-  <meta name="twitter:title" content="Gooey: liquid UI effects for React" />
-  <meta name="twitter:description" content="Liquid UI for React. Touching pieces merge like goo and morph like jelly while text and images stay crisp. Install liquid-gooey from npm." />
+  <meta name="twitter:title" content="Bot avatars: bot-avatars playground | Libraries.dev" />
+  <meta name="twitter:description" content="Animated bot avatars for AI agents: nine glossy 3D shapes with living faces that turn, hop and flip, in four states: idle, thinking, happy and sleeping. Try them live and install bot-avatars from npm." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -92,9 +92,10 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    /* Gooey page only. */
-
-    /* Copy-button icon crossfade (playground.css styles the button shell). */
+    /* Copy-button icon crossfade, as beam and gooey do it. The older
+       display:none swap lost to playground.css's `.code-block .code-copy svg
+       { display: block }` once these buttons moved onto the Studio's stage
+       card, and both icons showed at once; opacity has nothing to fight. */
     .code-copy svg {
       position: absolute;
       top: 50%;
@@ -105,66 +106,10 @@
     .code-copy .icon-check { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-copy { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
-
-    /* Plus-menu demo (Morph) — geometry from the gooey site's PlusMenu. */
-    .gd-menu { position: relative; width: 200px; height: 150px; }
-    .gd-slot { position: absolute; left: 80px; top: 90px; }
-    .gd-btn {
-      width: 40px;
-      height: 40px;
-      border: 0;
-      padding: 0;
-      border-radius: 50%;
-      background: transparent;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      color: #121212;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .gd-btn:focus-visible { outline: 2px solid #ededed; outline-offset: 2px; }
-    .gd-sat { pointer-events: none; }
-    .gd-open .gd-sat { pointer-events: auto; }
-    .gd-sat-icon {
-      display: grid;
-      place-items: center;
-      opacity: 0;
-      filter: blur(2px);
-      transition: opacity 180ms ease, filter 180ms ease;
-    }
-    .gd-open .gd-sat-icon { opacity: 1; filter: blur(0); transition-delay: 120ms; }
-    .gd-plus { display: grid; place-items: center; transition: transform 250ms ease-in-out; }
-    .gd-open .gd-plus { transform: rotate(45deg); }
-
-    /* Liquid slider demo (Move) — geometry from the gooey site's Slider. */
-    .gd-sl { position: relative; width: 240px; height: 80px; }
-    .gd-sl-track {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      top: 38px;
-      height: 8px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-      /* Below the goo layer (its svg sits at z -1): the liquid thumb and its
-         tail must paint over the track, not be sliced by it. */
-      z-index: -2;
-    }
-    .gd-sl-thumb {
-      position: absolute;
-      left: 14px;
-      top: 30px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .gd-sl-thumb:active { cursor: grabbing; }
-    .gd-sl-thumb:focus-visible { outline: 2px solid #ededed; outline-offset: 4px; }
+    /* The stage holds one avatar at up to 96px; a little taller than the
+       stock stage so the hop has room and the pose sits off the Play
+       button. */
+    #playground .pg-stage { min-height: 300px; }
   </style>
 </head>
 <body>
@@ -284,8 +229,8 @@
           <nav class="docs-list" aria-label="Libraries">
             <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
             <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
-            <a class="docs-link" href="/avatars.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
-            <a class="docs-link is-active" href="/gooey.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link is-active" href="/avatars.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
+            <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
             <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
             <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
             <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
@@ -295,19 +240,19 @@
 
       <div class="docs-main">
         <div class="detail-topbar">
-          <a class="detail-arrow" href="/avatars.html" aria-label="Previous library — Bot avatars">
+          <a class="detail-arrow" href="/orbs.html" aria-label="Previous library — Orb">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.667 8H3.333M6.667 4.667 3.333 8l3.334 3.333" /></svg>
           </a>
-          <a class="detail-arrow" href="/voice.html" aria-label="Next library — Voice">
+          <a class="detail-arrow" href="/gooey.html" aria-label="Next library — Gooey">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.333 8h9.334M9.333 4.667 12.667 8l-3.334 3.333" /></svg>
           </a>
         </div>
 
         <header class="detail-head">
           <div class="detail-titles">
-            <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/tile-gooey.png" alt="" width="46" height="46" decoding="async" /></span>
-            <h1 class="detail-title">Gooey</h1>
-            <p class="detail-sub">Liquid UI for React. Touching pieces merge like goo and morph like jelly while text stays crisp.</p>
+            <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_avatars)"><path d="M26.53 22.38A25 25 0 0 1 73.47 22.38A7 7 0 0 0 77.62 26.53A25 25 0 0 1 77.62 73.47A7 7 0 0 0 73.47 77.62A25 25 0 0 1 26.53 77.62A7 7 0 0 0 22.38 73.47A25 25 0 0 1 22.38 26.53A7 7 0 0 0 26.53 22.38Z" fill="url(#paint0_linear_avatars)" fill-opacity="0.7"/></g><g fill="#2A2A2A" fill-opacity="0.9"><rect x="35.3" y="43.2" width="7.4" height="13.6" rx="3.7"/><rect x="57.3" y="43.2" width="7.4" height="13.6" rx="3.7"/></g><defs><filter id="filter0_ii_avatars" x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="2.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_avatars"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="1.34"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_avatars" result="effect2_innerShadow_avatars"/></filter><linearGradient id="paint0_linear_avatars" x1="22" y1="102" x2="82" y2="-18" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
+            <h1 class="detail-title">Bot avatars</h1>
+            <p class="detail-sub">Animated avatars for your AI agents: nine glossy 3D shapes with living faces that look around, flip, hop when the work is done, tilt to think and doze off between tasks.</p>
           </div>
 
           <div class="detail-head-row">
@@ -318,7 +263,7 @@
             </div>
 
             <div class="detail-head-actions">
-              <a class="t-pro-btn detail-studio" href="/studio/app.html#gooey">
+              <a class="t-pro-btn detail-studio" href="/studio/app.html#avatars">
                 <img src="/assets/icons/magic-wand.svg" alt="" width="16" height="16" decoding="async" />
                 <span class="detail-studio-sparks" aria-hidden="true"><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 900ms; --sdelay: 0ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 1000ms; --sdelay: 120ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 950ms; --sdelay: 240ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 1000ms; --sdelay: 360ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 920ms; --sdelay: 480ms;"></i><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 950ms; --sdelay: 520ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 900ms; --sdelay: 650ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 1000ms; --sdelay: 760ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 930ms; --sdelay: 180ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 980ms; --sdelay: 300ms;"></i></span>
                 <span class="t-pro-btn-label">Tune in Studio</span>
@@ -351,8 +296,8 @@
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
-              <pre>npm install liquid-gooey</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+              <pre id="install-code">npm install bot-avatars</pre>
+              <button type="button" class="code-copy" data-copy-target="#install-code" aria-label="Copy install command">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -364,17 +309,10 @@
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
               <div class="code-block">
-              <pre>import { Liquid } from 'liquid-gooey'
+              <pre id="usage-code">import { BotAvatar } from 'bot-avatars';
 
-&lt;Liquid blur={6} contrast={18} fill="#fff" shadow="0 2px 6px rgba(0,0,0,.08)"&gt;
-  &lt;Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition="bouncy"&gt;
-    &lt;button className="round-btn"&gt;…&lt;/button&gt;
-  &lt;/Liquid.Item&gt;
-  &lt;Liquid.Item x={0} y={open ? -64 : 0} transition="bouncy" delay={40}&gt;
-    &lt;button className="round-btn"&gt;…&lt;/button&gt;
-  &lt;/Liquid.Item&gt;
-&lt;/Liquid&gt;</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+&lt;BotAvatar type="clover" state={busy ? 'thinking' : 'default'} /&gt;</pre>
+              <button type="button" class="code-copy" data-copy-target="#usage-code" aria-label="Copy usage example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -393,28 +331,38 @@
          rather than a <script>: script content is raw text, so the
          escaped tags below would reach the clipboard still escaped. -->
     <pre id="agent-prompt" hidden>
-Add the Gooey effect from Libraries.dev to my React app.
+Add the Bot avatars from Libraries.dev to my React app.
 
 Install:
-npm install liquid-gooey
+npm install bot-avatars
 
 Usage:
-import { Liquid } from 'liquid-gooey'
+import { BotAvatar } from 'bot-avatars';
 
-&lt;Liquid blur={6} contrast={18} fill="#fff"&gt;
-  &lt;Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition="bouncy"&gt;
-    &lt;button className="round-btn"&gt;…&lt;/button&gt;
-  &lt;/Liquid.Item&gt;
-&lt;/Liquid&gt;
+&lt;BotAvatar type="clover" state={busy ? 'thinking' : 'default'} /&gt;
+
+// A roster: each agent gets its own shape
+&lt;BotAvatar type="star" size={36} /&gt;
+&lt;BotAvatar type="flower" face="mouth" state="happy" /&gt;
 
 Props:
-- Liquid: blur (goo softness), contrast (edge tightness), fill, shadow
-- Liquid.Item: effect ("morph" | "move" | "melt" | "bend"), x, y, transition, delay
+- type: "clover" | "flower" | "triangle" | "square" | "blob" | "ghost" | "circle" | "drop" | "star" — the body shape, each with its own colour
+- face: "eyes" (default) | "mouth" — the eyes alone, or eyes with a mouth
+- state: "default" | "thinking" | "happy" | "sleeping" — looking around with a flip now and then, head raised and tilted with eyes up, hopping and spinning with a laugh now and then, head down with shut lids and slow breaths
+- size: px or any CSS length (default 64)
+- color: body colour (defaults to the type's palette colour); brightness: 0.5–1.5, darker or lighter body; saturation: 0.5–1.5, duller or more vivid body; ink: face colour (auto dark or light)
+- speed: multiplier on the animations; paused: freeze; seed: 0–1 offset so a row does not blink in unison
+- shading: "plastic" (default: a per-pixel glossy material — baked pillow form with occluded cusps, hot spot, sheen, Fresnel rim, window reflection) | "crisp" (lit rim with a clean edge) | "smooth" (soft shadow and highlight, no edge) | "flat" (depth only)
+- shadow (default 0.35), highlight (1.3): 0–2 intensities; light: degrees clockwise from the top (265, from the left); depth: 0.2–2 body thickness (0.65); rim: 0–2 Fresnel strength in plastic, rim width in crisp (0.5); spread: 0.4–2.5 highlight width in plastic, reach of the soft shading in smooth (1.55)
+- interactive: true by default — the eyes and head follow a pointer nearby and a click makes the avatar hop and turn round; false turns it off
 
-Wrap the pieces that should merge in &lt;Liquid&gt; and mark each one &lt;Liquid.Item&gt;.
-Touching items melt into each other while their text stays crisp. Cross-browser,
-Safari included; zero runtime dependencies, React 18 or newer.
-Docs: https://libraries.dev/gooey.html
+Bot avatars draws each avatar on a 2D canvas as a lit, rounded extrusion
+of a vector shape — a simple 3D head that turns, hops and flips — with a
+small rig that cross-animates every state change. No WebGL, zero runtime
+dependencies, React 18 or newer. It respects prefers-reduced-motion
+(still pose, no motion), pauses offscreen, and carries role="img" with a
+per-state label.
+Docs: https://libraries.dev/avatars.html
     </pre>
 
     <footer class="footer">
@@ -466,7 +414,7 @@ Docs: https://libraries.dev/gooey.html
 
   <script src="/assets/site.js" defer></script>
   <script src="/assets/pro-client.js" defer></script>
-  <script type="module" src="/src/gooey.tsx"></script>
+  <script type="module" src="/src/avatars.tsx"></script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
   <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>

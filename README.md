@@ -1,6 +1,6 @@
 # Libraries.dev
 
-**High-crafted UI libraries for AI agents.** Six React libraries for the effects that make an interface feel alive: a beam of light travelling a card's border, orbs that think while a model works, shapes that merge like liquid, a glow that rises with your voice, brushed metal that catches the light, and an image loader that dissolves a pixel mosaic into a real photo.
+**High-crafted UI libraries for AI agents.** Seven React libraries for the effects that make an interface feel alive: a beam of light travelling a card's border, orbs that think while a model works, bot avatars with living faces, shapes that merge like liquid, a glow that rises with your voice, brushed metal that catches the light, and an image loader that dissolves a pixel mosaic into a real photo.
 
 Each one installs from npm and drops into your app as a single component that wraps the element you already have. Your markup keeps its semantics, the effect renders around or behind it, and the whole thing is tuned by props rather than hand-written WebGL.
 
@@ -8,6 +8,7 @@ Each one installs from npm and drops into your app as a single component that wr
 | --- | --- | --- | --- |
 | [Border beam](packages/border-beam) | A soft glow that rides the border of a card, button or input | `npm install border-beam` | [libraries.dev/beam](https://libraries.dev/beam) |
 | [Thinking orbs](packages/thinking-orbs) | Orbs that think while you wait — nine loading states for AI interfaces | `npm install thinking-orbs` | [libraries.dev/orbs](https://libraries.dev/orbs) |
+| [Bot avatars](packages/bot-avatars) | Animated bot avatars with living faces — nine glossy shapes, four states, for AI agents | `npm install bot-avatars` | [libraries.dev/avatars](https://libraries.dev/avatars) |
 | [Gooey](packages/liquid-gooey) | Pieces that merge like goo and morph like jelly while text stays crisp | `npm install liquid-gooey` | [libraries.dev/gooey](https://libraries.dev/gooey) |
 | [Voice](packages/voice-glow) | A glow that rises with your voice from the bottom of a chat input or phone screen | `npm install voice-glow` | [libraries.dev/voice](https://libraries.dev/voice) |
 | [Metal](packages/metal-fx) | Liquid metal for buttons, icons, text and badges, with reflections and cursor light | `npm install metal-fx` | [libraries.dev/metal](https://libraries.dev/metal) |
@@ -26,7 +27,7 @@ Every library ships as a prompt. Copy it, paste it into your coding agent, and m
 Or the plain way:
 
 ```bash
-npm install border-beam   # or thinking-orbs, liquid-gooey, voice-glow, metal-fx, img-fx
+npm install border-beam   # or thinking-orbs, bot-avatars, liquid-gooey, voice-glow, metal-fx, img-fx
 ```
 
 ```tsx
