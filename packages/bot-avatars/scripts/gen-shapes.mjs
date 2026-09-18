@@ -186,7 +186,7 @@ const cat = `M${pt([50, 20])}A36 36 0 1 1 ${pt([50, 92])}A36 36 0 1 1 ${pt([50, 
 /* Cloud: five round puffs — a big one top left, a smaller one top
    right, three along the bottom — bumps all the way round. */
 const circleAt = (cx, cy, r) => `M${cx - r} ${cy}A${r} ${r} 0 1 1 ${cx + r} ${cy}A${r} ${r} 0 1 1 ${cx - r} ${cy}Z`;
-const cloud = circleAt(41, 44, 26) + circleAt(69, 52, 20) + circleAt(24, 68, 17) + circleAt(50, 73, 18) + circleAt(76, 70, 16);
+const cloud = circleAt(44, 44, 25) + circleAt(68, 50, 21) + circleAt(24, 68, 17) + circleAt(50, 73, 18) + circleAt(76, 70, 16);
 
 const shapes = { clover, flower, triangle: tri, square, blob: blobShape, ghost, circle, drop, star, droid, mech, alien, hexagon, cat, cloud };
 
