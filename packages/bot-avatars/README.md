@@ -25,15 +25,15 @@ function Agent({ busy }: { busy: boolean }) {
 Nine bodies, each with its own colour:
 
 ```tsx
-<BotAvatar type="clover" />    {/* blue */}
+<BotAvatar type="clover" />    {/* sky */}
 <BotAvatar type="flower" />    {/* pink */}
-<BotAvatar type="triangle" />  {/* orange */}
+<BotAvatar type="triangle" />  {/* magenta */}
 <BotAvatar type="square" />    {/* sky */}
 <BotAvatar type="blob" />      {/* green */}
 <BotAvatar type="ghost" />     {/* white */}
 <BotAvatar type="circle" />    {/* lavender */}
 <BotAvatar type="drop" />      {/* teal */}
-<BotAvatar type="star" />      {/* coral */}
+<BotAvatar type="star" />      {/* yellow */}
 ```
 
 ## Faces

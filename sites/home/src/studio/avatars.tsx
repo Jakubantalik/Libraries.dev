@@ -37,12 +37,14 @@ const SHADING_OPTIONS = [
   { value: "flat", label: "Flat" },
 ] as const;
 
-const COLOR_OPTIONS = botAvatarTypes.map((t) => ({ value: botAvatarPalette[t], label: botAvatarPresets[t].label }));
+const COLOR_OPTIONS = botAvatarTypes
+  .map((t) => ({ value: botAvatarPalette[t], label: botAvatarPresets[t].label }))
+  .filter((o, i, all) => all.findIndex((x) => x.value === o.value) === i);
 const INK_OPTIONS = [
   { value: "#1F1B2E", label: "Dark ink" },
   { value: "#F6F4F0", label: "Light ink" },
-  { value: "#5B7DD8", label: "Blue" },
-  { value: "#E8763C", label: "Orange" },
+  { value: "#35B8FF", label: "Sky" },
+  { value: "#DC48FF", label: "Magenta" },
 ];
 
 export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: boolean; theme?: "dark" | "light" }) {
