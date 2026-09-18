@@ -171,7 +171,7 @@ const mechParts = "M19.5 32L24.5 32L17 13L12 13Z" +
   "M81 11.5A4.5 4.5 0 1 1 90 11.5A4.5 4.5 0 1 1 81 11.5Z";
 
 /* Alien: an egg upside down, wide brow and a narrow chin. */
-const alien = "M50 12C73 12 88 29 88 48C88 66 69 90 50 90C31 90 12 66 12 48C12 29 27 12 50 12Z";
+const alien = "M50 10C70 10 83 27 83 46C83 65 64 92 50 92C36 92 17 65 17 46C17 27 30 10 50 10Z";
 
 /* Hexagon: a rounded nut, flat top and bottom. */
 const hexPts = [];
