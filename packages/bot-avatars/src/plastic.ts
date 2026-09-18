@@ -580,13 +580,19 @@ interface State {
   rimG: CanvasGradient | null;
   far: CanvasGradient | null;
 }
-const states = new WeakMap<object, State>();
-function stateFor(ctx: CanvasRenderingContext2D): State {
+const states = new WeakMap<object, Map<string, State>>();
+function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
   const key = (ctx.canvas as object) ?? ctx;
-  let s = states.get(key);
+  let byOutline = states.get(key);
+  if (!byOutline) {
+    byOutline = new Map();
+    states.set(key, byOutline);
+  }
+  let s = byOutline.get(outline);
   if (!s) {
     s = { N: 0, img: null, mc: new Float32Array(MM * 3), mcKey: '', imgKey: '', aoK: -1, aoMul: new Float32Array(256), near: null, rimG: null, far: null };
-    states.set(key, s);
+    if (byOutline.size > 4) byOutline.clear();
+    byOutline.set(outline, s);
   }
   return s;
 }
@@ -636,7 +642,7 @@ export function drawPlasticCap(
   if (!form) return false;
   const sc = scratchFor(N);
   if (!sc) return false;
-  const st = stateFor(ctx);
+  const st = stateFor(ctx, cfg.typeKey ?? pathId(cfg.path));
   const f = capFrame(rig);
   const q = (v: V3) => `${Math.round(48 * v[0])},${Math.round(48 * v[1])},${Math.round(48 * v[2])}`;
   const mcKey = `${q(f.L)}|${q(f.V)}|${rig.lx.toFixed(3)},${rig.ly.toFixed(3)}|${pal.base}|${mat.shadow}|${mat.highlight}|${mat.spread}|${mat.rim}`;

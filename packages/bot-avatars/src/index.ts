@@ -8,7 +8,7 @@ export {
   botAvatarFaces,
   botAvatarStates,
 } from './presets';
-export { SHAPE_PATHS as botAvatarShapes } from './shapes';
+export { SHAPE_PATHS as botAvatarShapes, SHAPE_PARTS as botAvatarParts } from './shapes';
 export { autoInk, luminance, parseColor, shade } from './color';
 export { Sim as BotAvatarSim, restPose } from './engine';
 export { draw as drawBotAvatarFrame, OVERSCAN as BOT_AVATAR_OVERSCAN } from './draw';

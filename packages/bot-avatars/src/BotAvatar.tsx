@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, type CSSProperties, type MouseEvent } from 'react';
 import type { BotAvatarProps, BotAvatarShading, BotAvatarState } from './types';
 import { botAvatarPresets, stateLabels } from './presets';
-import { SHAPE_PATHS } from './shapes';
+import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, shade } from './color';
 import { Sim, restPose } from './engine';
 import { draw, OVERSCAN, type DrawConfig } from './draw';
@@ -101,6 +101,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     spread: clamp(spread, 0.4, 2.5),
     typeKey: type,
     still: frozen || reducedMotion(),
+    parts: typeof Path2D !== 'undefined' && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
   };
 
   /* paint the current pose, sizing the backing store to the element */

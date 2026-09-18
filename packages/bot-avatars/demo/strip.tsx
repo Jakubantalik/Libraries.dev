@@ -4,6 +4,7 @@ import {
   drawBotAvatarFrame,
   botAvatarPresets,
   botAvatarShapes,
+  botAvatarParts,
   autoInk,
   BOT_AVATAR_OVERSCAN,
   type BotAvatarState,
@@ -48,6 +49,7 @@ export function Strip({
       shading: 'plastic' as const,
       typeKey: type,
       still: true,
+      parts: botAvatarParts[type] ? new Path2D(botAvatarParts[type] as string) : undefined,
     };
     const sim = new BotAvatarSim(seed, from ?? state);
     const step = 1 / 60;

@@ -32,6 +32,9 @@ export interface DrawConfig {
   /** no animation loop follows this draw (reduced motion, paused): build
    * materials now instead of on idle time */
   still?: boolean;
+  /** thin parts (antennae) drawn behind the body with `partsDepth` of its depth */
+  parts?: Path2D;
+  partsDepth?: number;
 }
 
 /* The canvas is drawn larger than the avatar's layout box, so a hop or a
@@ -122,87 +125,97 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   ctx.lineJoin = 'round';
 
   const mode = cfg.shading;
-  /* the lit gradient, in the body's own space: light from the upper left */
-  let lit: CanvasGradient | string = pal.near;
-  if (mode === 'crisp') {
-    const g = ctx.createLinearGradient(lx * 56, ly * 56, -lx * 56, -ly * 56);
-    g.addColorStop(0, pal.light);
-    g.addColorStop(0.45, pal.near);
-    g.addColorStop(1, pal.dark);
-    lit = g;
-  }
-  let capFill: CanvasGradient | string = pal.base;
-  if (mode === 'crisp') {
-    const g = ctx.createLinearGradient(lx * 46, ly * 46, -lx * 46, -ly * 46);
-    g.addColorStop(0, pal.capTop);
-    g.addColorStop(1, pal.capBottom);
-    capFill = g;
-  }
+  /* one solid: the slice stack (or the plastic material) for an outline
+     at a depth; the thin parts come first with a fraction of the depth,
+     then the body over them */
+  const drawSolid = (path: Path2D, key: string, halfDepth: number): boolean => {
+    /* the lit gradient, in the body's own space: light from the upper left */
+    let lit: CanvasGradient | string = pal.near;
+    if (mode === 'crisp') {
+      const g = ctx.createLinearGradient(lx * 56, ly * 56, -lx * 56, -ly * 56);
+      g.addColorStop(0, pal.light);
+      g.addColorStop(0.45, pal.near);
+      g.addColorStop(1, pal.dark);
+      lit = g;
+    }
+    let capFill: CanvasGradient | string = pal.base;
+    if (mode === 'crisp') {
+      const g = ctx.createLinearGradient(lx * 46, ly * 46, -lx * 46, -ly * 46);
+      g.addColorStop(0, pal.capTop);
+      g.addColorStop(1, pal.capBottom);
+      capFill = g;
+    }
 
-  /* plastic: the material module draws the whole body — side copies from
-     its matcap and the front cap as a lit texture. While a form is still
-     baking on idle time it declines, and the stock slices with the smooth
-     overlay stand in for that frame. */
-  let plasticDone = false;
-  if (mode === 'plastic') {
-    plasticDone = drawPlasticCap(
-      ctx,
-      cfg,
-      { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * (ctx.getTransform ? ctx.getTransform().a || 1 : 1), still: cfg.still },
-      pal,
-      null,
-      { shadow, highlight, spread, rim: cfg.rim ?? 0.5 }
-    );
-  }
-  const mode2: BotAvatarShading = mode === 'plastic' && !plasticDone ? 'smooth' : mode;
-  const soft = mode2 === 'smooth';
-  const union = soft && typeof DOMMatrix === 'function' ? new Path2D() : null;
-  /* slices, far to near */
-  const order = facing >= 0 ? 1 : -1;
-  for (let j = 0; j < SLICES && !plasticDone; j++) {
-    const k = order > 0 ? j : SLICES - 1 - j;
-    const z = -1 + (2 * k) / (SLICES - 1);
-    const s = profile(z, cap);
-    const near = j / (SLICES - 1);
-    const m = [cy * s, sy * sp * s, 0, cp * s, z * sy * halfDepth, -z * cy * sp * halfDepth] as const;
-    ctx.save();
-    /* yaw about Y then pitch about X, orthographic: an affine per slice */
-    ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-    ctx.translate(-50, -50);
-    if (soft) {
-      /* one colour ramp through the depth to the front, no edge at the cap */
-      ctx.fillStyle = near >= 0.5 ? pal.base : mixCss(pal.far, pal.base, near / 0.5);
-    } else if (j === SLICES - 1) ctx.fillStyle = capFill;
-    else if (near > 0.6) ctx.fillStyle = lit;
-    else ctx.fillStyle = mixCss(pal.far, pal.near, near / 0.6);
-    ctx.fill(cfg.path);
-    ctx.restore();
-    if (union) union.addPath(cfg.path, new DOMMatrix([m[0], m[1], m[2], m[3], m[4], m[5]]).translate(-50, -50));
-  }
+    /* plastic: the material module draws the whole body — side copies from
+       its matcap and the front cap as a lit texture. While a form is still
+       baking on idle time it declines, and the stock slices with the smooth
+       overlay stand in for that frame. */
+    let plasticDone = false;
+    if (mode === 'plastic') {
+      plasticDone = drawPlasticCap(
+        ctx,
+        { ...cfg, path, typeKey: key },
+        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * (ctx.getTransform ? ctx.getTransform().a || 1 : 1), still: cfg.still },
+        pal,
+        null,
+        { shadow, highlight, spread, rim: cfg.rim ?? 0.5 }
+      );
+    }
+    const mode2: BotAvatarShading = mode === 'plastic' && !plasticDone ? 'smooth' : mode;
+    const soft = mode2 === 'smooth';
+    const union = soft && typeof DOMMatrix === 'function' ? new Path2D() : null;
+    /* slices, far to near */
+    const order = facing >= 0 ? 1 : -1;
+    for (let j = 0; j < SLICES && !plasticDone; j++) {
+      const k = order > 0 ? j : SLICES - 1 - j;
+      const z = -1 + (2 * k) / (SLICES - 1);
+      const s = profile(z, cap);
+      const near = j / (SLICES - 1);
+      const m = [cy * s, sy * sp * s, 0, cp * s, z * sy * halfDepth, -z * cy * sp * halfDepth] as const;
+      ctx.save();
+      /* yaw about Y then pitch about X, orthographic: an affine per slice */
+      ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+      ctx.translate(-50, -50);
+      if (soft) {
+        /* one colour ramp through the depth to the front, no edge at the cap */
+        ctx.fillStyle = near >= 0.5 ? pal.base : mixCss(pal.far, pal.base, near / 0.5);
+      } else if (j === SLICES - 1) ctx.fillStyle = capFill;
+      else if (near > 0.6) ctx.fillStyle = lit;
+      else ctx.fillStyle = mixCss(pal.far, pal.near, near / 0.6);
+      ctx.fill(path);
+      ctx.restore();
+      if (union) union.addPath(path, new DOMMatrix([m[0], m[1], m[2], m[3], m[4], m[5]]).translate(-50, -50));
+    }
 
-  /* smooth: a soft shadow from the lower right and a light from the upper
-     left, laid over the whole form so nothing has an edge */
-  if (union && mode2 === 'smooth') {
-    ctx.save();
-    ctx.clip(union);
-    const sa = Math.min(1, 0.34 * shadow);
-    const sg = ctx.createRadialGradient(-lx * 45, -ly * 45, 4 * spread, -lx * 45, -ly * 45, 84 * spread);
-    sg.addColorStop(0, `rgba(0,0,0,${sa})`);
-    sg.addColorStop(0.5, `rgba(0,0,0,${sa * 0.35})`);
-    sg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = sg;
-    ctx.fillRect(-120, -120, 240, 240);
-    ctx.globalCompositeOperation = 'source-over';
-    const ha = Math.min(1, 0.22 * highlight);
-    const hg = ctx.createRadialGradient(lx * 37, ly * 37, 0, lx * 37, ly * 37, 62 * spread);
-    hg.addColorStop(0, `rgba(255,255,255,${ha})`);
-    hg.addColorStop(0.6, `rgba(255,255,255,${ha * 0.23})`);
-    hg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = hg;
-    ctx.fillRect(-120, -120, 240, 240);
-    ctx.restore();
-  }
+    /* smooth: a soft shadow from the lower right and a light from the upper
+       left, laid over the whole form so nothing has an edge */
+    if (union && mode2 === 'smooth') {
+      ctx.save();
+      ctx.clip(union);
+      const sa = Math.min(1, 0.34 * shadow);
+      const sg = ctx.createRadialGradient(-lx * 45, -ly * 45, 4 * spread, -lx * 45, -ly * 45, 84 * spread);
+      sg.addColorStop(0, `rgba(0,0,0,${sa})`);
+      sg.addColorStop(0.5, `rgba(0,0,0,${sa * 0.35})`);
+      sg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = sg;
+      ctx.fillRect(-120, -120, 240, 240);
+      ctx.globalCompositeOperation = 'source-over';
+      const ha = Math.min(1, 0.22 * highlight);
+      const hg = ctx.createRadialGradient(lx * 37, ly * 37, 0, lx * 37, ly * 37, 62 * spread);
+      hg.addColorStop(0, `rgba(255,255,255,${ha})`);
+      hg.addColorStop(0.6, `rgba(255,255,255,${ha * 0.23})`);
+      hg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hg;
+      ctx.fillRect(-120, -120, 240, 240);
+      ctx.restore();
+    }
+
+    return plasticDone;
+  };
+
+  if (cfg.parts) drawSolid(cfg.parts, `${cfg.typeKey ?? 'custom'}:parts`, halfDepth * (cfg.partsDepth ?? 0.4));
+  const plasticDone = drawSolid(cfg.path, cfg.typeKey ?? 'custom', halfDepth);
 
   /* the face: each feature sits on a sphere behind the front cap, so a
      turn slides it round the head — the eye moving toward the edge
