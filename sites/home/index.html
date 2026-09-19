@@ -424,6 +424,47 @@
 
     /* ── Kind words (styling from transitions.dev/pro testimonials) ── */
     .home-section { width: 100%; max-width: 1008px; margin: 96px auto 0; }
+
+    /* ── Customers (as transitions.dev/pro) ────────────────────────
+       Label + one centred row under the hero. Every logo is a near-black
+       glyph on transparency, sized by height (--logo-h per image) at 60%
+       opacity; dark mode inverts the glyphs to light. Wraps on narrow
+       screens. */
+    /* The hero keeps its 128px of air below; the row then sits 64px above
+       the library cards, so it reads as a coda to the hero rather than a
+       heading for the cards. */
+    .home-customers { width: 100%; max-width: 1008px; margin: -48px auto 64px; }
+    .home-customers-label {
+      margin: 32px 0 24px;
+      font-size: 13px;
+      line-height: 20px;
+      text-align: center;
+      color: #737373;
+      opacity: 0.7;
+    }
+    html[data-theme="light"] .home-customers-label { color: #979797; }
+    .home-customers-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 24px 40px;
+    }
+    .home-customer-logo {
+      height: var(--logo-h, 32px);
+      width: auto;
+      display: block;
+      opacity: 0.55;
+      filter: invert(1);
+    }
+    html[data-theme="light"] .home-customer-logo { filter: none; opacity: 0.6; }
+    @media (max-width: 640px) {
+      /* The hero fills the first screen on phones; no pull-up here, so
+         the row starts below the fold. */
+      .home-customers { margin: 24px auto 48px; }
+      .home-customers-row { gap: 18px 28px; }
+      .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.85); }
+    }
     .home-section-title {
       text-align: center; font-family: "Saans", var(--font-sans);
       font-size: 30px; font-weight: 500; letter-spacing: -0.01em;
@@ -878,6 +919,20 @@
         })();
       </script>
     </header>
+
+    <!-- ─── Customers ───────────────────────────────────────────────
+         Logos normalized to one near-black glyph on transparency, so a
+         single asset serves both themes: dark mode inverts them. -->
+    <section class="home-customers" aria-label="Companies whose teams use these libraries">
+      <p class="home-customers-label">Used by designers and engineers at companies like</p>
+      <div class="home-customers-row">
+        <img class="home-customer-logo" src="/assets/customers/vercel.svg" alt="Vercel" style="--logo-h: 20px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/google.svg" alt="Google" style="--logo-h: 28px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/sarvam-ai.svg" alt="Sarvam AI" style="--logo-h: 14.5px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/gradial.svg" alt="Gradial" style="--logo-h: 21px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/gecko-robotics.svg" alt="Gecko Robotics" style="--logo-h: 24px" loading="lazy" decoding="async" />
+      </div>
+    </section>
 
     <section class="cards" id="components" aria-label="Effect libraries" style="scroll-margin-top: 24px;">
       <article class="card lib-card" data-lib="beam">
