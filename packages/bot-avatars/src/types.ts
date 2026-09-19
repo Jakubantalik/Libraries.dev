@@ -107,9 +107,8 @@ export interface BotAvatarProps
    */
   interactive?: boolean;
   /**
-   * The surface the avatar sits on, for the neutral touches that have to
-   * read against it (the whirl round a spin is white on dark, black on
-   * light). `auto` (default) reads an ancestor `data-theme` attribute or
+   * The surface the avatar sits on, for touches that have to read against
+   * it. `auto` (default) reads an ancestor `data-theme` attribute or
    * `dark` / `light` class, then `prefers-color-scheme`.
    */
   theme?: 'auto' | 'dark' | 'light';

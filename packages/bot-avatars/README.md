@@ -103,7 +103,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
   paused={false}       // freeze on the current frame
   seed={0.3}           // 0–1: offsets the blink and glance loops; auto by default
   interactive={false}  // no pointer following, no hop on click
-  theme="light"        // the surface, for the whirl's neutral; auto by default
+  theme="light"        // the surface the avatar sits on; auto by default
   aria-label="Talent scout, working"  // overrides the per-state default
 />
 ```
@@ -135,7 +135,7 @@ By default an avatar's eyes and head follow a pointer that comes within a few he
 
 ## The whirl
 
-A spin — the idle jump, a click, the working spin hop — draws a puff of motion round the body: three wispy trails on tilted rings, white on a dark surface and black on a light one, passing behind the body on the far side and over the face on the near side. It follows the spin's own speed, so it is not there until the turn is under way. Which neutral it uses comes from `theme`: `auto` (default) reads an ancestor `data-theme` attribute or `dark` / `light` class, then `prefers-color-scheme`; `dark` and `light` pin it.
+A spin — the idle jump, a click, the working spin hop — draws a puff of motion round the body: one tapered trail on a tilted ring, made of the body's own material as a translucent plastic tube, lit from the same light, passing behind the body on the far side and over the face on the near side, where it casts a soft shadow. It is only there while the turn is under way, and it is already moving when it appears.
 
 ```tsx
 <BotAvatar
