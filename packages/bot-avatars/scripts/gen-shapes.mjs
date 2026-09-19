@@ -192,10 +192,10 @@ const cloud = circleAt(44, 44, 25) + circleAt(68, 50, 21) + circleAt(24, 68, 17)
 const pill = "M28 28H72C84.15 28 94 37.85 94 50C94 62.15 84.15 72 72 72H28C15.85 72 6 62.15 6 50C6 37.85 15.85 28 28 28Z";
 
 /* Pebble: a wide, flat, slightly lopsided stone. */
-const pebble = blob((a) => 35 + 8 * Math.cos(2 * a) + 2.4 * Math.sin(3 * a + 1.1) + 1.4 * Math.sin(5 * a + 2.3));
+const pebble = blob((a) => 36 + 7 * Math.cos(2 * a) + 1.8 * Math.sin(3 * a + 1.1));
 
 /* Puddle: a taller, lumpier blob. */
-const puddle = blob((a) => 38 - 5 * Math.cos(2 * a) + 3 * Math.sin(3 * a + 0.5) + 2 * Math.sin(4 * a + 2.2) + 1.4 * Math.sin(6 * a + 0.8));
+const puddle = blob((a) => 38 - 4 * Math.cos(2 * a) + 2.8 * Math.sin(3 * a + 0.5));
 
 const shapes = { clover, flower, triangle: tri, square, blob: blobShape, ghost, circle, drop, star, droid, mech, alien, hexagon, cat, cloud, pill, pebble, puddle };
 
