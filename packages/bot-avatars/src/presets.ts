@@ -27,7 +27,7 @@ export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
 
 export const botAvatarTypes = Object.keys(botAvatarPresets) as BotAvatarType[];
 export const botAvatarFaces: BotAvatarFace[] = ['eyes', 'mouth'];
-export const botAvatarStates: BotAvatarState[] = ['default', 'thinking', 'happy', 'sleeping'];
+export const botAvatarStates: BotAvatarState[] = ['default', 'working', 'sleeping'];
 
 /** Body colour by type — the palette on its own. */
 export const botAvatarPalette: Record<BotAvatarType, string> = Object.fromEntries(
@@ -36,7 +36,6 @@ export const botAvatarPalette: Record<BotAvatarType, string> = Object.fromEntrie
 
 export const stateLabels: Record<BotAvatarState, string> = {
   default: 'idle',
-  thinking: 'thinking',
-  happy: 'happy',
+  working: 'working',
   sleeping: 'sleeping',
 };

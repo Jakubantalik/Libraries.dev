@@ -12,13 +12,13 @@ interface Bot {
 }
 
 const ROSTER: Bot[] = [
-  { type: "clover", name: "Chief", state: "thinking", status: "Booking the venue…" },
-  { type: "star", name: "Inbox manager", state: "happy", status: "Inbox at zero, 5 drafts parked" },
+  { type: "clover", name: "Chief", state: "working", status: "Booking the venue…" },
+  { type: "star", name: "Inbox manager", state: "default", status: "Inbox at zero, 5 drafts parked" },
   { type: "flower", name: "Talent scout", state: "default", status: "3 intros drafted in your voice" },
   { type: "ghost", name: "Night shift", state: "sleeping", status: "Back at 9:00" },
 ];
 
-/* The agent list: avatar, name and what each one is up to. The thinking
+/* The agent list: avatar, name and what each one is up to. The working
    row's status shimmers, the way the orb pills do. */
 export function BotRoster() {
   return (
@@ -29,7 +29,7 @@ export function BotRoster() {
           <BotAvatar type={b.type} state={b.state} size={36} />
           <span className="mock-bots-text">
             <span className="mock-bots-name">{b.name}</span>
-            {b.state === "thinking" ? (
+            {b.state === "working" ? (
               <span className="mock-bots-status t-shimmer" data-text={b.status}>{b.status}</span>
             ) : (
               <span className="mock-bots-status">{b.status}</span>
@@ -41,12 +41,10 @@ export function BotRoster() {
   );
 }
 
-/* The thread: a question, then the bot thinks for a moment, lights up
-   with the answer, and settles — on a loop, so the transitions between
-   states can be watched. */
+/* The thread: a question, then the bot works on it and settles with the
+   answer — on a loop, so the transitions between states can be watched. */
 const CYCLE: Array<{ state: BotAvatarState; ms: number }> = [
-  { state: "thinking", ms: 2600 },
-  { state: "happy", ms: 1700 },
+  { state: "working", ms: 2600 },
   { state: "default", ms: 3200 },
 ];
 
@@ -58,7 +56,7 @@ export function BotChat({ paused = false }: { paused?: boolean }) {
     return () => window.clearTimeout(t);
   }, [step, paused]);
   const state = CYCLE[step].state;
-  const thinking = state === "thinking";
+  const thinking = state === "working";
   return (
     <div className="mock-thread" aria-label="Chat">
       <div className="mock-thread-user">Can you summarise the thread with Acme?</div>

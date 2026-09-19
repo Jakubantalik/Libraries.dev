@@ -28,7 +28,7 @@ export type BotAvatarType =
 export type BotAvatarFace = 'eyes' | 'mouth';
 
 /** What the bot is doing. Each state is a pose plus its own motion. */
-export type BotAvatarState = 'default' | 'thinking' | 'happy' | 'sleeping';
+export type BotAvatarState = 'default' | 'working' | 'sleeping';
 
 /**
  * How the body is lit. `plastic` (default): a real glossy material shaded
@@ -59,7 +59,7 @@ export interface BotAvatarProps
   type?: BotAvatarType;
   /** Face kind. Defaults to the type's own. */
   face?: BotAvatarFace;
-  /** What the bot is doing. Default `default`: idle, blinking now and then. */
+  /** What the bot is doing: `default` (idle), `working` (hopping, spinning) or `sleeping`. */
   state?: BotAvatarState;
   /** Rendered size in px, or any CSS length. Default `64`. */
   size?: number | string;

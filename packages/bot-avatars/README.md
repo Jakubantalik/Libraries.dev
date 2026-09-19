@@ -1,6 +1,6 @@
 # bot-avatars
 
-Animated bot avatars for React. Eighteen simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and four states an agent can be in: idle, thinking, happy and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, rounded extrusion: no WebGL, no runtime dependencies.
+Animated bot avatars for React. Eighteen simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and three states an agent can be in: idle, working and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, rounded extrusion: no WebGL, no runtime dependencies.
 
 [Live demo](https://libraries.dev/avatars) · [Repository](https://github.com/Jakubantalik/Libraries.dev) · [Report an issue](https://github.com/Jakubantalik/Libraries.dev/issues)
 
@@ -16,7 +16,7 @@ npm install bot-avatars
 import { BotAvatar } from 'bot-avatars';
 
 function Agent({ busy }: { busy: boolean }) {
-  return <BotAvatar type="clover" state={busy ? 'thinking' : 'default'} />;
+  return <BotAvatar type="clover" state={busy ? 'working' : 'default'} />;
 }
 ```
 
@@ -56,13 +56,12 @@ The eyes alone by default. `face="mouth"` adds a small mouth that changes with t
 ## States
 
 ```tsx
-<BotAvatar state="default" />   {/* idle: turns to look around, blinks, a full flip now and then */}
-<BotAvatar state="thinking" />  {/* head tilted and raised, eyes up, sweeping side to side */}
-<BotAvatar state="happy" />     {/* a wide smile, hopping — every third hop a spin; the eyes shut into arcs for a laugh */}
+<BotAvatar state="default" />   {/* idle: turns to look around, blinks, a jump with a full turn now and then */}
+<BotAvatar state="working" />   {/* busy: hopping — every third hop a spin — with a wide smile and the odd laugh */}
 <BotAvatar state="sleeping" />  {/* head down, lids shut, slow breaths and the odd nod */}
 ```
 
-Every state is a resting pose plus its own motion. The pose is a small rig — yaw, pitch, roll, position, squash, eyes — that is smoothed toward each state's targets, so a state switch cross-animates from wherever the avatar was, and with `prefers-reduced-motion: reduce` (or `paused`) the still pose of the state is drawn instead.
+Every state is a resting pose plus its own motion. The pose is a small rig — yaw, pitch, roll, position, squash, eyes — and a state switch eases from the old targets to the new ones on a timed curve (soft start, soft finish), so it never snaps or creeps. With `prefers-reduced-motion: reduce` (or `paused`) the still pose of the state is drawn instead.
 
 ## Colour
 
@@ -104,7 +103,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
   paused={false}       // freeze on the current frame
   seed={0.3}           // 0–1: offsets the blink and glance loops; auto by default
   interactive={false}  // no pointer following, no hop on click
-  aria-label="Talent scout, thinking"  // overrides the per-state default
+  aria-label="Talent scout, working"  // overrides the per-state default
 />
 ```
 
@@ -117,7 +116,7 @@ The rig and the renderer are exported for custom uses — a filmstrip, a sprite 
 ```ts
 import { BotAvatarSim, drawBotAvatarFrame, botAvatarShapes, botAvatarPresets, autoInk, BOT_AVATAR_OVERSCAN } from 'bot-avatars';
 
-const sim = new BotAvatarSim(0.5, 'happy');
+const sim = new BotAvatarSim(0.5, 'working');
 sim.update(1 / 60); // advance a frame
 drawBotAvatarFrame(ctx, 64, sim.pose, {
   path: new Path2D(botAvatarShapes.clover),
@@ -139,13 +138,13 @@ Each instance seeds its own blink timing from its React id, so a roster never bl
 
 ```tsx
 {agents.map((a) => (
-  <BotAvatar key={a.id} type={a.avatar} state={a.busy ? 'thinking' : 'default'} size={32} />
+  <BotAvatar key={a.id} type={a.avatar} state={a.busy ? 'working' : 'default'} size={32} />
 ))}
 ```
 
 ## Accessibility & performance
 
-- `role="img"` with a per-state `aria-label` ("Clover bot, thinking") out of the box.
+- `role="img"` with a per-state `aria-label` ("Clover bot, working") out of the box.
 - `prefers-reduced-motion: reduce` keeps the pose and drops the motion.
 - One shared animation frame loop for every avatar on the page; each one pauses when scrolled offscreen or when the tab is hidden. Device-pixel-ratio capped at 2.
 - The body is thirteen copies of its outline stacked through the depth with a pillow profile, projected with the head's yaw and pitch and lit from the upper left — a rounded solid that turns and flips, in plain 2D canvas fills. Cheap enough for a whole roster at once.

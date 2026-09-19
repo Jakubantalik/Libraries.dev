@@ -15,7 +15,7 @@ function Switcher() {
   );
 }
 
-/* #idle, #thinking, #happy, #sleeping, #faces or #light shows one section. */
+/* #idle, #working, #sleeping, #faces or #light shows one section. */
 const only = location.hash.slice(1);
 const show = (id: string) => !only || only === id;
 
@@ -87,7 +87,7 @@ function SpeedTest() {
           <div className="cell" key={sp}><BotAvatar type="clover" face="mouth" seed={0.3} speed={sp} size={120} /><span className="label">{sp}×</span></div>
         ))}
         {[0.25, 1, 4].map((sp) => (
-          <div className="cell" key={'t' + sp}><BotAvatar type="drop" state="thinking" seed={0.3} speed={sp} size={120} /><span className="label">{sp}×</span></div>
+          <div className="cell" key={'t' + sp}><BotAvatar type="drop" state="working" seed={0.3} speed={sp} size={120} /><span className="label">{sp}×</span></div>
         ))}
       </div>
     </>
@@ -99,9 +99,9 @@ function Strips() {
   const [, state, from] = only.split('-') as [string, BotAvatarState, BotAvatarState | undefined];
   return (
     <>
-      <h2>{from ? `${from} → ${state}, every 0.1 s` : `${state}, every ${state === 'happy' ? 0.12 : state === 'default' ? 0.5 : 0.3} s`}</h2>
+      <h2>{from ? `${from} → ${state}, every 0.1 s` : `${state}, every ${state === 'working' ? 0.12 : state === 'default' ? 0.5 : 0.3} s`}</h2>
       {(['clover', 'flower', 'star'] as const).map((t) => (
-        <Strip key={t} type={t} state={state} from={from} every={from ? 0.1 : state === 'happy' ? 0.12 : state === 'default' ? 0.5 : 0.3} size={from ? 72 : 88} />
+        <Strip key={t} type={t} state={state} from={from} every={from ? 0.1 : state === 'working' ? 0.12 : state === 'default' ? 0.5 : 0.3} size={from ? 72 : 88} />
       ))}
       {!from && <Strip type="clover" face="mouth" state={state} every={0.3} size={88} seed={0.9} />}
     </>
@@ -152,8 +152,8 @@ function Demo() {
         <div className="cell"><BotAvatar type="clover" shadow={2} size={100} /><span className="label">crisp shadow 2</span></div>
         <div className="cell"><BotAvatar type="clover" rim={2} size={100} /><span className="label">rim 2</span></div>
         <div className="cell"><BotAvatar type="clover" rim={0} size={100} /><span className="label">rim 0</span></div>
-        <div className="cell"><BotAvatar type="clover" state="thinking" depth={2} size={100} /><span className="label">depth 2</span></div>
-        <div className="cell"><BotAvatar type="clover" state="thinking" depth={0.3} size={100} /><span className="label">depth .3</span></div>
+        <div className="cell"><BotAvatar type="clover" state="working" depth={2} size={100} /><span className="label">depth 2</span></div>
+        <div className="cell"><BotAvatar type="clover" state="working" depth={0.3} size={100} /><span className="label">depth .3</span></div>
         <div className="cell"><BotAvatar type="clover" light={90} size={100} /><span className="label">crisp light 90°</span></div>
       </div></>}
       {show('plastic') && <><h2 id="plastic">Plastic</h2>
@@ -167,7 +167,7 @@ function Demo() {
         <div className="cell"><BotAvatar type="clover" shading="plastic" highlight={2} size={120} /><span className="label">highlight 2</span></div>
         <div className="cell"><BotAvatar type="clover" shading="plastic" shadow={1.5} size={120} /><span className="label">shadow 1.5</span></div>
         <div className="cell"><BotAvatar type="clover" shading="plastic" spread={0.6} size={120} /><span className="label">spread .6</span></div>
-        <div className="cell"><BotAvatar type="circle" shading="plastic" state="thinking" size={120} /><span className="label">turned</span></div>
+        <div className="cell"><BotAvatar type="circle" shading="plastic" state="working" size={120} /><span className="label">working</span></div>
       </div>
       <div className="row light">
         {(['clover', 'drop', 'flower', 'ghost', 'star'] as const).map((t) => (

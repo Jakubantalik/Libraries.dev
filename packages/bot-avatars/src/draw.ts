@@ -252,7 +252,7 @@ function onSphere(x: number, y: number, yaw: number, pitch: number) {
 }
 
 function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
-  const [wd, wt, wh, ws] = pose.w;
+  const [wd, ww, ws] = pose.w;
   const ink = cfg.ink;
   const ey = EYE_Y[cfg.face];
   const half = EYE_GAP / 2;
@@ -276,8 +276,8 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
      different numbers, and a blend of the numbers is a real morph: the
      upright pill of an open eye squashes into a shut line, swings up into
      a laughing arc, or droops into a sleeping lid. */
-  const open = wd + wt + wh * (1 - pose.laugh);
-  const laugh = wh * pose.laugh;
+  const open = wd + ww * (1 - pose.laugh);
+  const laugh = ww * pose.laugh;
   const lift = Math.max(0, -pose.y) / 26;
   const sag = 0.5 + 0.5 * pose.breath;
   for (const side of [-1, 1] as const) {
@@ -314,21 +314,9 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
         ctx.stroke();
       }, wd);
     }
-    /* thinking: a small line pushed to one side, following the eyes */
-    if (wt > 0.01) {
-      const k = 0.6 + 0.4 * wt;
-      at(lx * 0.9, 13.5 + ly * 0.3, () => {
-        ctx.strokeStyle = ink;
-        ctx.lineWidth = 3.8;
-        ctx.beginPath();
-        ctx.moveTo(-4.2 * k, 0.8);
-        ctx.lineTo(4.2 * k, -0.8);
-        ctx.stroke();
-      }, wt);
-    }
-    /* happy: wide open, wider still at the top of a hop */
-    if (wh > 0.01) {
-      const k = (0.6 + 0.4 * wh) * (1 + 0.25 * Math.max(0, -pose.y) / 26);
+    /* working: wide open, wider still at the top of a hop */
+    if (ww > 0.01) {
+      const k = (0.6 + 0.4 * ww) * (1 + 0.25 * Math.max(0, -pose.y) / 26);
       at(mx, 18, () => {
         ctx.fillStyle = ink;
         ctx.beginPath();
@@ -338,7 +326,7 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
         ctx.bezierCurveTo(-5.3 * k, -6.4 + 13 * k, -9.5 * k, -6.4 + 7.8 * k, -9.5 * k, -6.4);
         ctx.closePath();
         ctx.fill();
-      }, wh);
+      }, ww);
     }
     /* asleep: a little "o" that swells with each breath */
     if (ws > 0.01) {

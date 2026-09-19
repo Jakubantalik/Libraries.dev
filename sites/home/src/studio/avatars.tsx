@@ -25,8 +25,7 @@ const FACE_OPTIONS = [
 ] as const;
 const STATE_OPTIONS = [
   { value: "default", label: "Idle" },
-  { value: "thinking", label: "Thinking" },
-  { value: "happy", label: "Happy" },
+  { value: "working", label: "Working" },
   { value: "sleeping", label: "Sleeping" },
 ] as const;
 

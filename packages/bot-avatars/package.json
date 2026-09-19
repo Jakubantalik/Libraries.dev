@@ -1,7 +1,7 @@
 {
   "name": "bot-avatars",
   "version": "0.1.0",
-  "description": "Animated bot avatars for React — eighteen glossy 3D shapes with living faces that turn, hop and flip, four states (idle, thinking, happy, sleeping), 2D canvas, no WebGL",
+  "description": "Animated bot avatars for React — eighteen glossy 3D shapes with living faces that turn, hop and flip, three states (idle, working, sleeping), 2D canvas, no WebGL",
   "type": "module",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",

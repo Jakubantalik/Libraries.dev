@@ -17,8 +17,7 @@ const FACE_OPTIONS = [
 
 const STATE_OPTIONS = [
   { value: "default", label: "Idle" },
-  { value: "thinking", label: "Thinking" },
-  { value: "happy", label: "Happy" },
+  { value: "working", label: "Working" },
   { value: "sleeping", label: "Sleeping" },
 ] as const;
 
@@ -76,7 +75,7 @@ function Team() {
           onPointerEnter={() => setHot(t)}
           onPointerLeave={() => setHot((h) => (h === t ? null : h))}
         >
-          <BotAvatar type={t} state={hot === t ? "happy" : "default"} size={64} />
+          <BotAvatar type={t} state={hot === t ? "working" : "default"} size={64} />
           <span className="ex-avatars-name">{botAvatarPresets[t].label}</span>
         </span>
       ))}
