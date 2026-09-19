@@ -4395,10 +4395,11 @@
     .pro-customers.pro-customers { margin: 0 auto 48px; }
     .pro-customers-label {
       margin: 0 0 24px;
-      font-size: 11px;
-      line-height: 18px;
+      font-size: 13px;
+      line-height: 20px;
       text-align: center;
       color: #979797;
+      opacity: 0.7;
     }
     /* Matches the testimonial role line (.pro-quote-role) in dark mode. */
     html[data-theme="dark"] .pro-customers-label { color: #737373; }
@@ -4407,7 +4408,7 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 24px 37px;
+      gap: 24px 40px;
     }
     .pro-customer-logo {
       height: var(--logo-h, 32px);
@@ -4421,7 +4422,7 @@
     @media (max-width: 640px) {
       .pro-customers.pro-customers { margin-bottom: 32px; }
       .pro-customers-row { gap: 18px 28px; }
-      /* Slightly smaller so all four still read as one group. */
+      /* Slightly smaller so all five still read as one group. */
       .pro-customer-logo { height: calc(var(--logo-h, 32px) * 0.85); }
     }
 
@@ -5283,6 +5284,20 @@
            filled by pro-client.js when the visitor's country qualifies. -->
       <div class="pro-ppp" id="pro-ppp" hidden></div>
     </div>
+
+    <!-- ─── Customer logos (as transitions.dev/pro) ─────────────────
+         The same row as the homepage: one near-black glyph per logo on
+         transparency, so a single asset serves both themes. -->
+    <section class="pro-section pro-customers" aria-label="Companies whose teams use these libraries">
+      <p class="pro-customers-label">Used by designers and engineers at companies like</p>
+      <div class="pro-customers-row">
+        <img class="pro-customer-logo" src="/assets/customers/vercel.svg" alt="Vercel" style="--logo-h: 20px" loading="lazy" decoding="async" />
+        <img class="pro-customer-logo" src="/assets/customers/google.svg" alt="Google" style="--logo-h: 28px" loading="lazy" decoding="async" />
+        <img class="pro-customer-logo" src="/assets/customers/sarvam-ai.svg" alt="Sarvam AI" style="--logo-h: 14.5px" loading="lazy" decoding="async" />
+        <img class="pro-customer-logo" src="/assets/customers/gradial.svg" alt="Gradial" style="--logo-h: 21px" loading="lazy" decoding="async" />
+        <img class="pro-customer-logo" src="/assets/customers/gecko-robotics.svg" alt="Gecko Robotics" style="--logo-h: 24px" loading="lazy" decoding="async" />
+      </div>
+    </section>
     <!-- Testimonials: the homepage's first row, three across. -->
     <section class="pro-section pro-block" aria-label="Kind words">
       <ul class="pro-quotes">
