@@ -55,14 +55,6 @@ function approach(cur: number, target: number, rate: number, dt: number): number
 }
 
 const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
-/* A spin with a little anticipation and overshoot. */
-const easeSpin = (p: number) => {
-  const c = 1.2;
-  return p < 0.5
-    ? (Math.pow(2 * p, 2) * ((c + 1) * 2 * p - c)) / 2
-    : (Math.pow(2 * p - 2, 2) * ((c + 1) * (p * 2 - 2) + c) + 2) / 2;
-};
-
 /* A value that drifts: picks a new target inside its range every hold,
    and eases toward it. Ranges change with the state; the value never
    jumps. */
@@ -164,6 +156,11 @@ export class Sim {
   private prevYaw = 0;
   private jelly = 0;
   private jellyV = 0;
+  /* the landing: a vertical spring kicked when a jump touches down */
+  private squash = 0;
+  private squashV = 0;
+  private airborne = false;
+  private flipHeight = 20;
   private laughEv = new Event(0.8);
   private laughAt: number;
   /* the pointer, as an offset from the head in head-widths, and how much
@@ -354,19 +351,36 @@ export class Sim {
     /* idle: a full turn now and then, with a little hop; thinking rolls
        over too, a touch slower and rarer */
     if ((this.state === 'default' || this.state === 'thinking') && t >= this.flipAt && !this.flip.active) {
-      this.flip.duration = this.state === 'thinking' ? 1.15 : 0.9;
+      this.flip.duration = this.state === 'thinking' ? 1 : 0.9;
+      this.flipHeight = this.state === 'thinking' ? 24 : 20;
       this.flip.fire();
       this.flipAt = t + (this.state === 'thinking' ? 7 + this.rand() * 6 : 5 + this.rand() * 6);
     }
     this.flip.update(dt);
     if (this.flip.active) {
       const q = this.flip.p;
-      spin += TAU * easeSpin(q);
-      hopY -= 16 * Math.sin(Math.PI * q);
-      const land = Math.max(0, 1 - Math.abs(q - 0.92) / 0.1);
-      sx += 0.08 * land;
-      sy -= 0.1 * land;
+      /* one full turn, eased in and out, no overshoot to snap back from */
+      spin += TAU * easeInOut(q);
+      /* a ballistic arc: up fast, slow at the top, fast into the ground */
+      hopY -= this.flipHeight * 4 * q * (1 - q);
+      /* a stretch on take-off */
+      if (q < 0.18) {
+        const s = Math.sin((Math.PI * q) / 0.18);
+        sy += 0.07 * s;
+        sx -= 0.05 * s;
+      }
+      this.airborne = true;
+    } else if (this.airborne) {
+      /* touch-down: kick the landing spring */
+      this.airborne = false;
+      this.squashV -= 2.8;
     }
+    /* the landing spring: a squash that rebounds and settles */
+    const wsq = 24, zsq = 0.32;
+    this.squashV += (-wsq * wsq * this.squash - 2 * zsq * wsq * this.squashV) * dt;
+    this.squash += this.squashV * dt;
+    sy *= 1 + this.squash;
+    sx *= 1 - 0.65 * this.squash;
 
     /* happy: hops all the time; every third one spins */
     if (wh > 0.02) {
@@ -458,10 +472,12 @@ export class Sim {
 
     /* the jelly: the faster the head turns, the more the body stretches
        along the turn, on a spring that overshoots and settles. Full
-       strength while thinking, a hint of it otherwise. */
-    let dyaw = p.yaw - this.prevYaw;
+       strength while thinking, a hint of it otherwise. A flip's spin is
+       left out: that is a jump, and the landing spring handles it. */
+    const turnYaw = b.yaw + yawAdd;
+    let dyaw = turnYaw - this.prevYaw;
     dyaw = ((dyaw + Math.PI) % TAU + TAU) % TAU - Math.PI;
-    this.prevYaw = p.yaw;
+    this.prevYaw = turnYaw;
     const rate = dt > 0 ? Math.abs(dyaw) / dt : 0;
     const jellyTarget = Math.min(0.22, 0.055 * rate);
     const omega = 16, zeta = 0.45;
