@@ -113,6 +113,16 @@ export interface BotAvatarProps
    * `dark` / `light` class, then `prefers-color-scheme`.
    */
   theme?: 'auto' | 'dark' | 'light';
+  /** The whirl round a spin: its strength, 0–2 (0 turns it off). Default `1`. */
+  whirl?: number;
+  /** Size of the whirl's ring, 0.6–1.6. Default `1`. */
+  whirlSize?: number;
+  /** Thickness of the whirl's trail, 0.4–2. Default `1`. */
+  whirlWidth?: number;
+  /** Length of the trail round the ring, 0.4–1.6. Default `1`. */
+  whirlLength?: number;
+  /** How flat the ring is seen, 0.5–1.8 (higher is more open). Default `1`. */
+  whirlTilt?: number;
   className?: string;
   style?: CSSProperties;
 }

@@ -321,15 +321,17 @@ export class Sim {
     /* ── events ── */
     let spin = 0, hopY = 0, sx = 1, sy = 1, pitchAdd = 0, rollAdd = 0, blinkClose = 0, lookXAdd = 0, lookYAdd = 0, laugh = 0;
     let whirl = 0, whirlAngle = 0;
-    /* the whirl follows the spin's own speed: nothing while the turn is
-       only starting, full at the fastest point, gone as it settles —
-       the slope of the spin's easing, scaled so its peak is 1 */
-    const envelope = (q: number) => {
-      const v = q < 0.5 ? 12 * q * q : 12 * (1 - q) * (1 - q);
-      return Math.pow(Math.min(1, (v / 3) * 1.25), 0.85);
+    /* the whirl: not there until the turn is visibly under way, gone
+       before the landing */
+    const smooth = (a: number, b: number, v: number) => {
+      const x = Math.min(1, Math.max(0, (v - a) / (b - a)));
+      return x * x * (3 - 2 * x);
     };
-    /* the ring drifts on its own as well, so it is never seen standing still */
-    const drift = t * 1.8;
+    const envelope = (q: number) => smooth(0.1, 0.26, q) * (1 - smooth(0.66, 0.9, q));
+    /* the ring's own travel: fast and steady from the first frame, with a
+       little of the body's own easing on top, so it is moving the moment
+       it shows */
+    const ringAngle = (q: number) => TAU * (1.5 * q + 0.9 * easeInOut(q));
 
     /* blinks: idle and working blink; a double blink now and then */
     if (t >= this.blinkAt && !this.blink.active && wd + ww > 0.5) {
@@ -381,9 +383,8 @@ export class Sim {
         sy += 0.07 * s;
         sx -= 0.05 * s;
       }
-      /* the whirl runs round a little faster than the body turns */
       whirl = Math.max(whirl, envelope(q));
-      whirlAngle = TAU * 1.3 * easeInOut(q) + drift;
+      whirlAngle = ringAngle(q);
       this.airborne = true;
     } else if (this.airborne) {
       /* touch-down: kick the landing spring */
@@ -419,7 +420,7 @@ export class Sim {
         laugh = Math.max(laugh, Math.sin(Math.PI * q));
         if (envelope(q) * ww > whirl) {
           whirl = envelope(q) * ww;
-          whirlAngle = TAU * 1.3 * easeInOut(q) + drift;
+          whirlAngle = ringAngle(q);
         }
       }
       /* lean into each hop, alternating sides */

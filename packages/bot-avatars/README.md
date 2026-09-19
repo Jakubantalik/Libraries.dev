@@ -137,6 +137,16 @@ By default an avatar's eyes and head follow a pointer that comes within a few he
 
 A spin — the idle jump, a click, the working spin hop — draws a puff of motion round the body: three wispy trails on tilted rings, white on a dark surface and black on a light one, passing behind the body on the far side and over the face on the near side. It follows the spin's own speed, so it is not there until the turn is under way. Which neutral it uses comes from `theme`: `auto` (default) reads an ancestor `data-theme` attribute or `dark` / `light` class, then `prefers-color-scheme`; `dark` and `light` pin it.
 
+```tsx
+<BotAvatar
+  whirl={1.2}         // 0–2 strength; 0 turns it off
+  whirlSize={1.1}     // 0.6–1.6 ring size
+  whirlWidth={0.8}    // 0.4–2 trail thickness
+  whirlLength={1.3}   // 0.4–1.6 trail length round the ring
+  whirlTilt={1.4}     // 0.5–1.8, how open the ring is seen
+/>
+```
+
 ## A row of them
 
 Each instance seeds its own blink timing from its React id, so a roster never blinks in unison. Pass the same `seed` to two avatars to make them move in step.

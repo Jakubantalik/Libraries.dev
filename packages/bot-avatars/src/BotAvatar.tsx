@@ -53,6 +53,11 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     spread = 1.55,
     interactive = true,
     theme = 'auto',
+    whirl = 1,
+    whirlSize = 1,
+    whirlWidth = 1,
+    whirlLength = 1,
+    whirlTilt = 1,
     className,
     style,
     'aria-label': ariaLabel,
@@ -102,6 +107,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     spread: clamp(spread, 0.4, 2.5),
     typeKey: type,
     still: frozen || reducedMotion(),
+    whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
     parts: typeof Path2D !== 'undefined' && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
   };
 

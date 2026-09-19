@@ -37,6 +37,8 @@ export interface DrawConfig {
   partsDepth?: number;
   /** the resolved surface: the whirl is white on dark, black on light */
   theme?: 'dark' | 'light';
+  /** the whirl's knobs; 1 everywhere is the stock look */
+  whirl?: { strength: number; size: number; width: number; length: number; tilt: number };
 }
 
 /* The canvas is drawn larger than the avatar's layout box, so a hop or a
@@ -92,69 +94,72 @@ function mixCss(a: string, b: string, t: number): string {
   return `hsl(${m[0].toFixed(1)} ${m[1].toFixed(1)}% ${m[2].toFixed(1)}%)`;
 }
 
-/* The whirl: the cartoon motion round a spinning body — a few wispy
-   trails on tilted rings, each a soft halo under a brighter core so it
-   reads as a puff of air with volume, in neutral white or black for the
-   surface it sits on. The rings lie in the body's equatorial plane seen
-   a little from above: the half with sin > 0 is nearer the viewer and is
-   drawn over the body and face, fuller and brighter; the other half goes
-   behind, thinner and dimmer. */
-const WHIRL_SEGMENTS = 30;
-interface Wisp {
-  rx: number;
-  ratio: number;
-  roll: number;
-  dy: number;
-  phase: number;
-  speed: number;
-  span: number;
-  width: number;
-  alpha: number;
-}
-const WISPS: Wisp[] = [
-  { rx: 56, ratio: 0.42, roll: -0.3, dy: 5, phase: 0, speed: 1, span: Math.PI * 1.5, width: 7, alpha: 0.7 },
-  { rx: 52, ratio: 0.47, roll: -0.2, dy: 8, phase: 1.7, speed: 0.9, span: Math.PI * 1.2, width: 5.2, alpha: 0.5 },
-  { rx: 60, ratio: 0.39, roll: -0.4, dy: 2, phase: 3.4, speed: 1.14, span: Math.PI * 1.05, width: 4.4, alpha: 0.42 },
-];
-function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: [number, number, number], near: boolean) {
-  const k = pose.whirl;
+/* The whirl: the cartoon motion round a spinning body — one tapered
+   trail on a tilted ring, drawn as a lit tube: a soft halo, a body, a
+   bright ridge along its top and a darker underside. The ring lies in
+   the body's equatorial plane seen a little from above, with a touch of
+   perspective: the near half (sin > 0) is larger, thicker and brighter
+   and is drawn over the body and face, casting a soft shadow on them;
+   the far half is smaller and dimmer and goes behind. Neutral white on a
+   dark surface, black on a light one. */
+const WHIRL_SEGMENTS = 34;
+const WHIRL_SPAN = Math.PI * 1.55;
+const WHIRL_RX = 57;
+const WHIRL_RATIO = 0.4;
+const WHIRL_TILT = -0.28;
+function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, light: boolean, near: boolean, knobs?: DrawConfig['whirl']) {
+  const strength = knobs?.strength ?? 1;
+  const k = Math.min(1, pose.whirl * strength);
   if (k <= 0.01) return;
-  const [cr, cg, cb] = color;
-  const paint = (a: number) => `rgba(${cr},${cg},${cb},${a.toFixed(3)})`;
-  for (const w of WISPS) {
-    const rx = w.rx, ry = rx * w.ratio;
-    const head = pose.whirlAngle * w.speed + w.phase;
-    ctx.save();
-    ctx.rotate(w.roll);
-    ctx.translate(0, w.dy);
-    /* flat joints: round caps at part alpha would pile up into beads */
-    ctx.lineCap = 'butt';
+  const sizeK = knobs?.size ?? 1, widthK = knobs?.width ?? 1, lengthK = knobs?.length ?? 1, tiltK = knobs?.tilt ?? 1;
+  const span = WHIRL_SPAN * lengthK;
+  /* white on dark, near-black on light */
+  const c = light ? '30,28,44' : '255,255,255';
+  const paint = (a: number) => `rgba(${c},${a.toFixed(3)})`;
+  const shadowPaint = (a: number) => `rgba(0,0,0,${a.toFixed(3)})`;
+  /* the ring runs the way the body's near face moves: to the right */
+  const head = -pose.whirlAngle;
+  const rx = WHIRL_RX * sizeK;
+  const ry = rx * WHIRL_RATIO * tiltK * (near ? 1.14 : 0.86);
+  ctx.save();
+  ctx.rotate(WHIRL_TILT);
+  ctx.translate(0, 5);
+  ctx.lineCap = 'butt';
+  const seg = (a0: number, a1: number, width: number, style: string, dy: number) => {
+    ctx.strokeStyle = style;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.ellipse(0, dy, rx, ry, 0, a0, a1, false);
+    ctx.stroke();
+  };
+  /* the near half casts a soft shadow on the body it crosses */
+  if (near) {
     for (let i = 0; i < WHIRL_SEGMENTS; i++) {
       const f = i / WHIRL_SEGMENTS;
-      const a0 = head - f * w.span, a1 = head - (f + 1 / WHIRL_SEGMENTS) * w.span;
-      const mid = (a0 + a1) / 2;
-      if ((Math.sin(mid) > 0) !== near) continue;
-      /* the near side comes forward: fuller and brighter */
-      const depth = 0.72 + 0.28 * Math.sin(mid);
-      const fade = Math.pow(1 - f, 1.35);
-      const a1o = a1 - 0.012;
-      /* lumps along the trail, so it puffs rather than streaks */
-      const puff = 1 + 0.4 * Math.sin(f * 13 + w.phase * 2.3) * (0.4 + 0.6 * f);
-      const core = (w.width * fade * depth + 1.2) * puff;
-      /* the soft halo, then the core */
-      ctx.strokeStyle = paint(k * w.alpha * fade * depth * 0.2);
-      ctx.lineWidth = core * 3.2;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx, ry, 0, a1o, a0, false);
-      ctx.stroke();
-      ctx.strokeStyle = paint(k * w.alpha * (0.3 + 0.7 * fade) * depth);
-      ctx.lineWidth = core;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx, ry, 0, a1o, a0, false);
-      ctx.stroke();
+      const a1 = head + f * span, a0 = a1 + span / WHIRL_SEGMENTS + 0.012;
+      if (Math.sin((a0 + a1) / 2) <= 0) continue;
+      const fade = Math.pow(1 - f, 1.3);
+      seg(a1, a0, (2 + 8 * fade) * 1.5 * widthK, shadowPaint(0.24 * k * fade), 3.5);
     }
-    ctx.restore();
   }
+  for (let i = 0; i < WHIRL_SEGMENTS; i++) {
+    const f = i / WHIRL_SEGMENTS;
+    /* the trail lies at the angles the head has already passed */
+    const a1 = head + f * span, a0 = a1 + span / WHIRL_SEGMENTS + 0.012;
+    const mid = (a0 + a1) / 2;
+    if ((Math.sin(mid) > 0) !== near) continue;
+    /* perspective and depth: the nearest point of the ring is fullest */
+    const depth = 0.6 + 0.4 * Math.sin(mid);
+    const fade = Math.pow(1 - f, 1.3);
+    const width = (2 + 8 * fade) * depth * widthK;
+    const alpha = k * (0.3 + 0.7 * fade) * depth;
+    /* halo, underside, body, ridge: a tube lit from above */
+    seg(a1, a0, width * 2.6, paint(alpha * 0.16), 0);
+    seg(a1, a0, width * 0.9, paint(alpha * 0.45), width * 0.28);
+    seg(a1, a0, width, paint(alpha * 0.8), 0);
+    seg(a1, a0, width * 0.34, paint(Math.min(1, alpha * 1.15)), -width * 0.26);
+  }
+  ctx.restore();
 }
 
 /**
@@ -282,8 +287,8 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   };
 
   /* the far half of the whirl sits behind everything */
-  const whirlColor: [number, number, number] = cfg.theme === 'light' ? [30, 28, 44] : [255, 255, 255];
-  drawWhirl(ctx, pose, whirlColor, false);
+  const lightSurface = cfg.theme === 'light';
+  drawWhirl(ctx, pose, lightSurface, false, cfg.whirl);
 
   if (cfg.parts) drawSolid(cfg.parts, `${cfg.typeKey ?? 'custom'}:parts`, halfDepth * (cfg.partsDepth ?? 0.4));
   const plasticDone = drawSolid(cfg.path, cfg.typeKey ?? 'custom', halfDepth);
@@ -301,7 +306,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
     ctx.restore();
   }
   /* the near half of the whirl passes in front of the face */
-  drawWhirl(ctx, pose, whirlColor, true);
+  drawWhirl(ctx, pose, lightSurface, true, cfg.whirl);
   ctx.restore();
 }
 

@@ -68,6 +68,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
   const [interactive, setInteractive] = useState(true);
+  const [whirl, setWhirl] = useState(100);
+  const [whirlSize, setWhirlSize] = useState(100);
+  const [whirlWidth, setWhirlWidth] = useState(100);
+  const [whirlLength, setWhirlLength] = useState(100);
+  const [whirlTilt, setWhirlTilt] = useState(100);
   const [paused, setPaused] = useState(false);
 
   const preset = botAvatarPresets[type];
@@ -111,6 +116,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if (!interactive) props.push("interactive={false}");
+  if (whirl !== 100) props.push(`whirl={${num(whirl / 100)}}`);
+  if (whirlSize !== 100) props.push(`whirlSize={${num(whirlSize / 100)}}`);
+  if (whirlWidth !== 100) props.push(`whirlWidth={${num(whirlWidth / 100)}}`);
+  if (whirlLength !== 100) props.push(`whirlLength={${num(whirlLength / 100)}}`);
+  if (whirlTilt !== 100) props.push(`whirlTilt={${num(whirlTilt / 100)}}`);
   if (theme === "light") props.push(`theme="light"`);
   if (paused) props.push("paused");
   const snippet = `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
@@ -140,6 +150,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             spread={spread / 100}
             interactive={interactive}
             theme={theme}
+            whirl={whirl / 100}
+            whirlSize={whirlSize / 100}
+            whirlWidth={whirlWidth / 100}
+            whirlLength={whirlLength / 100}
+            whirlTilt={whirlTilt / 100}
             paused={paused}
           />
         )}
@@ -192,6 +207,15 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             label="Pointer"
             options={[{ label: "Follow and hop", active: interactive, onToggle: () => setInteractive((v) => !v) }]}
           />
+        </PgGroup>
+        <PanelSep />
+        {/* the motion ring round a spin: click the avatar to see one */}
+        <PgGroup label="Whirl">
+          <PgSlider label="Strength" value={whirl} min={0} max={200} step={5} display={`${whirl}%`} onChange={setWhirl} />
+          <PgSlider label="Size" value={whirlSize} min={60} max={160} step={2} display={`${whirlSize}%`} onChange={setWhirlSize} />
+          <PgSlider label="Thickness" value={whirlWidth} min={40} max={200} step={5} display={`${whirlWidth}%`} onChange={setWhirlWidth} />
+          <PgSlider label="Length" value={whirlLength} min={40} max={160} step={5} display={`${whirlLength}%`} onChange={setWhirlLength} />
+          <PgSlider label="Tilt" value={whirlTilt} min={50} max={180} step={5} display={`${whirlTilt}%`} onChange={setWhirlTilt} />
         </PgGroup>
       </ControlsPanel>
 
