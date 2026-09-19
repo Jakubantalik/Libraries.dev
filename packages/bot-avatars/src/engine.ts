@@ -321,8 +321,15 @@ export class Sim {
     /* ── events ── */
     let spin = 0, hopY = 0, sx = 1, sy = 1, pitchAdd = 0, rollAdd = 0, blinkClose = 0, lookXAdd = 0, lookYAdd = 0, laugh = 0;
     let whirl = 0, whirlAngle = 0;
-    /* the whirl fades in over the first part of a spin and out over the last */
-    const envelope = (q: number) => Math.min(1, q / 0.18, (1 - q) / 0.22);
+    /* the whirl follows the spin's own speed: nothing while the turn is
+       only starting, full at the fastest point, gone as it settles —
+       the slope of the spin's easing, scaled so its peak is 1 */
+    const envelope = (q: number) => {
+      const v = q < 0.5 ? 12 * q * q : 12 * (1 - q) * (1 - q);
+      return Math.pow(Math.min(1, (v / 3) * 1.25), 0.85);
+    };
+    /* the ring drifts on its own as well, so it is never seen standing still */
+    const drift = t * 1.8;
 
     /* blinks: idle and working blink; a double blink now and then */
     if (t >= this.blinkAt && !this.blink.active && wd + ww > 0.5) {
@@ -376,7 +383,7 @@ export class Sim {
       }
       /* the whirl runs round a little faster than the body turns */
       whirl = Math.max(whirl, envelope(q));
-      whirlAngle = TAU * 1.3 * easeInOut(q);
+      whirlAngle = TAU * 1.3 * easeInOut(q) + drift;
       this.airborne = true;
     } else if (this.airborne) {
       /* touch-down: kick the landing spring */
@@ -412,7 +419,7 @@ export class Sim {
         laugh = Math.max(laugh, Math.sin(Math.PI * q));
         if (envelope(q) * ww > whirl) {
           whirl = envelope(q) * ww;
-          whirlAngle = TAU * 1.3 * easeInOut(q);
+          whirlAngle = TAU * 1.3 * easeInOut(q) + drift;
         }
       }
       /* lean into each hop, alternating sides */

@@ -103,6 +103,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
   paused={false}       // freeze on the current frame
   seed={0.3}           // 0–1: offsets the blink and glance loops; auto by default
   interactive={false}  // no pointer following, no hop on click
+  theme="light"        // the surface, for the whirl's neutral; auto by default
   aria-label="Talent scout, working"  // overrides the per-state default
 />
 ```
@@ -131,6 +132,10 @@ In `plastic` the first frame of a new type bakes its form (a few ms, done on idl
 ## Pointer play
 
 By default an avatar's eyes and head follow a pointer that comes within a few head widths, and a click makes it hop and turn right round, in any state. Turn it off with `interactive={false}`; your own `onClick` still runs either way.
+
+## The whirl
+
+A spin — the idle jump, a click, the working spin hop — draws a puff of motion round the body: three wispy trails on tilted rings, white on a dark surface and black on a light one, passing behind the body on the far side and over the face on the near side. It follows the spin's own speed, so it is not there until the turn is under way. Which neutral it uses comes from `theme`: `auto` (default) reads an ancestor `data-theme` attribute or `dark` / `light` class, then `prefers-color-scheme`; `dark` and `light` pin it.
 
 ## A row of them
 

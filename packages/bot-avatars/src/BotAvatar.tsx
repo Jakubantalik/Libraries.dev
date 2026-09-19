@@ -52,6 +52,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     rim = 0.5,
     spread = 1.55,
     interactive = true,
+    theme = 'auto',
     className,
     style,
     'aria-label': ariaLabel,
@@ -104,11 +105,25 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     parts: typeof Path2D !== 'undefined' && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
   };
 
+  /* the surface: an ancestor's say, else the system's */
+  const resolveTheme = (el: HTMLElement | null): 'dark' | 'light' => {
+    if (theme !== 'auto') return theme;
+    const host = el?.closest('[data-theme], .dark, .light') as HTMLElement | null;
+    if (host) {
+      const v = host.getAttribute('data-theme');
+      if (v === 'dark' || v === 'light') return v;
+      if (host.classList.contains('dark')) return 'dark';
+      if (host.classList.contains('light')) return 'light';
+    }
+    return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  };
+
   /* paint the current pose, sizing the backing store to the element */
   const paint = () => {
     const canvas = canvasRef.current;
     const c = cfg.current;
     if (!canvas || !c || !c.path) return;
+    c.theme = resolveTheme(canvas);
     /* a hidden ancestor measures 0: keep the last size rather than
        wiping the backing store */
     const px = canvas.clientWidth / OVERSCAN || cssSize.current || (typeof size === 'number' ? size : 64);
@@ -142,6 +157,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
         canvas.width = canvas.height = Math.round(px * OVERSCAN * dpr);
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          cfg.current.theme = resolveTheme(canvas);
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           draw(ctx, px, restPose(stateKey), cfg.current);
         }

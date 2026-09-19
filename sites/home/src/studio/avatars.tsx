@@ -111,6 +111,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if (!interactive) props.push("interactive={false}");
+  if (theme === "light") props.push(`theme="light"`);
   if (paused) props.push("paused");
   const snippet = `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
 
@@ -138,6 +139,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             rim={rim / 100}
             spread={spread / 100}
             interactive={interactive}
+            theme={theme}
             paused={paused}
           />
         )}

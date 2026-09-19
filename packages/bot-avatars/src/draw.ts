@@ -35,6 +35,8 @@ export interface DrawConfig {
   /** thin parts (antennae) drawn behind the body with `partsDepth` of its depth */
   parts?: Path2D;
   partsDepth?: number;
+  /** the resolved surface: the whirl is white on dark, black on light */
+  theme?: 'dark' | 'light';
 }
 
 /* The canvas is drawn larger than the avatar's layout box, so a hop or a
@@ -90,54 +92,69 @@ function mixCss(a: string, b: string, t: number): string {
   return `hsl(${m[0].toFixed(1)} ${m[1].toFixed(1)}% ${m[2].toFixed(1)}%)`;
 }
 
-/* The whirl: a cartoon motion ring round a spinning body — a tapered
-   swoosh on a tilted ellipse, peach at its head running to periwinkle
-   down its tail, so one end always reads against any body colour. It
-   sits in the body's equatorial plane seen a little from above, so the
-   half with sin > 0 is nearer the viewer and is drawn over the body and
-   face; the other half goes behind. */
-const WHIRL_SEGMENTS = 32;
-const WHIRL_SPAN = Math.PI * 1.45;
-const WHIRL_HEAD = [255, 205, 160];
-const WHIRL_TAIL = [178, 168, 255];
-function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, near: boolean) {
+/* The whirl: the cartoon motion round a spinning body — a few wispy
+   trails on tilted rings, each a soft halo under a brighter core so it
+   reads as a puff of air with volume, in neutral white or black for the
+   surface it sits on. The rings lie in the body's equatorial plane seen
+   a little from above: the half with sin > 0 is nearer the viewer and is
+   drawn over the body and face, fuller and brighter; the other half goes
+   behind, thinner and dimmer. */
+const WHIRL_SEGMENTS = 30;
+interface Wisp {
+  rx: number;
+  ratio: number;
+  roll: number;
+  dy: number;
+  phase: number;
+  speed: number;
+  span: number;
+  width: number;
+  alpha: number;
+}
+const WISPS: Wisp[] = [
+  { rx: 56, ratio: 0.42, roll: -0.3, dy: 5, phase: 0, speed: 1, span: Math.PI * 1.5, width: 7, alpha: 0.7 },
+  { rx: 52, ratio: 0.47, roll: -0.2, dy: 8, phase: 1.7, speed: 0.9, span: Math.PI * 1.2, width: 5.2, alpha: 0.5 },
+  { rx: 60, ratio: 0.39, roll: -0.4, dy: 2, phase: 3.4, speed: 1.14, span: Math.PI * 1.05, width: 4.4, alpha: 0.42 },
+];
+function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: [number, number, number], near: boolean) {
   const k = pose.whirl;
   if (k <= 0.01) return;
-  const rx = 57, ry = rx * 0.42;
-  const head = pose.whirlAngle;
-  ctx.save();
-  ctx.rotate(-0.3);
-  ctx.translate(0, 5);
-  /* flat joints: round caps at part alpha would pile up into beads */
-  ctx.lineCap = 'butt';
-  for (let i = 0; i < WHIRL_SEGMENTS; i++) {
-    const f = i / WHIRL_SEGMENTS;
-    const a0 = head - f * WHIRL_SPAN, a1 = head - (f + 1 / WHIRL_SEGMENTS) * WHIRL_SPAN;
-    if ((Math.sin((a0 + a1) / 2) > 0) !== near) continue;
-    const fade = Math.pow(1 - f, 1.4);
-    /* a hair of overlap so the joints never show a seam */
-    const a1o = a1 - 0.012;
-    /* peach to periwinkle along the trail */
-    const m = Math.min(1, f / 0.7);
-    const r = Math.round(WHIRL_HEAD[0] + (WHIRL_TAIL[0] - WHIRL_HEAD[0]) * m);
-    const g = Math.round(WHIRL_HEAD[1] + (WHIRL_TAIL[1] - WHIRL_HEAD[1]) * m);
-    const b = Math.round(WHIRL_HEAD[2] + (WHIRL_TAIL[2] - WHIRL_HEAD[2]) * m);
-    ctx.globalAlpha = k * (0.25 + 0.75 * fade);
-    ctx.strokeStyle = `rgb(${r},${g},${b})`;
-    ctx.lineWidth = 2.2 + 8.5 * fade;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx, ry, 0, a1o, a0, false);
-    ctx.stroke();
+  const [cr, cg, cb] = color;
+  const paint = (a: number) => `rgba(${cr},${cg},${cb},${a.toFixed(3)})`;
+  for (const w of WISPS) {
+    const rx = w.rx, ry = rx * w.ratio;
+    const head = pose.whirlAngle * w.speed + w.phase;
+    ctx.save();
+    ctx.rotate(w.roll);
+    ctx.translate(0, w.dy);
+    /* flat joints: round caps at part alpha would pile up into beads */
+    ctx.lineCap = 'butt';
+    for (let i = 0; i < WHIRL_SEGMENTS; i++) {
+      const f = i / WHIRL_SEGMENTS;
+      const a0 = head - f * w.span, a1 = head - (f + 1 / WHIRL_SEGMENTS) * w.span;
+      const mid = (a0 + a1) / 2;
+      if ((Math.sin(mid) > 0) !== near) continue;
+      /* the near side comes forward: fuller and brighter */
+      const depth = 0.72 + 0.28 * Math.sin(mid);
+      const fade = Math.pow(1 - f, 1.35);
+      const a1o = a1 - 0.012;
+      /* lumps along the trail, so it puffs rather than streaks */
+      const puff = 1 + 0.4 * Math.sin(f * 13 + w.phase * 2.3) * (0.4 + 0.6 * f);
+      const core = (w.width * fade * depth + 1.2) * puff;
+      /* the soft halo, then the core */
+      ctx.strokeStyle = paint(k * w.alpha * fade * depth * 0.2);
+      ctx.lineWidth = core * 3.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, a1o, a0, false);
+      ctx.stroke();
+      ctx.strokeStyle = paint(k * w.alpha * (0.3 + 0.7 * fade) * depth);
+      ctx.lineWidth = core;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, a1o, a0, false);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-  /* a bright bead at the head */
-  if (near === Math.sin(head) > 0) {
-    ctx.globalAlpha = k;
-    ctx.fillStyle = 'rgb(255, 240, 222)';
-    ctx.beginPath();
-    ctx.ellipse(rx * Math.cos(head), ry * Math.sin(head), 5.3, 5.3, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
 }
 
 /**
@@ -265,7 +282,8 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   };
 
   /* the far half of the whirl sits behind everything */
-  drawWhirl(ctx, pose, false);
+  const whirlColor: [number, number, number] = cfg.theme === 'light' ? [30, 28, 44] : [255, 255, 255];
+  drawWhirl(ctx, pose, whirlColor, false);
 
   if (cfg.parts) drawSolid(cfg.parts, `${cfg.typeKey ?? 'custom'}:parts`, halfDepth * (cfg.partsDepth ?? 0.4));
   const plasticDone = drawSolid(cfg.path, cfg.typeKey ?? 'custom', halfDepth);
@@ -283,7 +301,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
     ctx.restore();
   }
   /* the near half of the whirl passes in front of the face */
-  drawWhirl(ctx, pose, true);
+  drawWhirl(ctx, pose, whirlColor, true);
   ctx.restore();
 }
 
