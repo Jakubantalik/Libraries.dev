@@ -97,6 +97,15 @@ function SpeedTest() {
 /* #strip-<state>[-<from>]: filmstrips of the motion, no live loop needed. */
 function Strips() {
   const [, state, from] = only.split('-') as [string, BotAvatarState, BotAvatarState | undefined];
+  if (state === ('poke' as BotAvatarState)) {
+    return (
+      <>
+        <h2>a poke: hop, turn and the whirl, every 0.07 s</h2>
+        <Strip type="clover" state="default" every={0.07} frames={13} size={150} poke />
+        <Strip type="star" state="default" every={0.07} frames={13} size={150} poke seed={0.7} />
+      </>
+    );
+  }
   return (
     <>
       <h2>{from ? `${from} → ${state}, every 0.1 s` : `${state}, every ${state === 'working' ? 0.12 : state === 'default' ? 0.5 : 0.3} s`}</h2>

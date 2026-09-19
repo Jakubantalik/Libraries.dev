@@ -32,7 +32,7 @@ const INF = 1e12;
 /** Light elevation off the screen plane. */
 const EL = (48 * Math.PI) / 180;
 const E_XY = Math.cos(EL), E_Z = Math.sin(EL);
-const SLICES = 13;
+const SLICES = 17;
 const profile = (z: number, cap: number) => cap + (1 - cap) * Math.sqrt(Math.max(0, 1 - z * z));
 
 type V3 = [number, number, number];

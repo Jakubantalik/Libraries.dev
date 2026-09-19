@@ -30,14 +30,20 @@ export interface Pose {
   breath: number;
   /** working only: how far the eyes have closed into a laugh, 0 … 1 */
   laugh: number;
+  /** the cartoon whirl round a spinning body: strength 0 … 1, and where
+      its head is, in radians round the ring */
+  whirl: number;
+  whirlAngle: number;
   /** blend weights: default, working, sleeping — they sum to 1 */
   w: [number, number, number];
 }
 
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
-/* how long a state change takes */
-const SWITCH = 0.45;
+/* how long a state change takes: dozing off is slow, waking a little
+   quicker, the rest brisk */
+const SWITCH_TO: Record<BotAvatarState, number> = { default: 0.5, working: 0.45, sleeping: 1.4 };
+const SWITCH_FROM_SLEEP = 0.8;
 
 /* Deterministic per-instance randomness (mulberry32). */
 function rng(seed: number): () => number {
@@ -57,6 +63,8 @@ function approach(cur: number, target: number, rate: number, dt: number): number
 }
 
 const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+/* gentler at both ends than the cubic: for drifting off and waking */
+const easeSine = (p: number) => 0.5 - 0.5 * Math.cos(Math.PI * p);
 
 /* A value that drifts: picks a new target inside its range every hold,
    and eases toward it. Ranges change with the state; the value never
@@ -121,7 +129,7 @@ const REST: Record<BotAvatarState, Rest> = {
 };
 
 export class Sim {
-  readonly pose: Pose = { yaw: 0, pitch: 0, roll: 0, x: 0, y: 0, sx: 1, sy: 1, eyeOpen: 1, blinkL: 0, blinkR: 0, lookX: 0, lookY: 0, breath: 0, laugh: 0, w: [1, 0, 0] };
+  readonly pose: Pose = { yaw: 0, pitch: 0, roll: 0, x: 0, y: 0, sx: 1, sy: 1, eyeOpen: 1, blinkL: 0, blinkR: 0, lookX: 0, lookY: 0, breath: 0, laugh: 0, whirl: 0, whirlAngle: 0, w: [1, 0, 0] };
   state: BotAvatarState = 'default';
 
   private rand: () => number;
@@ -129,6 +137,8 @@ export class Sim {
   /* a state change: the weights it started from and its progress */
   private wFrom: [number, number, number] = [1, 0, 0];
   private tr = 1;
+  private trDuration = 0.5;
+  private trSoft = false;
   private yawW: Wander;
   private pitchW: Wander;
   private rollW: Wander;
@@ -194,6 +204,7 @@ export class Sim {
 
   setState(next: BotAvatarState, immediate = false) {
     if (next === this.state && !immediate) return;
+    const from = this.state;
     this.state = next;
     const w = this.pose.w;
     if (immediate) {
@@ -202,6 +213,8 @@ export class Sim {
     } else {
       this.wFrom = [w[0], w[1], w[2]];
       this.tr = 0;
+      this.trDuration = from === 'sleeping' ? SWITCH_FROM_SLEEP : SWITCH_TO[next];
+      this.trSoft = next === 'sleeping' || from === 'sleeping';
     }
     switch (next) {
       case 'default':
@@ -261,8 +274,8 @@ export class Sim {
     /* the state change eases from the weights it started with to the new
        state's on an S-curve: soft start, soft finish, no creeping tail */
     if (this.tr < 1) {
-      this.tr = Math.min(1, this.tr + dt / SWITCH);
-      const e = easeInOut(this.tr);
+      this.tr = Math.min(1, this.tr + dt / this.trDuration);
+      const e = this.trSoft ? easeSine(this.tr) : easeInOut(this.tr);
       for (let i = 0; i < 3; i++) {
         const target = STATES[i] === this.state ? 1 : 0;
         w[i] = this.wFrom[i] + (target - this.wFrom[i]) * e;
@@ -307,6 +320,9 @@ export class Sim {
 
     /* ── events ── */
     let spin = 0, hopY = 0, sx = 1, sy = 1, pitchAdd = 0, rollAdd = 0, blinkClose = 0, lookXAdd = 0, lookYAdd = 0, laugh = 0;
+    let whirl = 0, whirlAngle = 0;
+    /* the whirl fades in over the first part of a spin and out over the last */
+    const envelope = (q: number) => Math.min(1, q / 0.18, (1 - q) / 0.22);
 
     /* blinks: idle and working blink; a double blink now and then */
     if (t >= this.blinkAt && !this.blink.active && wd + ww > 0.5) {
@@ -358,6 +374,9 @@ export class Sim {
         sy += 0.07 * s;
         sx -= 0.05 * s;
       }
+      /* the whirl runs round a little faster than the body turns */
+      whirl = Math.max(whirl, envelope(q));
+      whirlAngle = TAU * 1.3 * easeInOut(q);
       this.airborne = true;
     } else if (this.airborne) {
       /* touch-down: kick the landing spring */
@@ -391,6 +410,10 @@ export class Sim {
         spin += TAU * easeInOut(q) * ww;
         /* eyes shut for the spin */
         laugh = Math.max(laugh, Math.sin(Math.PI * q));
+        if (envelope(q) * ww > whirl) {
+          whirl = envelope(q) * ww;
+          whirlAngle = TAU * 1.3 * easeInOut(q);
+        }
       }
       /* lean into each hop, alternating sides */
       rollAdd += (this.hopCount % 2 === 0 ? 1 : -1) * 6 * DEG * Math.sin(Math.PI * q) * ww;
@@ -462,6 +485,8 @@ export class Sim {
     p.blinkR = this.wink === -1 ? 0 : blinkClose;
     p.lookX = baseLookX + lookXAdd;
     p.lookY = baseLookY + lookYAdd;
+    p.whirl = whirl;
+    p.whirlAngle = whirlAngle;
   }
 }
 
@@ -483,6 +508,8 @@ export function restPose(state: BotAvatarState): Pose {
     lookY: r.lookY,
     breath: 0,
     laugh: 0,
+    whirl: 0,
+    whirlAngle: 0,
     w: STATES.map((s) => (s === state ? 1 : 0)) as [number, number, number],
   };
 }

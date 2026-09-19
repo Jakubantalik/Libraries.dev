@@ -24,6 +24,7 @@ export function Strip({
   warm = 2,
   size = 96,
   seed = 0.42,
+  poke = false,
 }: {
   type: BotAvatarType;
   face?: BotAvatarFace;
@@ -34,6 +35,8 @@ export function Strip({
   warm?: number;
   size?: number;
   seed?: number;
+  /** trigger a hop-and-flip after the warm-up */
+  poke?: boolean;
 }) {
   const refs = useRef<Array<HTMLCanvasElement | null>>([]);
   useEffect(() => {
@@ -55,6 +58,7 @@ export function Strip({
     const step = 1 / 60;
     for (let t = 0; t < warm; t += step) sim.update(step);
     if (from) sim.setState(state);
+    if (poke) sim.poke();
     const dpr = 2;
     for (let k = 0; k < frames; k++) {
       if (k > 0) for (let t = 0; t < every; t += step) sim.update(step);
@@ -65,7 +69,7 @@ export function Strip({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       drawBotAvatarFrame(ctx, size, sim.pose, cfg);
     }
-  }, [type, face, state, from, every, frames, warm, size, seed]);
+  }, [type, face, state, from, every, frames, warm, size, seed, poke]);
   return (
     <div className="strip">
       {Array.from({ length: frames }, (_, k) => (
