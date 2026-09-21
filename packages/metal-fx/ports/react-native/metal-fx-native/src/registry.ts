@@ -34,6 +34,22 @@ const anchors = new Map<string, MetalAnchor>();
 const listeners = new Set<() => void>();
 let version = 0;
 
+/** Re-measure hooks: every anchor and reflection target registers one. */
+const measurers = new Set<() => void>();
+export function registerMeasurer(fn: () => void): () => void {
+  measurers.add(fn);
+  return () => { measurers.delete(fn); };
+}
+
+/**
+ * Re-measure every anchor and reflection target in window coordinates.
+ * Frames are otherwise read on layout only, so call this from a ScrollView's
+ * `onScroll` (with `scrollEventThrottle`) or after any move without a layout.
+ */
+export function refreshMetalFrames(): void {
+  measurers.forEach((m) => m());
+}
+
 function emit() {
   version++;
   listeners.forEach((l) => l());

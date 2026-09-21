@@ -15,5 +15,5 @@ export type { BendConfig, BendField } from './bend';
 export { GLOW_DEFAULTS } from './glow';
 export type { GlowConfig } from './glow';
 export { LIQUID_METAL_SKSL, EDGE_HALO_SKSL } from './shader';
-export { useAnchor, useAnchorsVersion, getAnchor } from './registry';
+export { useAnchor, useAnchorsVersion, getAnchor, refreshMetalFrames } from './registry';
 export type { MetalAnchor } from './registry';

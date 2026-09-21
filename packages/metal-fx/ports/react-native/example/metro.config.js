@@ -9,6 +9,11 @@ const packageRoot = path.resolve(__dirname, '../metal-fx-native');
 
 config.watchFolders = [packageRoot];
 
+// The package's own node_modules exist only for its typecheck. Metro must
+// never resolve a dependency from there: a second copy of Reanimated /
+// Worklets / Skia JS against the app's single native build breaks at startup.
+config.resolver.blockList = [new RegExp(`${packageRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/node_modules/.*`)];
+
 config.resolver.extraNodeModules = {
   'metal-fx-native': path.resolve(packageRoot, 'src'),
   // The package's peer deps must resolve to the app's single copy, or Skia and

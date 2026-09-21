@@ -268,9 +268,12 @@ function compose(layers: Layer[], halfLen: number, s: number, scale: number, fad
   const pad = Math.ceil(padMax) + 1;
   const cw = 2 * halfLen + 2 * pad, ch = 2 * pad;
   const w = Math.ceil(cw * scale), h = Math.ceil(ch * scale);
-  const surface = Skia.Surface.MakeOffscreen(w, h);
+  // A raster surface: it carries alpha. The GPU offscreen surface came back
+  // opaque, which turned the sprite into a black rectangle with a line on it.
+  const surface = Skia.Surface.Make(w, h);
   if (!surface) throw new Error('metal-fx-native: could not create a glow surface');
   const canvas = surface.getCanvas();
+  canvas.clear(Skia.Color('transparent'));
   canvas.scale(scale, scale);
   for (const l of layers) {
     const paint = Skia.Paint();

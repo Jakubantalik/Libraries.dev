@@ -35,16 +35,19 @@ interface Candidate { edge: number; proximity: number; edgeCoord: number; along:
  */
 export function MetalEdgeHalo({ reach = 72, depth = 34, intensity = 1 }: MetalEdgeHaloProps) {
   const { width: SW, height: SH } = useWindowDimensions();
-  useAnchorsVersion();
+  const version = useAnchorsVersion();
   const cand = useMemo<Candidate | null>(() => {
     let best: Candidate | null = null;
     for (const a of allAnchors()) {
       const f = a.frame;
       if (f.width <= 0) continue;
+      // Only rings whose centre is on screen: one scrolling out past an edge
+      // is leaving, not sitting at it.
+      const cx = f.x + f.width / 2, cy = f.y + f.height / 2;
+      if (cx < 0 || cx > SW || cy < 0 || cy > SH) continue;
       const d: [number, number][] = [[0, f.x], [1, SW - (f.x + f.width)], [2, f.y], [3, SH - (f.y + f.height)]];
       d.sort((p, q) => p[1] - q[1]);
       const [edge, dist] = d[0];
-      if (dist <= -f.width) continue;
       const p = 1 - Math.min(1, Math.max(0, dist / reach));
       const prox = p * p * (3 - 2 * p);
       if (prox <= 0.001) continue;
@@ -55,8 +58,9 @@ export function MetalEdgeHalo({ reach = 72, depth = 34, intensity = 1 }: MetalEd
         best = { edge, proximity: prox, edgeCoord, along, halfLen: Math.max(f.width, f.height) * 1.6 + 24, anchor: a, facing };
       }
     }
+    if (typeof __DEV__ !== 'undefined' && (globalThis as { __MFX_DEBUG__?: boolean }).__MFX_DEBUG__) console.log('MFX_HALO', JSON.stringify(best && { edge: best.edge, prox: best.proximity, along: best.along, frame: best.anchor.frame, SW, SH }));
     return best;
-  }, [SW, SH, reach]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [SW, SH, reach, version]);
   const clock = useClock();
   const uniforms = useDerivedValue(() => {
     if (!cand) return { edge: 0, edgeCoord: 0, centerAlong: 0, halfLen: 0, depth: 0, intensity: 0, tint: [0, 0, 0], time: 0 };
@@ -84,7 +88,7 @@ export function MetalEdgeHalo({ reach = 72, depth = 34, intensity = 1 }: MetalEd
   });
   if (!cand) return null;
   return (
-    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+    <Canvas opaque={false} style={StyleSheet.absoluteFill} pointerEvents="none">
       <Fill blendMode="plus">
         <Shader source={haloEffect()} uniforms={uniforms} />
       </Fill>

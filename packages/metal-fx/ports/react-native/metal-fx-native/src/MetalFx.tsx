@@ -21,7 +21,7 @@ import { materialUniforms, presetMaterial, sampleLuminance, sampleMaterial, shee
 import { bandPath, outlinePath, roundRectOutline, rrPerim, shapeKind, shapePerim, type Deform } from './geometry';
 import { BEND_DEFAULTS, deformPoint, useBendField, useTilt, type BendConfig } from './bend';
 import { GLOW_DEFAULTS, configureGlow, extraSprite, glowTick, haloSprite, initialGlowState, type GlowConfig, type GlowFrame } from './glow';
-import { CLOCK_EPOCH, registerAnchor, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
+import { CLOCK_EPOCH, registerAnchor, registerMeasurer, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
 
 let effect: ReturnType<typeof Skia.RuntimeEffect.Make> | null = null;
 export function liquidMetalEffect() {
@@ -132,14 +132,18 @@ export function MetalFx({
     if (a) updateAnchorLook(a, { width: box.width, height: box.height, cornerRadius: radius, ringWidth: ring, kind, material, mapping, opacityMul, time, field });
   }, [box, radius, ring, kind, material, mapping, opacityMul, time, field]);
 
-  const onLayout = useCallback((e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    setBox({ width, height });
+  const measure = useCallback(() => {
     viewRef.current?.measureInWindow((x, y, w, h) => {
       const a = anchorRef.current;
       if (a) updateAnchorFrame(a, { x, y, width: w, height: h });
     });
   }, []);
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setBox({ width, height });
+    measure();
+  }, [measure]);
+  useEffect(() => registerMeasurer(measure), [measure]);
 
   // Geometry for this frame: outlines displaced by the bend field.
   const paths = useDerivedValue(() => {
@@ -189,7 +193,7 @@ export function MetalFx({
   return (
     <View ref={viewRef} onLayout={onLayout} style={[{ alignSelf: 'flex-start' }, style]}>
       {box.width > 0 && (
-        <Canvas style={{ position: 'absolute', left: -m, top: -m, width: cw, height: ch }} pointerEvents="none">
+        <Canvas opaque={false} style={{ position: 'absolute', left: -m, top: -m, width: cw, height: ch }} pointerEvents="none">
           <Group transform={[{ translateX: m }, { translateY: m }]}>
             <Path path={fillPath} color={surface} />
             <Path path={band}>
@@ -211,13 +215,20 @@ export function MetalFx({
   );
 }
 
-/** The Figma inner shadow: the band minus itself shifted down, blurred,
- *  clipped back inside the band. */
-export function InnerShadow({ band, offsetY = 1, blur = 0.5, alpha = 0.9 }: { band: SharedValue<ReturnType<typeof Skia.Path.Make>>; offsetY?: number; blur?: number; alpha?: number }) {
+/** The Figma inner shadow: the band minus itself shifted down — done with
+ *  clips, not a blurred layer with `dstOut`: a second image-filter layer in
+ *  the same canvas made Skia apply the filter to everything drawn before it. */
+export function InnerShadow({ band, offsetY = 1, alpha = 0.9 }: { band: SharedValue<ReturnType<typeof Skia.Path.Make>>; offsetY?: number; alpha?: number }) {
+  const shifted = useDerivedValue(() => {
+    const p = band.value.copy();
+    p.offset(0, offsetY);
+    return p;
+  });
   return (
-    <Group clip={band} opacity={alpha} layer={<Paint><Blur blur={blur} /></Paint>}>
-      <Path path={band} color="white" />
-      <Path path={band} color="white" blendMode="dstOut" transform={[{ translateY: offsetY }]} />
+    <Group clip={band}>
+      <Group clip={shifted} invertClip>
+        <Path path={band} color="white" opacity={alpha} />
+      </Group>
     </Group>
   );
 }
