@@ -12,3 +12,4 @@ ports/react-native/example/ios
 ports/react-native/example/android
 ports/react-native/example/.expo
 ports/react-native/metal-fx-native/lib
+ports/react-native/example/build

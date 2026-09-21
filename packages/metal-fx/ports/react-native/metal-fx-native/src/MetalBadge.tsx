@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { PixelRatio, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { Blur, Canvas, Group, Paint, RadialGradient, Rect, RoundedRect, Shader, Text, rect, rrect, vec, LinearGradient } from '@shopify/react-native-skia';
 import { useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { liquidMetalEffect, useMetalTime } from './MetalFx';
 import { materialUniforms, presetMaterial, sheetMapping, type MetalPreset, type MetalTheme } from './material';
 import { useMetalFont } from './MetalText';
-import { registerAnchor, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
+import { registerAnchor, registerMeasurer, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
 import type { BendField } from './bend';
 
 export interface MetalBadgeCore { r: number; blur: number; a: number; size: number }
@@ -75,16 +75,18 @@ export function MetalBadge({
     return () => { unregisterAnchor(id, a); anchorRef.current = null; };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const a = anchorRef.current; if (a) updateAnchorLook(a, { width: w, height: h, cornerRadius: r, material, mapping, opacityMul, time }); }, [w, h, r, material, mapping, opacityMul, time]);
-  const onLayout = (_e: LayoutChangeEvent) => {
+  const measure = useCallback(() => {
     viewRef.current?.measureInWindow((x, y, ww, hh) => { const a = anchorRef.current; if (a) updateAnchorFrame(a, { x, y, width: ww, height: hh }); });
-  };
+  }, []);
+  const onLayout = (_e: LayoutChangeEvent) => measure();
+  useEffect(() => registerMeasurer(measure), [measure]);
 
   const pill = rrect(rect(0, 0, w, h), r, r);
   const rx = (w * core.size) / 100, ry = (h * core.size) / 100;
   const k = scale;
   return (
     <View ref={viewRef} onLayout={onLayout} style={[{ width: w, height: h }, style]}>
-      <Canvas style={{ width: w, height: h }} pointerEvents="none">
+      <Canvas opaque={false} style={{ width: w, height: h }} pointerEvents="none">
         <RoundedRect rect={pill} color="white" />
         <RoundedRect rect={pill}>
           <Shader source={liquidMetalEffect()} uniforms={uniforms} />
@@ -99,9 +101,11 @@ export function MetalBadge({
           <LinearGradient start={vec(0, 0)} end={vec(0, h)} colors={[`rgba(255,255,255,${gradient})`, 'rgba(255,255,255,0)']} />
         </RoundedRect>
         {/* Inset glows: two 8.333-pt white inner glows. */}
-        <Group clip={pill} layer={<Paint><Blur blur={8.333 * 0.5 * k} /></Paint>}>
-          <RoundedRect rect={pill} style="stroke" strokeWidth={8.333 * 2 * k} color={`rgba(255,255,255,${glow})`} />
-          <RoundedRect rect={pill} style="stroke" strokeWidth={8.333 * 2 * k} color={`rgba(255,255,255,${glow})`} />
+        <Group clip={pill}>
+          <Group layer={<Paint><Blur blur={8.333 * 0.5 * k} /></Paint>}>
+            <RoundedRect rect={pill} style="stroke" strokeWidth={8.333 * 2 * k} color={`rgba(255,255,255,${glow})`} />
+            <RoundedRect rect={pill} style="stroke" strokeWidth={8.333 * 2 * k} color={`rgba(255,255,255,${glow})`} />
+          </Group>
         </Group>
         {/* Hairline .833 at 50 %, and the top rim .833 at 78 %. */}
         <Group clip={pill}>

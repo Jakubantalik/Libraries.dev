@@ -9,6 +9,7 @@ import {
   MetalReflection,
   MetalReflectionText,
   MetalText,
+  refreshMetalFrames,
   type MetalPreset,
 } from 'metal-fx-native';
 
@@ -27,7 +28,7 @@ export default function App() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} onScroll={refreshMetalFrames} scrollEventThrottle={32}>
         <Text style={styles.title}>Liquid metal</Text>
         <Text style={styles.subtitle}>metal-fx v2 · React Native</Text>
 

@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { PixelRatio, Platform, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
-import { Blur, Canvas, Group, Mask, Paint, Shader, Skia, Text, matchFont, type SkFont } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Mask, Paint, Path, Shader, Skia, Text, matchFont, type SkFont } from '@shopify/react-native-skia';
 import { useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { liquidMetalEffect, useMetalTime } from './MetalFx';
 import { materialUniforms, presetMaterial, sampleLuminance, sampleMaterial, sheetMapping, type MetalPreset, type MetalTheme } from './material';
 import { rrPerim } from './geometry';
 import { GLOW_DEFAULTS, configureGlow, extraSprite, glowTick, haloSprite, initialGlowState, type GlowConfig } from './glow';
-import { registerAnchor, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
+import { registerAnchor, registerMeasurer, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
 import type { BendField } from './bend';
 import { AlphaType, BlendColor, ColorType, Image } from '@shopify/react-native-skia';
 
@@ -50,9 +50,10 @@ export function measureLabel(font: SkFont, text: string) {
 
 /** Points inside the glyphs on a ~2 pt grid, for the glint. */
 function glyphPoints(font: SkFont, text: string, width: number, height: number, baseline: number): { x: number; y: number }[] {
-  const surface = Skia.Surface.MakeOffscreen(Math.max(1, width), Math.max(1, height));
+  const surface = Skia.Surface.Make(Math.max(1, width), Math.max(1, height));
   if (!surface) return [];
   const canvas = surface.getCanvas();
+  canvas.clear(Skia.Color('transparent'));
   const paint = Skia.Paint();
   paint.setColor(Skia.Color('white'));
   canvas.drawText(text, 0, baseline, paint, font);
@@ -98,11 +99,15 @@ export function MetalText({
     return () => { unregisterAnchor(id, a); anchorRef.current = null; };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const a = anchorRef.current; if (a) updateAnchorLook(a, { width, height, material, mapping, opacityMul, time }); }, [width, height, material, mapping, opacityMul, time]);
-  const onLayout = (_e: LayoutChangeEvent) => {
+  const measure = useCallback(() => {
     viewRef.current?.measureInWindow((x, y, w, h) => { const a = anchorRef.current; if (a) updateAnchorFrame(a, { x, y, width: w, height: h }); });
-  };
+  }, []);
+  const onLayout = (_e: LayoutChangeEvent) => measure();
+  useEffect(() => registerMeasurer(measure), [measure]);
 
   const points = useMemo(() => (glow ? glyphPoints(font, text, width, height, baseline) : []), [glow, font, text, width, height, baseline]);
+  const glyphPath = useMemo(() => Skia.Path.MakeFromText(text, 0, baseline, font) ?? Skia.Path.Make(), [text, baseline, font]);
+  const glyphPathShifted = useMemo(() => { const p = glyphPath.copy(); p.offset(0, 1); return p; }, [glyphPath]);
   const glowState = useSharedValue(initialGlowState());
   const glowFrame = useDerivedValue(() => {
     if (!glow || points.length === 0) return null;
@@ -125,7 +130,7 @@ export function MetalText({
   const m = 48;
   return (
     <View ref={viewRef} onLayout={onLayout} style={[{ width, height }, style]}>
-      <Canvas style={{ position: 'absolute', left: -m, top: -m, width: width + 2 * m, height: height + 2 * m }} pointerEvents="none">
+      <Canvas opaque={false} style={{ position: 'absolute', left: -m, top: -m, width: width + 2 * m, height: height + 2 * m }} pointerEvents="none">
         <Group transform={[{ translateX: m }, { translateY: m }]}>
           <Text x={0} y={baseline} text={text} font={font} color={color} />
           <Text x={0} y={baseline} text={text} font={font}>
@@ -153,12 +158,12 @@ export function MetalText({
             </Group>
           )}
           {innerShadow && (
-            <Mask mode="alpha" mask={<Text x={0} y={baseline} text={text} font={font} color="white" />}>
-              <Group opacity={0.9} layer={<Paint><Blur blur={0.5} /></Paint>}>
-                <Text x={0} y={baseline} text={text} font={font} color="white" />
-                <Text x={0} y={baseline + 1} text={text} font={font} color="white" blendMode="dstOut" />
+            // Glyphs minus themselves shifted down, by clips (see InnerShadow).
+            <Group clip={glyphPath}>
+              <Group clip={glyphPathShifted} invertClip>
+                <Path path={glyphPath} color="white" opacity={0.9} />
               </Group>
-            </Mask>
+            </Group>
           )}
         </Group>
       </Canvas>

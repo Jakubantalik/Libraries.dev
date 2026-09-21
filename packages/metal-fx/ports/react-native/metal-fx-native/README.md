@@ -66,5 +66,5 @@ port, it cannot refract the app's own views (a Skia overlay can only sample
 what it draws), so it is light only.
 
 ## Requirements
-react-native-skia ≥ 2, Reanimated ≥ 4 with react-native-worklets, React
+react-native-skia ≥ 2, Reanimated ≥ 4 with react-native-worklets ≥ 0.7 (Skia objects inside worklets), React
 Native ≥ 0.78 (new architecture). See `../example` (Expo SDK 54).

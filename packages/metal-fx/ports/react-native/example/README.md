@@ -15,3 +15,17 @@ run:*` builds a dev client. The first run prebuilds, installs pods and
 compiles React Native from source; budget 15+ minutes.
 
 Expo SDK 54 (React Native 0.81, Reanimated 4) — Xcode 16.1 or newer.
+
+## Notes from building it
+
+- Metro must not resolve dependencies from `../metal-fx-native/node_modules`
+  (those exist only for the package's typecheck); `metro.config.js` blocks
+  that folder, otherwise a second copy of Worklets JS runs against the app's
+  single native build and the app fails at startup with
+  `TypeError: undefined is not a function`.
+- Skia 2.12 needs `react-native-worklets` ≥ 0.7 to hand Skia objects to
+  worklets; this example pins 0.8 with Reanimated 4.1.
+- If your checkout path contains a space, Expo's generated Xcode script phases
+  (`[CP-User] Generate app.config…` and `Bundle React Native code and images`)
+  fail with `…: is a directory` — they run their script paths unquoted. Quote
+  them in the generated `ios/` projects, or clone to a path without spaces.

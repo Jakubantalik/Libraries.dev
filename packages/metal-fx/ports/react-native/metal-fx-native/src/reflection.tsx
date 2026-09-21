@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PixelRatio, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { Blur, Canvas, ColorMatrix, FillType, Group, LinearGradient, Mask, Paint, Path, Rect, Shader, Skia, Text, rect, vec } from '@shopify/react-native-skia';
 import { useDerivedValue } from 'react-native-reanimated';
@@ -6,7 +6,7 @@ import { liquidMetalEffect } from './MetalFx';
 import { materialUniforms, stretchedMapping } from './material';
 import { bandPath, roundRectOutline, type Deform } from './geometry';
 import { deformPoint } from './bend';
-import { useAnchor, type MetalAnchor } from './registry';
+import { registerMeasurer, useAnchor, type MetalAnchor } from './registry';
 import { useMetalFont, measureLabel } from './MetalText';
 
 // Web constants (src/engine/reflection/constants.ts).
@@ -129,11 +129,13 @@ export function MetalReflection({ of, strength = 1, cornerRadius, style, childre
   const anchor = useAnchor(of);
   const ref = useRef<View>(null);
   const [frame, setFrame] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const onLayout = useCallback((_e: LayoutChangeEvent) => {
-    ref.current?.measureInWindow((x, y, width, height) => setFrame({ x, y, width, height }));
+  const measure = useCallback(() => {
+    ref.current?.measureInWindow((x, y, width, height) => setFrame((f) => (Math.abs(f.x - x) > 0.5 || Math.abs(f.y - y) > 0.5 || f.width !== width || f.height !== height ? { x, y, width, height } : f)));
   }, []);
+  const onLayout = useCallback((_e: LayoutChangeEvent) => measure(), [measure]);
+  useEffect(() => registerMeasurer(measure), [measure]);
   return (
-    <View ref={ref} onLayout={onLayout} style={[{ alignSelf: 'flex-start' }, style]}>
+    <View ref={ref} onLayout={onLayout} style={style}>
       {children}
       {anchor && frame.width > 0 && <SurfaceLayer anchor={anchor} frame={frame} strength={strength} cornerRadius={cornerRadius ?? Math.min(frame.width, frame.height) / 2} />}
     </View>
@@ -160,7 +162,7 @@ function SurfaceLayer({ anchor, frame, strength, cornerRadius }: { anchor: Metal
     </Rect>
   );
   return (
-    <Canvas style={{ position: 'absolute', left: 0, top: 0, width: tW, height: tH }} pointerEvents="none">
+    <Canvas opaque={false} style={{ position: 'absolute', left: 0, top: 0, width: tW, height: tH }} pointerEvents="none">
       <Group clip={shape}>
         {/* Fill: the mirrored band in the edge strip, blurred and lifted. */}
         <Group clip={edgeBand(RANGE_PX + FILL_BLUR * 3)} layer={<Paint><Blur blur={FILL_BLUR} /><ColorMatrix matrix={saturateBrighten(1.2, 1.58)} /></Paint>}>
@@ -200,12 +202,14 @@ export function MetalReflectionText({ of, children: text, fontSize = 24, fontWei
   const { width, height, baseline } = useMemo(() => measureLabel(font, text), [font, text]);
   const ref = useRef<View>(null);
   const [frame, setFrame] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const onLayout = useCallback((_e: LayoutChangeEvent) => {
-    ref.current?.measureInWindow((x, y, w, h) => setFrame({ x, y, width: w, height: h }));
+  const measure = useCallback(() => {
+    ref.current?.measureInWindow((x, y, w, h) => setFrame((f) => (Math.abs(f.x - x) > 0.5 || Math.abs(f.y - y) > 0.5 || f.width !== w || f.height !== h ? { x, y, width: w, height: h } : f)));
   }, []);
+  const onLayout = useCallback((_e: LayoutChangeEvent) => measure(), [measure]);
+  useEffect(() => registerMeasurer(measure), [measure]);
   return (
     <View ref={ref} onLayout={onLayout} style={[{ width, height }, style]}>
-      <Canvas style={{ width, height }} pointerEvents="none">
+      <Canvas opaque={false} style={{ width, height }} pointerEvents="none">
         <Text x={0} y={baseline} text={text} font={font} color={color} />
         {anchor && frame.width > 0 && (
           <Mask mode="alpha" mask={<Text x={0} y={baseline} text={text} font={font} color="white" />}>
