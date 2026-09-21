@@ -11,6 +11,18 @@ import type { BendField } from './bend';
 
 export interface AnchorFrame { x: number; y: number; width: number; height: number }
 
+/** The screen-edge lens a `MetalEdgeHalo` puts on a ring; distances in pt,
+ *  coordinates local to the ring's box (`edge` 0 left, 1 right, 2 top, 3 bottom). */
+export interface EdgeLens {
+  edge: number;
+  edgeCoord: number;
+  centerAlong: number;
+  halfLen: number;
+  depth: number;
+  intensity: number;
+  displacement: number;
+}
+
 export interface MetalAnchor {
   id: string;
   frame: AnchorFrame;
@@ -28,6 +40,10 @@ export interface MetalAnchor {
   time: SharedValue<number>;
   /** The bend field for this frame, or null when idle. */
   field: SharedValue<BendField | null>;
+  /** Rings only: the edge lens (see `MetalEdgeHalo`), on the UI thread. */
+  lens?: SharedValue<EdgeLens | null>;
+  /** Rings only: switch the lens filter on or off (a React re-render). */
+  setLensActive?: (on: boolean) => void;
 }
 
 const anchors = new Map<string, MetalAnchor>();

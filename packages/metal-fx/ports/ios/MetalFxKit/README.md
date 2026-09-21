@@ -49,10 +49,10 @@ letterforms only.
 
 ### Edge halo
 `.metalEdgeHalo()` on a pure-SwiftUI view that touches the display's edge. When
-a ring with an `id` sits within `reach` of that edge, a strip along it
-refracts the view's content toward the edge (a lens with a chromatic split)
-and blooms in the metal's most saturated colour — light leaving through the
-glass edge. Inactive it costs nothing; active it is one layer pass over that
+a ring with an `id` sits within `reach` of that edge, a strip along it pulls
+the view's content toward the edge like liquid glass — a slow undulation
+with a slight chromatic split and a faint tint in the metal's colour, no
+pulse. Inactive it costs nothing; active it is one layer pass over that
 view per frame, so keep it on a card, not a `ScrollView` (UIKit-backed views
 cannot be rasterised into a layer).
 

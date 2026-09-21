@@ -11,17 +11,18 @@ import {
   Paint,
   Path,
   Rect,
+  RuntimeShader,
   Shader,
   Skia,
   useClock,
 } from '@shopify/react-native-skia';
 import { useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
-import { LIQUID_METAL_SKSL } from './shader';
+import { EDGE_LENS_SKSL, LIQUID_METAL_SKSL } from './shader';
 import { materialUniforms, presetMaterial, sampleLuminance, sampleMaterial, sheetMapping, type MetalPreset, type MetalTheme } from './material';
 import { bandPath, outlinePath, roundRectOutline, rrPerim, shapeKind, shapePerim, type Deform } from './geometry';
 import { BEND_DEFAULTS, deformPoint, useBendField, useTilt, type BendConfig } from './bend';
 import { GLOW_DEFAULTS, configureGlow, extraSprite, glowTick, haloSprite, initialGlowState, type GlowConfig, type GlowFrame } from './glow';
-import { CLOCK_EPOCH, registerAnchor, registerMeasurer, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type MetalAnchor } from './registry';
+import { CLOCK_EPOCH, registerAnchor, registerMeasurer, unregisterAnchor, updateAnchorFrame, updateAnchorLook, type EdgeLens, type MetalAnchor } from './registry';
 
 let effect: ReturnType<typeof Skia.RuntimeEffect.Make> | null = null;
 export function liquidMetalEffect() {
@@ -30,6 +31,15 @@ export function liquidMetalEffect() {
     if (!effect) throw new Error('metal-fx-native: the liquid-metal shader failed to compile');
   }
   return effect;
+}
+
+let lensFx: ReturnType<typeof Skia.RuntimeEffect.Make> | null = null;
+function edgeLensEffect() {
+  if (!lensFx) {
+    lensFx = Skia.RuntimeEffect.Make(EDGE_LENS_SKSL);
+    if (!lensFx) throw new Error('metal-fx-native: the edge-lens shader failed to compile');
+  }
+  return lensFx;
 }
 
 /** Material time in seconds, shared across instances, pause-aware. */
@@ -117,11 +127,14 @@ export function MetalFx({
 
   // Anchor registration for reflections / the edge halo.
   const anchorRef = useRef<MetalAnchor | null>(null);
+  // The screen-edge lens (set by a surrounding MetalEdgeHalo).
+  const lens = useSharedValue<EdgeLens | null>(null);
+  const [lensOn, setLensOn] = useState(false);
   useEffect(() => {
     if (!id) return;
     const a: MetalAnchor = {
       id, frame: { x: 0, y: 0, width: 0, height: 0 }, width: box.width, height: box.height, cornerRadius: radius, ringWidth: ring,
-      kind, material, mapping, opacityMul, isSheet: false, time, field,
+      kind, material, mapping, opacityMul, isSheet: false, time, field, lens, setLensActive: setLensOn,
     };
     anchorRef.current = a;
     registerAnchor(a);
@@ -165,6 +178,36 @@ export function MetalFx({
 
   const uniforms = useDerivedValue(() => materialUniforms(material, mapping, time.value, opacityMul, dpr));
 
+  // Lens uniforms in canvas pt (the box sits at the glow margin); the tint is
+  // the most saturated colour along the facing edge, eased over ~1.5 s.
+  const lensTint = useSharedValue<[number, number, number]>([1, 1, 1]);
+  const lensUniforms = useDerivedValue(() => {
+    const L = lens.value;
+    if (!L) return { edge: 0, edgeCoord: 0, centerAlong: 0, halfLen: 0, depth: 0, intensity: 0, tint: [1, 1, 1], time: 0, displacement: 0 };
+    const { width: W, height: H } = size.value;
+    const t = time.value;
+    let tint: [number, number, number] = [1, 1, 1], best = -1;
+    for (let i = 0; i < 9; i++) {
+      const k = 0.1 + 0.8 * (i / 8);
+      const px = L.edge === 0 ? 0 : L.edge === 1 ? W : W * k;
+      const py = L.edge === 2 ? 0 : L.edge === 3 ? H : H * k;
+      const c = sampleMaterial(material, mapping.ox + px * mapping.sx, mapping.oy + py * mapping.sy, t);
+      const mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]);
+      const score = (mx > 0 ? (mx - mn) / mx : 0) * (0.35 + 0.65 * mx);
+      if (score > best) { best = score; tint = c; }
+    }
+    const peak = Math.max(tint[0], tint[1], tint[2]);
+    if (peak > 0) tint = [tint[0] / peak, tint[1] / peak, tint[2] / peak];
+    const prev = lensTint.value;
+    const k = 1 - Math.exp(-(1 / 60) / 1.5);
+    const sm: [number, number, number] = [prev[0] + (tint[0] - prev[0]) * k, prev[1] + (tint[1] - prev[1]) * k, prev[2] + (tint[2] - prev[2]) * k];
+    lensTint.value = sm;
+    return {
+      edge: L.edge, edgeCoord: L.edgeCoord + GLOW_MARGIN, centerAlong: L.centerAlong + GLOW_MARGIN, halfLen: L.halfLen,
+      depth: L.depth, intensity: L.intensity, tint: sm, time: t, displacement: L.displacement,
+    };
+  });
+
   // Glow: the state machine steps with the clock, on the UI thread.
   const glowState = useSharedValue(initialGlowState());
   const glowFrame = useDerivedValue<GlowFrame | null>(() => {
@@ -194,7 +237,7 @@ export function MetalFx({
     <View ref={viewRef} onLayout={onLayout} style={[{ alignSelf: 'flex-start' }, style]}>
       {box.width > 0 && (
         <Canvas opaque={false} style={{ position: 'absolute', left: -m, top: -m, width: cw, height: ch }} pointerEvents="none">
-          <Group transform={[{ translateX: m }, { translateY: m }]}>
+          <Group transform={[{ translateX: m }, { translateY: m }]} layer={lensOn ? <Paint><RuntimeShader source={edgeLensEffect()} uniforms={lensUniforms} /></Paint> : undefined}>
             <Path path={fillPath} color={surface} />
             <Path path={band}>
               <Shader source={liquidMetalEffect()} uniforms={uniforms} />
@@ -215,9 +258,9 @@ export function MetalFx({
   );
 }
 
-/** The Figma inner shadow: the band minus itself shifted down — done with
- *  clips, not a blurred layer with `dstOut`: a second image-filter layer in
- *  the same canvas made Skia apply the filter to everything drawn before it. */
+/** The Figma inner shadow: the band minus itself shifted down. A plain
+ *  layer with `dstOut` (anti-aliased paths); clips would give jagged edges
+ *  and a blur-filter layer next to the glow's mask leaked over the canvas. */
 export function InnerShadow({ band, offsetY = 1, alpha = 0.9 }: { band: SharedValue<ReturnType<typeof Skia.Path.Make>>; offsetY?: number; alpha?: number }) {
   const shifted = useDerivedValue(() => {
     const p = band.value.copy();
@@ -225,10 +268,9 @@ export function InnerShadow({ band, offsetY = 1, alpha = 0.9 }: { band: SharedVa
     return p;
   });
   return (
-    <Group clip={band}>
-      <Group clip={shifted} invertClip>
-        <Path path={band} color="white" opacity={alpha} />
-      </Group>
+    <Group layer opacity={alpha}>
+      <Path path={band} color="white" />
+      <Path path={shifted} color="white" blendMode="dstOut" />
     </Group>
   );
 }

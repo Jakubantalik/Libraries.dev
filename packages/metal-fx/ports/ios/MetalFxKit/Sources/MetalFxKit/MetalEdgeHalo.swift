@@ -6,13 +6,14 @@ public extension View {
     /// edge and contains a ring with an `id` — a card, a bar, or a screen
     /// root, as long as it is pure SwiftUI (UIKit-backed views such as
     /// `ScrollView` cannot be rasterised into a layer). When that ring sits
-    /// within `reach` of the screen's edge, a strip along the edge refracts
-    /// this view's content toward it and blooms in the metal's colour — light
-    /// from the ring leaving through the glass edge of the display.
+    /// within `reach` of the screen's edge, a strip along the edge pulls
+    /// this view's content toward it like liquid glass — a slowly undulating
+    /// lens with a faint, steady bloom in the metal's colour. Nothing
+    /// flickers: the tint is smoothed and the only motion is the lens.
     ///
     /// While active this is one layer pass over the modified view per frame;
     /// inactive, it costs nothing.
-    func metalEdgeHalo(reach: CGFloat = 72, depth: CGFloat = 34, intensity: Double = 1, displacement: CGFloat = 6) -> some View {
+    func metalEdgeHalo(reach: CGFloat = 72, depth: CGFloat = 40, intensity: Double = 1, displacement: CGFloat = 12) -> some View {
         modifier(MetalEdgeHaloModifier(reach: reach, depth: depth, intensity: intensity, displacement: displacement))
     }
 }
@@ -28,6 +29,22 @@ struct MetalEdgeHaloModifier: ViewModifier {
 
     @ObservedObject private var store = MetalFrameStore.shared
     @State private var hostFrame: CGRect = .zero
+    /// Smoothed tint (exponential, ~1.5 s), so the halo never flickers with
+    /// the material's stripes.
+    @State private var tintState = TintSmoother()
+
+    final class TintSmoother {
+        var tint = SIMD3<Float>(repeating: 1)
+        var last: TimeInterval = 0
+        func update(_ target: SIMD3<Float>, now: TimeInterval) -> SIMD3<Float> {
+            let dt = last > 0 ? min(0.2, max(0.001, now - last)) : 0
+            last = now
+            if dt == 0 { tint = target; return tint }
+            let k = Float(1 - exp(-dt / 1.5))
+            tint += (target - tint) * k
+            return tint
+        }
+    }
 
     struct Candidate {
         var edge: Int            // 0 left, 1 right, 2 top, 3 bottom
@@ -117,6 +134,7 @@ struct MetalEdgeHaloModifier: ViewModifier {
         }
         let peak = max(tint.x, max(tint.y, tint.z))
         if peak > 0 { tint = tint / peak }
+        tint = tintState.update(tint, now: now)
         let hi = c.proximity * intensity * Double(min(1, a.opacityMul + 0.35))
         return ShaderLibrary.bundle(.module).mfxEdgeHalo(
             .float(Double(c.edge)), .float(Double(c.edgeCoord)), .float(Double(c.along)), .float(Double(c.halfLen)),

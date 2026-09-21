@@ -66,8 +66,8 @@ export default function App() {
           </View>
         </View>
 
-        {/* Edge halo: a ring parked against the right edge. */}
-        <View style={[styles.card, styles.row, { height: 120, marginRight: -12, paddingLeft: 24 }]}>
+        {/* Edge halo: a ring parked against the right edge; the card hosts the lens. */}
+        <MetalEdgeHalo style={[styles.card, styles.row, { height: 120, marginRight: -12, paddingLeft: 24 }]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>Edge halo</Text>
             <Text style={styles.cardSub}>Light leaves through the glass edge</Text>
@@ -75,7 +75,7 @@ export default function App() {
           <MetalFx variant="circle" preset={preset} theme="dark" strength={strength} innerShadow id="edge" tiltOverride={tiltOverride} style={{ marginRight: -4 }}>
             <View style={styles.circle}><Text style={styles.arrow}>↑</Text></View>
           </MetalFx>
-        </View>
+        </MetalEdgeHalo>
 
         {/* Controls */}
         <View style={[styles.card, { padding: 16, gap: 14, borderRadius: 20 }]}>
@@ -116,7 +116,6 @@ export default function App() {
         </View>
         <View style={{ height: 24 }} />
       </ScrollView>
-      <MetalEdgeHalo />
     </View>
   );
 }
