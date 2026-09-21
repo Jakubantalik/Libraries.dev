@@ -1,0 +1,47 @@
+{
+  "name": "metal-fx-native",
+  "version": "0.1.0",
+  "description": "Liquid-metal UI for React Native (Skia + Reanimated) \u2014 port of metal-fx v2: ring buttons, metal text, badges, tilt bend, reflections, edge halo",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@shopify/react-native-skia": ">=2.0.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.78.0",
+    "react-native-reanimated": ">=4.0.0",
+    "react-native-worklets": ">=0.5.0"
+  },
+  "devDependencies": {
+    "@shopify/react-native-skia": "^2.12.0",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "react-native": "^0.79.0",
+    "react-native-reanimated": "^4.1.0",
+    "react-native-worklets": "^0.5.0",
+    "typescript": "^5.8.0"
+  },
+  "keywords": [
+    "react-native",
+    "skia",
+    "liquid-metal",
+    "shader",
+    "metal",
+    "button",
+    "glow"
+  ],
+  "author": "Jakub Antalik",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jakubantalik/metal-fx.git",
+    "directory": "ports/react-native/metal-fx-native"
+  }
+}

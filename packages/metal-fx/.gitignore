@@ -6,3 +6,9 @@ dist-playground
 .DS_Store
 *.log
 .wrangler
+ports/ios/MetalFxDemo/build
+ports/ios/**/*.xcodeproj
+ports/react-native/example/ios
+ports/react-native/example/android
+ports/react-native/example/.expo
+ports/react-native/metal-fx-native/lib

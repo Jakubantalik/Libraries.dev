@@ -169,3 +169,21 @@ By default `MetalFx` reads the computed `border-radius` of the wrapped child eac
 ## License
 
 MIT &copy; [Jakub Antalik](https://github.com/Jakubantalik). See [LICENSE](./LICENSE).
+
+## Native ports (v2)
+
+The v2 effect is also available for the phone, in `ports/`:
+
+- **SwiftUI** — `ports/ios/MetalFxKit` (iOS 17+, Metal shader via SwiftUI
+  `colorEffect` / `layerEffect`). `MetalFx`, `MetalText`, `MetalBadge`,
+  `.metalReflection(of:)`, tilt-driven bend, glow, inner shadow, and a
+  screen-edge refraction halo (`.metalEdgeHalo()`). Demo app in
+  `ports/ios/MetalFxDemo` (`./run.sh`).
+- **React Native** — `ports/react-native/metal-fx-native` (react-native-skia +
+  Reanimated 4, everything on the UI thread). Same components; `<MetalReflection>`,
+  `<MetalReflectionText>`, `<MetalEdgeHalo>`. Expo example in
+  `ports/react-native/example`.
+
+Both ports render the same material (Paper's `liquidMetal`, ported to MSL and
+SkSL) with the same presets and tuning as the web; there is no cursor on a
+phone, so the cursor light is web-only and the phone's tilt plays the pointer.
