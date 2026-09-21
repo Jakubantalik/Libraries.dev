@@ -416,11 +416,93 @@ export function MetalStudioV2({
   const importLine = `import { ${[...imports].join(", ")} } from 'metal-fx';`;
   const snippet = [importLine, "", ...(configLines.length ? [...configLines, ""] : []), body].join("\n");
 
+  // Native ports — the same look on the phone (ports/ in the metal-fx repo).
+  // Per-instance props travel; the engine-wide knobs map to the ports'
+  // config structs only when touched.
+  let rnBody: string;
+  let swiftBody: string;
+  if (isRing(type)) {
+    const rnProps = [`preset="${preset}"`];
+    if (type === "circle") rnProps.push(`variant="circle"`);
+    if (s !== 1) rnProps.push(`strength={${num(s)}}`);
+    if (scaleTouched) rnProps.push(`shaderScale={${num(shaderScale)}}`);
+    if (ringTouched) rnProps.push(`ringWidth={${num(ring)}}`);
+    if (innerShadow) rnProps.push("innerShadow");
+    if (disableGlow) rnProps.push("glow={false}");
+    if (noBend) rnProps.push("tilt={false}");
+    if (!disableReflection) rnProps.push(`id="ring"`);
+    const rnChild = type === "circle" ? `  <View style={{ width: 40, height: 40 }}><ArrowUp /></View>` : `  <Text style={styles.label}>Upgrade to Pro</Text>`;
+    rnBody = `<MetalFx ${rnProps.join(" ")}>\n${rnChild}\n</MetalFx>${disableReflection ? "" : `\n<MetalReflection of="ring"><Chip /></MetalReflection>`}`;
+    const swArgs = [`variant: .${type === "circle" ? "circle" : "button"}`, `preset: .${preset}`];
+    if (s !== 1) swArgs.push(`strength: ${num(s)}`);
+    if (scaleTouched) swArgs.push(`shaderScale: ${num(shaderScale)}`);
+    if (ringTouched) swArgs.push(`ringWidth: ${num(ring)}`);
+    if (innerShadow) swArgs.push("innerShadow: true");
+    if (disableGlow) swArgs.push("glow: false");
+    if (noBend) swArgs.push("tilt: false");
+    if (!disableReflection) swArgs.push(`id: "ring"`);
+    const swChild = type === "circle" ? `    Image(systemName: "arrow.up").frame(width: 40, height: 40)` : `    Text("Upgrade to Pro").padding(.horizontal, 18).frame(height: 40)`;
+    swiftBody = `MetalFx(${swArgs.join(", ")}) {\n${swChild}\n}${disableReflection ? "" : `\nText("Auto").metalReflection(of: "ring")`}`;
+  } else if (type === "text") {
+    const rnProps = [`fontSize={24}`, `fontWeight="500"`];
+    if (s !== 1) rnProps.push(`strength={${num(s)}}`);
+    if (opacityTouched) rnProps.push(`metalOpacity={${num(metalOpacity)}}`);
+    if (scaleTouched) rnProps.push(`shaderScale={${num(shaderScale)}}`);
+    if (!innerShadow) rnProps.push("innerShadow={false}");
+    if (textGlow) rnProps.push(textGlowGain !== METAL_TEXT_DEFAULTS.glowGain ? `glow glowGain={${num(textGlowGain)}}` : "glow");
+    if (!disableReflection) rnProps.push(`id="pro"`);
+    rnBody = `${disableReflection ? "" : `<MetalReflectionText of="pro" strength={0.64}>Plan</MetalReflectionText>\n`}<MetalText ${rnProps.join(" ")}>Pro</MetalText>`;
+    const swArgs = [`"Pro"`];
+    if (s !== 1) swArgs.push(`strength: ${num(s)}`);
+    if (opacityTouched) swArgs.push(`metalOpacity: ${num(metalOpacity)}`);
+    if (scaleTouched) swArgs.push(`shaderScale: ${num(shaderScale)}`);
+    if (!innerShadow) swArgs.push("innerShadow: false");
+    if (textGlow) { swArgs.push("glow: true"); if (textGlowGain !== METAL_TEXT_DEFAULTS.glowGain) swArgs.push(`glowGain: ${num(textGlowGain)}`); }
+    if (!disableReflection) swArgs.push(`id: "pro"`);
+    swiftBody = `${disableReflection ? "" : `Text("Plan").metalReflection(of: "pro", strength: 0.64, style: .glyphs)\n`}MetalText(${swArgs.join(", ")})`;
+  } else {
+    const rnProps: string[] = [];
+    if (s !== 1) rnProps.push(`strength={${num(s)}}`);
+    if (opacityTouched) rnProps.push(`metalOpacity={${num(metalOpacity)}}`);
+    if (scaleTouched) rnProps.push(`shaderScale={${num(shaderScale)}}`);
+    if (badgeGradient !== METAL_BADGE_DEFAULTS.gradient) rnProps.push(`gradient={${num(badgeGradient)}}`);
+    if (badgeGlow !== METAL_BADGE_DEFAULTS.glow) rnProps.push(`glow={${num(badgeGlow)}}`);
+    rnBody = `<MetalBadge${rnProps.length ? " " + rnProps.join(" ") : ""}>New</MetalBadge>`;
+    const swArgs = [`"New"`];
+    if (s !== 1) swArgs.push(`strength: ${num(s)}`);
+    if (opacityTouched) swArgs.push(`metalOpacity: ${num(metalOpacity)}`);
+    if (scaleTouched) swArgs.push(`shaderScale: ${num(shaderScale)}`);
+    if (badgeGradient !== METAL_BADGE_DEFAULTS.gradient) swArgs.push(`gradient: ${num(badgeGradient)}`);
+    if (badgeGlow !== METAL_BADGE_DEFAULTS.glow) swArgs.push(`glow: ${num(badgeGlow)}`);
+    swiftBody = `MetalBadge(${swArgs.join(", ")})`;
+  }
+  const rnImports = isRing(type) ? ["MetalFx", ...(disableReflection ? [] : ["MetalReflection"])] : type === "text" ? ["MetalText", ...(disableReflection ? [] : ["MetalReflectionText"])] : ["MetalBadge"];
+  const rnSnippet = `import { ${rnImports.join(", ")} } from 'metal-fx-native';\n\n${rnBody}`;
+  const swiftSnippet = `import MetalFxKit\n\n${swiftBody}`;
+  const platforms = [
+    {
+      id: "rn",
+      label: "React Native",
+      installTitle: "Install metal-fx-native with Skia, Reanimated 4 and Worklets",
+      install: "npm install metal-fx-native @shopify/react-native-skia react-native-reanimated react-native-worklets",
+      note: "metal-fx-native is not on npm yet — it lives in the metal-fx repo at ports/react-native/metal-fx-native. Expo needs expo run:ios / run:android (native modules). Tilt bends the rings; no cursor on a phone.",
+      usage: rnSnippet,
+    },
+    {
+      id: "swift",
+      label: "Swift UI",
+      installTitle: "Add MetalFxKit as a local Swift package (iOS 17+)",
+      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…\n.package(path: "ports/ios/MetalFxKit")`,
+      note: "Build through Xcode: the Metal shader is compiled by Xcode's build system, not by SwiftPM alone. Tilt bends the rings; .metalEdgeHalo() refracts a card through the screen edge.",
+      usage: swiftSnippet,
+    },
+  ];
+
   const stageStrength = s;
 
   return (
     <div className="pg">
-      <StageBar library="Metal" prompt={{ pkg: "metal-fx", docsPath: "/metal.html", snippet }} agent={{ libraryId: "metal", params: agentParams, labels: LABELS, onApply: applyAgentParams }} />
+      <StageBar library="Metal" prompt={{ pkg: "metal-fx", docsPath: "/metal.html", snippet, platforms }} agent={{ libraryId: "metal", params: agentParams, labels: LABELS, onApply: applyAgentParams }} />
       <div className="pg-stage">
         {visible && isRing(type) && (
           <RingStage
