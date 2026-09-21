@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { PixelRatio, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
-import { Blur, Canvas, Group, Paint, RadialGradient, Rect, RoundedRect, Shader, Text, rect, rrect, vec, LinearGradient } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Mask, Paint, RadialGradient, Rect, RoundedRect, Shader, Text, rect, rrect, vec, LinearGradient } from '@shopify/react-native-skia';
 import { useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { liquidMetalEffect, useMetalTime } from './MetalFx';
 import { materialUniforms, presetMaterial, sheetMapping, type MetalPreset, type MetalTheme } from './material';
@@ -91,30 +91,30 @@ export function MetalBadge({
         <RoundedRect rect={pill}>
           <Shader source={liquidMetalEffect()} uniforms={uniforms} />
         </RoundedRect>
-        {/* Clean white core: CSS radial-gradient(ellipse size% size%, white r%, transparent (r+blur)%). */}
-        <Group clip={pill} opacity={core.a} transform={[{ translateX: w / 2 }, { translateY: h / 2 }, { scaleY: ry / rx }, { translateX: -w / 2 }, { translateY: -h / 2 }]}>
-          <Rect x={-w} y={-h * 4} width={w * 3} height={h * 9}>
-            <RadialGradient c={vec(w / 2, h / 2)} r={rx} colors={['white', 'white', 'rgba(255,255,255,0)']} positions={[0, core.r / 100, Math.min(1, (core.r + core.blur) / 100)]} />
-          </Rect>
-        </Group>
-        <RoundedRect rect={pill}>
-          <LinearGradient start={vec(0, 0)} end={vec(0, h)} colors={[`rgba(255,255,255,${gradient})`, 'rgba(255,255,255,0)']} />
-        </RoundedRect>
-        {/* Inset glows: two 8.333-pt white inner glows. */}
-        <Group clip={pill}>
+        {/* Everything inside the pill goes through one alpha mask (RN Skia
+            clips are not anti-aliased). */}
+        <Mask mode="alpha" mask={<RoundedRect rect={pill} color="white" />}>
+          {/* Clean white core: CSS radial-gradient(ellipse size% size%, white r%, transparent (r+blur)%). */}
+          <Group opacity={core.a} transform={[{ translateX: w / 2 }, { translateY: h / 2 }, { scaleY: ry / rx }, { translateX: -w / 2 }, { translateY: -h / 2 }]}>
+            <Rect x={-w} y={-h * 4} width={w * 3} height={h * 9}>
+              <RadialGradient c={vec(w / 2, h / 2)} r={rx} colors={['white', 'white', 'rgba(255,255,255,0)']} positions={[0, core.r / 100, Math.min(1, (core.r + core.blur) / 100)]} />
+            </Rect>
+          </Group>
+          <RoundedRect rect={pill}>
+            <LinearGradient start={vec(0, 0)} end={vec(0, h)} colors={[`rgba(255,255,255,${gradient})`, 'rgba(255,255,255,0)']} />
+          </RoundedRect>
+          {/* Inset glows: two 8.333-pt white inner glows. */}
           <Group layer={<Paint><Blur blur={8.333 * 0.5 * k} /></Paint>}>
             <RoundedRect rect={pill} style="stroke" strokeWidth={8.333 * 2 * k} color={`rgba(255,255,255,${glow})`} />
             <RoundedRect rect={pill} style="stroke" strokeWidth={8.333 * 2 * k} color={`rgba(255,255,255,${glow})`} />
           </Group>
-        </Group>
-        {/* Hairline .833 at 50 %, and the top rim .833 at 78 %. */}
-        <Group clip={pill}>
+          {/* Hairline .833 at 50 %, and the top rim .833 at 78 %. */}
           <RoundedRect rect={pill} style="stroke" strokeWidth={0.833 * 2 * k} color="rgba(255,255,255,0.5)" />
           <Group opacity={0.78} layer>
             <RoundedRect rect={pill} color="white" />
             <RoundedRect rect={pill} color="white" blendMode="dstOut" transform={[{ translateY: 0.833 * k }]} />
           </Group>
-        </Group>
+        </Mask>
         <Text x={(w - tw) / 2} y={baseline} text={text} font={font} color={textColor} />
       </Canvas>
     </View>

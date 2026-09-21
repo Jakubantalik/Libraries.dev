@@ -186,14 +186,24 @@ half4 main(float2 pos) {
 `;
 
 /**
- * The screen-edge halo as a runtime shader: a soft, metal-coloured bloom
- * along one screen edge with a chromatic drift. Drawn additively over the
- * app; a true refraction of RN views is not possible from a Skia overlay,
- * so the lens term is applied to the strip's own light only.
+ * The screen-edge halo as a runtime shader over a snapshot of the host view
+ * (`content`): a strip along one screen edge pulls the content toward the
+ * edge like liquid glass (a slowly undulating lens with a small chromatic
+ * split) and adds a faint, steady bloom in the metal's colour. Outside the
+ * strip, and over the ring's own box (`hole`), it is transparent so the
+ * live views show through. Coordinates are the host's.
  *
- *   edge: 0 left, 1 right, 2 top, 3 bottom; coordinates are the overlay's.
+ *   edge: 0 left, 1 right, 2 top, 3 bottom
  */
-export const EDGE_HALO_SKSL = `
+/**
+ * The screen-edge lens, an image filter over a ring's own canvas. Near the
+ * screen's edge the strip of the ring facing it is pulled toward the edge
+ * like liquid glass — a slow undulation, a slight chromatic split and a
+ * faint tint in the metal's colour. Coordinates are the canvas's local pt
+ * (Skia evaluates runtime image filters under the canvas transform).
+ */
+export const EDGE_LENS_SKSL = `
+uniform shader image;
 uniform float edge;
 uniform float edgeCoord;
 uniform float centerAlong;
@@ -202,31 +212,40 @@ uniform float depth;
 uniform float intensity;
 uniform float3 tint;
 uniform float time;
+uniform float displacement;
 
 float ss(float e0, float e1, float x) { return smoothstep(e0, max(e1, e0 + 1e-6), x); }
 
 half4 main(float2 pos) {
   float n, along;
-  if (edge < 0.5)      { n = pos.x - edgeCoord; along = pos.y; }
-  else if (edge < 1.5) { n = edgeCoord - pos.x; along = pos.y; }
-  else if (edge < 2.5) { n = pos.y - edgeCoord; along = pos.x; }
-  else                 { n = edgeCoord - pos.y; along = pos.x; }
+  float2 inward;
+  if (edge < 0.5)      { n = pos.x - edgeCoord; along = pos.y; inward = float2(1.0, 0.0); }
+  else if (edge < 1.5) { n = edgeCoord - pos.x; along = pos.y; inward = float2(-1.0, 0.0); }
+  else if (edge < 2.5) { n = pos.y - edgeCoord; along = pos.x; inward = float2(0.0, 1.0); }
+  else                 { n = edgeCoord - pos.y; along = pos.x; inward = float2(0.0, -1.0); }
   float da = abs(along - centerAlong);
-  if (intensity <= 0.001 || n > depth || n < -0.5 || da > halfLen) return half4(0.0);
+  if (intensity <= 0.001 || n > depth || da > halfLen) return image.eval(pos);
+
   float q = 1.0 - clamp(n / depth, 0.0, 1.0);
   float p = 1.0 - ss(0.0, 1.0, da / halfLen);
   p = p * p;
-  float shimmer = 0.85 + 0.15 * sin(along * 0.11 + time * 1.7) * sin(along * 0.037 - time * 0.9);
-  float bloom = pow(q, 1.6) * p * intensity * shimmer;
-  float rim = ss(0.86, 1.0, q) * p * intensity;
+  if (displacement < -0.5) return half4(half(q), half(p), 0.0, 1.0);
+
+  // Two slow waves along the edge, never in phase: an undulation, no pulse.
+  float wobble = 1.0 + 0.30 * sin(along * 0.055 + time * 0.7) * cos(along * 0.021 - time * 0.45);
+  float w = pow(q, 1.6) * p * intensity * wobble;
+  float disp = displacement * w;
+  half4 sR = image.eval(pos + inward * disp * 0.98);
+  half4 sG = image.eval(pos + inward * disp);
+  half4 sB = image.eval(pos + inward * disp * 1.02);
+  half4 s = half4(sR.r, sG.g, sB.b, sG.a);
+
+  // A faint, steady tint where the strip meets the edge.
+  float bloom = pow(q, 2.2) * p * intensity;
   float lum = dot(tint, float3(0.2126, 0.7152, 0.0722));
-  float3 sat = clamp(lum + (tint - lum) * 2.6, 0.0, 1.0);
-  float3 glow = sat * (0.8 * bloom) + float3(1.0) * (0.10 * rim);
-  float hue = along * 0.02 + time * 0.35;
-  float3 drift = 0.5 + 0.5 * float3(sin(hue), sin(hue + 2.094), sin(hue + 4.189));
-  float3 fringe = (float3(ss(0.15, 0.75, q), ss(0.35, 0.95, q), ss(0.0, 0.55, q)) * 0.6 + drift * 0.4) * 0.28 * bloom;
-  float3 add = glow + fringe;
-  float a = min(1.0, 0.9 * bloom + rim);
-  return half4(half3(add), half(a));
+  float3 sat = clamp(lum + (tint - lum) * 1.8, 0.0, 1.0);
+  float3 rgb = float3(s.rgb) + sat * (0.07 * bloom);
+  float a = max(float(s.a), min(1.0, float(s.a) + 0.18 * bloom));
+  return half4(half3(min(rgb, float3(a))), half(a));
 }
 `;

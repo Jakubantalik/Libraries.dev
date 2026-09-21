@@ -146,7 +146,6 @@ function SurfaceLayer({ anchor, frame, strength, cornerRadius }: { anchor: Metal
   const L = useMemo(() => layoutFor(anchor, frame, strength, false), [anchor, anchor.frame, frame, strength]);
   const { path, uniforms } = useSource(anchor, L);
   const tW = frame.width, tH = frame.height;
-  const shape = useMemo(() => { const p = Skia.Path.Make(); p.addRRect(Skia.RRectXY(rect(0, 0, tW, tH), cornerRadius, cornerRadius)); return p; }, [tW, tH, cornerRadius]);
   const edgeBand = useCallback((width: number) => {
     const p = Skia.Path.Make();
     p.addRRect(Skia.RRectXY(rect(0, 0, tW, tH), cornerRadius, cornerRadius));
@@ -163,20 +162,24 @@ function SurfaceLayer({ anchor, frame, strength, cornerRadius }: { anchor: Metal
   );
   return (
     <Canvas opaque={false} style={{ position: 'absolute', left: 0, top: 0, width: tW, height: tH }} pointerEvents="none">
-      <Group clip={shape}>
-        {/* Fill: the mirrored band in the edge strip, blurred and lifted. */}
-        <Group clip={edgeBand(RANGE_PX + FILL_BLUR * 3)} layer={<Paint><Blur blur={FILL_BLUR} /><ColorMatrix matrix={saturateBrighten(1.2, 1.58)} /></Paint>}>
+      {/* Edge bands as alpha masks (RN Skia clips are not anti-aliased);
+          both bands lie inside the rounded rect, so no outer clip. */}
+      {/* Fill: the mirrored band in the edge strip, blurred and lifted. */}
+      <Mask mode="alpha" mask={<Path path={edgeBand(RANGE_PX + FILL_BLUR * 3)} color="white" />}>
+        <Group layer={<Paint><Blur blur={FILL_BLUR} /><ColorMatrix matrix={saturateBrighten(1.2, 1.58)} /></Paint>}>
           <Mask mode="alpha" mask={gradient}><Passes total={fillAlpha} path={path} uniforms={uniforms} /></Mask>
         </Group>
-        {/* Stroke: a hairline of it just inside the edge. */}
-        <Group clip={edgeBand(1)} layer={<Paint><ColorMatrix matrix={saturateBrighten(1.35, 1.75)} /></Paint>}>
+      </Mask>
+      {/* Stroke: a hairline of it just inside the edge. */}
+      <Mask mode="alpha" mask={<Path path={edgeBand(1)} color="white" />}>
+        <Group layer={<Paint><ColorMatrix matrix={saturateBrighten(1.35, 1.75)} /></Paint>}>
           <Mask mode="alpha" mask={gradient}><Passes total={L.reflectionAlpha * STROKE_EXTRA_ALPHA} path={path} uniforms={uniforms} /></Mask>
         </Group>
-        {/* Border highlight. */}
-        <Mask mode="alpha" mask={gradient}>
-          <Path path={edgeBand(1)} color="white" opacity={Math.min(0.85, BORDER_HILITE_ALPHA * L.reflectionAlpha)} />
-        </Mask>
-      </Group>
+      </Mask>
+      {/* Border highlight. */}
+      <Mask mode="alpha" mask={gradient}>
+        <Path path={edgeBand(1)} color="white" opacity={Math.min(0.85, BORDER_HILITE_ALPHA * L.reflectionAlpha)} />
+      </Mask>
     </Canvas>
   );
 }

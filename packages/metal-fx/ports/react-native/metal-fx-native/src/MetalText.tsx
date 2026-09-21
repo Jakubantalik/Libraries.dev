@@ -158,11 +158,10 @@ export function MetalText({
             </Group>
           )}
           {innerShadow && (
-            // Glyphs minus themselves shifted down, by clips (see InnerShadow).
-            <Group clip={glyphPath}>
-              <Group clip={glyphPathShifted} invertClip>
-                <Path path={glyphPath} color="white" opacity={0.9} />
-              </Group>
+            // Glyphs minus themselves shifted down (see InnerShadow).
+            <Group layer opacity={0.9}>
+              <Path path={glyphPath} color="white" />
+              <Path path={glyphPathShifted} color="white" blendMode="dstOut" />
             </Group>
           )}
         </Group>

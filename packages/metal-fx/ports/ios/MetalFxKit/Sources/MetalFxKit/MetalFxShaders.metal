@@ -231,20 +231,22 @@ static float4 mfx_material(float2 uv, float2 dither, float time,
     return half4(half3(m.rgb * k), half(m.a * k));
 }
 
-// Screen-edge halo (SwiftUI `layerEffect`, applied at the screen root).
+// Screen-edge halo (SwiftUI `layerEffect`, applied to the view touching the edge).
 //
-// Light from a ring sitting close to the display's edge refracts through the
-// glass edge: content in a strip along that edge is pulled toward it (a lens
-// profile, with a small chromatic split) and a soft, metal-tinted glow blooms
-// from the edge. Outside the strip every pixel is a single pass-through
-// sample.
+// Light from a ring near the display's edge leaves through the glass edge:
+// content in a strip along that edge is pulled toward it like liquid (a lens
+// profile that slowly undulates along the edge, with a small chromatic
+// split), plus a faint, steady bloom in the metal's colour. Nothing
+// flickers: the tint is smoothed on the CPU and the only motion is the slow
+// wobble of the lens.
 //
 //   edge: 0 left, 1 right, 2 top, 3 bottom (of the screen)
 //   edgeCoord: the screen edge's x (or y), in the layer's coordinates
 //   centerAlong / halfLen: the strip's extent along the edge, points
 //   depth: strip thickness, points
 //   intensity: 0..1 (proximity)
-//   tint: the metal's colour at the facing point, 0..1
+//   tint: the metal's colour at the facing point, 0..1, smoothed
+//   displacement: peak pull toward the edge, points (negative: debug)
 [[ stitchable ]] half4 mfxEdgeHalo(float2 position, SwiftUI::Layer layer,
                                    float edge, float edgeCoord, float centerAlong, float halfLen, float depth,
                                    float intensity, float3 tint, float time, float displacement) {
@@ -261,38 +263,26 @@ static float4 mfx_material(float2 uv, float2 dither, float time,
     float q = 1.0 - clamp(n / depth, 0.0, 1.0);          // 1 at the edge → 0 inside
     float p = 1.0 - mfx_ss(0.0, 1.0, da / halfLen);      // along-edge falloff
     p = p * p;
-    if (displacement < 0.0) return half4(half(q), half(p), 0.0h, 1.0h);   // debug: geometry
-    float w = q * q * p * intensity;
+    if (displacement < -0.5) return half4(half(q), half(p), 0.0h, 1.0h);   // debug: geometry
 
-    // Lens: pull samples toward the edge, more the closer to it, with a
-    // slight chromatic split (blue bends more).
+    // Liquid lens: pull toward the edge, strongest at the edge, slowly
+    // undulating along it (two slow waves, never in phase — no pulse).
+    float wobble = 1.0 + 0.30 * sin(along * 0.055 + time * 0.7) * cos(along * 0.021 - time * 0.45);
+    float w = pow(q, 1.6) * p * intensity * wobble;
     float disp = displacement * w;
-    float2 pR = position + inward * disp * 0.92;
+    float2 pR = position + inward * disp * 0.98;
     float2 pG = position + inward * disp;
-    float2 pB = position + inward * disp * 1.08;
+    float2 pB = position + inward * disp * 1.02;
     half4 sR = layer.sample(pR);
     half4 sG = layer.sample(pG);
     half4 sB = layer.sample(pB);
     half4 s = half4(sR.r, sG.g, sB.b, sG.a);
-    if (displacement < -2.5) return s;                                        // debug: lens only
 
-    // Bloom from the edge, in the metal's colour, with a slow shimmer along it.
-    float shimmer = 0.85 + 0.15 * sin(along * 0.11 + time * 1.7) * sin(along * 0.037 - time * 0.9);
-    float bloom = pow(q, 1.6) * p * intensity * shimmer;
-    float rim = mfx_ss(0.86, 1.0, q) * p * intensity;
-    // Push the tint's saturation: the glass edge splits the light.
+    // A faint, steady tint in the metal's colour where the strip meets the edge.
+    float bloom = pow(q, 2.2) * p * intensity;
     float lum = dot(tint, float3(0.2126, 0.7152, 0.0722));
-    float3 sat = clamp(lum + (tint - lum) * 2.6, 0.0, 1.0);
-    float3 glow = sat * (0.8 * bloom) + float3(1.0) * (0.10 * rim);
-    // Chromatic fringe across the strip: the hue drifts with depth, and
-    // slowly along the edge, so the bloom reads as split light.
-    float hue = along * 0.02 + time * 0.35;
-    float3 drift = 0.5 + 0.5 * float3(sin(hue), sin(hue + 2.094), sin(hue + 4.189));
-    float3 fringe = (float3(mfx_ss(0.15, 0.75, q), mfx_ss(0.35, 0.95, q), mfx_ss(0.0, 0.55, q)) * 0.6 + drift * 0.4) * 0.28 * bloom;
-    float3 add = glow + fringe;
-    if (displacement < -1.5) return half4(half3(add), half(min(1.0, 0.9 * bloom + rim)));   // debug: glow only
-
-    float3 rgb = float3(s.rgb) + add;
-    float a = max(float(s.a), min(1.0, float(s.a) + 0.9 * bloom + rim));
-    return half4(half3(rgb), half(a));
+    float3 sat = clamp(lum + (tint - lum) * 1.8, 0.0, 1.0);
+    float3 rgb = float3(s.rgb) + sat * (0.07 * bloom);
+    float a = max(float(s.a), min(1.0, float(s.a) + 0.18 * bloom));
+    return half4(half3(min(rgb, float3(a))), half(a));
 }
