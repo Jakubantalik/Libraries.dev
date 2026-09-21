@@ -317,6 +317,16 @@
                together under their own titles, as the Studio's Install & Usage does. -->
           <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
           <div class="st-stage-panel">
+          <!-- Ports, as the Studio's Install & Usage has them: the row swaps
+               the whole install+usage pair rather than a single block. -->
+          <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="react" aria-selected="true" data-active="true">React</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="rn" aria-selected="false">React Native</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="false">Swift UI</button>
+          </div>
+
+          <div class="detail-platform" data-platform="react">
+
           
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
@@ -353,6 +363,84 @@
               </button>
             </div>
             </div>
+          </div>
+          <div class="detail-platform" data-platform="rn" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>npm install metal-fx-native @shopify/react-native-skia react-native-reanimated react-native-worklets</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">metal-fx-native is not on npm yet — it lives in the metal-fx repo at ports/react-native/metal-fx-native (Skia + Reanimated 4, UI-thread). Expo needs expo run:ios / run:android (native modules). Tilt bends the rings; there is no cursor on a phone.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import { MetalFx, MetalText, MetalBadge, MetalReflection, MetalEdgeHalo } from &#x27;metal-fx-native&#x27;;
+
+&lt;MetalFx variant=&quot;circle&quot; preset=&quot;chromatic&quot; strength={0.9} innerShadow id=&quot;send&quot;&gt;
+  &lt;View style={{ width: 40, height: 40 }}&gt;&lt;ArrowUp /&gt;&lt;/View&gt;
+&lt;/MetalFx&gt;
+&lt;MetalReflection of=&quot;send&quot;&gt;&lt;Chip label=&quot;Auto&quot; /&gt;&lt;/MetalReflection&gt;
+
+&lt;MetalText fontSize={24} fontWeight=&quot;500&quot;&gt;Pro&lt;/MetalText&gt;
+&lt;MetalBadge&gt;New&lt;/MetalBadge&gt;
+&lt;MetalEdgeHalo style={styles.card}&gt;…a ring with an id…&lt;/MetalEdgeHalo&gt;  // the card at the screen edge: the ring is pulled toward it like liquid</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
+          <div class="detail-platform" data-platform="swift" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
+.package(path: &quot;ports/ios/MetalFxKit&quot;)</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">iOS 17+. Build through Xcode: the Metal shader is compiled by Xcode&#x27;s build system, not by SwiftPM alone. Tilt bends the rings; the edge halo refracts the card&#x27;s content through the glass edge.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import MetalFxKit
+
+MetalFx(variant: .circle, preset: .chromatic, strength: 0.9, innerShadow: true, id: &quot;send&quot;) {
+    Image(systemName: &quot;arrow.up&quot;).frame(width: 40, height: 40)
+}
+Text(&quot;Auto&quot;).metalReflection(of: &quot;send&quot;)
+
+MetalText(&quot;Pro&quot;)
+MetalBadge(&quot;New&quot;)
+card.metalEdgeHalo()   // on the view touching the screen edge</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
           </div>
         </div>
 </div>

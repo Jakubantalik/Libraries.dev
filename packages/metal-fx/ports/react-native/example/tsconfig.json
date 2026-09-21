@@ -1,0 +1,12 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "metal-fx-native": [
+        "../metal-fx-native/src"
+      ]
+    },
+    "baseUrl": "."
+  }
+}
