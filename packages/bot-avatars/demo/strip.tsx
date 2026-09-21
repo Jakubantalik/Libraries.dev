@@ -52,6 +52,7 @@ export function Strip({
       shading: 'plastic' as const,
       typeKey: type,
       still: true,
+      whirl: { strength: 1, size: 1, width: 1, length: 1, tilt: 1 },
       parts: botAvatarParts[type] ? new Path2D(botAvatarParts[type] as string) : undefined,
     };
     const sim = new BotAvatarSim(seed, from ?? state);

@@ -123,8 +123,10 @@ drawBotAvatarFrame(ctx, 64, sim.pose, {
   path: new Path2D(botAvatarShapes.clover),
   ...botAvatarPresets.clover, // face, faceX, faceY, faceScale, color
   ink: autoInk(botAvatarPresets.clover.color),
-  shading: true,
-}); // on a canvas 64 * BOT_AVATAR_OVERSCAN px square
+  shading: 'plastic',
+  dpr: devicePixelRatio, // the scale the context is set to (optional; else read from the context)
+  sides: 'auto', // plastic's side slices: 'vector' fills, or 'sprite' blits (what WebKit gets by default)
+}); // on a canvas 64 * BOT_AVATAR_OVERSCAN * devicePixelRatio px square
 ```
 
 In `plastic` the first frame of a new type bakes its form (a few ms, done on idle time when an animation loop is running; the smooth look stands in until then). `warmBotAvatarPlastic(type, path, devicePx)` bakes ahead of time.
@@ -135,11 +137,11 @@ By default an avatar's eyes and head follow a pointer that comes within a few he
 
 ## The whirl
 
-A spin — the idle jump, a click, the working spin hop — draws a puff of motion round the body: one tapered trail on a tilted ring, made of the body's own material as a translucent plastic tube, lit from the same light, passing behind the body on the far side and over the face on the near side, where it casts a soft shadow. It is only there while the turn is under way, and it is already moving when it appears.
+Off by default. With `whirl` set, a spin — the idle jump, a click, the working spin hop — draws a puff of motion round the body: one tapered trail on a tilted ring, made of the body's own material as a translucent plastic tube, lit from the same light, passing behind the body on the far side and over the face on the near side, where it casts a soft shadow. It is only there while the turn is under way, and it is already moving when it appears.
 
 ```tsx
 <BotAvatar
-  whirl={1.2}         // 0–2 strength; 0 turns it off
+  whirl={1}           // 0–2 strength; off by default
   whirlSize={1.1}     // 0.6–1.6 ring size
   whirlWidth={0.8}    // 0.4–2 trail thickness
   whirlLength={1.3}   // 0.4–1.6 trail length round the ring

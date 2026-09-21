@@ -68,7 +68,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
   const [interactive, setInteractive] = useState(true);
-  const [whirl, setWhirl] = useState(100);
+  const [whirl, setWhirl] = useState(0);
   const [whirlSize, setWhirlSize] = useState(100);
   const [whirlWidth, setWhirlWidth] = useState(100);
   const [whirlLength, setWhirlLength] = useState(100);
@@ -116,7 +116,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if (!interactive) props.push("interactive={false}");
-  if (whirl !== 100) props.push(`whirl={${num(whirl / 100)}}`);
+  if (whirl !== 0) props.push(`whirl={${num(whirl / 100)}}`);
   if (whirlSize !== 100) props.push(`whirlSize={${num(whirlSize / 100)}}`);
   if (whirlWidth !== 100) props.push(`whirlWidth={${num(whirlWidth / 100)}}`);
   if (whirlLength !== 100) props.push(`whirlLength={${num(whirlLength / 100)}}`);

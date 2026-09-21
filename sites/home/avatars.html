@@ -356,7 +356,7 @@ Props:
 - shadow (default 0.35), highlight (1.3): 0–2 intensities; light: degrees clockwise from the top (265, from the left); depth: 0.2–2 body thickness (0.65); rim: 0–2 Fresnel strength in plastic, rim width in crisp (0.5); spread: 0.4–2.5 highlight width in plastic, reach of the soft shading in smooth (1.55)
 - interactive: true by default — the eyes and head follow a pointer nearby and a click makes the avatar hop and turn round; false turns it off
 - theme: "auto" (default, from an ancestor data-theme / dark / light class, then prefers-color-scheme) | "dark" | "light" — the surface the avatar sits on
-- whirl (0–2 strength, 0 off), whirlSize (0.6–1.6), whirlWidth (0.4–2), whirlLength (0.4–1.6), whirlTilt (0.5–1.8): the motion ring round a spin, a translucent tube of the body's own plastic
+- whirl (0–2 strength, off by default, 1 turns it on), whirlSize (0.6–1.6), whirlWidth (0.4–2), whirlLength (0.4–1.6), whirlTilt (0.5–1.8): the motion ring round a spin, a translucent tube of the body's own plastic
 
 Bot avatars draws each avatar on a 2D canvas as a lit, rounded extrusion
 of a vector shape — a simple 3D head that turns, hops and flips — with a

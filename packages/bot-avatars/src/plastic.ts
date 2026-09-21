@@ -310,18 +310,6 @@ export function rasterize(path: Path2D, N: number): Uint8ClampedArray | null {
 }
 
 /* the shared scratch canvases, one per texture size */
-const scratch = new Map<number, { c: AnyCanvas; g: CanvasRenderingContext2D; owner: unknown; key: string }>();
-function scratchFor(N: number) {
-  let s = scratch.get(N);
-  if (!s) {
-    const c = makeCanvas(N);
-    const g = c && ctx2d(c, false);
-    if (!c || !g) return null;
-    s = { c, g, owner: null, key: '' };
-    scratch.set(N, s);
-  }
-  return s;
-}
 
 /* ── the form cache, with deferred builds ──────────────────────────── */
 
@@ -334,10 +322,27 @@ function pathId(p: Path2D): string {
   if (!id) pathIds.set(p, (id = `p${nextPathId++}`));
   return id;
 }
-function idle(fn: () => void) {
+/* bakes run one per idle slot (or one per timeout where there is no
+   requestIdleCallback, as in Safari), so a page full of types never
+   stacks all of them into one frame */
+const queue: (() => void)[] = [];
+let scheduled = false;
+function pump() {
+  scheduled = false;
+  const fn = queue.shift();
+  if (fn) fn();
+  if (queue.length) schedule();
+}
+function schedule() {
+  if (scheduled) return;
+  scheduled = true;
   const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
-  if (ric) ric(fn, { timeout: 120 });
-  else setTimeout(fn, 0);
+  if (ric) ric(pump, { timeout: 120 });
+  else setTimeout(pump, 16);
+}
+function idle(fn: () => void) {
+  queue.push(fn);
+  schedule();
 }
 /** The form for an outline, built now (`sync`) or on idle time (null until then). */
 function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: boolean): Form | null {
@@ -457,6 +462,9 @@ export function buildMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
     for (let i = 0; i < M; i++) {
       let nx = (i / (M - 1)) * 2 - 1, ny = (j / (M - 1)) * 2 - 1;
       let r2 = nx * nx + ny * ny;
+      /* samples lie inside the unit disc and read one cell beyond it at
+         most: the corners are never read */
+      if (r2 > 1.14) continue;
       if (r2 > 1) {
         const s = 1 / Math.sqrt(r2);
         nx *= s; ny *= s; r2 = 1;
@@ -530,6 +538,9 @@ export interface Rig {
   lx: number; ly: number;
   /** the avatar box in device pixels (CSS px × dpr) */
   dev: number;
+  /** the context's transform for body space (a, b, c, d, e, f): the
+      slices set theirs from it directly rather than through save/restore */
+  ctm: readonly number[];
   /** no animation loop will follow: build the form now rather than on idle time */
   still?: boolean;
 }
@@ -571,14 +582,40 @@ interface State {
   N: number;
   img: ImageData | null;
   mc: Float32Array;
-  mcKey: string;
-  imgKey: string;
+  /** what the matcap holds: the light and view directions, the light on
+      screen, the colour and the material; rebuilt when any moves */
+  L: V3 | null;
+  V: V3 | null;
+  lx: number;
+  ly: number;
+  base: string;
+  shadow: number;
+  highlight: number;
+  spread: number;
+  rim: number;
+  /** bumped on every matcap rebuild; the texels follow it */
+  version: number;
+  imgVersion: number;
+  imgAoK: number;
+  imgForm: Form | null;
   aoK: number;
   aoMul: Float32Array;
   /** side gradients sampled from the matcap: the near shoulder, the rim, the far shoulder */
   near: CanvasGradient | null;
   rimG: CanvasGradient | null;
   far: CanvasGradient | null;
+  /** the texels as a canvas, two in turn: Safari reads a drawImage source
+      when the frame flushes, so one that is redrawn right after drawing
+      shows the later texels (a shared one showed another avatar's) */
+  scratch: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
+  scratchIdx: number;
+  scratchN: number;
+  scratchStale: boolean;
+  /** WebKit: the outline filled with each side gradient (near shoulder,
+      rim, far shoulder), blitted per slice instead of filled */
+  sprites: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
+  spriteVersion: number;
+  spritePx: number;
 }
 const states = new WeakMap<object, Map<string, State>>();
 function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
@@ -590,15 +627,32 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
   }
   let s = byOutline.get(outline);
   if (!s) {
-    s = { N: 0, img: null, mc: new Float32Array(MM * 3), mcKey: '', imgKey: '', aoK: -1, aoMul: new Float32Array(256), near: null, rimG: null, far: null };
+    s = {
+      N: 0, img: null, mc: new Float32Array(MM * 3),
+      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN,
+      version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
+      near: null, rimG: null, far: null,
+      scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
+      sprites: [null, null, null], spriteVersion: -1, spritePx: 0,
+    };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
   }
   return s;
 }
-
-/* a gradient round the outline from the matcap's ring at height nz,
-   darkened by `dark` (the far shoulder faces away) */
+/* the matcap is rebuilt once a direction has moved a bin (1/48) from the
+   one it was built for — the same resolution as a bin grid, without the
+   rebuilds a direction jittering on a bin edge would cause */
+const BIN = 1 / 48;
+const moved = (a: V3, b: V3 | null) => !b || Math.abs(a[0] - b[0]) >= BIN || Math.abs(a[1] - b[1]) >= BIN || Math.abs(a[2] - b[2]) >= BIN;
+/** A · B for canvas affines (a, b, c, d, e, f) */
+export function mulAffine(A: readonly number[], B: readonly number[]): number[] {
+  return [
+    A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1],
+    A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
+    A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5],
+  ];
+}
 function sideGradient(ctx: CanvasRenderingContext2D, mc: Float32Array, nz: number, dark: number, lxy: [number, number]): CanvasGradient {
   const rr = Math.sqrt(1 - nz * nz), c: V3 = [0, 0, 0], k = 1 - dark;
   if (typeof ctx.createConicGradient === 'function') {
@@ -629,6 +683,16 @@ function sideGradient(ctx: CanvasRenderingContext2D, mc: Float32Array, nz: numbe
  * instead of the slice loop. Returns false when the form is not built
  * yet (it is being built on idle time): draw the stock slices that frame.
  */
+/* WebKit rasterises a conic-gradient fill slowly — about 60 µs each where
+   a flat fill is 2 µs — and the side stack is sixteen of them a frame.
+   There the three side gradients are rendered into sprites of the outline
+   once per matcap rebuild and each slice is a blit of one; Chromium and
+   Firefox fill the slices as vectors. */
+const WEBKIT =
+  typeof navigator !== 'undefined' && /AppleWebKit\//.test(navigator.userAgent) && !/Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+/** each side sprite: the matcap tilt it samples and its darkening */
+const SIDE_KINDS: [number, (m: Material) => number][] = [[0.55, () => 0], [0, () => 0], [0, (m) => Math.min(0.6, 0.25 * m.shadow)]];
+
 export function drawPlasticCap(
   ctx: CanvasRenderingContext2D,
   cfg: DrawConfig,
@@ -640,22 +704,28 @@ export function drawPlasticCap(
   const N = tierFor(rig.dev);
   const form = formFor(cfg.typeKey ?? pathId(cfg.path), cfg.path, N, rig.halfDepth, !!rig.still);
   if (!form) return false;
-  const sc = scratchFor(N);
-  if (!sc) return false;
   const st = stateFor(ctx, cfg.typeKey ?? pathId(cfg.path));
   const f = capFrame(rig);
-  const q = (v: V3) => `${Math.round(48 * v[0])},${Math.round(48 * v[1])},${Math.round(48 * v[2])}`;
-  const mcKey = `${q(f.L)}|${q(f.V)}|${rig.lx.toFixed(3)},${rig.ly.toFixed(3)}|${pal.base}|${mat.shadow}|${mat.highlight}|${mat.spread}|${mat.rim}`;
   const lxy: [number, number] = (() => {
     const l = Math.hypot(f.L[0], f.L[1]);
     return l < 0.05 ? [0, -1] : [f.L[0] / l, f.L[1] / l];
   })();
-  if (mcKey !== st.mcKey) {
+  if (
+    moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
+    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim
+  ) {
     buildMatcap(st.mc, linearColor(pal.base), f, mat);
-    st.mcKey = mcKey;
-    st.near = sideGradient(ctx, st.mc, 0.55, 0, lxy);
-    st.rimG = sideGradient(ctx, st.mc, 0, 0, lxy);
-    st.far = sideGradient(ctx, st.mc, 0, Math.min(0.6, 0.25 * mat.shadow), lxy);
+    st.L = f.L;
+    st.V = f.V;
+    st.lx = rig.lx;
+    st.ly = rig.ly;
+    st.base = pal.base;
+    st.shadow = mat.shadow;
+    st.highlight = mat.highlight;
+    st.spread = mat.spread;
+    st.rim = mat.rim;
+    st.version++;
+    st.near = st.rimG = st.far = null;
   }
   /* the occlusion strength follows `shadow` */
   const aoK = Math.min(1.3, 1.2 * mat.shadow);
@@ -663,34 +733,114 @@ export function drawPlasticCap(
     for (let a = 0; a < 256; a++) st.aoMul[a] = Math.max(0, 1 - aoK * (1 - a / 255));
     st.aoK = aoK;
   }
-  const imgKey = `${mcKey}|${N}|${aoK}|${Math.round(rig.halfDepth)}`;
   if (!st.img || st.N !== N) {
     st.img = new ImageData(N, N);
     st.N = N;
-    st.imgKey = '';
+    st.imgVersion = -1;
   }
-  if (imgKey !== st.imgKey) {
+  if (st.imgVersion !== st.version || st.imgAoK !== aoK || st.imgForm !== form) {
     shadeTexels(form, st.mc, st.img.data, st.aoMul);
-    st.imgKey = imgKey;
+    st.imgVersion = st.version;
+    st.imgAoK = aoK;
+    st.imgForm = form;
+    st.scratchStale = true;
+  }
+  if (st.scratchN !== N) {
+    st.scratch = [null, null];
+    st.scratchN = N;
+    st.scratchStale = true;
+  }
+  if (st.scratchStale) {
+    st.scratchIdx ^= 1;
+    let sc = st.scratch[st.scratchIdx];
+    if (!sc) {
+      const c = makeCanvas(N);
+      const g = c && ctx2d(c, false);
+      if (!c || !g) return false;
+      sc = st.scratch[st.scratchIdx] = { c, g };
+    }
+    sc.g.putImageData(st.img, 0, 0);
+    st.scratchStale = false;
+  }
+  const sc = st.scratch[st.scratchIdx]!;
+
+  /* WebKit: the side sprites, at the avatar's device resolution, redrawn
+     with the matcap */
+  let fast = cfg.sides === 'sprite' || (cfg.sides !== 'vector' && WEBKIT);
+  if (fast) {
+    const px = Math.ceil((SPAN * rig.dev) / 100);
+    if (st.spritePx !== px) {
+      st.sprites = [null, null, null];
+      st.spritePx = px;
+      st.spriteVersion = -1;
+    }
+    if (st.spriteVersion !== st.version) {
+      const k = px / SPAN;
+      for (let i = 0; i < 3 && fast; i++) {
+        let spr = st.sprites[i];
+        if (!spr) {
+          const c = makeCanvas(px);
+          const g = c && ctx2d(c, false);
+          if (!c || !g) {
+            fast = false;
+            break;
+          }
+          spr = st.sprites[i] = { c, g };
+        }
+        spr.g.setTransform(1, 0, 0, 1, 0, 0);
+        spr.g.clearRect(0, 0, px, px);
+        spr.g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
+        spr.g.fillStyle = sideGradient(spr.g, st.mc, SIDE_KINDS[i][0], SIDE_KINDS[i][1](mat), lxy);
+        spr.g.fill(cfg.path);
+      }
+      if (fast) st.spriteVersion = st.version;
+    }
+  }
+  if (!fast && !st.near) {
+    st.near = sideGradient(ctx, st.mc, 0.55, 0, lxy);
+    st.rimG = sideGradient(ctx, st.mc, 0, 0, lxy);
+    st.far = sideGradient(ctx, st.mc, 0, Math.min(0.6, 0.25 * mat.shadow), lxy);
   }
 
   /* 1. the side copies, far → near, without the nearest (the texture is
      the whole front); the shoulder nearest the cap reads the matcap at a
-     57° tilt, the equator its rim, the far half its rim in shade */
+     57° tilt, the equator its rim, the far half its rim in shade. Each
+     slice sets its transform outright from the body's: no save/restore */
   const { cy, sy, cp, sp, halfDepth, cap } = rig;
   const order = rig.facing >= 0 ? 1 : -1;
+  const [ca, cb, cc, cd, ce, cf] = rig.ctm;
+  let fill: CanvasGradient | null = null;
+  if (fast) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+  }
+  /* each slice's affine is applied relative to the previous slice's: one
+     transform() per slice, no save/restore (a setTransform costs four
+     times as much in Safari) */
+  let pa = 1, pb = 0, pc = 0, pd = 1, pe = 0, pf = 0;
   for (let j = 0; j < SLICES - 1; j++) {
     const k = order > 0 ? j : SLICES - 1 - j;
     const z = -1 + (2 * k) / (SLICES - 1);
     const s = profile(z, cap);
     const zn = z * order; // toward the viewer
-    ctx.save();
-    ctx.transform(cy * s, sy * sp * s, 0, cp * s, z * sy * halfDepth, -z * cy * sp * halfDepth);
-    ctx.translate(-50, -50);
-    ctx.fillStyle = (zn > 0.4 ? st.near : zn >= 0 ? st.rimG : st.far) as CanvasGradient;
-    ctx.fill(cfg.path);
-    ctx.restore();
+    /* yaw about Y then pitch about X, orthographic: an affine per slice,
+       then the path's own origin at its centre */
+    const m0 = cy * s, m1 = sy * sp * s, m3 = cp * s;
+    const e = z * sy * halfDepth - 50 * m0, fo = -z * cy * sp * halfDepth - 50 * m1 - 50 * m3;
+    const det = pa * pd - pb * pc;
+    const ia = pd / det, ib = -pb / det, ic = -pc / det, id = pa / det, ie = (pc * pf - pd * pe) / det, jf = (pb * pe - pa * pf) / det;
+    ctx.transform(ia * m0 + ic * m1, ib * m0 + id * m1, ic * m3, id * m3, ia * e + ic * fo + ie, ib * e + id * fo + jf);
+    pa = m0; pb = m1; pc = 0; pd = m3; pe = e; pf = fo;
+    const kind = zn > 0.4 ? 0 : zn >= 0 ? 1 : 2;
+    if (fast) {
+      ctx.drawImage(st.sprites[kind]!.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+    } else {
+      const g = (kind === 0 ? st.near : kind === 1 ? st.rimG : st.far) as CanvasGradient;
+      if (g !== fill) ctx.fillStyle = fill = g;
+      ctx.fill(cfg.path);
+    }
   }
+  ctx.setTransform(ca, cb, cc, cd, ce, cf);
 
   /* 2. the cap. The texture is the front surface seen head-on: its outer
      units are the rounded shoulder. Turned, the front's projection runs
@@ -704,16 +854,10 @@ export function drawPlasticCap(
   const lead = 50 * cap + Math.hypot(50 * (1 - cap), dl);
   const stretch = (lead + 50) / 100, shift = (lead - 50) / 2;
   const a = 1 + (stretch - 1) * ex * ex, b = (stretch - 1) * ex * ey, d = 1 + (stretch - 1) * ey * ey;
+  const capM = mulAffine(mulAffine(rig.ctm, [cy, sy * sp, 0, cp, 0, 0]), [a, b, b, d, shift * ex - 50 * a - 50 * b, shift * ey - 50 * b - 50 * d]);
   ctx.save();
-  ctx.transform(cy, sy * sp, 0, cp, 0, 0);
-  ctx.transform(a, b, b, d, shift * ex, shift * ey);
-  ctx.translate(-50, -50);
+  ctx.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4], capM[5]);
   ctx.clip(cfg.path);
-  if (sc.owner !== st || sc.key !== imgKey) {
-    sc.g.putImageData(st.img, 0, 0);
-    sc.owner = st;
-    sc.key = imgKey;
-  }
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(sc.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
@@ -725,9 +869,7 @@ export function drawPlasticCap(
     ctx.save();
     if (union) ctx.clip(union);
     else ctx.globalCompositeOperation = 'source-atop';
-    ctx.transform(cy, sy * sp, 0, cp, 0, 0);
-    ctx.transform(a, b, b, d, shift * ex, shift * ey);
-    ctx.translate(-50, -50);
+    ctx.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4], capM[5]);
     const al = Math.min(0.5, 0.3 * mat.rim * Math.min(1.4, mat.highlight));
     const g = ctx.createLinearGradient(50 + lxy[0] * 50, 50 + lxy[1] * 50, 50 - lxy[0] * 50, 50 - lxy[1] * 50);
     g.addColorStop(0, `rgba(235,244,255,${al.toFixed(3)})`);

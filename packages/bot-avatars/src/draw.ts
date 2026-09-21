@@ -8,7 +8,7 @@
 import type { Pose } from './engine';
 import type { BotAvatarFace, BotAvatarShading } from './types';
 import { shade } from './color';
-import { drawPlasticCap } from './plastic';
+import { drawPlasticCap, mulAffine } from './plastic';
 
 export interface DrawConfig {
   path: Path2D;
@@ -37,6 +37,13 @@ export interface DrawConfig {
   partsDepth?: number;
   /** the resolved surface: the whirl is white on dark, black on light */
   theme?: 'dark' | 'light';
+  /** the device pixel ratio the context is scaled by: with it given the
+      context's transform is taken as that scale and never read back */
+  dpr?: number;
+  /** plastic's side slices: filled as vectors, or blitted from sprites of
+      the outline. `auto` (the default) blits on WebKit, where a
+      conic-gradient fill costs thirty times a flat one. */
+  sides?: 'auto' | 'vector' | 'sprite';
   /** the whirl's knobs; 1 everywhere is the stock look */
   whirl?: { strength: number; size: number; width: number; length: number; tilt: number };
 }
@@ -65,20 +72,36 @@ interface Palette {
   dark: string;
   capTop: string;
   capBottom: string;
+  /** the slice colours by draw order (far → near), crisp and smooth */
+  crispMix: string[];
+  smoothMix: string[];
+  /** crisp: the lit side and cap gradients, for a light direction */
+  grad: { lx: number; ly: number; lit: CanvasGradient; cap: CanvasGradient } | null;
 }
 const paletteCache = new Map<string, Palette>();
 function palette(color: string, shadow: number, highlight: number): Palette {
   const key = `${color}|${shadow}|${highlight}`;
   let p = paletteCache.get(key);
   if (!p) {
+    const far = shade(color, -0.3 * shadow, 0.05 * shadow);
+    const near = shade(color, -0.12 * shadow, 0.03 * shadow);
+    const crispMix: string[] = [], smoothMix: string[] = [];
+    for (let j = 0; j < SLICES; j++) {
+      const t = j / (SLICES - 1);
+      crispMix.push(t > 0.6 ? '' : mixCss(far, near, t / 0.6));
+      smoothMix.push(t >= 0.5 ? color : mixCss(far, color, t / 0.5));
+    }
     p = {
       base: color,
-      far: shade(color, -0.3 * shadow, 0.05 * shadow),
-      near: shade(color, -0.12 * shadow, 0.03 * shadow),
+      far,
+      near,
       light: shade(color, 0.04 * highlight),
       dark: shade(color, -0.3 * shadow, 0.05 * shadow),
       capTop: shade(color, 0.035 * highlight),
       capBottom: shade(color, -0.035 * shadow),
+      crispMix,
+      smoothMix,
+      grad: null,
     };
     if (paletteCache.size > 200) paletteCache.clear();
     paletteCache.set(key, p);
@@ -86,10 +109,12 @@ function palette(color: string, shadow: number, highlight: number): Palette {
   return p;
 }
 
+/* the numbers of an hsl() string; any other colour is normalised through shade() first */
+const hslNums = (c: string) => (c.startsWith('hsl(') ? c : shade(c, 0)).match(/[\d.]+/g)!.map(Number);
 function mixCss(a: string, b: string, t: number): string {
-  /* both are hsl() strings from shade(); interpolate their numbers */
-  const pa = a.match(/[\d.]+/g)!.map(Number);
-  const pb = b.match(/[\d.]+/g)!.map(Number);
+  /* interpolate the hsl numbers */
+  const pa = hslNums(a);
+  const pb = hslNums(b);
   const m = pa.map((v, i) => v + (pb[i] - v) * t);
   return `hsl(${m[0].toFixed(1)} ${m[1].toFixed(1)}% ${m[2].toFixed(1)}%)`;
 }
@@ -129,7 +154,7 @@ function whirlInk(color: string): WhirlInk {
 const withAlpha = (hsl: string, a: number) => hsl.replace(')', ` / ${Math.max(0, Math.min(1, a)).toFixed(3)})`);
 
 function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: string, lx: number, ly: number, near: boolean, knobs?: DrawConfig['whirl']) {
-  const strength = knobs?.strength ?? 1;
+  const strength = knobs?.strength ?? 0;
   const k = Math.min(1, pose.whirl * strength);
   if (k <= 0.01) return;
   const sizeK = knobs?.size ?? 1, widthK = knobs?.width ?? 1, lengthK = knobs?.length ?? 1, tiltK = knobs?.tilt ?? 1;
@@ -196,6 +221,20 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const full = box * OVERSCAN;
   ctx.clearRect(0, 0, full, full);
   const S = box / 100;
+  /* the context's transform as given (the device scale) is the base of
+     every transform set here; known from `dpr`, else read once */
+  let dpr: number, base: readonly number[];
+  if (cfg.dpr !== undefined) {
+    dpr = cfg.dpr;
+    base = [dpr, 0, 0, dpr, 0, 0];
+  } else if (ctx.getTransform) {
+    const t = ctx.getTransform();
+    base = [t.a, t.b, t.c, t.d, t.e, t.f];
+    dpr = t.a || 1;
+  } else {
+    dpr = 1;
+    base = [1, 0, 0, 1, 0, 0];
+  }
   const shadow = cfg.shadow ?? 0.35, highlight = cfg.highlight ?? 1.3;
   const halfDepth = HALF_DEPTH * (cfg.depth ?? 0.65);
   const cap = 1 - (1 - CAP) * (cfg.rim ?? 0.5);
@@ -214,10 +253,11 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const floor = (v: number) => (Math.abs(v) < 0.22 ? (v < 0 ? -0.22 : 0.22) : v);
   const cy = floor(cy0), cp = floor(cp0);
 
+  /* body space: the box centre plus the pose's offset, its roll and squash */
+  const cr = Math.cos(pose.roll), sr = Math.sin(pose.roll), kx = pose.sx * S, ky = pose.sy * S;
+  const body = mulAffine(base, [cr * kx, sr * kx, -sr * ky, cr * ky, full / 2 + pose.x * S, full / 2 + pose.y * S]);
   ctx.save();
-  ctx.translate(full / 2 + pose.x * S, full / 2 + pose.y * S);
-  ctx.rotate(pose.roll);
-  ctx.scale(pose.sx * S, pose.sy * S);
+  ctx.setTransform(body[0], body[1], body[2], body[3], body[4], body[5]);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
@@ -228,19 +268,20 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const drawSolid = (path: Path2D, key: string, halfDepth: number): boolean => {
     /* the lit gradient, in the body's own space: light from the upper left */
     let lit: CanvasGradient | string = pal.near;
-    if (mode === 'crisp') {
-      const g = ctx.createLinearGradient(lx * 56, ly * 56, -lx * 56, -ly * 56);
-      g.addColorStop(0, pal.light);
-      g.addColorStop(0.45, pal.near);
-      g.addColorStop(1, pal.dark);
-      lit = g;
-    }
     let capFill: CanvasGradient | string = pal.base;
     if (mode === 'crisp') {
-      const g = ctx.createLinearGradient(lx * 46, ly * 46, -lx * 46, -ly * 46);
-      g.addColorStop(0, pal.capTop);
-      g.addColorStop(1, pal.capBottom);
-      capFill = g;
+      if (!pal.grad || pal.grad.lx !== lx || pal.grad.ly !== ly) {
+        const g = ctx.createLinearGradient(lx * 56, ly * 56, -lx * 56, -ly * 56);
+        g.addColorStop(0, pal.light);
+        g.addColorStop(0.45, pal.near);
+        g.addColorStop(1, pal.dark);
+        const c = ctx.createLinearGradient(lx * 46, ly * 46, -lx * 46, -ly * 46);
+        c.addColorStop(0, pal.capTop);
+        c.addColorStop(1, pal.capBottom);
+        pal.grad = { lx, ly, lit: g, cap: c };
+      }
+      lit = pal.grad.lit;
+      capFill = pal.grad.cap;
     }
 
     /* plastic: the material module draws the whole body — side copies from
@@ -252,7 +293,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
       plasticDone = drawPlasticCap(
         ctx,
         { ...cfg, path, typeKey: key },
-        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * (ctx.getTransform ? ctx.getTransform().a || 1 : 1), still: cfg.still },
+        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * dpr, ctm: body, still: cfg.still },
         pal,
         null,
         { shadow, highlight, spread, rim: cfg.rim ?? 0.5 }
@@ -260,33 +301,45 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
     }
     const mode2: BotAvatarShading = mode === 'plastic' && !plasticDone ? 'smooth' : mode;
     const soft = mode2 === 'smooth';
-    const union = soft && typeof DOMMatrix === 'function' ? new Path2D() : null;
-    /* slices, far to near */
+    const union = soft && typeof Path2D === 'function' ? new Path2D() : null;
+    /* slices, far to near; each sets its transform outright from the
+       body's, no save/restore */
     const order = facing >= 0 ? 1 : -1;
+    const [ca, cb, cc, cd, ce, cf] = body;
+    let fill: CanvasGradient | string | null = null;
+    /* each slice's affine is applied relative to the previous slice's: one
+       transform() per slice, no save/restore */
+    let pa = 1, pb = 0, pc = 0, pd = 1, pe = 0, pf = 0;
     for (let j = 0; j < SLICES && !plasticDone; j++) {
       const k = order > 0 ? j : SLICES - 1 - j;
       const z = -1 + (2 * k) / (SLICES - 1);
       const s = profile(z, cap);
       const near = j / (SLICES - 1);
-      const m = [cy * s, sy * sp * s, 0, cp * s, z * sy * halfDepth, -z * cy * sp * halfDepth] as const;
-      ctx.save();
-      /* yaw about Y then pitch about X, orthographic: an affine per slice */
-      ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-      ctx.translate(-50, -50);
-      if (soft) {
-        /* one colour ramp through the depth to the front, no edge at the cap */
-        ctx.fillStyle = near >= 0.5 ? pal.base : mixCss(pal.far, pal.base, near / 0.5);
-      } else if (j === SLICES - 1) ctx.fillStyle = capFill;
-      else if (near > 0.6) ctx.fillStyle = lit;
-      else ctx.fillStyle = mixCss(pal.far, pal.near, near / 0.6);
+      /* yaw about Y then pitch about X, orthographic: an affine per slice,
+         then the path's own origin at its centre */
+      const m0 = cy * s, m1 = sy * sp * s, m3 = cp * s;
+      const e = z * sy * halfDepth - 50 * m0, fo = -z * cy * sp * halfDepth - 50 * m1 - 50 * m3;
+      const det = pa * pd - pb * pc;
+      const ia = pd / det, ib = -pb / det, ic = -pc / det, id = pa / det, ie = (pc * pf - pd * pe) / det, jf = (pb * pe - pa * pf) / det;
+      ctx.transform(ia * m0 + ic * m1, ib * m0 + id * m1, ic * m3, id * m3, ia * e + ic * fo + ie, ib * e + id * fo + jf);
+      pa = m0; pb = m1; pc = 0; pd = m3; pe = e; pf = fo;
+      let style: CanvasGradient | string;
+      /* smooth: one colour ramp through the depth to the front, no edge at the cap */
+      if (soft) style = pal.smoothMix[j];
+      else if (j === SLICES - 1) style = capFill;
+      else if (near > 0.6) style = lit;
+      else style = pal.crispMix[j];
+      if (style !== fill) ctx.fillStyle = fill = style;
       ctx.fill(path);
-      ctx.restore();
-      if (union) union.addPath(path, new DOMMatrix([m[0], m[1], m[2], m[3], m[4], m[5]]).translate(-50, -50));
+      if (union) union.addPath(path, { a: m0, b: m1, c: 0, d: m3, e, f: fo });
     }
+    if (!plasticDone) ctx.setTransform(ca, cb, cc, cd, ce, cf);
 
     /* smooth: a soft shadow from the lower right and a light from the upper
        left, laid over the whole form so nothing has an edge */
     if (union && mode2 === 'smooth') {
+      /* the two gradients are made per frame on purpose: a kept one is
+         slower to use in Safari than a fresh one */
       ctx.save();
       ctx.clip(union);
       const sa = Math.min(1, 0.34 * shadow);
@@ -353,6 +406,30 @@ function onSphere(x: number, y: number, yaw: number, pitch: number) {
   };
 }
 
+/* An eye's curve as a short polyline with round joins, cached by its
+   numbers. Stroking the open eye's hairpin curve directly gives a pill in
+   Chrome but a teardrop in Safari, whose stroker does not round a cusp;
+   both stroke a polyline the same way. */
+const EYE_STEPS = 8;
+const eyePaths = new Map<number, Path2D>();
+function eyePath(x0: number, y0: number, cy: number): Path2D {
+  const qx = Math.round(x0 * 50), qy = Math.round(y0 * 50), qc = Math.round(cy * 50);
+  const key = qx + 2000 * qy + 4e6 * qc;
+  let p = eyePaths.get(key);
+  if (!p) {
+    const ax = qx / 50, ay = qy / 50, ac = qc / 50;
+    let d = `M${-ax} ${ay}`;
+    for (let i = 1; i <= EYE_STEPS; i++) {
+      const t = i / EYE_STEPS, mt = 1 - t;
+      d += ` L${(mt * mt * -ax + t * t * ax).toFixed(3)} ${((mt * mt + t * t) * ay + 2 * mt * t * ac).toFixed(3)}`;
+    }
+    p = new Path2D(d);
+    if (eyePaths.size > 256) eyePaths.clear();
+    eyePaths.set(key, p);
+  }
+  return p;
+}
+
 function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
   const [wd, ww, ws] = pose.w;
   const ink = cfg.ink;
@@ -395,10 +472,7 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
     at(side * half + dx, ey + dy, () => {
       ctx.strokeStyle = ink;
       ctx.lineWidth = w;
-      ctx.beginPath();
-      ctx.moveTo(-x0, y0);
-      ctx.quadraticCurveTo(0, cy, x0, y0);
-      ctx.stroke();
+      ctx.stroke(eyePath(x0, y0, cy));
     });
   }
 

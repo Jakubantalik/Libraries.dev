@@ -53,7 +53,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     spread = 1.55,
     interactive = true,
     theme = 'auto',
-    whirl = 1,
+    whirl = 0,
     whirlSize = 1,
     whirlWidth = 1,
     whirlLength = 1,
@@ -129,7 +129,6 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const canvas = canvasRef.current;
     const c = cfg.current;
     if (!canvas || !c || !c.path) return;
-    c.theme = resolveTheme(canvas);
     /* a hidden ancestor measures 0: keep the last size rather than
        wiping the backing store */
     const px = canvas.clientWidth / OVERSCAN || cssSize.current || (typeof size === 'number' ? size : 64);
@@ -144,6 +143,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.dpr = dpr;
     const pose = sim.current ? sim.current.pose : restPose(stateKey);
     draw(ctx, px, pose, c);
   };
@@ -164,12 +164,15 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
         const ctx = canvas.getContext('2d');
         if (ctx) {
           cfg.current.theme = resolveTheme(canvas);
+          cfg.current.dpr = dpr;
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           draw(ctx, px, restPose(stateKey), cfg.current);
         }
       }
       return;
     }
+    /* the surface's theme, read once per render rather than per frame */
+    if (cfg.current && canvasRef.current) cfg.current.theme = resolveTheme(canvasRef.current);
     paint();
   });
 
