@@ -2323,6 +2323,21 @@ html[data-theme="light"] .st-core-restore:hover { background: rgba(0, 0, 0, 0.04
 }
 .gdev-btn:hover, .gdev-fab:hover { background: var(--pg-control-bg-hover); color: var(--pg-control-text-hover); }
 .gdev-fab { position: fixed; right: 16px; bottom: 16px; z-index: 2147483000; }
+/* The demo switches' button has to be findable on a dark page, so it
+   carries the panel's surface and a live dot rather than the 4% wash. */
+.gdev-fab--demo {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 30px; padding: 0 13px;
+  background: var(--pg-panel-bg, #1b1b1b);
+  color: var(--pg-title, #fbfbfb);
+  box-shadow: var(--pg-panel-shadow, 0 4px 42px rgba(0, 0, 0, 0.24));
+}
+.gdev-fab--demo::before {
+  content: "";
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #8ab4ff;
+}
+.gdev-fab--demo:hover { background: var(--pg-panel-bg, #1b1b1b); color: var(--pg-title, #fbfbfb); }
 .gdev-hint { font-size: 11px; line-height: 15px; color: var(--pg-label); }
 .gdev-row { display: flex; flex-direction: column; gap: 4px; }
 .gdev-row-head { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; color: var(--pg-label); }

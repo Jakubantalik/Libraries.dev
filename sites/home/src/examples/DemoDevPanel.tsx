@@ -5,9 +5,16 @@ import { useEffect, useState } from "react";
    alone. Localhost or ?dev only, and it writes nothing but two
    attributes on <html>, which examples.css reads. */
 
+/* The dev machine: loopback, a private address on the LAN (the phone
+   reads the site that way), a .local name, or an explicit ?dev. The
+   public site matches none of these. */
 export const SHOW_DEMO_DEV =
   typeof location !== "undefined" &&
   (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) ||
+    /^10\./.test(location.hostname) ||
+    /^192\.168\./.test(location.hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(location.hostname) ||
+    /\.local$/.test(location.hostname) ||
     new URLSearchParams(location.search).has("dev"));
 
 type Flag = { key: "demoFill" | "demoNames"; attr: string; label: string; hint: string };
@@ -34,7 +41,7 @@ export function DemoDevPanel() {
   if (!SHOW_DEMO_DEV) return null;
   if (!open) {
     return (
-      <button type="button" className="gdev-fab" onClick={() => setOpen(true)}>
+      <button type="button" className="gdev-fab gdev-fab--demo" onClick={() => setOpen(true)}>
         Demo
       </button>
     );
