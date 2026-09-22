@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BotAvatar, type BotAvatarState, type BotAvatarType } from "bot-avatars";
 
 /* Mocks for the Bot avatars detail page: a roster of agents, each in its
@@ -41,27 +41,57 @@ export function BotRoster() {
   );
 }
 
-/* The answer, word by word: transitions.dev's texts reveal (18) with one
-   line per word, so the reply arrives the way a streamed one does — each
-   word rising out of its blur a beat behind the last. */
+/* The answer, word by word: transitions.dev's Streaming text. Every word
+   is a span that rests visible; the effect wipes them all with the
+   transition off, flushes one reflow, then resolves them in order
+   through opacity and a small blur, one every --stream-gap. */
 const REPLY =
   "They only sign annual, Dana approves, and pricing is the same thread as last quarter. I answered without waiting on you.";
 
 function StreamedReply() {
-  const [shown, setShown] = useState(false);
-  /* a frame after mounting, so the words start from their offset rather
-     than arriving already in place */
+  const words = REPLY.trim().split(/\s+/);
+  const spansRef = useRef<Array<HTMLSpanElement | null>>([]);
+  const timer = useRef<number | null>(null);
+
   useEffect(() => {
-    const id = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(id);
+    const spans = spansRef.current.filter(Boolean) as HTMLSpanElement[];
+    if (!spans.length) return;
+
+    /* back to nothing, without animating the wipe itself */
+    spans.forEach((el) => {
+      el.style.transition = "none";
+      el.classList.remove("is-in");
+    });
+    void spans[0].offsetWidth;
+    spans.forEach((el) => {
+      el.style.transition = "";
+    });
+
+    const gap =
+      parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stream-gap")) || 60;
+    const next = (n: number) => {
+      if (n >= spans.length) return;
+      spans[n].classList.add("is-in");
+      timer.current = window.setTimeout(() => next(n + 1), gap);
+    };
+    next(0);
+    return () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    };
   }, []);
+
   return (
-    <p className={`mock-thread-reply t-stagger${shown ? " is-shown" : ""}`}>
-      {REPLY.split(" ").map((word, i) => (
-        <span key={i}>
-          <span className="t-stagger-line" style={{ transitionDelay: `calc(var(--stagger-stagger) * ${i})` }}>
-            {word}
-          </span>{" "}
+    <p className="mock-thread-reply t-stream">
+      {words.map((w, i) => (
+        <span
+          key={i}
+          ref={(el) => {
+            spansRef.current[i] = el;
+          }}
+          className="t-stream-w is-in"
+        >
+          {w}
+          {i < words.length - 1 ? " " : ""}
         </span>
       ))}
     </p>
