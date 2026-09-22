@@ -11,6 +11,7 @@ import {
   type VoiceGeometry,
 } from "voice-glow";
 import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
+import { checkCss, tpl, type CoreWiring } from "./core";
 import { ChatInputMock } from "../examples/beam-mocks";
 import { RecordingPill, PhoneScreen, DEMO_TRANSCRIPT, demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 
@@ -37,6 +38,17 @@ const TYPE_OPTIONS = [
   { value: "pill", label: "Pill" },
   { value: "mobile", label: "Mobile" },
 ] as const;
+
+/* The stylesheet the library generated for the live instance, with the
+   instance id swapped for the {id} placeholder the `css` prop substitutes —
+   what the agent starts from when it rebuilds the effect. */
+function stockVoiceCss(): string {
+  const root = Array.from(document.querySelectorAll<HTMLElement>(".pg-stage [data-voice-beam]")).find((e) => e.offsetWidth > 0);
+  const id = root?.getAttribute("data-voice-beam");
+  const style = root?.previousElementSibling;
+  if (!root || !id || !style || style.tagName !== "STYLE") return "";
+  return (style.textContent ?? "").split(id).join("{id}");
+}
 
 const RADIUS_BY_TYPE: Record<VoiceBeamType, number> = { default: 20, pill: 106, mobile: 66 };
 /* The phone mock is 402×874 shown at 0.68 in a 273×357 crop; the beam wraps the crop. */
@@ -128,6 +140,7 @@ const VOICE_PARAM_LABELS: Record<string, string> = {
   processingCurve: "Turn ease",
   cornerFollow: "Corner follow",
   paused: "Paused",
+  core: "Core",
 };
 
 const COLOR_OPTIONS = [
@@ -178,6 +191,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. */
   const [paused, setPaused] = useState(false);
+  /* A stylesheet the agent rewrote, appended after the generated one; "" is
+     the stock effect. */
+  const [core, setCore] = useState("");
+  const coreWiring: CoreWiring = { lang: "css", source: stockVoiceCss, check: checkCss };
   /* Bumped whenever the "simulation" (re)starts, to replay the phone's
      prompt and restart the pill's counter. */
   const [runKey, setRunKey] = useState(0);
@@ -245,6 +262,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     processingCurve: geo.processingCurve,
     cornerFollow: geo.cornerFollow,
     paused,
+    core,
     processing: source === "processing",
   };
 
@@ -270,6 +288,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     if (typeof patch.hueDuration === "number") setHueDuration(patch.hueDuration);
     if (typeof patch.hueShift === "number") setHueShift(patch.hueShift);
     if (typeof patch.paused === "boolean") setPaused(patch.paused);
+    if (typeof patch.core === "string") setCore(patch.core);
     /* Everything else is geometry, under the same key it carries here. */
     const GEO_KEYS = [
       "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
@@ -404,6 +423,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   if (hueDuration !== (theme === "light" ? 8.5 : 12)) props.push(`hueDuration={${num(hueDuration)}}`);
   if (staticColors) props.push("staticColors");
   if (paused) props.push("paused");
+  if (core) props.push("css={voiceCss}");
   if (hasVars) {
     const varLines = Object.entries(varStyle)
       .map(([k, v]) => `'${k}': ${typeof v === "string" ? `'${v}'` : v}`)
@@ -412,7 +432,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   }
   const attrs = "\n  " + props.join("\n  ") + "\n";
   const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';";
-  const decl = isMic ? "const mic = useMicrophone();\n\n" : "";
+  const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "");
   const snippet = `${imports}\n\n${decl}<VoiceBeam${attrs}>\n  ${CHILD_BY_TYPE[type]}\n</VoiceBeam>${isMic ? "\n\n<button onClick={mic.start}>Listen</button>" : ""}`;
 
   /* Choosing Microphone starts listening right away — the click is the
@@ -444,6 +464,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             colors={lobeColors}
             bandColors={bandCols}
             theme={theme}
+            css={core || undefined}
             paused={paused}
             strength={strength / 100}
             {...geo}
@@ -520,6 +541,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           params: agentParams,
           labels: VOICE_PARAM_LABELS,
           onApply: applyAgentParams,
+          core: coreWiring,
         }}
       >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />

@@ -1256,9 +1256,40 @@ export const VOICE_SPEC: LibrarySpec = {
       kind: "boolean",
       describe: "Freeze the effect on its current frame. Set true only if the user asks to pause or stop it.",
     },
+    core: {
+      kind: "code",
+      lang: "css",
+      describe:
+        "The effect's stylesheet, rebuilt. Use it when the request changes what the glow IS — a different " +
+        "shape of light, a layer the library does not draw, motion the knobs cannot express — while keeping " +
+        "the voice still driving it.",
+      contract:
+        "Write CSS that is appended after the library's generated stylesheet for this instance, so it can " +
+        "override any rule or add new ones. Write {id} wherever the instance id belongs and it is " +
+        "substituted per instance. The root is [data-voice-beam=\"{id}\"], and it carries [data-active] " +
+        "while the effect is on and [data-fading] as it leaves — most rules are written under those. Its " +
+        "layers are, bottom to top: ::after (the 1px edge stroke), ::before (the soft light inside the " +
+        "box), the child [data-voice-beam-bloom] (a blurred halo), [data-voice-beam-warp] mirrors (the " +
+        "distorted copies below the band line), the [data-voice-beam-band] and [data-voice-beam-band-halo] " +
+        "canvases (the band, painted by the driver — style them, do not try to draw them), and " +
+        "[data-voice-beam-core] (the epicentre wash). " +
+        "The driver writes per-instance custom properties on the root every frame, all suffixed -{id}: " +
+        "--vb-level (the shaped voice level, 0-1), --vb-glow (presence), --vb-h / --vb-w (the beam's " +
+        "height and spread), --vb-x0..--vb-x6 and --vb-l0..--vb-l6 (each lobe's offset along the flow and " +
+        "its amplitude), --vb-bh / --vb-bendA (the bend's extra height at the centre and its strength), " +
+        "--vb-cx / --vb-cy / --vb-mw (where the beam sits and how narrow its range is while processing), " +
+        "--vb-hue (the hue drift) and --vb-clip-below / --vb-clip-above (the polygons either side of the " +
+        "band line). Read them with var(--vb-level-{id}) and the glow keeps following the voice; ignore " +
+        "them and it goes static, which is almost never what the user meant. Keep the layers " +
+        "pointer-events: none, inside the root and behind the content (z-index 1-4; the mock sits at 5), " +
+        "and keep to plain CSS: no url(), @import or vendor hacks. Blur and large filters on a layer that " +
+        "covers the whole box are what make this effect expensive on a phone — prefer gradients and " +
+        "transforms.",
+    },
   },
   relevant(params) {
     const keys = [
+      "core",
       "type", "colorVariant", "sensitivity", "threshold", "attack", "release",
       "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
       "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
