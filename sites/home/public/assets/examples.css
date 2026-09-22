@@ -1343,7 +1343,7 @@ html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
 
 /* ── Bot avatars ── */
 /* The team row: ten seats, wrapping on a narrow card. */
-.example-row-full--team { height: auto; min-height: 200px; padding: 40px 32px; }
+.example-row-full--team { height: auto; min-height: 240px; padding: 40px 32px; }
 .ex-avatars-team {
   display: flex;
   flex-wrap: wrap;
