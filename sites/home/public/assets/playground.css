@@ -1180,13 +1180,31 @@ html[data-theme="dark"] {
   pointer-events: none;
 }
 
-/* The site's tooltip pill, on the tab instead of a card's copy button:
-   a 32px pill above it, opening and closing on a 3px cross blur. */
+/* The locked pill's note, on the tooltip transition from transitions.dev
+   (17-tooltip): a scale-and-fade in after a short delay, and an immediate
+   leave — the delay lives only in the hover rule, so leaving snaps it
+   back to zero. The pill's own look is the site's. */
+:root {
+  --tt-in-dur: 150ms;
+  --tt-out-dur: 50ms;
+  --tt-scale: 0.98;
+  --tt-delay: 80ms;
+  --tt-in-ease: ease-out;
+  --tt-out-ease: ease-out;
+  --tt-bg: #ffffff;
+  --tt-fg: #17181c;
+}
+html[data-theme="dark"] {
+  --tt-bg: #181818;
+  --tt-fg: #e3e3e3;
+}
+
 .pg-lock-note {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
   bottom: calc(100% + 8px);
+  transform: translate(-50%, 0) scale(var(--tt-scale));
+  transform-origin: 50% 100%;
   box-sizing: border-box;
   height: 32px;
   display: inline-flex;
@@ -1201,49 +1219,48 @@ html[data-theme="dark"] {
   pointer-events: none;
   z-index: 10;
   opacity: 0;
-  visibility: hidden;
-  filter: blur(var(--blur-medium, 3px));
-  transition:
-    opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 150ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 150ms;
-  background: #ffffff;
-  color: #17181c;
+  background: var(--tt-bg);
+  color: var(--tt-fg);
   box-shadow:
     0 2px 8px 0 rgba(0, 0, 0, 0.04),
     0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  /* This rule is the LEAVE state: no delay, so it goes at once. */
+  transition:
+    opacity var(--tt-out-dur) var(--tt-out-ease),
+    transform var(--tt-out-dur) var(--tt-out-ease);
 }
 html[data-theme="dark"] .pg-lock-note {
-  background: #181818;
-  color: #e3e3e3;
   box-shadow:
     0 1px 16px 0 rgba(0, 0, 0, 0.4),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
     inset 0 0 0 1px rgba(196, 196, 196, 0.08);
 }
-/* The note for the whole locked block, centred on it rather than hung
-   above one pill: the block is the thing being hovered. */
+
+.pg-tabs-behind:hover .pg-lock-note--block,
+.pg-tab[data-locked="true"]:hover .pg-lock-note,
+.pg-tab[data-locked="true"]:focus-visible .pg-lock-note {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-duration: var(--tt-in-dur);
+  transition-timing-function: var(--tt-in-ease);
+  transition-delay: var(--tt-delay);
+}
+
+/* The note for a whole locked block is centred on it, not hung above one
+   pill: the block is what the pointer meets. Written after the hover rule
+   so it takes the transform back. */
 .pg-lock-note--block {
   top: 50%;
   bottom: auto;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--tt-scale));
+  transform-origin: 50% 50%;
+}
+.pg-tabs-behind:hover .pg-lock-note--block {
+  transform: translate(-50%, -50%) scale(1);
 }
 
-@media (hover: hover) {
-  .pg-tabs-behind:hover .pg-lock-note--block,
-  .pg-tab[data-locked="true"]:hover .pg-lock-note,
-  .pg-tab[data-locked="true"]:focus-visible .pg-lock-note {
-    opacity: 1;
-    visibility: visible;
-    filter: blur(0);
-    transition:
-      opacity 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms,
-      filter 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms,
-      visibility 0s linear 50ms;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .pg-lock-note { transition: opacity 1ms linear, visibility 0s linear; filter: none; }
+  .pg-lock-note { transition: none !important; }
 }
 
 /* Value slider + input (Figma 1418:38136): a 32px block the fill grows
