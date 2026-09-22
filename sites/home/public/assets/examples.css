@@ -1370,6 +1370,14 @@ html[data-demo-fill="off"] .detail-examples .example-cell {
   box-shadow: none;
 }
 html[data-demo-names="off"] .ex-avatars-name { display: none; }
+/* Arrange mode: the seats become draggable, so a shot can put the team
+   wherever it wants. The transform rides on top of the layout. */
+.ex-avatars-team[data-arrange="true"] .ex-avatars-seat {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.ex-avatars-team[data-arrange="true"] .ex-avatars-seat:active { cursor: grabbing; }
 
 .example-row-split--avatars { grid-template-columns: 1fr 1fr; }
 .example-row-split--avatars .example-cell { padding: 32px 28px; }

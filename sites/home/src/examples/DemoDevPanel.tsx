@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { demoFlags, useDemoFlag, type DemoFlagKey } from "./demoFlags";
 
 /* Dev-only switches for shooting the demo rows: drop the cards' fill and
-   the labels under the avatars, so a clip or a still carries the effect
-   alone. Localhost or ?dev only, and it writes nothing but two
-   attributes on <html>, which examples.css reads. */
+   the labels under the avatars so a clip or a still carries the effect
+   alone, and unlock the team row so the avatars can be dragged into
+   whatever arrangement the shot wants. Localhost or ?dev only. */
 
 /* The dev machine: loopback, a private address on the LAN (the phone
    reads the site that way), a .local name, or an explicit ?dev. The
@@ -17,26 +18,36 @@ export const SHOW_DEMO_DEV =
     /\.local$/.test(location.hostname) ||
     new URLSearchParams(location.search).has("dev"));
 
-type Flag = { key: "demoFill" | "demoNames"; attr: string; label: string; hint: string };
+type Flag = { key: DemoFlagKey; label: string; on: string; off: string; hint: string };
 
 const FLAGS: Flag[] = [
-  { key: "demoFill", attr: "data-demo-fill", label: "Card fill", hint: "the panels behind the demos" },
-  { key: "demoNames", attr: "data-demo-names", label: "Names", hint: "the labels under the avatars" },
+  { key: "fill", label: "Card fill", on: "Shown", off: "Hidden", hint: "the panels behind the demos" },
+  { key: "names", label: "Names", on: "Shown", off: "Hidden", hint: "the labels under the avatars" },
+  {
+    key: "arrange",
+    label: "Arrange",
+    on: "Draggable",
+    off: "Locked",
+    hint: "drag the avatars around the team row; Reset puts them back",
+  },
 ];
 
 export function DemoDevPanel() {
-  const [on, setOn] = useState<Record<string, boolean>>({ demoFill: true, demoNames: true });
   const [open, setOpen] = useState(false);
+  /* one subscription per switch, so the panel redraws with the store */
+  const fill = useDemoFlag("fill");
+  const names = useDemoFlag("names");
+  const arrange = useDemoFlag("arrange");
+  const on: Record<DemoFlagKey, boolean> = { fill, names, arrange };
 
-  /* the attributes live on <html>, so the CSS can reach every row */
+  /* the attributes belong on <html>, where the CSS can reach every row */
   useEffect(() => {
-    for (const f of FLAGS) {
-      document.documentElement.setAttribute(f.attr, on[f.key] ? "on" : "off");
-    }
+    demoFlags.set("fill", demoFlags.read("fill"));
+    demoFlags.set("names", demoFlags.read("names"));
     return () => {
-      for (const f of FLAGS) document.documentElement.removeAttribute(f.attr);
+      for (const f of FLAGS) document.documentElement.removeAttribute(`data-demo-${f.key}`);
     };
-  }, [on]);
+  }, []);
 
   if (!SHOW_DEMO_DEV) return null;
   if (!open) {
@@ -51,7 +62,7 @@ export function DemoDevPanel() {
       <div className="gdev-head">
         <span className="gdev-title">Demo</span>
         <div className="gdev-actions">
-          <button type="button" className="gdev-btn" onClick={() => setOn({ demoFill: true, demoNames: true })}>
+          <button type="button" className="gdev-btn" onClick={() => demoFlags.reset()}>
             Reset
           </button>
           <button type="button" className="gdev-btn" onClick={() => setOpen(false)}>
@@ -69,9 +80,9 @@ export function DemoDevPanel() {
             className="gdev-btn"
             aria-pressed={on[f.key]}
             data-on={on[f.key] ? "true" : undefined}
-            onClick={() => setOn((v) => ({ ...v, [f.key]: !v[f.key] }))}
+            onClick={() => demoFlags.set(f.key, !on[f.key])}
           >
-            {on[f.key] ? "Shown" : "Hidden"}
+            {on[f.key] ? f.on : f.off}
           </button>
         </div>
       ))}

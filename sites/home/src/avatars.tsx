@@ -1,4 +1,4 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useRef, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BotAvatar, botAvatarPresets, botAvatarTypes, type BotAvatarState, type BotAvatarType } from "bot-avatars";
 import { CodeBlock } from "./examples/CodeCopy";
@@ -6,6 +6,7 @@ import { StudioTeaser } from "./examples/StudioTeaser";
 import { BotRoster, BotChat } from "./examples/avatars-mocks";
 import { PgTabs } from "./examples/PgTabs";
 import { DemoDevPanel } from "./examples/DemoDevPanel";
+import { useDemoFlag, useDemoReset } from "./examples/demoFlags";
 
 /* Bot avatars detail page — one React island rendering the examples, the
    playground (stage + controls) and the live-updating snippet below it.
@@ -38,21 +39,65 @@ const TYPE_OPTIONS = [...TEAM, ...botAvatarTypes.filter((t) => !TEAM.includes(t)
 }));
 
 
+type Offset = { x: number; y: number };
+
 function Team() {
   const [hot, setHot] = useState<BotAvatarType | null>(null);
+  /* Dev only: with Arrange on, a seat can be dragged anywhere in the row
+     for a shot. The offsets are a transform on top of the layout, so
+     nothing reflows and Reset drops them. */
+  const arrange = useDemoFlag("arrange");
+  const resets = useDemoReset();
+  const [moved, setMoved] = useState<Partial<Record<BotAvatarType, Offset>>>({});
+  const grab = useRef<{ type: BotAvatarType; x: number; y: number; from: Offset } | null>(null);
+
+  useEffect(() => {
+    setMoved({});
+  }, [resets]);
+
   return (
-    <div className="ex-avatars-team">
-      {TEAM.map((t) => (
-        <span
-          className="ex-avatars-seat"
-          key={t}
-          onPointerEnter={() => setHot(t)}
-          onPointerLeave={() => setHot((h) => (h === t ? null : h))}
-        >
-          <BotAvatar type={t} state={hot === t ? "working" : "default"} size={64} />
-          <span className="ex-avatars-name">{botAvatarPresets[t].label}</span>
-        </span>
-      ))}
+    <div className="ex-avatars-team" data-arrange={arrange ? "true" : undefined}>
+      {TEAM.map((t) => {
+        const at = moved[t] ?? { x: 0, y: 0 };
+        return (
+          <span
+            className="ex-avatars-seat"
+            key={t}
+            style={at.x || at.y ? { transform: `translate(${at.x}px, ${at.y}px)` } : undefined}
+            onPointerEnter={() => !arrange && setHot(t)}
+            onPointerLeave={() => setHot((h) => (h === t ? null : h))}
+            onPointerDown={(e) => {
+              if (!arrange) return;
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              grab.current = { type: t, x: e.clientX, y: e.clientY, from: at };
+            }}
+            onPointerMove={(e) => {
+              const g = grab.current;
+              if (!g || g.type !== t) return;
+              const x = g.from.x + (e.clientX - g.x);
+              const y = g.from.y + (e.clientY - g.y);
+              setMoved((m) => ({ ...m, [t]: { x, y } }));
+            }}
+            onPointerUp={(e) => {
+              if (grab.current?.type !== t) return;
+              e.currentTarget.releasePointerCapture(e.pointerId);
+              grab.current = null;
+            }}
+            onPointerCancel={() => {
+              grab.current = null;
+            }}
+          >
+            <BotAvatar
+              type={t}
+              state={hot === t ? "working" : "default"}
+              size={64}
+              interactive={!arrange}
+            />
+            <span className="ex-avatars-name">{botAvatarPresets[t].label}</span>
+          </span>
+        );
+      })}
     </div>
   );
 }
