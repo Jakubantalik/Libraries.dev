@@ -119,12 +119,20 @@ export function BotChat({ paused = false }: { paused?: boolean }) {
       <div className="mock-thread-user">Can you summarise the thread with Acme?</div>
       <div className="mock-thread-bot">
         <BotAvatar type="clover" state={state} size={32} paused={paused} />
+        {/* The answer's own box, always: a hidden copy holds the height
+            while the bot thinks, so neither the avatar nor the bubble
+            above it moves when the reply arrives. */}
         <div className="mock-thread-body">
-          {thinking ? (
-            <span className="t-shimmer" data-text="Thinking…">Thinking…</span>
-          ) : (
-            <StreamedReply />
-          )}
+          <p className="mock-thread-reply mock-thread-ghost" aria-hidden="true">
+            {REPLY}
+          </p>
+          <div className="mock-thread-live">
+            {thinking ? (
+              <span className="t-shimmer" data-text="Thinking…">Thinking…</span>
+            ) : (
+              <StreamedReply />
+            )}
+          </div>
         </div>
       </div>
     </div>

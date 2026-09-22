@@ -1444,6 +1444,11 @@ html[data-demo-names="off"] .ex-avatars-name { display: none; }
   color: var(--c-mock-text-strong);
 }
 .mock-thread-bot { display: flex; align-items: flex-start; gap: 10px; }
-.mock-thread-body { min-height: 32px; display: flex; align-items: center; padding-top: 1px; }
+/* The body is the answer's size at all times: a hidden copy of the reply
+   sets it, and what is actually showing — the shimmer or the streaming
+   text — sits on top. Nothing above it moves when the state changes. */
+.mock-thread-body { position: relative; min-height: 32px; padding-top: 1px; }
+.mock-thread-ghost { visibility: hidden; }
+.mock-thread-live { position: absolute; inset: 1px 0 0; display: flex; align-items: flex-start; }
 .mock-thread-body .t-shimmer { font-size: 13px; line-height: 18px; }
 .mock-thread-reply { margin: 0; font-size: 13px; line-height: 18px; color: var(--c-mock-text); }
