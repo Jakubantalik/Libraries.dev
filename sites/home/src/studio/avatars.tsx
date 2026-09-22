@@ -163,7 +163,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
 
   return (
     <div className="pg">
-      <StageBar library="Bot avatars" prompt={{ pkg: "bot-avatars", docsPath: "/avatars.html", snippet }} />
+      <StageBar library="Bot avatars" prompt={{ pkg: "bot-avatars", docsPath: "/bots.html", snippet }} />
       <div className="pg-stage">
         {visible && (
           <BotAvatar

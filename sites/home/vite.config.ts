@@ -83,7 +83,7 @@ export default mergeConfig(defineConfig({
         accessibility: resolve(__dirname, "accessibility.html"),
         beam: resolve(__dirname, "beam.html"),
         orbs: resolve(__dirname, "orbs.html"),
-        avatars: resolve(__dirname, "avatars.html"),
+        avatars: resolve(__dirname, "bots.html"),
         "orbs-carousel": resolve(__dirname, "orbs-carousel.html"),
         "bot-carousel": resolve(__dirname, "bot-carousel.html"),
         gooey: resolve(__dirname, "gooey.html"),

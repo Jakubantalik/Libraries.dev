@@ -2,7 +2,7 @@
 
 Animated bot avatars for React. Eighteen simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and three states an agent can be in: idle, working and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, rounded extrusion: no WebGL, no runtime dependencies.
 
-[Live demo](https://libraries.dev/avatars) · [Repository](https://github.com/Jakubantalik/Libraries.dev) · [Report an issue](https://github.com/Jakubantalik/Libraries.dev/issues)
+[Live demo](https://libraries.dev/bots) · [Repository](https://github.com/Jakubantalik/Libraries.dev) · [Report an issue](https://github.com/Jakubantalik/Libraries.dev/issues)
 
 ## Install
 
