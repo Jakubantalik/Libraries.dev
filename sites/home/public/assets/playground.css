@@ -2185,7 +2185,7 @@ html[data-theme="light"] .st-chat-composer {
   --docs-code-bg: rgba(0, 0, 0, 0.05);
 }
 html[data-theme="dark"] .docs-prose {
-  --docs-ink: #ededed;
+  --docs-ink: #cdcdcd;
   --docs-code-bg: rgba(255, 255, 255, 0.06);
 }
 .docs-prose > * + * { margin-top: 12px; }
@@ -2230,7 +2230,7 @@ html[data-theme="dark"] .docs-prose {
 /* Numbered steps and statement cards share the quote-card material. */
 /* On a written page the subtitle is body copy, not a hero line. */
 .docs-main .detail-sub { font-size: 14px; line-height: 22px; color: #3f3f3f; }
-html[data-theme="dark"] .docs-main .detail-sub { color: #ededed; }
+html[data-theme="dark"] .docs-main .detail-sub { color: #cdcdcd; }
 
 .docs-cards { display: grid; gap: 12px; margin-top: 20px; }
 .docs-card {
