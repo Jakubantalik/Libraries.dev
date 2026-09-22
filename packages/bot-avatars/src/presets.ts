@@ -6,7 +6,7 @@ import type { BotAvatarFace, BotAvatarPreset, BotAvatarState, BotAvatarType } fr
  */
 export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
   clover: { label: 'Clover', color: '#35B8FF', face: 'eyes', faceX: 50, faceY: 50, faceScale: 1 },
-  flower: { label: 'Flower', color: '#FF7AB8', face: 'eyes', faceX: 50, faceY: 51, faceScale: 0.95 },
+  flower: { label: 'Flower', color: '#2FCB7A', face: 'eyes', faceX: 50, faceY: 51, faceScale: 0.95 },
   triangle: { label: 'Triangle', color: '#DC48FF', face: 'eyes', faceX: 50, faceY: 61, faceScale: 0.9 },
   square: { label: 'Square', color: '#35B8FF', face: 'eyes', faceX: 50, faceY: 50, faceScale: 1 },
   blob: { label: 'Blob', color: '#2FCB7A', face: 'eyes', faceX: 49.5, faceY: 50, faceScale: 1 },
