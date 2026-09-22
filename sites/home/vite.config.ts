@@ -85,6 +85,7 @@ export default mergeConfig(defineConfig({
         orbs: resolve(__dirname, "orbs.html"),
         avatars: resolve(__dirname, "avatars.html"),
         "orbs-carousel": resolve(__dirname, "orbs-carousel.html"),
+        "bot-carousel": resolve(__dirname, "bot-carousel.html"),
         gooey: resolve(__dirname, "gooey.html"),
         metal: resolve(__dirname, "metal.html"),
         image: resolve(__dirname, "image.html"),

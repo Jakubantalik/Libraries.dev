@@ -37,6 +37,9 @@ export type BotAvatarState = 'default' | 'working' | 'sleeping';
  * edge round the front, vector-style. `smooth`: no edge, a soft shadow
  * and highlight across the whole form. `flat`: the depth alone, no lighting.
  */
+/** How the landing squash of a jump plays out. */
+export type BotAvatarSquashEase = 'sharp' | 'pulse' | 'soft' | 'bouncy';
+
 export type BotAvatarShading = 'crisp' | 'smooth' | 'plastic' | 'flat';
 
 export interface BotAvatarPreset {
@@ -74,7 +77,7 @@ export interface BotAvatarProps
   brightness?: number;
   /**
    * Saturation of the body colour: 1 as the palette has it, below 1
-   * duller, above 1 more vivid (0.5–1.5 is the useful range). Default `1`.
+   * duller, above 1 more vivid (0.5–1.5 is the useful range). Default `1.5`.
    */
   saturation?: number;
   /** Multiplier on every animation's speed. Default `1`. */
@@ -112,6 +115,11 @@ export interface BotAvatarProps
    * `dark` / `light` class, then `prefers-color-scheme`.
    */
   theme?: 'auto' | 'dark' | 'light';
+  /**
+   * How far the head turns from side to side while idle, 0–2: `1` as the
+   * library has it, `0` keeps it facing forward. Default `1`.
+   */
+  turn?: number;
   /** The whirl round a spin: its strength, 0–2. Off by default (`0`); `1` turns it on. */
   whirl?: number;
   /** Size of the whirl's ring, 0.6–1.6. Default `1`. */
@@ -122,6 +130,51 @@ export interface BotAvatarProps
   whirlLength?: number;
   /** How flat the ring is seen, 0.5–1.8 (higher is more open). Default `1`. */
   whirlTilt?: number;
+  /** The jump (an idle flip, a click): how high, in body units — the body is 100 tall. Default `26`. */
+  jumpHeight?: number;
+  /** Seconds the jump spends in the air. Default `0.68`. */
+  jumpTime?: number;
+  /** How much the body stretches in the air, 0–2. Default `1`. */
+  jumpStretch?: number;
+  /** How much the body squashes on the ground, before take-off and on landing, 0–2. Default `1.15`. */
+  jumpSquash?: number;
+  /** Seconds the landing squash takes, from contact to recovered. Default `0.37`. */
+  jumpSquashTime?: number;
+  /**
+   * How the landing squash plays out: `sharp` (all at once, then eases
+   * off), `pulse` (a quick press that recovers without a wobble, the
+   * default), `soft` (eases in and out), `bouncy` (overshoots into a
+   * stretch and settles).
+   */
+  jumpSquashEase?: BotAvatarSquashEase;
+  /** Seconds a jump holds its deepest squash on the ground before recovering. Default `0.11`. */
+  jumpGroundTime?: number;
+  /**
+   * How the weight settles through that hold, in the same shapes as
+   * `jumpSquashEase`: the body presses a little deeper and comes back to
+   * the held depth, `sharp` at once, `pulse` quickly, `soft` in the
+   * middle, `bouncy` with a wobble. Default `pulse`.
+   */
+  jumpGroundEase?: BotAvatarSquashEase;
+  /** Seconds the body takes to rise from its deepest squash back to its own shape. Default `0.33`. */
+  jumpRiseTime?: number;
+  /**
+   * How it rises: `sharp` lets go at once and eases in to rest, `pulse`
+   * leaves quickly with a long settle, `soft` eases out of the squash and
+   * into rest, `bouncy` passes rest into a slight stretch and settles
+   * back. Default `pulse`.
+   */
+  jumpRiseEase?: BotAvatarSquashEase;
+  /** Seconds a click's jump takes for its landing squash (an idle jump's uses `jumpSquashTime`). Default `0.24`. */
+  jumpClickSquashTime?: number;
+  /** Whole turns made in the air, 0–2. Default `1`. */
+  jumpSpin?: number;
+  /** Degrees of lean into a jump. Default `6`. */
+  jumpLean?: number;
+  /** Seconds between idle jumps, give or take 40 %; 0 for none. Default `8`. */
+  jumpEvery?: number;
+  /** When the landing squash begins: seconds before touch-down (negative, bracing for the ground) or after it. Default `0`, the moment of contact. */
+  jumpLand?: number;
   className?: string;
   style?: CSSProperties;
 }

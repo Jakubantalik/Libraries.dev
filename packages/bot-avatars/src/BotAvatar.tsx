@@ -4,7 +4,7 @@ import { botAvatarPresets, stateLabels } from './presets';
 import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, shade } from './color';
 import { Sim, restPose } from './engine';
-import { draw, OVERSCAN, type DrawConfig } from './draw';
+import { draw, OVERSCAN, RISE, type DrawConfig } from './draw';
 import { warmPlastic } from './plastic';
 import { subscribe, pointer } from './ticker';
 
@@ -40,7 +40,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     color,
     ink,
     brightness = 1,
-    saturation = 1,
+    saturation = 1.5,
     speed = 1,
     paused = false,
     seed,
@@ -52,12 +52,28 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     rim = 0.5,
     spread = 1.55,
     interactive = true,
+    turn = 1,
     theme = 'auto',
     whirl = 0,
     whirlSize = 1,
     whirlWidth = 1,
     whirlLength = 1,
     whirlTilt = 1,
+    jumpHeight = 26,
+    jumpTime = 0.68,
+    jumpStretch = 1,
+    jumpSpin = 1,
+    jumpLean = 6,
+    jumpEvery = 8,
+    jumpLand = 0,
+    jumpSquash = 1.15,
+    jumpSquashTime = 0.37,
+    jumpSquashEase = 'pulse',
+    jumpGroundTime = 0.11,
+    jumpGroundEase = 'pulse',
+    jumpRiseTime = 0.33,
+    jumpRiseEase = 'pulse',
+    jumpClickSquashTime = 0.24,
     className,
     style,
     'aria-label': ariaLabel,
@@ -152,6 +168,8 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   useLayoutEffect(() => {
     if (!sim.current) sim.current = new Sim(seedValue, stateKey);
     else sim.current.setState(stateKey);
+    sim.current.setTurn(clamp(turn, 0, 2));
+    sim.current.setJump({ height: jumpHeight, time: Math.max(0.2, jumpTime), stretch: jumpStretch, spin: Math.max(0, Math.round(jumpSpin)), lean: jumpLean, every: jumpEvery, land: jumpLand, squash: jumpSquash, squashTime: Math.max(0.05, jumpSquashTime), squashEase: jumpSquashEase, groundTime: Math.max(0, jumpGroundTime), groundEase: jumpGroundEase, riseTime: Math.max(0.05, jumpRiseTime), riseEase: jumpRiseEase, clickSquashTime: Math.max(0.05, jumpClickSquashTime) });
     if (reducedMotion()) {
       /* the still pose of the state, no loop */
       const canvas = canvasRef.current;
@@ -206,7 +224,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
         const r = canvas.getBoundingClientRect();
         const box = r.width / OVERSCAN || 1;
         const dx = (pointer.x - (r.left + r.width / 2)) / box;
-        const dy = (pointer.y - (r.top + r.height / 2)) / box;
+        const dy = (pointer.y - (r.top + r.height / 2 + RISE * box)) / box;
         const d = Math.hypot(dx, dy);
         /* full pull up close, gone by REACH */
         const strength = d < 1 ? 1 : d > REACH ? 0 : 1 - (d - 1) / (REACH - 1);
@@ -242,8 +260,13 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
      with negative margins, so it lays out at `size` and still has room
      to hop and flip. */
   const dim = typeof size === 'number' ? `${size * OVERSCAN}px` : `calc(${size} * ${OVERSCAN})`;
-  const pull = typeof size === 'number' ? `${(-size * (OVERSCAN - 1)) / 2}px` : `calc(${size} * ${-(OVERSCAN - 1) / 2})`;
-  const css: CSSProperties = { display: 'inline-block', verticalAlign: 'middle', width: dim, height: dim, margin: pull, flex: 'none', ...style };
+  const pull = (k: number) => (typeof size === 'number' ? `${-size * k}px` : `calc(${size} * ${-k})`);
+  const side = (OVERSCAN - 1) / 2;
+  const css: CSSProperties = {
+    display: 'inline-block', verticalAlign: 'middle', width: dim, height: dim,
+    marginLeft: pull(side), marginRight: pull(side), marginTop: pull(side + RISE), marginBottom: pull(side - RISE),
+    flex: 'none', ...style,
+  };
 
   const onClick = (e: MouseEvent<HTMLCanvasElement>) => {
     if (interactive && !frozen) sim.current?.poke();

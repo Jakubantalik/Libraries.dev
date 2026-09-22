@@ -61,7 +61,7 @@ export function BotChat({ paused = false }: { paused?: boolean }) {
     <div className="mock-thread" aria-label="Chat">
       <div className="mock-thread-user">Can you summarise the thread with Acme?</div>
       <div className="mock-thread-bot">
-        <BotAvatar type="clover" face="mouth" state={state} size={32} paused={paused} />
+        <BotAvatar type="clover" state={state} size={32} paused={paused} />
         <div className="mock-thread-body">
           {thinking ? (
             <span className="t-shimmer" data-text="Thinking…">Thinking…</span>

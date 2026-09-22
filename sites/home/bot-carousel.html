@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="color-scheme" content="dark" />
+  <title>Bot carousel · internal</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <style>
+    /* Internal demo — Figma 1627:1020 as a wireframe: a 1000×960 stage on
+       the site's ground with a row of bots walking rightward across it.
+       The bot in the middle is the big one and the one at work; the rest
+       idle. Every `interval` the row steps one slot to the right over
+       `duration` on an ease-in-out, with a horizontal motion blur driven
+       by how fast the row is actually travelling. */
+    :root {
+      --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --bc-dur: 600ms;
+      --bc-ease: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    html { background: #121212; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px 0;
+      font-family: var(--font-sans, Inter, system-ui, sans-serif);
+    }
+    /* the stage and the order strip under it, as one column */
+    #carousel-root { display: flex; flex-direction: column; align-items: center; }
+
+    .bc-stage {
+      position: relative;
+      width: 1000px;
+      height: 960px;
+      background: #070707;
+      overflow: hidden;
+    }
+    /* The track holds the row on the stage's centre line; the stage's own
+       clip is the only edge — the bots walk in and out of frame whole. */
+    .bc-track {
+      position: absolute;
+      inset: 0;
+    }
+    /* Every bot sits at its own slot; the whole row travels as one, so the
+       blur is one pass over the row rather than nine over the bots. The
+       filter stays on the row at all times with a zero blur at rest:
+       switching it on at the start of a step re-rasterises the row and
+       flashes for a frame. */
+    .bc-row {
+      filter: url(#bc-motion-blur);
+      /* hung from the stage's centre and pulled back by half its own
+         width, so the middle slot sits on the centre line and the row
+         hangs off both edges — a grid's centring clamps it to the stage */
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      display: flex;
+      align-items: center;
+      width: max-content;
+      transform: translate(-50%, -50%);
+      will-change: transform;
+    }
+    .bc-slot {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      transition: transform var(--bc-dur) var(--bc-ease);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bc-slot { transition: none; }
+    }
+
+    /* The order strip under the stage: every type once, still, dragged to
+       set the order the carousel deals them in. */
+    .bc-strip {
+      width: 1000px;
+      margin: 20px 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+    }
+    .bc-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 4px 4px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .03);
+      cursor: grab;
+      user-select: none;
+      transition: background 120ms ease, transform 120ms ease;
+    }
+    .bc-chip:hover { background: rgba(255, 255, 255, .07); }
+    .bc-chip[data-dragging="true"] {
+      background: rgba(255, 255, 255, .12);
+      transform: scale(1.06);
+      cursor: grabbing;
+    }
+    .bc-chip-label { color: #8a8a8a; font-size: 10px; line-height: 12px; letter-spacing: .01em; }
+
+    /* Dev panel (this page is internal, so it is always here): the step,
+       the movement and the bots' size, live. */
+    .bcdev {
+      position: fixed; left: 16px; bottom: 16px; z-index: 2147483000;
+      width: 248px; display: flex; flex-direction: column; gap: 12px;
+      padding: 14px; border-radius: 14px; background: #1b1b1b;
+      box-shadow: 0 4px 42px rgba(0,0,0,.24); color: #fbfbfb; font-size: 12px;
+    }
+    .bcdev-head { display: flex; align-items: center; justify-content: space-between; font-weight: 500; font-size: 13px; }
+    .bcdev-actions { display: flex; gap: 4px; }
+    .bcdev-btn { height: 26px; padding: 0 10px; border: 0; border-radius: 60px; background: rgba(255,255,255,.06); color: #fbfbfb; font: 500 12px/16px inherit; cursor: pointer; }
+    .bcdev-btn:hover { background: rgba(255,255,255,.1); }
+    .bcdev-btn[data-on="true"] { background: #fbfbfb; color: #111; }
+    .bcdev-row { display: flex; flex-direction: column; gap: 4px; }
+    .bcdev-row-head { display: flex; justify-content: space-between; color: #b1b1b1; }
+    .bcdev-val { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .bcdev-row input[type="range"] { width: 100%; accent-color: #8ab4ff; }
+    .bcdev-select {
+      width: 100%; box-sizing: border-box; height: 26px; padding: 0 8px; border: 0; border-radius: 8px;
+      background: rgba(255,255,255,.06); color: #fbfbfb; font: 12px/26px inherit;
+    }
+    .bcdev-hint { color: #8a8a8a; font-size: 11px; line-height: 15px; }
+  </style>
+</head>
+<body>
+  <div id="carousel-root"></div>
+  <!-- The motion blur: a horizontal-only gaussian whose deviation the
+       island writes each frame from the row's real speed. -->
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+    <filter id="bc-motion-blur" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feGaussianBlur id="bc-motion-blur-dev" in="SourceGraphic" stdDeviation="0 0" />
+    </filter>
+  </svg>
+  <script type="module" src="/src/bot-carousel.tsx"></script>
+</body>
+</html>

@@ -19,6 +19,17 @@ import { ControlsPanel, PgTabs, PgSlider, PgSwatches, PgToggles, PanelSep, Snipp
    and the shading. */
 
 const TYPE_OPTIONS = botAvatarTypes.map((t) => ({ value: t, label: botAvatarPresets[t].label }));
+const SQUASH_EASE_OPTIONS = [
+  { value: "sharp", label: "Sharp" },
+  { value: "pulse", label: "Pulse" },
+  { value: "soft", label: "Soft" },
+  { value: "bouncy", label: "Bouncy" },
+] as const;
+const SPIN_OPTIONS = [
+  { value: "0", label: "None" },
+  { value: "1", label: "One turn" },
+  { value: "2", label: "Two turns" },
+] as const;
 const FACE_OPTIONS = [
   { value: "eyes", label: "Eyes" },
   { value: "mouth", label: "Mouth" },
@@ -56,7 +67,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [color, setColor] = useState<string | null>(null);
   const [ink, setInk] = useState<string | null>(null);
   const [brightness, setBrightness] = useState(100);
-  const [saturation, setSaturation] = useState(100);
+  const [saturation, setSaturation] = useState(150);
   const [speed, setSpeed] = useState(100);
   const [seed, setSeed] = useState<number | null>(null);
   /* the library's own defaults */
@@ -68,18 +79,31 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
   const [interactive, setInteractive] = useState(true);
+  const [turn, setTurn] = useState(100); // % of the idle side turn (35° either way)
   const [whirl, setWhirl] = useState(0);
-  const [whirlSize, setWhirlSize] = useState(100);
-  const [whirlWidth, setWhirlWidth] = useState(100);
-  const [whirlLength, setWhirlLength] = useState(100);
-  const [whirlTilt, setWhirlTilt] = useState(100);
   const [paused, setPaused] = useState(false);
+  /* the jump: an idle flip and a click's; the library's defaults */
+  const [jumpHeight, setJumpHeight] = useState(26);
+  const [jumpTime, setJumpTime] = useState(68);
+  const [jumpStretch, setJumpStretch] = useState(100);
+  const [jumpSpin, setJumpSpin] = useState<"0" | "1" | "2">("1");
+  const [jumpLean, setJumpLean] = useState(6);
+  const [jumpEvery, setJumpEvery] = useState(8);
+  const [jumpLand, setJumpLand] = useState(0); // ms round touch-down
+  const [jumpSquash, setJumpSquash] = useState(115);
+  const [jumpSquashTime, setJumpSquashTime] = useState(370); // ms
+  const [jumpSquashEase, setJumpSquashEase] = useState<"sharp" | "pulse" | "soft" | "bouncy">("pulse");
+  const [jumpClickSquashTime, setJumpClickSquashTime] = useState(240); // ms
+  const [jumpGroundTime, setJumpGroundTime] = useState(110); // ms held at the deepest squash
+  const [jumpGroundEase, setJumpGroundEase] = useState<"sharp" | "pulse" | "soft" | "bouncy">("pulse");
+  const [jumpRiseTime, setJumpRiseTime] = useState(330); // ms back to shape
+  const [jumpRiseEase, setJumpRiseEase] = useState<"sharp" | "pulse" | "soft" | "bouncy">("pulse");
 
   const preset = botAvatarPresets[type];
   const shownFace = face ?? preset.face;
   const shownColor = color ?? preset.color;
   /* what the library will paint, for the auto ink */
-  const litColor = brightness === 100 && saturation === 100 ? shownColor : shade(shownColor, (brightness / 100 - 1) * 0.35, (saturation / 100 - 1) * 0.5);
+  const litColor = brightness === 100 && saturation === 150 ? shownColor : shade(shownColor, (brightness / 100 - 1) * 0.35, (saturation / 100 - 1) * 0.5);
   const shownInk = ink ?? autoInk(litColor);
 
   /* What was picked for each type is kept while the bench lives, so
@@ -103,7 +127,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (color && color !== preset.color) props.push(`color="${color}"`);
   if (ink && ink !== autoInk(litColor)) props.push(`ink="${ink}"`);
   if (brightness !== 100) props.push(`brightness={${num(brightness / 100)}}`);
-  if (saturation !== 100) props.push(`saturation={${num(saturation / 100)}}`);
+  if (saturation !== 150) props.push(`saturation={${num(saturation / 100)}}`);
   if (speed !== 100) props.push(`speed={${num(speed / 100)}}`);
   if (seed !== null) props.push(`seed={${num(seed)}}`);
   if (shading !== "plastic") props.push(`shading="${shading}"`);
@@ -116,11 +140,23 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if (!interactive) props.push("interactive={false}");
+  if (turn !== 100) props.push(`turn={${num(turn / 100)}}`);
   if (whirl !== 0) props.push(`whirl={${num(whirl / 100)}}`);
-  if (whirlSize !== 100) props.push(`whirlSize={${num(whirlSize / 100)}}`);
-  if (whirlWidth !== 100) props.push(`whirlWidth={${num(whirlWidth / 100)}}`);
-  if (whirlLength !== 100) props.push(`whirlLength={${num(whirlLength / 100)}}`);
-  if (whirlTilt !== 100) props.push(`whirlTilt={${num(whirlTilt / 100)}}`);
+  if (jumpHeight !== 26) props.push(`jumpHeight={${jumpHeight}}`);
+  if (jumpTime !== 68) props.push(`jumpTime={${num(jumpTime / 100)}}`);
+  if (jumpStretch !== 100) props.push(`jumpStretch={${num(jumpStretch / 100)}}`);
+  if (jumpSpin !== "1") props.push(`jumpSpin={${jumpSpin}}`);
+  if (jumpLean !== 6) props.push(`jumpLean={${jumpLean}}`);
+  if (jumpEvery !== 8) props.push(`jumpEvery={${jumpEvery}}`);
+  if (jumpLand !== 0) props.push(`jumpLand={${num(jumpLand / 1000)}}`);
+  if (jumpSquash !== 115) props.push(`jumpSquash={${num(jumpSquash / 100)}}`);
+  if (jumpSquashTime !== 370) props.push(`jumpSquashTime={${num(jumpSquashTime / 1000)}}`);
+  if (jumpSquashEase !== "pulse") props.push(`jumpSquashEase="${jumpSquashEase}"`);
+  if (jumpGroundTime !== 110) props.push(`jumpGroundTime={${num(jumpGroundTime / 1000)}}`);
+  if (jumpGroundTime > 0 && jumpGroundEase !== "pulse") props.push(`jumpGroundEase="${jumpGroundEase}"`);
+  if (jumpRiseTime !== 330) props.push(`jumpRiseTime={${num(jumpRiseTime / 1000)}}`);
+  if (jumpRiseEase !== "pulse") props.push(`jumpRiseEase="${jumpRiseEase}"`);
+  if (jumpClickSquashTime !== 240) props.push(`jumpClickSquashTime={${num(jumpClickSquashTime / 1000)}}`);
   if (theme === "light") props.push(`theme="light"`);
   if (paused) props.push("paused");
   const snippet = `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
@@ -149,12 +185,24 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             rim={rim / 100}
             spread={spread / 100}
             interactive={interactive}
+            turn={turn / 100}
             theme={theme}
             whirl={whirl / 100}
-            whirlSize={whirlSize / 100}
-            whirlWidth={whirlWidth / 100}
-            whirlLength={whirlLength / 100}
-            whirlTilt={whirlTilt / 100}
+            jumpHeight={jumpHeight}
+            jumpTime={jumpTime / 100}
+            jumpStretch={jumpStretch / 100}
+            jumpSpin={Number(jumpSpin)}
+            jumpLean={jumpLean}
+            jumpEvery={jumpEvery}
+            jumpLand={jumpLand / 1000}
+            jumpSquash={jumpSquash / 100}
+            jumpSquashTime={jumpSquashTime / 1000}
+            jumpSquashEase={jumpSquashEase}
+            jumpClickSquashTime={jumpClickSquashTime / 1000}
+            jumpGroundTime={jumpGroundTime / 1000}
+            jumpGroundEase={jumpGroundEase}
+            jumpRiseTime={jumpRiseTime / 1000}
+            jumpRiseEase={jumpRiseEase}
             paused={paused}
           />
         )}
@@ -202,20 +250,54 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
           {/* Where in its blink and glance loops the avatar starts; two
               avatars with the same seed move in step. */}
           <PgSlider label="Seed" value={seed ?? 0} min={0} max={1} step={0.01} display={seed === null ? "auto" : num(seed)} onChange={setSeed} />
-          {/* the eyes and head follow a pointer nearby; a click hops and flips */}
+          {/* how far the head turns from side to side while idle */}
+          <PgSlider label="Side turn" value={turn} min={0} max={200} step={5} display={`${turn}%`} onChange={setTurn} />
+          {/* the eyes and head follow a pointer nearby and a click hops and
+              flips; the motion ring round a spin; a jump now and then in
+              the idle state */}
           <PgToggles
-            label="Pointer"
-            options={[{ label: "Follow and hop", active: interactive, onToggle: () => setInteractive((v) => !v) }]}
+            label="Options"
+            options={[
+              { label: "Follow pointer", active: interactive, onToggle: () => setInteractive((v) => !v) },
+              { label: "Whirl ring", active: whirl > 0, onToggle: () => setWhirl((v) => (v > 0 ? 0 : 100)) },
+              { label: "Jump in idle", active: jumpEvery > 0, onToggle: () => setJumpEvery((v) => (v > 0 ? 0 : 8)) },
+            ]}
           />
         </PgGroup>
         <PanelSep />
-        {/* the motion ring round a spin: click the avatar to see one */}
-        <PgGroup label="Whirl">
-          <PgSlider label="Strength" value={whirl} min={0} max={200} step={5} display={`${whirl}%`} onChange={setWhirl} />
-          <PgSlider label="Size" value={whirlSize} min={60} max={160} step={2} display={`${whirlSize}%`} onChange={setWhirlSize} />
-          <PgSlider label="Thickness" value={whirlWidth} min={40} max={200} step={5} display={`${whirlWidth}%`} onChange={setWhirlWidth} />
-          <PgSlider label="Length" value={whirlLength} min={40} max={160} step={5} display={`${whirlLength}%`} onChange={setWhirlLength} />
-          <PgSlider label="Tilt" value={whirlTilt} min={50} max={180} step={5} display={`${whirlTilt}%`} onChange={setWhirlTilt} />
+        {/* the jump: an idle flip now and then, and a click's */}
+        <PgGroup label="Jump">
+          <PgSlider label="Height" value={jumpHeight} min={0} max={50} step={1} display={`${jumpHeight}`} onChange={setJumpHeight} />
+          <PgSlider label="Air time" value={jumpTime} min={40} max={140} step={2} display={`${num(jumpTime / 100)} s`} onChange={setJumpTime} />
+          <PgSlider label="Stretch" value={jumpStretch} min={0} max={200} step={5} display={`${jumpStretch}%`} onChange={setJumpStretch} />
+          <PgTabs label="Spin" options={SPIN_OPTIONS} value={jumpSpin} onChange={setJumpSpin} />
+          <PgSlider label="Lean" value={jumpLean} min={0} max={15} step={1} display={`${jumpLean}°`} onChange={setJumpLean} />
+          {/* the squash on the ground: how deep, how long, and its shape */}
+          <PgSlider label="Squash" value={jumpSquash} min={0} max={200} step={5} display={`${jumpSquash}%`} onChange={setJumpSquash} />
+          <PgSlider label="Squash time" value={jumpSquashTime} min={100} max={600} step={10} display={`${jumpSquashTime} ms`} onChange={setJumpSquashTime} />
+          {/* how long the deepest squash is held on the ground */}
+          <PgSlider label="Ground time" value={jumpGroundTime} min={0} max={600} step={10} display={jumpGroundTime === 0 ? "none" : `${jumpGroundTime} ms`} onChange={setJumpGroundTime} />
+          {/* what the body does through that hold */}
+          {jumpGroundTime > 0 && (
+            <PgTabs label="Ground easing" options={SQUASH_EASE_OPTIONS} value={jumpGroundEase} onChange={setJumpGroundEase} />
+          )}
+          {/* the way back from the deepest squash to the body's own shape */}
+          <PgSlider label="Rise time" value={jumpRiseTime} min={80} max={800} step={10} display={`${jumpRiseTime} ms`} onChange={setJumpRiseTime} />
+          <PgTabs label="Rise easing" options={SQUASH_EASE_OPTIONS} value={jumpRiseEase} onChange={setJumpRiseEase} />
+          <PgTabs label="Squash easing" options={SQUASH_EASE_OPTIONS} value={jumpSquashEase} onChange={setJumpSquashEase} />
+          {/* a click's jump: how long its landing squash takes */}
+          <PgSlider label="Click squash time" value={jumpClickSquashTime} min={100} max={1000} step={10} display={`${jumpClickSquashTime} ms`} onChange={setJumpClickSquashTime} />
+          {/* when the landing squash begins, round the moment of contact */}
+          <PgSlider
+            label="Land squash"
+            value={jumpLand}
+            min={-200}
+            max={150}
+            step={10}
+            display={jumpLand === 0 ? "at contact" : jumpLand < 0 ? `${-jumpLand} ms early` : `${jumpLand} ms late`}
+            onChange={setJumpLand}
+          />
+          <PgSlider label="Every" value={jumpEvery} min={0} max={20} step={1} display={jumpEvery === 0 ? "never" : `${jumpEvery} s`} onChange={setJumpEvery} />
         </PgGroup>
       </ControlsPanel>
 

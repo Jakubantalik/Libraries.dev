@@ -5,9 +5,121 @@
    flip, a hop, a nod, a blink), and a state change eases from one set of
    targets to the next on a timed curve, so it starts and ends softly. */
 
-import type { BotAvatarState } from './types';
+import type { BotAvatarState, BotAvatarSquashEase } from './types';
 
 export const STATES: BotAvatarState[] = ['default', 'working', 'sleeping'];
+/* the working state's hop: its period, and the height of the spinning one */
+const HOP_T = 0.68;
+const HOP_SPIN_H = 26;
+/* a flip is that spinning hop on its own: a crouch before it (the squash
+   that, in the working state, the previous landing leaves), the hop, and
+   the landing's recovery after — measured in hop periods */
+const FLIP_PRE = 0.2;
+const FLIP_POST = 0.66;
+/** The jump's numbers: an idle flip's and a click's. */
+export interface JumpConfig {
+  /** how high, in body units (the body is 100 tall) */
+  height: number;
+  /** seconds in the air */
+  time: number;
+  /** how much the body stretches in the air, 0–2 */
+  stretch: number;
+  /** how much it squashes on the ground, before take-off and on landing, 0–2 */
+  squash: number;
+  /** seconds the landing squash takes, contact to recovered */
+  squashTime: number;
+  /** the landing squash's shape */
+  squashEase: BotAvatarSquashEase;
+  /** seconds the body holds its deepest squash on the ground */
+  groundTime: number;
+  /** how the weight settles through that hold */
+  groundEase: BotAvatarSquashEase;
+  /** seconds the body takes to rise from its deepest squash back to shape */
+  riseTime: number;
+  /** how it rises */
+  riseEase: BotAvatarSquashEase;
+  /** seconds a click's jump takes for its landing squash */
+  clickSquashTime: number;
+  /** whole turns in the air */
+  spin: number;
+  /** degrees of lean into it */
+  lean: number;
+  /** seconds between idle jumps, roughly (±40 %); 0 for none */
+  every: number;
+  /** when the landing squash begins: seconds before (negative) or after
+      touch-down; 0 is the moment of contact */
+  land: number;
+}
+export const JUMP_DEFAULTS: JumpConfig = { height: HOP_SPIN_H, time: HOP_T, stretch: 1, squash: 1.15, squashTime: 0.37, squashEase: 'pulse', groundTime: 0.11, groundEase: 'pulse', riseTime: 0.33, riseEase: 'pulse', clickSquashTime: 0.24, spin: 1, lean: 6, every: 8, land: 0 };
+/* a click's jump crouches for its squash time before take-off and lands
+   with a squash of the same length; an idle jump's crouch is the working
+   hop's short one */
+const flipPre = (j: JumpConfig, poked: boolean) => (poked ? j.clickSquashTime : FLIP_PRE * j.time);
+const flipDuration = (j: JumpConfig, poked: boolean) =>
+  flipPre(j, poked) +
+  j.time +
+  SQUASH_PEAK[j.squashEase] * (poked ? j.clickSquashTime : j.squashTime) +
+  Math.max(0, j.groundTime) +
+  j.riseTime +
+  Math.max(0, j.land) +
+  0.05;
+/* where in its time each easing reaches the deepest squash */
+const SQUASH_PEAK: Record<BotAvatarSquashEase, number> = { sharp: 0, pulse: 2 / 7, soft: 0.5, bouncy: 0.144 };
+/* the rise: how the body comes back from its deepest squash to its own
+   shape, 1 → 0 over the rise time. `sharp` lets go at once and eases in
+   to rest, `pulse` leaves quickly with a long settle, `soft` eases out of
+   the squash and into rest, `bouncy` passes rest into a slight stretch
+   and settles back. */
+const risePulse = (v: number, ease: BotAvatarSquashEase) => {
+  if (v <= 0) return 1;
+  if (v >= 1) return 0;
+  switch (ease) {
+    case 'sharp':
+      return (1 - v) * (1 - v);
+    case 'soft':
+      return 0.5 + 0.5 * Math.cos(Math.PI * v);
+    case 'bouncy':
+      return Math.exp(-3.2 * v) * Math.cos(5.4 * v) - v * v * v * 0.026;
+    default: {
+      const k = 4.2 * v;
+      return (1 + k) * Math.exp(-k) - v * v * v * 0.078;
+    }
+  }
+};
+
+/* the weight settling through the hold, as a gain on the deepest squash:
+   the same four curves as the landing squash, pressing up to a quarter
+   deeper and back to the held depth, so the hold's ends never step */
+const groundShape = (v: number, ease: BotAvatarSquashEase) => 1 + 0.25 * squashPulse(v, ease);
+/* the landing squash over its time, 0–1 → its depth, 0–1 at the peak:
+   sharp is all there at contact and eases off; pulse presses quickly and
+   recovers without a wobble (a critically damped spring under a short
+   push); soft eases in and out; bouncy overshoots into a stretch and
+   settles. Each is faded out over the last part so it ends at nothing. */
+const squashPulse = (u: number, ease: BotAvatarSquashEase) => {
+  if (u <= 0 || u >= 1) return 0;
+  let x: number;
+  switch (ease) {
+    case 'sharp':
+      x = (1 - u) * (1 - u);
+      break;
+    case 'soft':
+      x = Math.sin(Math.PI * u) ** 2;
+      break;
+    case 'bouncy':
+      x = (Math.exp(-3.15 * u) * Math.sin(8.43 * u)) / 0.596;
+      break;
+    default: {
+      const k = 7 * u;
+      x = (k * k * Math.exp(2 - k)) / 4;
+    }
+  }
+  const tail = u > 0.85 ? 1 - (u - 0.85) / 0.15 : 1;
+  return x * tail * tail * (3 - 2 * tail);
+};
+/* the hop's shaping: squash on the ground, stretch at the top */
+const hopSquash = (a: number) => Math.exp(-Math.pow(Math.min(Math.abs(a), Math.abs(a - 1)) / 0.11, 2));
+
 
 export interface Pose {
   /** radians; yaw > 0 turns the face to the viewer's right, pitch > 0 looks up */
@@ -21,7 +133,7 @@ export interface Pose {
   sy: number;
   /** 0 shut … 1 open, before blinks */
   eyeOpen: number;
-  /** how far each lid is down right now, 0 … 1 — a wink closes one */
+  /** how far each lid is down right now, 0 … 1 */
   blinkL: number;
   blinkR: number;
   lookX: number;
@@ -42,8 +154,11 @@ const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 /* how long a state change takes: dozing off is slow, waking a little
    quicker, the rest brisk */
-const SWITCH_TO: Record<BotAvatarState, number> = { default: 0.5, working: 0.45, sleeping: 1.4 };
-const SWITCH_FROM_SLEEP = 0.8;
+/* How long a switch takes. Settling down takes longer than getting to
+   work: coming back to idle the body has to let go of the hops, so it
+   eases out over more than a second. */
+const SWITCH_TO: Record<BotAvatarState, number> = { default: 1.2, working: 0.7, sleeping: 1.4 };
+const SWITCH_FROM_SLEEP = 1;
 
 /* Deterministic per-instance randomness (mulberry32). */
 function rng(seed: number): () => number {
@@ -71,21 +186,36 @@ const easeSine = (p: number) => 0.5 - 0.5 * Math.cos(Math.PI * p);
    jumps. */
 class Wander {
   value = 0;
+  private vel = 0;
   private target = 0;
   private next = 0;
+  /* A channel that picks a new target now and then and moves to it. The
+     head channels move as a lightly damped spring — the turn starts and
+     ends softly, the way a head does — while the eyes dart with an
+     exponential approach, the way eyes do. */
   constructor(
     private rand: () => number,
     public amp: number,
     public holdMin: number,
     public holdMax: number,
-    public rate: number
+    public rate: number,
+    private spring = false
   ) {}
   update(t: number, dt: number) {
     if (t >= this.next) {
       this.target = (this.rand() * 2 - 1) * this.amp;
       this.next = t + this.holdMin + this.rand() * (this.holdMax - this.holdMin);
     }
-    this.value = approach(this.value, this.target, this.rate, dt);
+    if (this.spring) {
+      const w = this.rate * 1.6, z = 0.9;
+      this.vel += (w * w * (this.target - this.value) - 2 * z * w * this.vel) * dt;
+      this.value += this.vel * dt;
+    } else this.value = approach(this.value, this.target, this.rate, dt);
+  }
+  /** aim at a value and stay there: the rig picks the next one */
+  aim(v: number) {
+    this.target = v;
+    this.next = Infinity;
   }
   set(amp: number, holdMin: number, holdMax: number, rate: number) {
     this.amp = amp;
@@ -113,6 +243,15 @@ class Event {
   }
 }
 
+/* The idle gaze: how far the head swings, and how long it stays. The
+   sideways reach is the big one — a look to a corner reads as a turn of
+   the head, with the rise and a slight tilt going along. */
+const GAZE_YAW = 35 * DEG;
+const GAZE_PITCH = 14 * DEG;
+const GAZE_ROLL = 3.2 * DEG;
+const GAZE_HOLD_MIN = 2.6;
+const GAZE_HOLD_MAX = 4.4;
+
 /* Resting targets per state. Everything the wanderers and events add sits
    on top of these. */
 interface Rest {
@@ -137,8 +276,7 @@ export class Sim {
   /* a state change: the weights it started from and its progress */
   private wFrom: [number, number, number] = [1, 0, 0];
   private tr = 1;
-  private trDuration = 0.5;
-  private trSoft = false;
+  private trDuration = 1.2;
   private yawW: Wander;
   private pitchW: Wander;
   private rollW: Wander;
@@ -148,18 +286,22 @@ export class Sim {
   private blinkAt: number;
   private blinkAgain = false;
   /* −1 left eye only, 1 right eye only, 0 both */
-  private wink = 0;
   private dart = new Event(0.12);
   private dartAt: number;
   private dartX = 0;
   private dartY = 0;
-  private flip = new Event(0.9);
+  private flip = new Event(flipDuration(JUMP_DEFAULTS, false));
+  private flipPoked = false;
+  private jump: JumpConfig = { ...JUMP_DEFAULTS };
   private flipAt: number;
-  private flipHeight = 20;
+  private flipSide = 1;
   private nod = new Event(1.7);
   private nodAt: number;
   private hopPhase = 0;
   private hopCount = 0;
+  /** the hops' gain: the working weight while in the state, then held so
+      a hop under way finishes whole when the state is left */
+  private hopGain = 0;
   private laughEv = new Event(0.8);
   private laughAt: number;
   /* the jelly: a damped spring driven by how fast the head turns, so a
@@ -167,10 +309,15 @@ export class Sim {
   private prevYaw = 0;
   private jelly = 0;
   private jellyV = 0;
-  /* the landing: a vertical spring kicked when a jump touches down */
-  private squash = 0;
-  private squashV = 0;
-  private airborne = false;
+  /** how far the eyes run ahead of a head turn */
+  private gazeLead = 0;
+  /** the idle gaze: where the head is looking, and when it moves on */
+  private gazeDir: [number, number] = [0, 0];
+  private gazeAt = 0;
+  /** how far it turns to the side, 1 as the gaze has it */
+  private turnK = 1;
+  /** the breathing cycle's phase, in turns */
+  private breathPhase = 0;
   /* the pointer, as an offset from the head in head-widths, and how much
      to follow it — both smoothed */
   private ptrX = 0;
@@ -185,17 +332,18 @@ export class Sim {
   constructor(seed: number, state: BotAvatarState = 'default') {
     this.rand = rng(Math.floor(seed * 1e6) + 1);
     const r = this.rand;
-    this.yawW = new Wander(r, 36 * DEG, 1.1, 2.6, 3);
-    this.pitchW = new Wander(r, 10 * DEG, 1.1, 2.6, 2.6);
-    this.rollW = new Wander(r, 5 * DEG, 1.6, 3.2, 2);
+    this.yawW = new Wander(r, 36 * DEG, 1.1, 2.6, 3, true);
+    this.pitchW = new Wander(r, 10 * DEG, 1.1, 2.6, 2.6, true);
+    this.rollW = new Wander(r, 5 * DEG, 1.6, 3.2, 2, true);
     this.lookXW = new Wander(r, 3.6, 0.5, 2, 14);
     this.lookYW = new Wander(r, 2.4, 0.5, 2, 14);
     /* every instance starts somewhere else in its loops */
     this.t = r() * 10;
     this.hopPhase = r();
+    this.breathPhase = r();
     /* event timers count from that start, so nothing fires on the first tick */
     this.blinkAt = this.t + 1 + r() * 3;
-    this.flipAt = this.t + 5 + r() * 7;
+    this.flipAt = this.nextFlip(this.t, 1);
     this.nodAt = this.t + 3 + r() * 4;
     this.dartAt = this.t + 1 + r() * 2;
     this.laughAt = this.t + 0.6 + r() * 1.5;
@@ -214,16 +362,21 @@ export class Sim {
       this.wFrom = [w[0], w[1], w[2]];
       this.tr = 0;
       this.trDuration = from === 'sleeping' ? SWITCH_FROM_SLEEP : SWITCH_TO[next];
-      this.trSoft = next === 'sleeping' || from === 'sleeping';
     }
     switch (next) {
       case 'default':
-        this.yawW.set(36 * DEG, 1.1, 2.6, 3);
-        this.pitchW.set(10 * DEG, 1.1, 2.6, 2.6);
-        this.rollW.set(5 * DEG, 1.6, 3.2, 2);
-        this.lookXW.set(3.6, 0.5, 2, 14);
-        this.lookYW.set(2.4, 0.5, 2, 14);
-        this.flipAt = this.t + 3 + this.rand() * 4;
+        /* the head takes its time: it holds a place, then swings to the
+           next over about a second — no short quick jabs. The gaze picks
+           where, so these carry the motion and their amplitude is unused. */
+        this.yawW.set(GAZE_YAW, 2.6, 5.4, 2);
+        this.pitchW.set(GAZE_PITCH, 2.8, 5.8, 1.8);
+        this.rollW.set(GAZE_ROLL, 3.4, 6.6, 1.5);
+        this.gazeAt = 0;
+        this.gazeDir = [0, 0];
+        /* the eyes keep their quickness: they dart, the head follows */
+        this.lookXW.set(3.6, 0.6, 2.2, 13);
+        this.lookYW.set(2.4, 0.6, 2.2, 13);
+        this.flipAt = this.nextFlip(this.t, 0.6);
         break;
       case 'working':
         this.yawW.set(16 * DEG, 0.9, 1.8, 4);
@@ -257,10 +410,57 @@ export class Sim {
   /** A hop and a full turn, right now, whatever the state. */
   poke() {
     if (this.flip.active && this.flip.p < 0.6) return;
-    this.flip.duration = 0.9;
-    this.flipHeight = 20;
+    this.flipPoked = true;
+    this.flip.duration = flipDuration(this.jump, true);
+    this.flipSide = this.rand() < 0.5 ? -1 : 1;
     this.flip.fire();
-    this.flipAt = this.t + 6 + this.rand() * 6;
+    this.flipAt = this.nextFlip(this.t, 1.1);
+  }
+
+  /** How far the head turns to the side while idle: 1 as the gaze has
+      it, 0 keeps it facing forward. */
+  setTurn(k: number) {
+    const next = Math.max(0, k);
+    if (next === this.turnK) return;
+    this.turnK = next;
+    /* take the new reach at once rather than at the next place */
+    if (this.state === 'default') this.gazeAt = 0;
+  }
+
+  /** The jump's numbers; any subset. */
+  setJump(j: Partial<JumpConfig>) {
+    const every = this.jump.every;
+    Object.assign(this.jump, j);
+    /* a new interval takes effect at once, so `every: 0` stops the next
+       jump that was already due and a first value starts the clock */
+    if (j.every !== undefined && j.every !== every) this.flipAt = this.nextFlip(this.t, 1);
+  }
+
+  /* Where the head looks next. From a corner it mostly swings straight
+     across to the opposite one — top right, stay, bottom left — now and
+     then only sideways, or back to the middle for a beat. */
+  private nextGaze(): [number, number] {
+    const r = this.rand;
+    const [px, py] = this.gazeDir;
+    if (px !== 0 || py !== 0) {
+      const p = r();
+      if (p < 0.66) return [-px, -py];
+      if (p < 0.85) return [-px, py];
+      return [0, 0];
+    }
+    const corners: Array<[number, number]> = [
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+      [1, 1],
+    ];
+    return corners[Math.floor(r() * corners.length)];
+  }
+
+  /** when the next idle jump is due: `every` seconds, give or take 40 % */
+  private nextFlip(t: number, k: number) {
+    const every = this.jump.every;
+    return every > 0 ? t + every * k * (0.625 + this.rand() * 0.75) : Infinity;
   }
 
   /** Advance by `dt` seconds (already scaled by the speed). */
@@ -275,7 +475,8 @@ export class Sim {
        state's on an S-curve: soft start, soft finish, no creeping tail */
     if (this.tr < 1) {
       this.tr = Math.min(1, this.tr + dt / this.trDuration);
-      const e = this.trSoft ? easeSine(this.tr) : easeInOut(this.tr);
+      /* a sine ease: no kick at either end of a switch */
+      const e = easeSine(this.tr);
       for (let i = 0; i < 3; i++) {
         const target = STATES[i] === this.state ? 1 : 0;
         w[i] = this.wFrom[i] + (target - this.wFrom[i]) * e;
@@ -292,6 +493,19 @@ export class Sim {
       rest.y += r.y * w[i];
       rest.lookX += r.lookX * w[i];
       rest.lookY += r.lookY * w[i];
+    }
+
+    /* the idle gaze: a place to look, a while to stay, then the swing to
+       the next — the wanderers carry it on their own springs */
+    if (this.state === 'default' && t >= this.gazeAt) {
+      const [gx, gy] = this.nextGaze();
+      this.gazeDir = [gx, gy];
+      const reach = 0.84 + this.rand() * 0.16;
+      this.yawW.aim(gx * GAZE_YAW * reach * this.turnK);
+      this.pitchW.aim(gy * GAZE_PITCH * reach);
+      /* the tilt goes with the turn, so it follows it */
+      this.rollW.aim(gx * GAZE_ROLL * reach * this.turnK);
+      this.gazeAt = t + GAZE_HOLD_MIN + this.rand() * (GAZE_HOLD_MAX - GAZE_HOLD_MIN);
     }
 
     /* wander */
@@ -337,9 +551,6 @@ export class Sim {
     if (t >= this.blinkAt && !this.blink.active && wd + ww > 0.5) {
       this.blink.fire();
       this.blinkAgain = !this.blinkAgain && this.rand() < 0.22;
-      /* idle: one blink in seven is a wink */
-      this.wink = !this.blinkAgain && this.state === 'default' && this.rand() < 0.14 ? (this.rand() < 0.5 ? -1 : 1) : 0;
-      this.blink.duration = this.wink ? 0.34 : 0.17;
       this.blinkAt = t + (this.blinkAgain ? 0.28 : 2.2 + this.rand() * 2.6);
     }
     this.blink.update(dt);
@@ -365,66 +576,105 @@ export class Sim {
 
     /* idle: a full turn now and then, with a jump */
     if (this.state === 'default' && t >= this.flipAt && !this.flip.active) {
-      this.flip.duration = 0.9;
-      this.flipHeight = 20;
+      this.flipPoked = false;
+      this.flip.duration = flipDuration(this.jump, false);
+      this.flipSide = this.rand() < 0.5 ? -1 : 1;
       this.flip.fire();
-      this.flipAt = t + 5 + this.rand() * 6;
+      this.flipAt = this.nextFlip(t, 1);
     }
     this.flip.update(dt);
     if (this.flip.active) {
-      const q = this.flip.p;
-      /* one full turn, eased in and out, no overshoot to snap back from */
-      spin += TAU * easeInOut(q);
-      /* a ballistic arc: up fast, slow at the top, fast into the ground */
-      hopY -= this.flipHeight * 4 * q * (1 - q);
-      /* a stretch on take-off */
-      if (q < 0.18) {
-        const s = Math.sin((Math.PI * q) / 0.18);
-        sy += 0.07 * s;
-        sx -= 0.05 * s;
+      const J = this.jump;
+      /* the hop's own phase: below 0 the crouch, above 1 the recovery */
+      const preS = flipPre(J, this.flipPoked);
+      const a = (this.flip.p * this.flip.duration - preS) / J.time;
+      const q = Math.min(1, Math.max(0, a));
+      const arc = Math.sin(Math.PI * q);
+      /* whole turns, eased in and out, no overshoot to snap back from */
+      spin += TAU * J.spin * easeInOut(q);
+      hopY -= J.height * arc;
+      /* the crouch before take-off; then the landing squash from `land`
+         seconds round the moment of contact — before it, the body braces
+         for the ground; after it, it gives late */
+      const tl = (a - 1) * J.time - J.land;
+      const squashTime = this.flipPoked ? J.clickSquashTime : J.squashTime;
+      /* the crouch: a click's builds over its squash time, an idle jump's
+         is the hop's short bump; then the hop, then the landing squash */
+      const crouch = (u: number) => (this.flipPoked ? u * u * (3 - 2 * u) : hopSquash(u - 1));
+      /* the landing in three parts: the press down to the deepest squash
+         in the squash easing's own shape, the hold on the ground, then
+         the rise back to the body's shape — each with its own time and
+         easing, and all three meeting at the same depth, so nothing steps */
+      const hold = Math.max(0, J.groundTime);
+      const peakT = SQUASH_PEAK[J.squashEase] * squashTime;
+      const rise = tl - peakT - hold;
+      const depth =
+        tl <= peakT
+          ? squashPulse(tl / squashTime, J.squashEase)
+          : rise <= 0
+            ? groundShape((tl - peakT) / hold, J.groundEase)
+            : risePulse(rise / J.riseTime, J.riseEase);
+      const land = (a < 0 ? crouch(Math.max(0, 1 + (a * J.time) / preS)) : tl > 0 ? depth : a < 0.2 ? hopSquash(a) : 0) * J.squash;
+      sx += 0.16 * land - 0.06 * arc * J.stretch;
+      sy += -0.18 * land + 0.09 * arc * J.stretch;
+      /* lean into it; eyes shut for a turn */
+      rollAdd += this.flipSide * J.lean * DEG * arc;
+      if (J.spin > 0) {
+        laugh = Math.max(laugh, arc);
+        whirl = Math.max(whirl, envelope(q));
+        whirlAngle = ringAngle(q);
       }
-      whirl = Math.max(whirl, envelope(q));
-      whirlAngle = ringAngle(q);
-      this.airborne = true;
-    } else if (this.airborne) {
-      /* touch-down: kick the landing spring */
-      this.airborne = false;
-      this.squashV -= 2.8;
     }
-    /* the landing spring: a squash that rebounds and settles */
-    const wsq = 24, zsq = 0.32;
-    this.squashV += (-wsq * wsq * this.squash - 2 * zsq * wsq * this.squashV) * dt;
-    this.squash += this.squashV * dt;
-    sy *= 1 + this.squash;
-    sx *= 1 - 0.65 * this.squash;
 
-    /* working: hops all the time; every third one spins */
-    if (ww > 0.02) {
-      const period = 0.68;
-      this.hopPhase += dt / period;
+    /* working: hops all the time; every third one spins. Leaving the
+       state, the hop under way keeps the strength it had — it flies its
+       whole arc, finishes its turn and lands — and that last landing is
+       not the rhythm's quick bump but a jump's proper one: the hold on
+       the ground and the rise back, from the depth the hop reached. */
+    const J = this.jump;
+    const exitHold = Math.max(0, J.groundTime);
+    const exitFor = exitHold + J.riseTime;
+    if (this.state === 'working') this.hopGain = ww;
+    if (this.hopGain > 0.02 && (this.state === 'working' || this.hopPhase > 0)) {
+      this.hopPhase += dt / HOP_T;
       if (this.hopPhase >= 1) {
-        this.hopPhase -= 1;
-        this.hopCount += 1;
+        if (this.state === 'working') {
+          this.hopPhase -= 1;
+          this.hopCount += 1;
+        } else if ((this.hopPhase - 1) * HOP_T >= exitFor) {
+          /* the last hop has landed and settled */
+          this.hopPhase = 0;
+          this.hopGain = 0;
+        }
       }
-      const q = this.hopPhase;
+      const g = this.hopGain;
+      /* past 1 the body is down and only the landing is still playing */
+      const q = Math.min(1, this.hopPhase);
+      const arc = Math.sin(Math.PI * q);
       const spinning = this.hopCount % 3 === 2;
-      const h = spinning ? 26 : 18;
-      hopY -= h * Math.sin(Math.PI * q) * ww;
+      const h = spinning ? HOP_SPIN_H : 18;
+      hopY -= h * arc * g;
       /* squash on landing, stretch at the top */
-      const land = Math.exp(-Math.pow(Math.min(q, 1 - q) / 0.11, 2));
-      sx += (0.16 * land - 0.06 * Math.sin(Math.PI * q)) * ww;
-      sy += (-0.18 * land + 0.09 * Math.sin(Math.PI * q)) * ww;
+      const exitT = this.state !== 'working' && this.hopPhase > 1 ? (this.hopPhase - 1) * HOP_T : -1;
+      const land =
+        exitT < 0
+          ? hopSquash(this.hopPhase)
+          : exitT < exitHold
+            ? groundShape(exitT / exitHold, J.groundEase)
+            : risePulse((exitT - exitHold) / J.riseTime, J.riseEase);
+      sx += (0.16 * land - 0.06 * arc) * g;
+      sy += (-0.18 * land + 0.09 * arc) * g;
       if (spinning) {
-        spin += TAU * easeInOut(q) * ww;
+        spin += TAU * easeInOut(q) * g;
         /* eyes shut for the spin */
-        laugh = Math.max(laugh, Math.sin(Math.PI * q));
-        if (envelope(q) * ww > whirl) {
-          whirl = envelope(q) * ww;
+        laugh = Math.max(laugh, arc * g);
+        if (envelope(q) * g > whirl) {
+          whirl = envelope(q) * g;
           whirlAngle = ringAngle(q);
         }
       }
       /* lean into each hop, alternating sides */
-      rollAdd += (this.hopCount % 2 === 0 ? 1 : -1) * 6 * DEG * Math.sin(Math.PI * q) * ww;
+      rollAdd += (this.hopCount % 2 === 0 ? 1 : -1) * 6 * DEG * arc * g;
     }
 
     /* working: now and then a laugh shuts the eyes into arcs, then they
@@ -454,8 +704,10 @@ export class Sim {
       pitchAdd -= 13 * DEG * dip * ws;
     }
 
-    /* breathing, always, deeper asleep */
-    const breath = Math.sin(t * TAU / (3.6 + 1.2 * ws));
+    /* breathing, always, deeper and slower asleep. The phase is integrated
+       so the period can change with the state without the cycle jumping */
+    this.breathPhase += dt / (3.6 + 1.2 * ws);
+    const breath = Math.sin(this.breathPhase * TAU);
     p.breath = breath;
     sx += breath * (0.008 + 0.014 * ws);
     sy += breath * (0.012 + 0.02 * ws);
@@ -471,6 +723,10 @@ export class Sim {
     dyaw = ((dyaw + Math.PI) % TAU + TAU) % TAU - Math.PI;
     this.prevYaw = this.baseYaw;
     const rate = dt > 0 ? Math.abs(dyaw) / dt : 0;
+    /* the eyes lead a head turn, the way a gaze shift goes: they run
+       ahead of it and come back as the head settles */
+    const leadTarget = dt > 0 ? Math.max(-2.2, Math.min(2.2, (dyaw / dt) * 2.4)) : 0;
+    this.gazeLead = approach(this.gazeLead, leadTarget, 9, dt);
     const jellyTarget = Math.min(0.22, 0.055 * rate);
     const omega = 16, zeta = 0.45;
     this.jellyV += (omega * omega * (jellyTarget - this.jelly) - 2 * zeta * omega * this.jellyV) * dt;
@@ -489,9 +745,9 @@ export class Sim {
        the renderer, so here the eyes stay open apart from blinks */
     p.eyeOpen = 1;
     p.laugh = approach(p.laugh, laugh, 30, dt);
-    p.blinkL = this.wink === 1 ? 0 : blinkClose;
-    p.blinkR = this.wink === -1 ? 0 : blinkClose;
-    p.lookX = baseLookX + lookXAdd;
+    p.blinkL = blinkClose;
+    p.blinkR = blinkClose;
+    p.lookX = baseLookX + lookXAdd + this.gazeLead;
     p.lookY = baseLookY + lookYAdd;
     p.whirl = whirl;
     p.whirlAngle = whirlAngle;

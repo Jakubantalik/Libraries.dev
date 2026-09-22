@@ -25,6 +25,8 @@ export const PAD = 3;
 export const SPAN = 100 + 2 * PAD;
 /** Matcap side: (nx, ny) ∈ [-1, 1]² in M × M cells. */
 const M = 64;
+/** the matcap's side, in cells */
+export const MATCAP_SIZE = M;
 const MM = M * M;
 /** Stops on the conic side gradients. */
 const CONIC_STOPS = 24;
@@ -593,8 +595,17 @@ interface State {
   highlight: number;
   spread: number;
   rim: number;
-  /** bumped on every matcap rebuild; the texels follow it */
+  /** bumped on every matcap rebuild */
   version: number;
+  /** the matcap the texels show: the last one cross-faded into the new
+      one over as many frames as the last bin took, so a slow turn's
+      lighting moves every frame instead of stepping a bin at a time */
+  mcPrev: Float32Array;
+  mcMix: Float32Array;
+  mixVersion: number;
+  blendT: number;
+  blendFrames: number;
+  sinceBuild: number;
   imgVersion: number;
   imgAoK: number;
   imgForm: Form | null;
@@ -629,6 +640,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
   if (!s) {
     s = {
       N: 0, img: null, mc: new Float32Array(MM * 3),
+      mcPrev: new Float32Array(MM * 3), mcMix: new Float32Array(MM * 3), mixVersion: 0, blendT: 1, blendFrames: 1, sinceBuild: 0,
       L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       near: null, rimG: null, far: null,
@@ -714,7 +726,19 @@ export function drawPlasticCap(
     moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
     mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim
   ) {
+    /* the fade starts from what is showing now, so a rebuild during a
+       fade does not jump */
+    if (st.version > 0) st.mcPrev.set(st.mcMix);
     buildMatcap(st.mc, linearColor(pal.base), f, mat);
+    if (st.version === 0) {
+      st.mcMix.set(st.mc);
+      st.blendT = 1;
+    } else {
+      st.blendFrames = Math.min(10, Math.max(1, st.sinceBuild));
+      st.blendT = 0;
+    }
+    st.sinceBuild = 0;
+    st.mixVersion++;
     st.L = f.L;
     st.V = f.V;
     st.lx = rig.lx;
@@ -727,6 +751,14 @@ export function drawPlasticCap(
     st.version++;
     st.near = st.rimG = st.far = null;
   }
+  st.sinceBuild++;
+  if (st.blendT < 1) {
+    st.blendT = Math.min(1, st.blendT + 1 / st.blendFrames);
+    const e = st.blendT >= 1 ? 1 : st.blendT * st.blendT * (3 - 2 * st.blendT);
+    const a = st.mcPrev, b = st.mc, o = st.mcMix;
+    for (let i = 0; i < MM * 3; i++) o[i] = a[i] + (b[i] - a[i]) * e;
+    st.mixVersion++;
+  }
   /* the occlusion strength follows `shadow` */
   const aoK = Math.min(1.3, 1.2 * mat.shadow);
   if (aoK !== st.aoK) {
@@ -738,9 +770,9 @@ export function drawPlasticCap(
     st.N = N;
     st.imgVersion = -1;
   }
-  if (st.imgVersion !== st.version || st.imgAoK !== aoK || st.imgForm !== form) {
-    shadeTexels(form, st.mc, st.img.data, st.aoMul);
-    st.imgVersion = st.version;
+  if (st.imgVersion !== st.mixVersion || st.imgAoK !== aoK || st.imgForm !== form) {
+    shadeTexels(form, st.mcMix, st.img.data, st.aoMul);
+    st.imgVersion = st.mixVersion;
     st.imgAoK = aoK;
     st.imgForm = form;
     st.scratchStale = true;

@@ -7,6 +7,7 @@ import {
   botAvatarParts,
   autoInk,
   BOT_AVATAR_OVERSCAN,
+  BOT_AVATAR_RISE,
   type BotAvatarState,
   type BotAvatarType,
   type BotAvatarFace,
@@ -74,7 +75,7 @@ export function Strip({
   return (
     <div className="strip">
       {Array.from({ length: frames }, (_, k) => (
-        <canvas key={k} ref={(el) => (refs.current[k] = el)} style={{ width: size * BOT_AVATAR_OVERSCAN, height: size * BOT_AVATAR_OVERSCAN, margin: (-size * (BOT_AVATAR_OVERSCAN - 1)) / 2 }} />
+        <canvas key={k} ref={(el) => (refs.current[k] = el)} style={{ width: size * BOT_AVATAR_OVERSCAN, height: size * BOT_AVATAR_OVERSCAN, marginLeft: (-size * (BOT_AVATAR_OVERSCAN - 1)) / 2, marginRight: (-size * (BOT_AVATAR_OVERSCAN - 1)) / 2, marginTop: -size * ((BOT_AVATAR_OVERSCAN - 1) / 2 + BOT_AVATAR_RISE), marginBottom: -size * ((BOT_AVATAR_OVERSCAN - 1) / 2 - BOT_AVATAR_RISE) }} />
       ))}
     </div>
   );

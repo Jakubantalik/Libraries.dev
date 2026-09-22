@@ -1371,12 +1371,21 @@ html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
 .mock-bots-status {
   font-size: 12px;
   line-height: 15px;
-  color: var(--c-mock-text);
+  /* the site's secondary text, so a status reads as secondary here too */
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mock-bots-status.t-shimmer { display: inline-block; }
+/* The working row is the thinking state: the same grey as every other
+   status, with a bright band sweeping across it. Left to the shimmer's
+   own tokens the base turns half-white and that row reads brighter than
+   its neighbours. */
+.mock-bots-status.t-shimmer {
+  display: inline-block;
+  --shimmer-base: var(--text-muted);
+  --shimmer-highlight: #f5f5f5;
+}
 
 /* The thread: a question and the bot's answer. */
 .mock-thread {

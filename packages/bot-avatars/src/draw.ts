@@ -50,7 +50,10 @@ export interface DrawConfig {
 
 /* The canvas is drawn larger than the avatar's layout box, so a hop or a
    flip can leave the box without being clipped. */
-export const OVERSCAN = 1.4;
+export const OVERSCAN = 1.5;
+/** the body's centre sits this fraction of the box below the canvas
+    centre: hops and flips need the room above, not below */
+export const RISE = 0.1;
 
 /* Copies through the depth, and the stock half-depth in body units. */
 const SLICES = 17;
@@ -214,8 +217,8 @@ function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: string, lx:
 
 /**
  * Draw one frame. `box` is the avatar's layout size in CSS px; the canvas
- * is `box * OVERSCAN` square and the context already scaled for the
- * device pixel ratio.
+ * is `box * OVERSCAN` square with the body's centre `RISE * box` below
+ * its middle, and the context already scaled for the device pixel ratio.
  */
 export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg: DrawConfig) {
   const full = box * OVERSCAN;
@@ -253,9 +256,13 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const floor = (v: number) => (Math.abs(v) < 0.22 ? (v < 0 ? -0.22 : 0.22) : v);
   const cy = floor(cy0), cp = floor(cp0);
 
-  /* body space: the box centre plus the pose's offset, its roll and squash */
+  /* body space: the box centre plus the pose's offset, its roll and
+     squash. The squash and stretch scale about the body's base (y = 50),
+     so a landing keeps the feet on the ground and presses the top down,
+     and a stretch rises from the base. */
   const cr = Math.cos(pose.roll), sr = Math.sin(pose.roll), kx = pose.sx * S, ky = pose.sy * S;
-  const body = mulAffine(base, [cr * kx, sr * kx, -sr * ky, cr * ky, full / 2 + pose.x * S, full / 2 + pose.y * S]);
+  const lift = 50 * (1 - pose.sy) * S;
+  const body = mulAffine(base, [cr * kx, sr * kx, -sr * ky, cr * ky, full / 2 + pose.x * S - sr * lift, full / 2 + RISE * box + pose.y * S + cr * lift]);
   ctx.save();
   ctx.setTransform(body[0], body[1], body[2], body[3], body[4], body[5]);
   ctx.lineCap = 'round';
@@ -375,6 +382,21 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
      narrows, the other comes to the front, and past the side they go */
   if (facing > -0.2) {
     ctx.save();
+    /* The face is printed on the front of the body, so it cannot leave
+       it: clip to the front slice's own outline first. On a wide turn a
+       feature's place on the sphere can reach past the body's foreshortened
+       silhouette, and without this it floats off the side. */
+    {
+      const zf = facing >= 0 ? 1 : -1;
+      const sf = profile(zf, cap);
+      const m0 = cy * sf, m1 = sy * sp * sf, m3 = cp * sf;
+      const e = zf * sy * halfDepth - 50 * m0;
+      const fo = -zf * cy * sp * halfDepth - 50 * m1 - 50 * m3;
+      const [ca, cb, cc, cd, ce, cf] = body;
+      ctx.setTransform(ca * m0 + cc * m1, cb * m0 + cd * m1, cc * m3, cd * m3, ca * e + cc * fo + ce, cb * e + cd * fo + cf);
+      ctx.clip(cfg.path);
+      ctx.setTransform(ca, cb, cc, cd, ce, cf);
+    }
     ctx.translate(cfg.faceX - 50, cfg.faceY - 50);
     ctx.scale(cfg.faceScale, cfg.faceScale);
     /* under a clear coat the print shows the gloss faintly through it */
@@ -430,6 +452,39 @@ function eyePath(x0: number, y0: number, cy: number): Path2D {
   return p;
 }
 
+/* The mouth's outline as a path, cached by its numbers: corners at ±hw on
+   y = 0, a top edge from the left corner to the right with its controls
+   a·hw in from the corners at depth yt, a bottom edge back at depth yb
+   with controls ab·hw in, and round caps of radius t0 round each corner,
+   set square to the smile's end slope. */
+interface Mouth { hw: number; t0: number; a: number; yt: number; ab: number; yb: number }
+const MOUTH_SIN = Math.sin(0.684), MOUTH_COS = Math.cos(0.684);
+const mouthPaths = new Map<string, Path2D>();
+function mouthPath(m: Mouth): Path2D {
+  const q = (v: number) => Math.round(v * 50) / 50;
+  const hw = q(m.hw), t0 = q(m.t0), a = q(m.a), yt = q(m.yt), ab = q(m.ab), yb = q(m.yb);
+  const key = `${hw},${t0},${a},${yt},${ab},${yb}`;
+  let p = mouthPaths.get(key);
+  if (p) return p;
+  const f = (v: number) => v.toFixed(3);
+  /* the corners, offset along the end normal for the caps */
+  const nx = t0 * MOUTH_SIN, ny = t0 * MOUTH_COS;
+  const ltx = -hw + nx, lty = -ny, rtx = hw - nx, rty = -ny;
+  const lbx = -hw - nx, lby = ny, rbx = hw + nx, rby = ny;
+  /* the caps bulge outward along the end tangents */
+  const cx = (4 / 3) * t0 * MOUTH_COS, cy = (4 / 3) * t0 * MOUTH_SIN;
+  const d =
+    `M${f(ltx)} ${f(lty)}` +
+    `C${f(-hw + a * hw)} ${f(yt - t0)} ${f(hw - a * hw)} ${f(yt - t0)} ${f(rtx)} ${f(rty)}` +
+    `C${f(rtx + cx)} ${f(rty - cy)} ${f(rbx + cx)} ${f(rby - cy)} ${f(rbx)} ${f(rby)}` +
+    `C${f(hw - ab * hw)} ${f(yb + t0)} ${f(-hw + ab * hw)} ${f(yb + t0)} ${f(lbx)} ${f(lby)}` +
+    `C${f(lbx - cx)} ${f(lby - cy)} ${f(ltx - cx)} ${f(lty - cy)} ${f(ltx)} ${f(lty)}Z`;
+  p = new Path2D(d);
+  if (mouthPaths.size > 256) mouthPaths.clear();
+  mouthPaths.set(key, p);
+  return p;
+}
+
 function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
   const [wd, ww, ws] = pose.w;
   const ink = cfg.ink;
@@ -455,6 +510,17 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
      different numbers, and a blend of the numbers is a real morph: the
      upright pill of an open eye squashes into a shut line, swings up into
      a laughing arc, or droops into a sleeping lid. */
+  /* the eyes take the head's aim, but only once it really aims
+     somewhere: at rest and through the small drift of a breath they keep
+     their own shape, and past that they draw taller looking up, shorter
+     looking down, and a little wider from the corner of a sideways
+     glance — the mimic that makes a turn read as a look */
+  const past = (v: number, d: number) => (Math.abs(v) <= d ? 0 : (Math.sign(v) * (Math.abs(v) - d)) / (1 - d));
+  const clamp1 = (v: number) => Math.max(-1, Math.min(1, v));
+  const up = past(clamp1(-pose.pitch / 0.26 - pose.lookY / 7), 0.34);
+  const side = Math.abs(past(clamp1(pose.lookX / 4.5), 0.4));
+  const tall = Math.max(0.3, 1 + 0.55 * up - 0.1 * side);
+  const wide = 1 - 0.05 * up + 0.12 * side;
   const open = wd + ww * (1 - pose.laugh);
   const laugh = ww * pose.laugh;
   const lift = Math.max(0, -pose.y) / 26;
@@ -464,9 +530,9 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
     const e = Math.max(0, Math.min(1, pose.eyeOpen * (1 - lid)));
     const kOpen = open * e, kShut = open * (1 - e), kLaugh = laugh, kSleep = ws;
     const x0 = kOpen * 0.01 + kShut * 5.4 + kLaugh * 6.2 + kSleep * 6;
-    const y0 = kOpen * 1.1 + kShut * 0.6 + kLaugh * (2.2 - lift * 1.5) + kSleep * (-1.4 + sag);
-    const cy = kOpen * -3.3 + kShut * 0.6 + kLaugh * (-11.4 - 4 * lift) + kSleep * (5.4 + 2 * sag);
-    const w = kOpen * EYE_RX * 2 + kShut * 2.8 + kLaugh * 4.4 + kSleep * 4;
+    const y0 = kOpen * 1.1 * tall + kShut * 0.6 + kLaugh * (2.2 - lift * 1.5) + kSleep * (-1.4 + sag);
+    const cy = kOpen * -3.3 * tall + kShut * 0.6 + kLaugh * (-11.4 - 4 * lift) + kSleep * (5.4 + 2 * sag);
+    const w = kOpen * EYE_RX * 2 * wide + kShut * 2.8 + kLaugh * 4.4 + kSleep * 4;
     /* the eyes drift toward the look when open, less so when shut */
     const dx = lx * (kOpen + 0.5 * (kShut + kLaugh)), dy = ly * (kOpen + 0.5 * kShut);
     at(side * half + dx, ey + dy, () => {
@@ -478,41 +544,27 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
 
   if (cfg.face === 'mouth') {
     const mx = lx * 0.35;
-    /* smile: a little wider on the in-breath */
-    if (wd > 0.01) {
-      const k = (0.6 + 0.4 * wd) * (1 + 0.06 * pose.breath);
-      at(mx, 14, () => {
-        ctx.strokeStyle = ink;
-        ctx.lineWidth = 3.8;
-        ctx.beginPath();
-        ctx.moveTo(-6.5 * k, -1.5);
-        ctx.quadraticCurveTo(0, -1.5 + 5.3 * k, 6.5 * k, -1.5);
-        ctx.stroke();
-      }, wd);
-    }
-    /* working: wide open, wider still at the top of a hop */
-    if (ww > 0.01) {
-      const k = (0.6 + 0.4 * ww) * (1 + 0.25 * Math.max(0, -pose.y) / 26);
-      at(mx, 18, () => {
-        ctx.fillStyle = ink;
-        ctx.beginPath();
-        ctx.moveTo(-9.5 * k, -6.4);
-        ctx.quadraticCurveTo(0, -6.4 + 2.4 * k, 9.5 * k, -6.4);
-        ctx.bezierCurveTo(9.5 * k, -6.4 + 7.8 * k, 5.3 * k, -6.4 + 13 * k, 0, -6.4 + 13 * k);
-        ctx.bezierCurveTo(-5.3 * k, -6.4 + 13 * k, -9.5 * k, -6.4 + 7.8 * k, -9.5 * k, -6.4);
-        ctx.closePath();
-        ctx.fill();
-      }, ww);
-    }
-    /* asleep: a little "o" that swells with each breath */
-    if (ws > 0.01) {
-      const r = 2.7 * ws * (1 + 0.25 * pose.breath);
-      at(mx, 15.5, () => {
-        ctx.fillStyle = ink;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r, r, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }, ws);
-    }
+    /* One mouth for every state, so a switch morphs it rather than fading
+       one shape into another: two cubic edges between the corners, round
+       caps of radius t0 at the corners (the smile is a thick line; the
+       open mouth and the sleeping "o" have sharp corners), every number a
+       blend of the three states'. The smile widens on the in-breath, the
+       open mouth at the top of a hop, the "o" swells with each breath. */
+    const kd = (0.6 + 0.4 * wd) * (1 + 0.06 * pose.breath);
+    const kw = (0.6 + 0.4 * ww) * (1 + (0.25 * Math.max(0, -pose.y)) / 26);
+    const r = 2.7 * ws * (1 + 0.25 * pose.breath);
+    const b = (d: number, w: number, s: number) => wd * d + ww * w + ws * s;
+    const m = {
+      hw: b(6.5 * kd, 9.5 * kw, r),
+      t0: b(1.9, 0, 0),
+      a: b(2 / 3, 2 / 3, 0),
+      yt: b(3.53 * kd, 1.6 * kw, (-4 * r) / 3),
+      ab: b(2 / 3, 0, 0),
+      yb: b(3.53 * kd, 17.3 * kw, (4 * r) / 3),
+    };
+    at(mx, b(12.5, 11.6, 15.5), () => {
+      ctx.fillStyle = ink;
+      ctx.fill(mouthPath(m));
+    });
   }
 }

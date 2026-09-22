@@ -17,12 +17,12 @@ export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
   droid: { label: 'Droid', color: '#D5DBEA', face: 'eyes', faceX: 50, faceY: 60, faceScale: 0.95 },
   mech: { label: 'Mech', color: '#95A6C4', face: 'eyes', faceX: 50, faceY: 59, faceScale: 1 },
   alien: { label: 'Alien', color: '#9BE85A', face: 'eyes', faceX: 50, faceY: 45, faceScale: 1.05 },
-  hexagon: { label: 'Hexagon', color: '#FF8C42', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
-  cat: { label: 'Cat', color: '#F4D28B', face: 'eyes', faceX: 50, faceY: 58, faceScale: 1 },
+  hexagon: { label: 'Hexagon', color: '#FF2A2A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
+  cat: { label: 'Cat', color: '#FF8C42', face: 'eyes', faceX: 50, faceY: 58, faceScale: 1 },
   cloud: { label: 'Cloud', color: '#CFE6FF', face: 'eyes', faceX: 50, faceY: 58, faceScale: 0.95 },
   pill: { label: 'Pill', color: '#7B77F0', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.9 },
-  pebble: { label: 'Pebble', color: '#FFB27A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
-  puddle: { label: 'Puddle', color: '#FF7F6E', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
+  pebble: { label: 'Pebble', color: '#2FCB7A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
+  puddle: { label: 'Puddle', color: '#FF2A2A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
 };
 
 export const botAvatarTypes = Object.keys(botAvatarPresets) as BotAvatarType[];

@@ -70,7 +70,7 @@ Every state is a resting pose plus its own motion. The pose is a small rig — y
 <BotAvatar type="clover" color="#111" />            {/* the ink turns light on a dark body */}
 <BotAvatar type="star" ink="#4D7CFF" />             {/* or pick the ink yourself */}
 <BotAvatar type="drop" brightness={1.25} />          {/* lighter body; below 1 darker */}
-<BotAvatar type="drop" saturation={0.7} />           {/* duller body; above 1 more vivid */}
+<BotAvatar type="drop" saturation={0.7} />           {/* duller body; the default is 1.5, more vivid than the palette */}
 <BotAvatar type="square" shading="crisp" />         {/* a lit rim with a clean edge */}
 <BotAvatar type="square" shading="smooth" />        {/* soft shadow and highlight, no edge */}
 <BotAvatar type="square" shading="flat" />          {/* keep the depth, drop the lighting */}
@@ -126,10 +126,42 @@ drawBotAvatarFrame(ctx, 64, sim.pose, {
   shading: 'plastic',
   dpr: devicePixelRatio, // the scale the context is set to (optional; else read from the context)
   sides: 'auto', // plastic's side slices: 'vector' fills, or 'sprite' blits (what WebKit gets by default)
-}); // on a canvas 64 * BOT_AVATAR_OVERSCAN * devicePixelRatio px square
+}); // on a canvas 64 * BOT_AVATAR_OVERSCAN * devicePixelRatio px square; the body's centre sits BOT_AVATAR_RISE * 64 below its middle
 ```
 
 In `plastic` the first frame of a new type bakes its form (a few ms, done on idle time when an animation loop is running; the smooth look stands in until then). `warmBotAvatarPlastic(type, path, devicePx)` bakes ahead of time.
+
+## The idle look
+
+Idle, the head looks to a corner, stays a few seconds and swings across to the opposite one. `turn` scales how far it goes to the side:
+
+```tsx
+<BotAvatar turn={1.4} />   {/* 0–2; 1 as the library has it, 0 faces forward */}
+```
+
+## The jump
+
+Now and then in the idle state, and on every click, the avatar jumps and turns right round. Its numbers are props:
+
+```tsx
+<BotAvatar
+  jumpHeight={32}    // body units; the body is 100 tall (default 26)
+  jumpTime={0.8}     // seconds in the air (0.68)
+  jumpStretch={1.3}  // stretch in the air, 0–2 (1)
+  jumpSquash={1.4}   // squash on the ground, before take-off and on landing, 0–2 (1.15)
+  jumpSquashTime={0.3}     // seconds the landing squash takes (0.37)
+  jumpSquashEase="bouncy"  // sharp | pulse | soft | bouncy (pulse)
+  jumpGroundTime={0.2}     // seconds held at the deepest squash on the ground (0.11; 0 for none)
+  jumpGroundEase="bouncy"  // how the weight settles through it: sharp | pulse | soft | bouncy (pulse)
+  jumpRiseTime={0.5}       // seconds from the deepest squash back to shape (0.33)
+  jumpRiseEase="bouncy"    // how it rises: sharp | pulse | soft | bouncy (pulse)
+  jumpClickSquashTime={0.8}  // seconds a click's jump takes for its crouch and landing squash (0.24)
+  jumpSpin={2}       // whole turns in the air, 0–2 (1)
+  jumpLean={10}      // degrees of lean into it (6)
+  jumpEvery={5}      // seconds between idle jumps, give or take 40 %; 0 for none (8)
+  jumpLand={-0.08}   // when the landing squash begins: seconds before (negative) or after touch-down (0, at contact)
+/>
+```
 
 ## Pointer play
 
