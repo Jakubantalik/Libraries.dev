@@ -337,6 +337,14 @@ The generated stylesheet reads a few custom properties with a fallback of 1, so 
 
 The driver also writes `--vb-level-{id}` (the smoothed 0–1 level) on the wrapper each frame, for anything else in the host that wants to follow the voice.
 
+The wrapper carries `data-voice-type` and `data-voice-look`, so the host can style its own controls per type or look — frosting the buttons that sit over the dot surface, say:
+
+```css
+[data-voice-look="dots"] .my-button {
+  backdrop-filter: blur(10px);
+}
+```
+
 ## `useMicrophone`
 
 ```tsx
