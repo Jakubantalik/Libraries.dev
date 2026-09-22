@@ -1750,10 +1750,12 @@ html[data-theme="dark"] .btn-animate:disabled:hover {
   flex-direction: column;
   gap: 8px;
 }
+/* The column labels sit a step under their links — same ink at 70% — so
+   the heading reads as a heading rather than another link. */
 .footer-col-title {
   margin: 0 0 2px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--text-muted) 70%, transparent);
 }
 .footer-col a {
   color: var(--text-muted);
