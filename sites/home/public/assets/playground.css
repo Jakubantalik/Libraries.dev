@@ -2175,44 +2175,63 @@ html[data-theme="light"] .st-chat-composer {
 /* ── Docs prose: the written pages in the docs shell ──────────
    Same sidebar + main column as a library page; the main column
    carries prose instead of tabs and panels. */
-/* Typography follows transitions.dev: 13px prose on a 1.4 line, one line
-   of air between blocks, section titles in Saans on a 32px line with the
-   same slight negative tracking the page title carries. */
-.docs-prose { max-width: 686px; }
-.docs-prose > * + * { margin-top: 18px; }
-.docs-prose p { font-size: 13px; line-height: 18.2px; color: var(--text-muted); }
+/* Typography and colour taken from the transitions.dev doc pages: 14px
+   body on a 22px line in near-white ink (not the dimmer muted token),
+   section titles at 16/24 in the sans, 12px inline code in a 6% chip,
+   12px between the blocks of a section and 32px before the next one. */
+.docs-prose {
+  max-width: 686px;
+  --docs-ink: #3f3f3f;
+  --docs-code-bg: rgba(0, 0, 0, 0.05);
+}
+html[data-theme="dark"] .docs-prose {
+  --docs-ink: #ededed;
+  --docs-code-bg: rgba(255, 255, 255, 0.06);
+}
+.docs-prose > * + * { margin-top: 12px; }
+.docs-prose p { font-size: 14px; line-height: 22px; color: var(--docs-ink); }
 .docs-prose h2 {
-  margin-top: 40px;
-  font-family: "Saans", var(--font-sans);
-  font-size: 20px; font-weight: 500; line-height: 32px;
-  letter-spacing: -0.1px;
+  margin-top: 32px;
+  font-family: var(--font-sans);
+  font-size: 16px; font-weight: 500; line-height: 24px;
+  letter-spacing: normal;
   color: var(--text);
 }
 .docs-prose h3 {
   margin-top: 24px;
-  font-size: 15px; font-weight: 500; line-height: 21px;
-  letter-spacing: -0.15px;
+  font-size: 14px; font-weight: 500; line-height: 22px;
+  letter-spacing: normal;
   color: var(--text);
 }
-/* Inline links: a 50% underline at rest that reaches full ink on hover, like transitions.dev. */
-.docs-prose a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); transition: text-decoration-color 180ms ease; }
+/* Inline links: the body's own ink with a 30% underline at rest, full on hover. */
+.docs-prose a {
+  color: var(--docs-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  transition: text-decoration-color 180ms ease;
+}
 .docs-prose a:hover { text-decoration-color: currentColor; }
 .docs-prose code {
   font-family: var(--font-mono);
   font-size: 12px;
-  line-height: 19.2px;
-  padding: 2px 6px;
+  line-height: 18px;
+  padding: 1px 4px;
   border-radius: 6px;
-  background: var(--code-chip-bg);
-  box-shadow: inset 0 0 0 1px var(--code-chip-ring);
+  background: var(--docs-code-bg);
+  box-shadow: none;
   color: var(--text);
 }
 .docs-prose ol, .docs-prose ul { padding-left: 20px; }
-.docs-prose li { font-size: 13px; line-height: 18.2px; color: var(--text-muted); }
+.docs-prose li { font-size: 14px; line-height: 22px; color: var(--docs-ink); }
 .docs-prose li + li { margin-top: 6px; }
 .docs-prose li strong { color: var(--text); font-weight: 500; }
 
 /* Numbered steps and statement cards share the quote-card material. */
+/* On a written page the subtitle is body copy, not a hero line. */
+.docs-main .detail-sub { font-size: 14px; line-height: 22px; color: #3f3f3f; }
+html[data-theme="dark"] .docs-main .detail-sub { color: #ededed; }
+
 .docs-cards { display: grid; gap: 12px; margin-top: 20px; }
 .docs-card {
   padding: 20px 24px;
@@ -2220,8 +2239,8 @@ html[data-theme="light"] .st-chat-composer {
   background: var(--card-bg);
   box-shadow: inset 0 0 0 1px var(--pg-rule), inset 0 -1px 0 0 var(--pg-rule);
 }
-.docs-card h3 { margin: 0 0 6px; font-size: 15px; font-weight: 500; line-height: 21px; letter-spacing: -0.15px; color: var(--text); }
-.docs-card p { margin: 0; font-size: 13px; line-height: 18.2px; }
+.docs-card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text); }
+.docs-card p { margin: 0; font-size: 14px; line-height: 22px; }
 .docs-card-step {
   display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; margin-bottom: 10px;
