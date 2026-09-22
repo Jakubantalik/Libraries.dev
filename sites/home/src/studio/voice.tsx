@@ -85,6 +85,51 @@ const SOURCE_OPTIONS = [
   { value: "processing", label: "Processing" },
 ] as const;
 
+/* Agent tab: the knob's own label for each prop the agent may set, so the
+   applied-change line reads like the panel. The keys match VOICE_SPEC in
+   services/studio-agent/spec.ts. */
+const VOICE_PARAM_LABELS: Record<string, string> = {
+  type: "Type",
+  colorVariant: "Color theme",
+  sensitivity: "Sensitivity",
+  threshold: "Threshold",
+  attack: "Attack",
+  release: "Release",
+  reach: "Reach",
+  spread: "Spread",
+  scale: "Scale",
+  glowSize: "Size",
+  idle: "Idle presence",
+  breathe: "Breathe",
+  flow: "Flow",
+  bend: "Bend",
+  bandStrength: "Band strength",
+  bandWidth: "Band width",
+  bandPosition: "Band height",
+  bandAberration: "Aberration",
+  distortion: "Distortion",
+  coreLight: "Epicentre",
+  coreSize: "Core",
+  softness: "Softness",
+  strength: "Strength",
+  brightness: "Brightness",
+  saturation: "Saturation",
+  strokeOpacity: "Stroke",
+  innerOpacity: "Inner glow",
+  bloomOpacity: "Bloom",
+  radius: "Corner radius",
+  staticColors: "Static colors",
+  hueRange: "Hue range",
+  hueDuration: "Hue speed",
+  hueShift: "Hue shift",
+  processingDuration: "Pass duration",
+  processingLevel: "Held level",
+  processingTravel: "Travel",
+  processingCurve: "Turn ease",
+  cornerFollow: "Corner follow",
+  paused: "Paused",
+};
+
 const COLOR_OPTIONS = [
   { value: "colorful", label: "Colorful" },
   { value: "mono", label: "Mono" },
@@ -155,6 +200,90 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     setSaturation(resolveVoiceStyle(next, theme).saturation ?? (theme === "light" ? 1.6 : 1.2));
     setRunKey((k) => k + 1);
   }, [theme]);
+
+  /* Agent tab. The geometry lives in one object and the rest in their own
+     pieces of state; the agent sees one flat set of props, the same names
+     the snippet uses. `processing` is context rather than a knob — it tells
+     the spec whether the travelling-beam props are live. */
+  const agentParams: Record<string, unknown> = {
+    type,
+    colorVariant,
+    sensitivity,
+    threshold,
+    attack,
+    release,
+    reach: geo.reach,
+    spread: geo.spread,
+    scale: geo.scale,
+    glowSize: geo.glowSize,
+    idle: geo.idle,
+    breathe,
+    flow: geo.flow,
+    bend: geo.bend,
+    bandStrength: geo.bandStrength,
+    bandWidth: geo.bandWidth,
+    bandPosition: geo.bandPosition,
+    bandAberration: geo.bandAberration,
+    distortion: geo.distortion,
+    coreLight: geo.coreLight,
+    coreSize: geo.coreSize,
+    softness: geo.softness,
+    strength,
+    brightness,
+    saturation,
+    strokeOpacity,
+    innerOpacity,
+    bloomOpacity,
+    radius,
+    staticColors,
+    hueRange,
+    hueDuration,
+    hueShift,
+    processingDuration: geo.processingDuration,
+    processingLevel: geo.processingLevel,
+    processingTravel: geo.processingTravel,
+    processingCurve: geo.processingCurve,
+    cornerFollow: geo.cornerFollow,
+    paused,
+    processing: source === "processing",
+  };
+
+  const applyAgentParams = useCallback((patch: Record<string, unknown>) => {
+    /* Type first: it re-tunes the geometry, so anything else in the same
+       patch must land on top of the new defaults. */
+    if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
+    if (typeof patch.colorVariant === "string") setColorVariant(patch.colorVariant as VoiceBeamColorVariant);
+    if (typeof patch.sensitivity === "number") setSensitivity(patch.sensitivity);
+    if (typeof patch.threshold === "number") setThreshold(patch.threshold);
+    if (typeof patch.attack === "number") setAttack(patch.attack);
+    if (typeof patch.release === "number") setRelease(patch.release);
+    if (typeof patch.breathe === "number") setBreathe(patch.breathe);
+    if (typeof patch.strength === "number") setStrength(patch.strength);
+    if (typeof patch.brightness === "number") setBrightness(patch.brightness);
+    if (typeof patch.saturation === "number") setSaturation(patch.saturation);
+    if (typeof patch.strokeOpacity === "number") setStrokeOpacity(patch.strokeOpacity);
+    if (typeof patch.innerOpacity === "number") setInnerOpacity(patch.innerOpacity);
+    if (typeof patch.bloomOpacity === "number") setBloomOpacity(patch.bloomOpacity);
+    if (typeof patch.radius === "number") setRadius(patch.radius);
+    if (typeof patch.staticColors === "boolean") setStaticColors(patch.staticColors);
+    if (typeof patch.hueRange === "number") setHueRange(patch.hueRange);
+    if (typeof patch.hueDuration === "number") setHueDuration(patch.hueDuration);
+    if (typeof patch.hueShift === "number") setHueShift(patch.hueShift);
+    if (typeof patch.paused === "boolean") setPaused(patch.paused);
+    /* Everything else is geometry, under the same key it carries here. */
+    const GEO_KEYS = [
+      "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
+      "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
+      "coreLight", "coreSize", "softness",
+      "processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow",
+    ] as const;
+    const geoPatch: Partial<VoiceGeometry> = {};
+    for (const key of GEO_KEYS) {
+      const v = patch[key];
+      if (typeof v === "number") geoPatch[key] = v;
+    }
+    if (Object.keys(geoPatch).length) setGeo((g) => ({ ...g, ...geoPatch }));
+  }, [handleTypeChange]);
 
   useEffect(() => {
     setBrightness(resolveVoiceStyle(type, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
@@ -296,7 +425,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   return (
     <div className="pg">
-      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet }} />
+      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet }} agent={{ libraryId: "voice", params: agentParams, labels: VOICE_PARAM_LABELS, onApply: applyAgentParams }} />
       <div className="pg-stage">
         {visible && (
           <VoiceBeam
@@ -384,7 +513,15 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         </button>
       </div>
 
-      <ControlsPanel library="Voice">
+      <ControlsPanel
+        library="Voice"
+        agent={{
+          libraryId: "voice",
+          params: agentParams,
+          labels: VOICE_PARAM_LABELS,
+          onApply: applyAgentParams,
+        }}
+      >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
         {isMic && MIC_STATUS[mic.state] && (
