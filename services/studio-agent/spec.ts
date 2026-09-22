@@ -989,10 +989,11 @@ export const VOICE_SPEC: LibrarySpec = {
       values: ["glow", "dots"],
       describe:
         "How the voice is drawn. glow is coloured light — gradients, a band of light and a blurred bloom. " +
-        "dots draws the same shape and motion as a fine halftone of white dots (near-black ink on the light " +
-        "theme) with an organic texture riding the flow, in the dotted language of the Thinking orbs; the " +
-        "palette, saturation and hue props do nothing in dots. Reach for dots when the request is " +
-        "monochrome, minimal, technical, textured or 'like the orbs'.",
+        "dots is a gently domed sheet of white dots seen in perspective (near-black ink on the light theme), " +
+        "in the dotted language of the Thinking orbs: the voice raises hills out of it, one per spectrum band, " +
+        "and when the voice drops the dots fall back under gravity with a small bounce. The palette, saturation, " +
+        "hue and band props do nothing in dots. Reach for dots when the request is monochrome, minimal, " +
+        "physical, 3D, textured or 'like the orbs'.",
     },
     dotSize: {
       kind: "number",
@@ -1007,7 +1008,7 @@ export const VOICE_SPEC: LibrarySpec = {
       min: 0.6,
       max: 2.5,
       step: 0.05,
-      describe: "Spacing between dots, as a multiplier. Below 1 is a denser, finer screen; above 1 sparser and more graphic.",
+      describe: "Spacing between dots, as a multiplier. Below 1 is a denser, finer sheet; above 1 sparser and more graphic.",
       when: "look is dots",
     },
     texture: {
@@ -1015,9 +1016,15 @@ export const VOICE_SPEC: LibrarySpec = {
       min: 0,
       max: 1,
       step: 0.01,
-      describe:
-        "Organic texture, 0–1: soft streaks of light carried by the flow and a slow ripple through the dots. " +
-        "0 is a clean, still halftone; high reads alive and grainy.",
+      describe: "A slow ripple the flow carries across the sheet, 0–1. 0 is a still sheet only the voice moves.",
+      when: "look is dots",
+    },
+    gravity: {
+      kind: "number",
+      min: 0.2,
+      max: 3,
+      step: 0.05,
+      describe: "How hard the dots fall when the voice drops. Lower floats down softly; higher drops like sand.",
       when: "look is dots",
     },
     colorVariant: {
@@ -1337,7 +1344,7 @@ export const VOICE_SPEC: LibrarySpec = {
     if (Number(params.idle) > 0) keys.push("breathe");
     if (dots) {
       // The dot field has no palette and no stylesheet layers to rebuild.
-      keys.push("dotSize", "dotGap", "texture");
+      keys.push("dotSize", "dotGap", "texture", "gravity");
     } else {
       keys.push("core", "colorVariant", "saturation", "coreLight", "staticColors");
       // The hue only drifts when the palette is not held still.

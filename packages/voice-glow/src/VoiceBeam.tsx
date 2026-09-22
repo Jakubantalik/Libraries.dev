@@ -111,6 +111,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       dotSize = 1,
       dotGap = 1,
       texture = 0.6,
+      gravity = 1,
       scale: scaleProp,
       stream = null,
       level = 0,
@@ -464,6 +465,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         dotSize: Math.max(0.1, dotSize),
         dotGap: Math.max(0.3, dotGap),
         texture: Math.max(0, Math.min(1, texture)),
+        gravity: Math.max(0.05, gravity),
         layers: {
           glowWidth,
           glowHeight,
@@ -531,6 +533,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         dotSize,
         dotGap,
         texture,
+        gravity,
         glowWidth,
         glowHeight,
         innerScale,

@@ -112,6 +112,7 @@ const VOICE_PARAM_LABELS: Record<string, string> = {
   dotSize: "Dot size",
   dotGap: "Spacing",
   texture: "Texture",
+  gravity: "Gravity",
   colorVariant: "Color theme",
   sensitivity: "Sensitivity",
   threshold: "Threshold",
@@ -206,6 +207,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const [dotSize, setDotSize] = useState(1);
   const [dotGap, setDotGap] = useState(1);
   const [texture, setTexture] = useState(0.6);
+  const [gravity, setGravity] = useState(1);
   const isDots = look === "dots";
   /* A stylesheet the agent rewrote, appended after the generated one; "" is
      the stock effect. */
@@ -244,6 +246,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     dotSize,
     dotGap,
     texture,
+    gravity,
     colorVariant,
     sensitivity,
     threshold,
@@ -294,6 +297,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     if (typeof patch.dotSize === "number") setDotSize(patch.dotSize);
     if (typeof patch.dotGap === "number") setDotGap(patch.dotGap);
     if (typeof patch.texture === "number") setTexture(patch.texture);
+    if (typeof patch.gravity === "number") setGravity(patch.gravity);
     if (typeof patch.colorVariant === "string") setColorVariant(patch.colorVariant as VoiceBeamColorVariant);
     if (typeof patch.sensitivity === "number") setSensitivity(patch.sensitivity);
     if (typeof patch.threshold === "number") setThreshold(patch.threshold);
@@ -422,6 +426,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   if (isDots && dotSize !== 1) props.push(`dotSize={${num(dotSize)}}`);
   if (isDots && dotGap !== 1) props.push(`dotGap={${num(dotGap)}}`);
   if (isDots && texture !== 0.6) props.push(`texture={${num(texture)}}`);
+  if (isDots && gravity !== 1) props.push(`gravity={${num(gravity)}}`);
   if (isMic) props.push("stream={mic.stream}");
   else if (source === "manual") props.push(`level={${num(manualLevel / 100)}}`);
   else props.push("level={() => yourLevel}");
@@ -482,6 +487,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             dotSize={dotSize}
             dotGap={dotGap}
             texture={texture}
+            gravity={gravity}
             stream={stream}
             level={level}
             sensitivity={sensitivity}
@@ -583,6 +589,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             <PgSlider label="Dot size" value={dotSize} min={0.4} max={2.5} step={0.05} display={`${num(dotSize)}×`} onChange={setDotSize} />
             <PgSlider label="Spacing" value={dotGap} min={0.6} max={2.5} step={0.05} display={`${num(dotGap)}×`} onChange={setDotGap} />
             <PgSlider label="Texture" value={texture} min={0} max={1} step={0.01} display={`${Math.round(texture * 100)}%`} onChange={setTexture} />
+            <PgSlider label="Gravity" value={gravity} min={0.2} max={3} step={0.05} display={`${num(gravity)}×`} onChange={setGravity} />
           </PgGroup>
         )}
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />

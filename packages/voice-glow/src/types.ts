@@ -19,10 +19,12 @@ export type VoiceBeamTheme = 'dark' | 'light' | 'auto';
  * How the voice is drawn
  * - 'glow': coloured light — soft gradients, a band of light along the
  *   glow's ceiling and a blurred bloom (default)
- * - 'dots': the same shape and motion drawn as a field of fine dots whose
- *   size and ink follow the light, with a slow organic texture riding the
- *   flow — the dotted language of thinking-orbs. White on the dark theme,
- *   near-black ink on the light one; the colour props do not apply.
+ * - 'dots': a gently domed sheet of dots seen in perspective, in the
+ *   dotted language of thinking-orbs. The voice raises hills out of it —
+ *   the spectrum as a landscape, drifting with the flow — and when the
+ *   voice drops the dots fall back under gravity, landing with a small
+ *   bounce. White on the dark theme, near-black ink on the light one; the
+ *   colour props do not apply.
  */
 export type VoiceBeamLook = 'glow' | 'dots';
 
@@ -90,8 +92,8 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   type?: VoiceBeamType;
 
   /**
-   * How the voice is drawn: coloured light, or a field of dots that follows
-   * the same flow, bend and travelling beam.
+   * How the voice is drawn: coloured light, or a dotted surface the voice
+   * raises and gravity brings down.
    * @default 'glow'
    */
   look?: VoiceBeamLook;
@@ -104,18 +106,25 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
 
   /**
    * Spacing between dots, as a multiplier — below 1 is a denser, finer
-   * field, above 1 a sparser, coarser one. `look="dots"` only.
+   * surface, above 1 a sparser, coarser one. `look="dots"` only.
    * @default 1
    */
   dotGap?: number;
 
   /**
-   * Organic texture, 0–1: how strongly a slow, drifting noise clusters and
-   * thins the dots, and how much each dot wanders and flickers. 0 is a clean
-   * halftone of the light. `look="dots"` only.
+   * Organic texture, 0–1: a slow ripple the flow carries across the
+   * surface. 0 is a still sheet that only the voice moves. `look="dots"` only.
    * @default 0.6
    */
   texture?: number;
+
+  /**
+   * How hard the dots fall when the voice drops, as a multiplier on the
+   * surface's gravity. Lower floats down, higher drops like sand.
+   * `look="dots"` only.
+   * @default 1
+   */
+  gravity?: number;
 
   /**
    * Size of the whole effect. Multiplies every pixel dimension at once —

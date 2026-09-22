@@ -96,6 +96,8 @@ export interface VoiceDriverConfig {
   dotSize: number;
   dotGap: number;
   texture: number;
+  /** How hard the dot surface falls when the voice drops, as a multiplier on its gravity. */
+  gravity: number;
   /** The glow's layer shapes and weights, which the dot field rebuilds (the stylesheet carries them for the glow). */
   layers: {
     glowWidth: number;
@@ -140,8 +142,11 @@ interface VoiceState {
   lastTs: number;
   /** The distortion's share, 0–1: 1 while listening, settling to 0 for processing. */
   warp: number;
-  /** The flow's travel in px, unwrapped — the dot field's texture rides it without a jump at the wrap. */
+  /** The flow's travel in px, unwrapped — the dot surface's ripple rides it without a jump at the wrap. */
   drift: number;
+  /** The dot surface's drive: the level and bands on a fast envelope — gravity, not a release curve, brings the surface down. */
+  fast: number;
+  fastBands: [number, number, number];
 }
 
 interface VoiceInstance {
@@ -183,17 +188,16 @@ const stateByElement = new WeakMap<HTMLElement, VoiceState>();
 function stateFor(el: HTMLElement): VoiceState {
   let s = stateByElement.get(el);
   if (!s) {
-    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1, drift: 0 };
+    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1, drift: 0, fast: 0, fastBands: [0, 0, 0] };
     stateByElement.set(el, s);
   }
   return s;
 }
 
 const instances = new Set<VoiceInstance>();
-/** The dot field's per-frame lobe geometry; frames are painted one instance at a time. */
+/** The dot surface's per-frame lobes; frames are painted one instance at a time. */
 const dotLobeX = new Float32Array(voiceLobes.length);
 const dotLobeL = new Float32Array(voiceLobes.length);
-const dotLobeY = new Float32Array(voiceLobes.length);
 let rafId: number | null = null;
 let lastFrame = 0;
 
@@ -272,6 +276,8 @@ const BAND_DPR_MAX = 2;
 const WARP_OUT_TAU = 0.06;
 const WARP_IN_TAU = 0.35;
 const WARP_OFF_BELOW = 0.03;
+/** The dot surface's envelope release, s: near-instant, so the fall is gravity's. */
+const FAST_RELEASE = 0.03;
 // The distortion filter only has to cover the glow under the band line:
 // the warp layers are clipped to it, and the host crops at its own box.
 // Its region is kept to that strip — from a little above the line's
@@ -673,7 +679,11 @@ function frame(ts: number): void {
     for (let b = 0; b < 3; b++) {
       const bt = shape(scratch.bands[b], config.threshold * 0.6);
       s.bands[b] = follow(s.bands[b], bt, dt, config.attack, config.release * 1.15);
+      if (inst.dots) s.fastBands[b] = follow(s.fastBands[b], bt, dt, config.attack * 0.6, FAST_RELEASE);
     }
+    // The dot surface lifts on a fast envelope and lets gravity be the
+    // release: a slow release curve would lower it gently instead.
+    if (inst.dots) s.fast = follow(s.fast, target, dt, config.attack * 0.6, FAST_RELEASE);
 
     // ── Processing travel ────────────────────────────────────────────
     // Like border-beam's line type: the lobes gather into one compact beam
@@ -733,49 +743,32 @@ function frame(ts: number): void {
       s.drift += config.flow * eff * dt;
     }
 
-    // ── Dots: the same light, drawn as a field of dots ───────────────
-    // Everything below is the glow's stylesheet plumbing; the dot field
-    // takes the frame's geometry straight and paints its canvas instead.
+    // ── Dots: the voice as a dotted surface ──────────────────────────
+    // Everything below is the glow's stylesheet plumbing; the dot surface
+    // takes the lobes straight and paints its canvas instead.
     if (inst.dots) {
-      const lift = config.bend * eff;
-      const bendA = config.bend > 0 ? Math.min(1, lift / config.bend) : 0;
-      const arcRadius = paintedRadius(config.radius, cw, ch);
-      const cornerBlend = morph * config.cornerFollow;
-      const beamAbsX = cw / 2 + cx * w;
-      const lobeReach = 30 * config.scale * w;
-      const cy = -cornerLift(beamAbsX, cw, arcRadius, lobeReach * 1.4) * cornerBlend;
       for (let i = 0; i < voiceLobes.length; i++) {
         const lobe = voiceLobes[i];
         const x = wrapX(lobe.x * config.lobeSpacing + s.phase, span);
-        const lobeAbsX = cw / 2 + (cx + x * gather) * w;
-        dotLobeX[i] = lobeAbsX;
-        dotLobeL[i] = (config.bands ? 0.6 + 0.7 * s.bands[lobe.band] : 1) * edgeEnvelope(x, span);
-        dotLobeY[i] = -cornerLift(lobeAbsX, cw, arcRadius, lobeReach) * cornerBlend;
+        dotLobeX[i] = cw / 2 + (cx + x * gather) * w;
+        // The spectrum shapes the peaks while a voice is heard; the
+        // travelling mound has no spectrum to follow, so it stands full.
+        const bandAmp = config.bands ? 0.6 + 0.7 * s.fastBands[lobe.band] : 1;
+        dotLobeL[i] = (bandAmp + (1 - bandAmp) * morph) * edgeEnvelope(x, span);
       }
-      s.warp = follow(s.warp, config.processing ? 0 : 1, dt, WARP_IN_TAU, WARP_OUT_TAU);
+      const fastVoiced = s.fast + (1 - s.fast) * config.idle * breathe;
       if (cw && ch) {
-        const needLine = (config.bandStrength > 0 && bendA > 0.001) || config.distortion > 0;
-        const band: BandFrame = { cx, w, h, mw: maskWidth, lift, strength: bendA, level: s.level, corner: morph };
         drawDots(inst.dots, config, {
           cw,
           ch,
-          bx: beamAbsX,
-          by: ch + cy,
-          w,
-          h,
-          mw: maskWidth,
-          lift,
-          glow,
-          eff,
-          level: s.level,
-          bendA,
           lobeX: dotLobeX,
           lobeL: dotLobeL,
-          lobeY: dotLobeY,
-          pts: needLine ? bandPoints(config, band, cw, ch) : null,
-          drift: s.drift,
+          w,
+          lift: Math.max(fastVoiced, config.processingLevel * held),
+          glow,
           t: tSec,
-          warp: s.warp,
+          dt,
+          drift: s.drift,
         });
       }
       el.style.setProperty(`--vb-level-${config.id}`, s.level.toFixed(3));
