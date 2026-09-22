@@ -4,7 +4,7 @@
 <g filter="url(#glyph_avatars_light)">
 <path transform="translate(6.5 5.5) scale(0.17)" d="M26.53 22.38A25 25 0 0 1 73.47 22.38A7 7 0 0 0 77.62 26.53A25 25 0 0 1 77.62 73.47A7 7 0 0 0 73.47 77.62A25 25 0 0 1 26.53 77.62A7 7 0 0 0 22.38 73.47A25 25 0 0 1 22.38 26.53A7 7 0 0 0 26.53 22.38Z" fill="url(#paint_avatars_light)"/>
 </g>
-<g transform="translate(6.5 5.5) scale(0.17)" fill="#2A2A2A" fill-opacity="0.9">
+<g transform="translate(6.5 5.5) scale(0.17)" fill="#8A8A8A" fill-opacity="0.85">
 <rect x="35.3" y="43.2" width="7.4" height="13.6" rx="3.7"/>
 <rect x="57.3" y="43.2" width="7.4" height="13.6" rx="3.7"/>
 </g>
@@ -52,8 +52,8 @@
 <feBlend mode="normal" in2="effect1_innerShadow_l" result="effect2_innerShadow_l"/>
 </filter>
 <linearGradient id="paint_avatars_light" x1="20" y1="100" x2="80" y2="-20" gradientUnits="userSpaceOnUse">
-<stop stop-color="#565656"/>
-<stop offset="1" stop-color="#A6A6A6"/>
+<stop stop-color="#DEDEDE" stop-opacity="0.35"/>
+<stop offset="1" stop-color="#9C9C9C"/>
 </linearGradient>
 </defs>
 </svg>
