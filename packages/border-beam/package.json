@@ -1,9 +1,9 @@
 {
   "name": "border-beam",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Animated border beam effect for React",
   "type": "module",
-  "main": "dist/index.cjs.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -14,7 +14,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     }
   },
