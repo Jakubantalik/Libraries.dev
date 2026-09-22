@@ -1091,6 +1091,13 @@ html[data-theme="dark"] .skill-btn--secondary:active {
    old lead pair of Beam and Orb left the sixth card alone on a third row.
    The cards drop their fixed 320px so the tracks size them. */
 .cards > .lib-card { width: auto; grid-column: span 2; }
+/* Beam and Orb lead at half the row each, as they did before the grid
+   evened out — their clips are the widest and carry the section. Only on
+   the six-track layout; the narrow grids below set their own spans. */
+@media (min-width: 1101px) {
+  .cards > .lib-card[data-lib="beam"],
+  .cards > .lib-card[data-lib="orb"] { grid-column: span 3; }
+}
 /* The stage is absolutely placed, so it needs both insets to follow a
    card that is no longer a fixed width. */
 .cards > .lib-card .card-stage { right: 12px; width: auto; max-width: none; }
