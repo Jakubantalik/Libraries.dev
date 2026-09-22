@@ -1333,12 +1333,13 @@ html [data-voice-look="dots"] .mock-phone {
   background: transparent;
 }
 
-/* Over the dot surface the controls are frosted: 10px of backdrop blur
+/* Over the dot surface the controls are frosted: a backdrop blur (10px
+   unless the host sets --mock-btn-blur — the Studio's Button blur knob)
    softens the dots passing behind them. The glow look keeps them clear. */
 [data-voice-look="dots"] .mock-vchat-btn,
 [data-voice-look="dots"] .mock-pill-stop,
 [data-voice-look="dots"] .mock-phone-agent,
 [data-voice-look="dots"] .mock-phone-btn {
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(var(--mock-btn-blur, 10px));
+  backdrop-filter: blur(var(--mock-btn-blur, 10px));
 }

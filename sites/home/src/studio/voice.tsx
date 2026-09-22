@@ -208,6 +208,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const [dotGap, setDotGap] = useState(1);
   const [texture, setTexture] = useState(0.6);
   const [gravity, setGravity] = useState(1);
+  /* The mock buttons' backdrop blur over the dots — the host's CSS, not a prop, so it stays out of the snippet. */
+  const [buttonBlur, setButtonBlur] = useState(10);
   const isDots = look === "dots";
   /* A stylesheet the agent rewrote, appended after the generated one; "" is
      the stock effect. */
@@ -517,7 +519,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             hueRange={hueRange}
             hueDuration={hueDuration}
             staticColors={staticColors}
-            style={beamStyle}
+            style={isDots ? ({ ...(beamStyle ?? {}), "--mock-btn-blur": `${buttonBlur}px` } as CSSProperties) : beamStyle}
             onLevel={onLevel}
           >
             {type === "pill" ? (
@@ -590,6 +592,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             <PgSlider label="Spacing" value={dotGap} min={0.6} max={2.5} step={0.05} display={`${num(dotGap)}×`} onChange={setDotGap} />
             <PgSlider label="Texture" value={texture} min={0} max={1} step={0.01} display={`${Math.round(texture * 100)}%`} onChange={setTexture} />
             <PgSlider label="Gravity" value={gravity} min={0.2} max={3} step={0.05} display={`${num(gravity)}×`} onChange={setGravity} />
+            <PgSlider label="Button blur" value={buttonBlur} min={0} max={30} step={1} display={`${buttonBlur}px`} onChange={setButtonBlur} />
           </PgGroup>
         )}
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
