@@ -458,12 +458,21 @@
       filter: invert(1);
     }
     html[data-theme="light"] .home-customer-logo { filter: none; opacity: 0.6; }
+    /* Five logos on one line, or three and two — never four and a lone
+       one. The break is a zero-height flex line that only exists once the
+       row is too narrow to hold all five. */
+    .home-customers-break { display: none; flex-basis: 100%; height: 0; margin: 0; }
+    @media (max-width: 600px) { .home-customers-break { display: block; } }
     @media (max-width: 640px) {
       /* The hero fills the first screen on phones; no pull-up here, so
          the row starts below the fold. */
       .home-customers { margin: 24px auto 48px; }
       .home-customers-row { gap: 18px 28px; }
       .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.85); }
+    }
+    /* Narrower than this, three logos only fit at a smaller size. */
+    @media (max-width: 380px) {
+      .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.7); }
     }
     .home-section-title {
       text-align: center; font-family: "Saans", var(--font-sans);
@@ -929,6 +938,7 @@
         <img class="home-customer-logo" src="/assets/customers/vercel.svg" alt="Vercel" style="--logo-h: 20px" loading="lazy" decoding="async" />
         <img class="home-customer-logo" src="/assets/customers/google.svg" alt="Google" style="--logo-h: 28px" loading="lazy" decoding="async" />
         <img class="home-customer-logo" src="/assets/customers/sarvam-ai.svg" alt="Sarvam AI" style="--logo-h: 14.5px" loading="lazy" decoding="async" />
+            <span class="home-customers-break" aria-hidden="true"></span>
         <img class="home-customer-logo" src="/assets/customers/gradial.svg" alt="Gradial" style="--logo-h: 21px" loading="lazy" decoding="async" />
         <img class="home-customer-logo" src="/assets/customers/gecko-robotics.svg" alt="Gecko Robotics" style="--logo-h: 24px" loading="lazy" decoding="async" />
       </div>
