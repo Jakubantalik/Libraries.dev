@@ -7,6 +7,7 @@ import {
   voicePalettes,
   parseRgb,
   type VoiceBeamColorVariant,
+  type VoiceBeamLook,
   type VoiceBeamType,
   type VoiceGeometry,
 } from "voice-glow";
@@ -49,6 +50,11 @@ function stockVoiceCss(): string {
   if (!root || !id || !style || style.tagName !== "STYLE") return "";
   return (style.textContent ?? "").split(id).join("{id}");
 }
+
+const LOOK_OPTIONS = [
+  { value: "glow", label: "Glow" },
+  { value: "dots", label: "Dots" },
+] as const;
 
 const RADIUS_BY_TYPE: Record<VoiceBeamType, number> = { default: 20, pill: 106, mobile: 66 };
 /* The phone mock is 402×874 shown at 0.68 in a 273×357 crop; the beam wraps the crop. */
@@ -102,6 +108,10 @@ const SOURCE_OPTIONS = [
    services/studio-agent/spec.ts. */
 const VOICE_PARAM_LABELS: Record<string, string> = {
   type: "Type",
+  look: "Look",
+  dotSize: "Dot size",
+  dotGap: "Spacing",
+  texture: "Texture",
   colorVariant: "Color theme",
   sensitivity: "Sensitivity",
   threshold: "Threshold",
@@ -191,6 +201,12 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. */
   const [paused, setPaused] = useState(false);
+  /* The look: coloured light, or the same light as a field of dots. */
+  const [look, setLook] = useState<VoiceBeamLook>("glow");
+  const [dotSize, setDotSize] = useState(1);
+  const [dotGap, setDotGap] = useState(1);
+  const [texture, setTexture] = useState(0.6);
+  const isDots = look === "dots";
   /* A stylesheet the agent rewrote, appended after the generated one; "" is
      the stock effect. */
   const [core, setCore] = useState("");
@@ -224,6 +240,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
      the spec whether the travelling-beam props are live. */
   const agentParams: Record<string, unknown> = {
     type,
+    look,
+    dotSize,
+    dotGap,
+    texture,
     colorVariant,
     sensitivity,
     threshold,
@@ -270,6 +290,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     /* Type first: it re-tunes the geometry, so anything else in the same
        patch must land on top of the new defaults. */
     if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
+    if (patch.look === "glow" || patch.look === "dots") setLook(patch.look);
+    if (typeof patch.dotSize === "number") setDotSize(patch.dotSize);
+    if (typeof patch.dotGap === "number") setDotGap(patch.dotGap);
+    if (typeof patch.texture === "number") setTexture(patch.texture);
     if (typeof patch.colorVariant === "string") setColorVariant(patch.colorVariant as VoiceBeamColorVariant);
     if (typeof patch.sensitivity === "number") setSensitivity(patch.sensitivity);
     if (typeof patch.threshold === "number") setThreshold(patch.threshold);
@@ -394,6 +418,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   /* Live snippet: only non-default props survive. */
   const props: string[] = [];
+  if (isDots) props.push(`look="dots"`);
+  if (isDots && dotSize !== 1) props.push(`dotSize={${num(dotSize)}}`);
+  if (isDots && dotGap !== 1) props.push(`dotGap={${num(dotGap)}}`);
+  if (isDots && texture !== 0.6) props.push(`texture={${num(texture)}}`);
   if (isMic) props.push("stream={mic.stream}");
   else if (source === "manual") props.push(`level={${num(manualLevel / 100)}}`);
   else props.push("level={() => yourLevel}");
@@ -450,6 +478,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         {visible && (
           <VoiceBeam
             type={type}
+            look={look}
+            dotSize={dotSize}
+            dotGap={dotGap}
+            texture={texture}
             stream={stream}
             level={level}
             sensitivity={sensitivity}
@@ -545,6 +577,14 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         }}
       >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
+        <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} />
+        {isDots && (
+          <PgGroup label="Dots">
+            <PgSlider label="Dot size" value={dotSize} min={0.4} max={2.5} step={0.05} display={`${num(dotSize)}×`} onChange={setDotSize} />
+            <PgSlider label="Spacing" value={dotGap} min={0.6} max={2.5} step={0.05} display={`${num(dotGap)}×`} onChange={setDotGap} />
+            <PgSlider label="Texture" value={texture} min={0} max={1} step={0.01} display={`${Math.round(texture * 100)}%`} onChange={setTexture} />
+          </PgGroup>
+        )}
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
         {isMic && MIC_STATUS[mic.state] && (
           <div className="pg-field">
@@ -566,6 +606,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             <PgSlider label="Morph" value={processingEase} min={0.1} max={2} step={0.05} display={`${num(processingEase)}s`} onChange={setProcessingEase} />
           </>
         )}
+        {!isDots && (
+          <>
         <PgTabs label="Color theme" options={COLOR_OPTIONS} value={colorVariant} onChange={setColorVariant} />
         <PanelSep />
         {/* Every colour the effect paints, each with the eight variants'
@@ -598,6 +640,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           ))}
         </PgGroup>
         </div>
+          </>
+        )}
         <PanelSep />
         {/* The input chain, in signal order: gain, gate, then the envelope. */}
         <PgGroup label="Response">
@@ -673,13 +717,13 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           <PgSlider label="Corner radius" value={radius} min={0} max={120} step={1} display={`${radius}px`} onChange={setRadius} />
           <PgSlider label="Size" value={geo.glowSize} min={0.25} max={3} step={0.05} display={`${num(geo.glowSize)}×`} onChange={setG("glowSize")} />
           <PgSlider label="Brightness" value={brightness} min={0.5} max={2.2} step={0.05} display={`${num(brightness)}×`} onChange={setBrightness} />
-          <PgSlider label="Saturation" value={saturation} min={0.4} max={2.2} step={0.05} display={`${num(saturation)}×`} onChange={setSaturation} />
+          {!isDots && <PgSlider label="Saturation" value={saturation} min={0.4} max={2.2} step={0.05} display={`${num(saturation)}×`} onChange={setSaturation} />}
           {/* The three stacked layers, each on its own multiplier: the
               1px edge stroke, the soft light inside it, the blurred halo. */}
           <PgSlider label="Stroke" value={strokeOpacity} min={0} max={2} step={0.05} display={`${num(strokeOpacity)}×`} onChange={setStrokeOpacity} />
           <PgSlider label="Inner glow" value={innerOpacity} min={0} max={2} step={0.05} display={`${num(innerOpacity)}×`} onChange={setInnerOpacity} />
           <PgSlider label="Bloom" value={bloomOpacity} min={0} max={2} step={0.05} display={`${num(bloomOpacity)}×`} onChange={setBloomOpacity} />
-          {!staticColors && (
+          {!isDots && !staticColors && (
             <>
               <PgSlider label="Hue range" value={hueRange} min={0} max={120} step={1} display={`${hueRange}°`} onChange={setHueRange} />
               <PgSlider label="Hue speed" value={hueDuration} min={2} max={40} step={0.5} display={`${num(hueDuration)}s`} onChange={setHueDuration} />

@@ -1,5 +1,6 @@
 import { acquireAnalyser } from './audio';
 import { voiceLobes, LOBE_SPAN } from './styles';
+import { createDotsState, drawDots, type DotsState } from './dots';
 
 /**
  * Shared driver for the voice reaction.
@@ -89,6 +90,28 @@ export interface VoiceDriverConfig {
   reducedMotion: boolean;
   /** Hold the frame: the clock stops and the source is not read, but a changed config still repaints. */
   paused: boolean;
+  /** How the voice is drawn: the stylesheet's glow, or a field of dots painted on a canvas. */
+  look: 'glow' | 'dots';
+  /** The dot field: radius and spacing multipliers, and the organic texture's share, 0–1. */
+  dotSize: number;
+  dotGap: number;
+  texture: number;
+  /** The glow's layer shapes and weights, which the dot field rebuilds (the stylesheet carries them for the glow). */
+  layers: {
+    glowWidth: number;
+    glowHeight: number;
+    innerScale: number;
+    innerHeight: number;
+    bloomScale: number;
+    bloomHeight: number;
+    strokeScale: number;
+    softness: number;
+    coreSize: number;
+    innerOpacity: number;
+    bloomOpacity: number;
+    strokeOpacity: number;
+    brightness: number;
+  };
 }
 
 export interface VoiceSource {
@@ -117,6 +140,8 @@ interface VoiceState {
   lastTs: number;
   /** The distortion's share, 0–1: 1 while listening, settling to 0 for processing. */
   warp: number;
+  /** The flow's travel in px, unwrapped — the dot field's texture rides it without a jump at the wrap. */
+  drift: number;
 }
 
 interface VoiceInstance {
@@ -149,6 +174,8 @@ interface VoiceInstance {
   cssBlur: string | null;
   /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped for processing. */
   warpOff: boolean;
+  /** The dot field's canvas and lattice, for `look="dots"`. */
+  dots: DotsState | null;
 }
 
 const stateByElement = new WeakMap<HTMLElement, VoiceState>();
@@ -156,13 +183,17 @@ const stateByElement = new WeakMap<HTMLElement, VoiceState>();
 function stateFor(el: HTMLElement): VoiceState {
   let s = stateByElement.get(el);
   if (!s) {
-    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1 };
+    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1, drift: 0 };
     stateByElement.set(el, s);
   }
   return s;
 }
 
 const instances = new Set<VoiceInstance>();
+/** The dot field's per-frame lobe geometry; frames are painted one instance at a time. */
+const dotLobeX = new Float32Array(voiceLobes.length);
+const dotLobeL = new Float32Array(voiceLobes.length);
+const dotLobeY = new Float32Array(voiceLobes.length);
 let rafId: number | null = null;
 let lastFrame = 0;
 
@@ -699,6 +730,59 @@ function frame(ts: number): void {
     // ── Flow: the spectrum slides sideways as the voice comes in ─────
     if (config.flow !== 0 && !config.reducedMotion) {
       s.phase = (((s.phase + config.flow * eff * dt) % span) + span) % span;
+      s.drift += config.flow * eff * dt;
+    }
+
+    // ── Dots: the same light, drawn as a field of dots ───────────────
+    // Everything below is the glow's stylesheet plumbing; the dot field
+    // takes the frame's geometry straight and paints its canvas instead.
+    if (inst.dots) {
+      const lift = config.bend * eff;
+      const bendA = config.bend > 0 ? Math.min(1, lift / config.bend) : 0;
+      const arcRadius = paintedRadius(config.radius, cw, ch);
+      const cornerBlend = morph * config.cornerFollow;
+      const beamAbsX = cw / 2 + cx * w;
+      const lobeReach = 30 * config.scale * w;
+      const cy = -cornerLift(beamAbsX, cw, arcRadius, lobeReach * 1.4) * cornerBlend;
+      for (let i = 0; i < voiceLobes.length; i++) {
+        const lobe = voiceLobes[i];
+        const x = wrapX(lobe.x * config.lobeSpacing + s.phase, span);
+        const lobeAbsX = cw / 2 + (cx + x * gather) * w;
+        dotLobeX[i] = lobeAbsX;
+        dotLobeL[i] = (config.bands ? 0.6 + 0.7 * s.bands[lobe.band] : 1) * edgeEnvelope(x, span);
+        dotLobeY[i] = -cornerLift(lobeAbsX, cw, arcRadius, lobeReach) * cornerBlend;
+      }
+      s.warp = follow(s.warp, config.processing ? 0 : 1, dt, WARP_IN_TAU, WARP_OUT_TAU);
+      if (cw && ch) {
+        const needLine = (config.bandStrength > 0 && bendA > 0.001) || config.distortion > 0;
+        const band: BandFrame = { cx, w, h, mw: maskWidth, lift, strength: bendA, level: s.level, corner: morph };
+        drawDots(inst.dots, config, {
+          cw,
+          ch,
+          bx: beamAbsX,
+          by: ch + cy,
+          w,
+          h,
+          mw: maskWidth,
+          lift,
+          glow,
+          eff,
+          level: s.level,
+          bendA,
+          lobeX: dotLobeX,
+          lobeL: dotLobeL,
+          lobeY: dotLobeY,
+          pts: needLine ? bandPoints(config, band, cw, ch) : null,
+          drift: s.drift,
+          t: tSec,
+          warp: s.warp,
+        });
+      }
+      el.style.setProperty(`--vb-level-${config.id}`, s.level.toFixed(3));
+      el.style.setProperty(`--vb-glow-${config.id}`, glow.toFixed(3));
+      inst.onLevel?.(s.level);
+      inst.paintedConfig = config;
+      return;
     }
 
     el.style.setProperty(`--vb-level-${config.id}`, s.level.toFixed(3));
@@ -837,7 +921,12 @@ export function registerVoiceInstance(
     cssBlur: null,
     // Match the mark a previous registration may have left on the element.
     warpOff: el.hasAttribute('data-voice-warp'),
+    dots: null,
   };
+  if (config.look === 'dots') {
+    const dotsCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-dots]');
+    if (dotsCanvas) inst.dots = createDotsState(dotsCanvas);
+  }
   if (config.distortion > 0) {
     inst.displace = el.querySelector<SVGFEDisplacementMapElement>(':scope > svg feDisplacementMap');
     inst.noiseShift = el.querySelector<SVGFEOffsetElement>(':scope > svg feOffset');

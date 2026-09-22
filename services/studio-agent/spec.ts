@@ -984,6 +984,42 @@ export const VOICE_SPEC: LibrarySpec = {
         "a full phone screen. Changing it re-tunes every other prop to that type's defaults, so set it " +
         "alone on a turn unless the user asked for both at once.",
     },
+    look: {
+      kind: "enum",
+      values: ["glow", "dots"],
+      describe:
+        "How the voice is drawn. glow is coloured light — gradients, a band of light and a blurred bloom. " +
+        "dots draws the same shape and motion as a fine halftone of white dots (near-black ink on the light " +
+        "theme) with an organic texture riding the flow, in the dotted language of the Thinking orbs; the " +
+        "palette, saturation and hue props do nothing in dots. Reach for dots when the request is " +
+        "monochrome, minimal, technical, textured or 'like the orbs'.",
+    },
+    dotSize: {
+      kind: "number",
+      min: 0.4,
+      max: 2.5,
+      step: 0.05,
+      describe: "Dot radius, as a multiplier. Larger reads bolder and brighter; smaller finer and more delicate.",
+      when: "look is dots",
+    },
+    dotGap: {
+      kind: "number",
+      min: 0.6,
+      max: 2.5,
+      step: 0.05,
+      describe: "Spacing between dots, as a multiplier. Below 1 is a denser, finer screen; above 1 sparser and more graphic.",
+      when: "look is dots",
+    },
+    texture: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe:
+        "Organic texture, 0–1: soft streaks of light carried by the flow and a slow ripple through the dots. " +
+        "0 is a clean, still halftone; high reads alive and grainy.",
+      when: "look is dots",
+    },
     colorVariant: {
       kind: "enum",
       values: ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"],
@@ -1288,18 +1324,25 @@ export const VOICE_SPEC: LibrarySpec = {
     },
   },
   relevant(params) {
+    const dots = params.look === "dots";
     const keys = [
-      "core",
-      "type", "colorVariant", "sensitivity", "threshold", "attack", "release",
+      "look",
+      "type", "sensitivity", "threshold", "attack", "release",
       "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
       "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
-      "coreLight", "coreSize", "softness", "strength", "brightness", "saturation",
-      "strokeOpacity", "innerOpacity", "bloomOpacity", "radius", "staticColors", "paused",
+      "coreSize", "softness", "strength", "brightness",
+      "strokeOpacity", "innerOpacity", "bloomOpacity", "radius", "paused",
     ];
     // The resting shimmer's breath is invisible when nothing rests.
     if (Number(params.idle) > 0) keys.push("breathe");
-    // The hue only drifts when the palette is not held still.
-    if (!params.staticColors) keys.push("hueRange", "hueDuration", "hueShift");
+    if (dots) {
+      // The dot field has no palette and no stylesheet layers to rebuild.
+      keys.push("dotSize", "dotGap", "texture");
+    } else {
+      keys.push("core", "colorVariant", "saturation", "coreLight", "staticColors");
+      // The hue only drifts when the palette is not held still.
+      if (!params.staticColors) keys.push("hueRange", "hueDuration", "hueShift");
+    }
     // The travelling beam exists only while processing.
     if (params.processing) {
       keys.push("processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow");

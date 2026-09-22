@@ -14,6 +14,7 @@ export type {
   VoiceBeamProps,
   VoiceBeamType,
   VoiceBeamTheme,
+  VoiceBeamLook,
   VoiceBeamColorVariant,
   VoiceBeamLevel,
   VoiceThemeColors,

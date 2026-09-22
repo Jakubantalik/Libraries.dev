@@ -107,6 +107,10 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
     {
       children,
       type = 'default',
+      look = 'glow',
+      dotSize = 1,
+      dotGap = 1,
+      texture = 0.6,
       scale: scaleProp,
       stream = null,
       level = 0,
@@ -263,7 +267,9 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       ro.observe(el);
       return () => ro.disconnect();
     }, []);
-    const distortion = IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
+    const isDots = look === 'dots';
+    // The WebKit gate is about the SVG warp's cost; the dot field's warp is a few multiplies.
+    const distortion = !isDots && IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
 
     // Auto-detect child border radius when no explicit value is provided
     useEffect(() => {
@@ -364,6 +370,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           softness,
           distortion: distortion > 0,
           scale: sc,
+          look,
         }),
       [
         id,
@@ -395,6 +402,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         rangeHeight,
         softness,
         distortion > 0,
+        look,
       ]
     );
 
@@ -452,6 +460,25 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         staticColors: colorVariant === 'mono' ? true : staticColors,
         reducedMotion,
         paused,
+        look,
+        dotSize: Math.max(0.1, dotSize),
+        dotGap: Math.max(0.3, dotGap),
+        texture: Math.max(0, Math.min(1, texture)),
+        layers: {
+          glowWidth,
+          glowHeight,
+          innerScale,
+          innerHeight,
+          bloomScale,
+          bloomHeight,
+          strokeScale,
+          softness,
+          coreSize,
+          innerOpacity: innerOpacityMul,
+          bloomOpacity: bloomOpacityMul,
+          strokeOpacity: strokeOpacityMul,
+          brightness: finalBrightness,
+        },
       }),
       [
         id,
@@ -500,6 +527,23 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         colorVariant,
         reducedMotion,
         paused,
+        look,
+        dotSize,
+        dotGap,
+        texture,
+        glowWidth,
+        glowHeight,
+        innerScale,
+        innerHeight,
+        bloomScale,
+        bloomHeight,
+        strokeScale,
+        softness,
+        coreSize,
+        innerOpacityMul,
+        bloomOpacityMul,
+        strokeOpacityMul,
+        finalBrightness,
       ]
     );
 
@@ -560,8 +604,9 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           onAnimationEnd={handleAnimationEnd}
         >
           {children}
-          <div data-voice-beam-bloom />
-          {distortion > 0 && (
+          {isDots && <canvas data-voice-beam-dots aria-hidden="true" />}
+          {!isDots && <div data-voice-beam-bloom />}
+          {!isDots && distortion > 0 && (
             <>
               {/* Mirrors of the inner light and bloom, clipped to below the
                   band line and carrying the displacement filter. */}
@@ -569,17 +614,17 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
               <div data-voice-beam-warp="bloom" />
             </>
           )}
-          {!CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
-          <canvas data-voice-beam-band aria-hidden="true" />
+          {!isDots && !CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
+          {!isDots && <canvas data-voice-beam-band aria-hidden="true" />}
           {/* After the band canvases, so the wash sits over the band's halo
               under the line (it is clipped to below the line, so the ridge
               itself stays) while the host's own content stays above it. */}
-          {coreLight > 0 && (
+          {!isDots && coreLight > 0 && (
             <div data-voice-beam-core>
               <div />
             </div>
           )}
-          {distortion > 0 && (
+          {!isDots && distortion > 0 && (
             /* The distortion filter: drifting fractal noise, its green
                channel pinned to 0.5 so only x displaces, driven per frame by
                the driver (scale and offset), which also narrows the region

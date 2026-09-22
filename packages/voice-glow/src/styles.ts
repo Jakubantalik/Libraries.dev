@@ -330,6 +330,70 @@ export interface GenerateVoiceStylesOptions {
   distortion?: boolean;
   /** The effect's overall scale, for the px values not carried by a multiplier. */
   scale?: number;
+  /** 'dots' drops the glow's layers for the dot field's one canvas. */
+  look?: 'glow' | 'dots';
+}
+
+/**
+ * The stylesheet for `look="dots"`: the root, the fade in and out, and the
+ * one canvas the driver paints the dot field on. None of the glow's layers
+ * exist, so nothing here reads the per-frame custom properties but the fade.
+ */
+function generateDotsCSS(id: string, borderRadius: number): string {
+  return `
+@property --vb-opacity-${id} {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: true;
+}
+
+[data-voice-beam="${id}"] {
+  position: relative;
+  border-radius: ${borderRadius}px;
+  overflow: hidden;
+  --vb-level-${id}: 0;
+  --vb-glow-${id}: 0.4;
+}
+
+[data-voice-beam="${id}"][data-active] {
+  animation: vb-fade-in-${id} 0.6s ease forwards;
+}
+
+[data-voice-beam="${id}"][data-fading] {
+  animation: vb-fade-out-${id} 0.5s ease forwards;
+}
+
+/* The dot field — under the host's content (z 5), above its surface. */
+[data-voice-beam="${id}"] [data-voice-beam-dots] {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 4;
+}
+
+[data-voice-beam="${id}"][data-active] [data-voice-beam-dots],
+[data-voice-beam="${id}"][data-fading] [data-voice-beam-dots] {
+  display: block;
+  opacity: calc(var(--vb-opacity-${id}, 1) * var(--voice-strength, 1));
+}
+
+@keyframes vb-fade-in-${id} {
+  to { --vb-opacity-${id}: 1; }
+}
+
+@keyframes vb-fade-out-${id} {
+  from { --vb-opacity-${id}: 1; }
+  to { --vb-opacity-${id}: 0; }
+}
+
+[data-voice-beam="${id}"][data-paused] {
+  animation-play-state: paused !important;
+}
+`;
 }
 
 /**
@@ -349,6 +413,7 @@ export interface GenerateVoiceStylesOptions {
  * range is — the processing travel) and `--vb-hue` (drift).
  */
 export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): string {
+  if (options.look === 'dots') return generateDotsCSS(options.id, options.borderRadius);
   const {
     id,
     borderRadius,
