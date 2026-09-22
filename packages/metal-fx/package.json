@@ -1,9 +1,9 @@
 {
   "name": "metal-fx",
-  "version": "2.0.10",
+  "version": "2.0.11",
   "description": "Liquid metal shader effects for React: rings, buttons, metal text and badges, with glow, proximity reflections and cursor light (v2 \u2014 Paper Shaders liquidMetal engine)",
   "type": "module",
-  "main": "dist/index.cjs.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -14,7 +14,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     }
   },
