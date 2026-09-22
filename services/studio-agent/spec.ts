@@ -965,12 +965,356 @@ export const GOOEY_SPEC: LibrarySpec = {
   },
 };
 
+export const VOICE_SPEC: LibrarySpec = {
+  label: "Voice",
+  about:
+    "VoiceBeam paints a colourful glow along the bottom edge of the element it wraps — a chat input, a " +
+    "recording pill or a phone screen — that rises and blooms with the voice. Three layers stack inside " +
+    "the box: a 1px edge stroke, a soft inner light, and a blurred bloom, all shaped by the same beam. A " +
+    "thin band of light traces the glow's ceiling and the colours warp underneath it. While the reply is " +
+    "being thought through (the Processing source) the glow gathers into one travelling beam that sweeps " +
+    "the range. The type sets the host it is tuned for; every other prop is a multiplier on that tuning, " +
+    "so reach for the response and shape props for mood words and the styling props for intensity.",
+  params: {
+    type: {
+      kind: "enum",
+      values: ["default", "pill", "mobile"],
+      describe:
+        "Which host the effect is tuned for: default is a chat input, pill a small recording pill, mobile " +
+        "a full phone screen. Changing it re-tunes every other prop to that type's defaults, so set it " +
+        "alone on a turn unless the user asked for both at once.",
+    },
+    colorVariant: {
+      kind: "enum",
+      values: ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"],
+      describe:
+        "The palette. colorful is the full spectrum, mono a neutral grey (the most restrained), ocean cool " +
+        "blues and teals, sunset warm pinks and oranges, forest greens, candy bright pastels, ice pale " +
+        "blues, gold warm ambers. The first lever for 'warmer', 'cooler' or 'calmer'.",
+    },
+    sensitivity: {
+      kind: "number",
+      min: 0.2,
+      max: 4,
+      step: 0.05,
+      describe:
+        "How strongly the incoming level drives the glow. Higher makes a quiet voice bloom; lower needs a " +
+        "loud one. The lever for 'more reactive' or 'less twitchy'.",
+    },
+    threshold: {
+      kind: "number",
+      min: 0,
+      max: 0.3,
+      step: 0.005,
+      describe: "Level below which the glow stays at rest, so room noise does not light it up. Raise it if the effect flickers when nobody is speaking.",
+    },
+    attack: {
+      kind: "number",
+      min: 0,
+      max: 0.5,
+      step: 0.005,
+      describe: "Seconds the glow takes to rise to a new level. Near 0 snaps with the voice; higher reads softer and more considered.",
+    },
+    release: {
+      kind: "number",
+      min: 0.02,
+      max: 1.5,
+      step: 0.01,
+      describe: "Seconds the glow takes to fall back. Long release leaves a trail after a word; short cuts it off with the voice.",
+    },
+    reach: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "How far up the box the glow climbs at full voice. The main lever for a taller or shorter effect.",
+    },
+    spread: {
+      kind: "number",
+      min: 0,
+      max: 1.5,
+      step: 0.05,
+      describe: "How much wider the glow grows with the voice. Higher fills the width as it rises; 0 keeps it the same width throughout.",
+    },
+    scale: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Overall size of the whole effect, as a multiplier. Use it when the host is much larger or smaller than the type assumes.",
+    },
+    glowSize: {
+      kind: "number",
+      min: 0.25,
+      max: 3,
+      step: 0.05,
+      describe: "Size of the soft layers only — the inner light and the bloom — leaving the band and stroke alone. Higher reads hazier.",
+    },
+    idle: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How present the glow stays in silence, 0 to 1. 0 goes dark between words; higher keeps a resting shimmer that breathes.",
+    },
+    breathe: {
+      kind: "number",
+      min: 1,
+      max: 8,
+      step: 0.1,
+      describe: "Seconds of one breath of the resting shimmer. Only visible when idle presence is above 0.",
+      when: "idle is above 0",
+    },
+    flow: {
+      kind: "number",
+      min: -200,
+      max: 200,
+      step: 4,
+      describe: "Sideways drift of the colours in px/s: negative flows left, positive right, 0 holds still.",
+    },
+    bend: {
+      kind: "number",
+      min: 0,
+      max: 80,
+      step: 1,
+      describe: "How far the glow's ceiling humps up at the centre with the voice, in px. 0 is a flat ceiling.",
+    },
+    bandStrength: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "Brightness of the thin band of light tracing the glow's ceiling. 0 removes the line and leaves only the soft glow.",
+    },
+    bandWidth: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Thickness of that band. Thin reads like a filament, thick like a ribbon of light.",
+    },
+    bandPosition: {
+      kind: "number",
+      min: 0.1,
+      max: 1.3,
+      step: 0.01,
+      describe: "Where the band sits on the glow's height, as a fraction. Low keeps it near the edge; high rides the top of the bloom.",
+    },
+    bandAberration: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "Chromatic split of the band: a red fringe above and a blue one below. 0 is a clean line; high reads like a prism.",
+    },
+    distortion: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How much the colours under the band warp sideways, as if seen through moving glass. 0 is smooth; high shimmers. Costly on phones — keep it low when the request is about performance.",
+    },
+    coreLight: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "A white wash at the beam's source, so the centre reads brighter than the band. 0 is off; around 1.8 is the light theme's own default. Use it when the middle should feel hotter.",
+    },
+    coreSize: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "Size of the bright core at the base of the beam. 0 removes it.",
+    },
+    softness: {
+      kind: "number",
+      min: 0.6,
+      max: 1.35,
+      step: 0.01,
+      describe: "How soft the glow's edges fade out. Higher is hazier and more diffuse; lower is crisper.",
+    },
+    strength: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 1,
+      describe: "Overall opacity of the whole effect in percent. The blunt lever for 'subtler' or 'stronger'.",
+    },
+    brightness: {
+      kind: "number",
+      min: 0.5,
+      max: 2.2,
+      step: 0.05,
+      describe: "Brightness multiplier on every layer. Above 1 pushes the colours toward white.",
+    },
+    saturation: {
+      kind: "number",
+      min: 0.4,
+      max: 2.2,
+      step: 0.05,
+      describe: "Colour saturation. Below 1 washes toward grey; above 1 makes the palette vivid.",
+    },
+    strokeOpacity: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "Opacity of the 1px edge stroke on its own. 0 removes the lit rim and leaves the glow inside the box.",
+    },
+    innerOpacity: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "Opacity of the soft inner light on its own.",
+    },
+    bloomOpacity: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "Opacity of the blurred halo on its own. Lower it for a tighter effect, raise it for more atmosphere.",
+    },
+    radius: {
+      kind: "number",
+      min: 0,
+      max: 120,
+      step: 1,
+      describe: "Corner radius of the host in px, so the effect follows the element's own corners. Match it to the element you wrap.",
+    },
+    staticColors: {
+      kind: "boolean",
+      describe: "Hold the palette still instead of letting the hue drift. Set true when the request asks for a fixed or calmer colour.",
+    },
+    hueRange: {
+      kind: "number",
+      min: 0,
+      max: 120,
+      step: 1,
+      describe: "How far the hue drifts either way, in degrees. 0 is no drift at all.",
+      when: "staticColors is false",
+    },
+    hueDuration: {
+      kind: "number",
+      min: 2,
+      max: 40,
+      step: 0.5,
+      describe: "Seconds for one full hue cycle. Longer is calmer.",
+      when: "staticColors is false",
+    },
+    hueShift: {
+      kind: "number",
+      min: -180,
+      max: 180,
+      step: 5,
+      describe: "Rotates the whole palette by this many degrees. The lever for shifting a preset's colour without leaving it.",
+      when: "staticColors is false",
+    },
+    processingDuration: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Seconds for one pass of the travelling beam while processing. Longer reads more patient.",
+      when: "the Processing source is selected",
+    },
+    processingLevel: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How lit the glow is held while processing, 0 to 1, since there is no voice to drive it.",
+      when: "the Processing source is selected",
+    },
+    processingTravel: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "How far the travelling beam sweeps across the range. 0 keeps it centred; 2 runs the full width.",
+      when: "the Processing source is selected",
+    },
+    processingCurve: {
+      kind: "number",
+      min: 1,
+      max: 4,
+      step: 0.05,
+      describe: "Ease of the sweep's turn at each end. 1 is linear and mechanical; higher dwells at the edges and reads softer.",
+      when: "the Processing source is selected",
+    },
+    cornerFollow: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      describe: "How much the travelling beam rides the host's corner arcs rather than being cut off by them.",
+      when: "the Processing source is selected",
+    },
+    paused: {
+      kind: "boolean",
+      describe: "Freeze the effect on its current frame. Set true only if the user asks to pause or stop it.",
+    },
+    core: {
+      kind: "code",
+      lang: "css",
+      describe:
+        "The effect's stylesheet, rebuilt. Use it when the request changes what the glow IS — a different " +
+        "shape of light, a layer the library does not draw, motion the knobs cannot express — while keeping " +
+        "the voice still driving it.",
+      contract:
+        "Write CSS that is appended after the library's generated stylesheet for this instance, so it can " +
+        "override any rule or add new ones. Write {id} wherever the instance id belongs and it is " +
+        "substituted per instance. The root is [data-voice-beam=\"{id}\"], and it carries [data-active] " +
+        "while the effect is on and [data-fading] as it leaves — most rules are written under those. Its " +
+        "layers are, bottom to top: ::after (the 1px edge stroke), ::before (the soft light inside the " +
+        "box), the child [data-voice-beam-bloom] (a blurred halo), [data-voice-beam-warp] mirrors (the " +
+        "distorted copies below the band line), the [data-voice-beam-band] and [data-voice-beam-band-halo] " +
+        "canvases (the band, painted by the driver — style them, do not try to draw them), and " +
+        "[data-voice-beam-core] (the epicentre wash). " +
+        "The driver writes per-instance custom properties on the root every frame, all suffixed -{id}: " +
+        "--vb-level (the shaped voice level, 0-1), --vb-glow (presence), --vb-h / --vb-w (the beam's " +
+        "height and spread), --vb-x0..--vb-x6 and --vb-l0..--vb-l6 (each lobe's offset along the flow and " +
+        "its amplitude), --vb-bh / --vb-bendA (the bend's extra height at the centre and its strength), " +
+        "--vb-cx / --vb-cy / --vb-mw (where the beam sits and how narrow its range is while processing), " +
+        "--vb-hue (the hue drift) and --vb-clip-below / --vb-clip-above (the polygons either side of the " +
+        "band line). Read them with var(--vb-level-{id}) and the glow keeps following the voice; ignore " +
+        "them and it goes static, which is almost never what the user meant. Keep the layers " +
+        "pointer-events: none, inside the root and behind the content (z-index 1-4; the mock sits at 5), " +
+        "and keep to plain CSS: no url(), @import or vendor hacks. Blur and large filters on a layer that " +
+        "covers the whole box are what make this effect expensive on a phone — prefer gradients and " +
+        "transforms.",
+    },
+  },
+  relevant(params) {
+    const keys = [
+      "core",
+      "type", "colorVariant", "sensitivity", "threshold", "attack", "release",
+      "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
+      "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
+      "coreLight", "coreSize", "softness", "strength", "brightness", "saturation",
+      "strokeOpacity", "innerOpacity", "bloomOpacity", "radius", "staticColors", "paused",
+    ];
+    // The resting shimmer's breath is invisible when nothing rests.
+    if (Number(params.idle) > 0) keys.push("breathe");
+    // The hue only drifts when the palette is not held still.
+    if (!params.staticColors) keys.push("hueRange", "hueDuration", "hueShift");
+    // The travelling beam exists only while processing.
+    if (params.processing) {
+      keys.push("processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow");
+    }
+    return keys;
+  },
+};
+
 export const SPECS: Record<string, LibrarySpec> = {
   beam: BEAM_SPEC,
   orb: ORB_SPEC,
   gooey: GOOEY_SPEC,
   metal: METAL_SPEC,
   image: IMAGE_SPEC,
+  voice: VOICE_SPEC,
 };
 
 /* JSON Schema for the set_params tool.

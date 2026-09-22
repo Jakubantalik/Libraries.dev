@@ -11,6 +11,7 @@ import {
   type VoiceGeometry,
 } from "voice-glow";
 import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
+import { checkCss, tpl, type CoreWiring } from "./core";
 import { ChatInputMock } from "../examples/beam-mocks";
 import { RecordingPill, PhoneScreen, DEMO_TRANSCRIPT, demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 
@@ -37,6 +38,17 @@ const TYPE_OPTIONS = [
   { value: "pill", label: "Pill" },
   { value: "mobile", label: "Mobile" },
 ] as const;
+
+/* The stylesheet the library generated for the live instance, with the
+   instance id swapped for the {id} placeholder the `css` prop substitutes —
+   what the agent starts from when it rebuilds the effect. */
+function stockVoiceCss(): string {
+  const root = Array.from(document.querySelectorAll<HTMLElement>(".pg-stage [data-voice-beam]")).find((e) => e.offsetWidth > 0);
+  const id = root?.getAttribute("data-voice-beam");
+  const style = root?.previousElementSibling;
+  if (!root || !id || !style || style.tagName !== "STYLE") return "";
+  return (style.textContent ?? "").split(id).join("{id}");
+}
 
 const RADIUS_BY_TYPE: Record<VoiceBeamType, number> = { default: 20, pill: 106, mobile: 66 };
 /* The phone mock is 402×874 shown at 0.68 in a 273×357 crop; the beam wraps the crop. */
@@ -84,6 +96,52 @@ const SOURCE_OPTIONS = [
   { value: "manual", label: "Manual" },
   { value: "processing", label: "Processing" },
 ] as const;
+
+/* Agent tab: the knob's own label for each prop the agent may set, so the
+   applied-change line reads like the panel. The keys match VOICE_SPEC in
+   services/studio-agent/spec.ts. */
+const VOICE_PARAM_LABELS: Record<string, string> = {
+  type: "Type",
+  colorVariant: "Color theme",
+  sensitivity: "Sensitivity",
+  threshold: "Threshold",
+  attack: "Attack",
+  release: "Release",
+  reach: "Reach",
+  spread: "Spread",
+  scale: "Scale",
+  glowSize: "Size",
+  idle: "Idle presence",
+  breathe: "Breathe",
+  flow: "Flow",
+  bend: "Bend",
+  bandStrength: "Band strength",
+  bandWidth: "Band width",
+  bandPosition: "Band height",
+  bandAberration: "Aberration",
+  distortion: "Distortion",
+  coreLight: "Epicentre",
+  coreSize: "Core",
+  softness: "Softness",
+  strength: "Strength",
+  brightness: "Brightness",
+  saturation: "Saturation",
+  strokeOpacity: "Stroke",
+  innerOpacity: "Inner glow",
+  bloomOpacity: "Bloom",
+  radius: "Corner radius",
+  staticColors: "Static colors",
+  hueRange: "Hue range",
+  hueDuration: "Hue speed",
+  hueShift: "Hue shift",
+  processingDuration: "Pass duration",
+  processingLevel: "Held level",
+  processingTravel: "Travel",
+  processingCurve: "Turn ease",
+  cornerFollow: "Corner follow",
+  paused: "Paused",
+  core: "Core",
+};
 
 const COLOR_OPTIONS = [
   { value: "colorful", label: "Colorful" },
@@ -133,6 +191,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. */
   const [paused, setPaused] = useState(false);
+  /* A stylesheet the agent rewrote, appended after the generated one; "" is
+     the stock effect. */
+  const [core, setCore] = useState("");
+  const coreWiring: CoreWiring = { lang: "css", source: stockVoiceCss, check: checkCss };
   /* Bumped whenever the "simulation" (re)starts, to replay the phone's
      prompt and restart the pill's counter. */
   const [runKey, setRunKey] = useState(0);
@@ -155,6 +217,92 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     setSaturation(resolveVoiceStyle(next, theme).saturation ?? (theme === "light" ? 1.6 : 1.2));
     setRunKey((k) => k + 1);
   }, [theme]);
+
+  /* Agent tab. The geometry lives in one object and the rest in their own
+     pieces of state; the agent sees one flat set of props, the same names
+     the snippet uses. `processing` is context rather than a knob — it tells
+     the spec whether the travelling-beam props are live. */
+  const agentParams: Record<string, unknown> = {
+    type,
+    colorVariant,
+    sensitivity,
+    threshold,
+    attack,
+    release,
+    reach: geo.reach,
+    spread: geo.spread,
+    scale: geo.scale,
+    glowSize: geo.glowSize,
+    idle: geo.idle,
+    breathe,
+    flow: geo.flow,
+    bend: geo.bend,
+    bandStrength: geo.bandStrength,
+    bandWidth: geo.bandWidth,
+    bandPosition: geo.bandPosition,
+    bandAberration: geo.bandAberration,
+    distortion: geo.distortion,
+    coreLight: geo.coreLight,
+    coreSize: geo.coreSize,
+    softness: geo.softness,
+    strength,
+    brightness,
+    saturation,
+    strokeOpacity,
+    innerOpacity,
+    bloomOpacity,
+    radius,
+    staticColors,
+    hueRange,
+    hueDuration,
+    hueShift,
+    processingDuration: geo.processingDuration,
+    processingLevel: geo.processingLevel,
+    processingTravel: geo.processingTravel,
+    processingCurve: geo.processingCurve,
+    cornerFollow: geo.cornerFollow,
+    paused,
+    core,
+    processing: source === "processing",
+  };
+
+  const applyAgentParams = useCallback((patch: Record<string, unknown>) => {
+    /* Type first: it re-tunes the geometry, so anything else in the same
+       patch must land on top of the new defaults. */
+    if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
+    if (typeof patch.colorVariant === "string") setColorVariant(patch.colorVariant as VoiceBeamColorVariant);
+    if (typeof patch.sensitivity === "number") setSensitivity(patch.sensitivity);
+    if (typeof patch.threshold === "number") setThreshold(patch.threshold);
+    if (typeof patch.attack === "number") setAttack(patch.attack);
+    if (typeof patch.release === "number") setRelease(patch.release);
+    if (typeof patch.breathe === "number") setBreathe(patch.breathe);
+    if (typeof patch.strength === "number") setStrength(patch.strength);
+    if (typeof patch.brightness === "number") setBrightness(patch.brightness);
+    if (typeof patch.saturation === "number") setSaturation(patch.saturation);
+    if (typeof patch.strokeOpacity === "number") setStrokeOpacity(patch.strokeOpacity);
+    if (typeof patch.innerOpacity === "number") setInnerOpacity(patch.innerOpacity);
+    if (typeof patch.bloomOpacity === "number") setBloomOpacity(patch.bloomOpacity);
+    if (typeof patch.radius === "number") setRadius(patch.radius);
+    if (typeof patch.staticColors === "boolean") setStaticColors(patch.staticColors);
+    if (typeof patch.hueRange === "number") setHueRange(patch.hueRange);
+    if (typeof patch.hueDuration === "number") setHueDuration(patch.hueDuration);
+    if (typeof patch.hueShift === "number") setHueShift(patch.hueShift);
+    if (typeof patch.paused === "boolean") setPaused(patch.paused);
+    if (typeof patch.core === "string") setCore(patch.core);
+    /* Everything else is geometry, under the same key it carries here. */
+    const GEO_KEYS = [
+      "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
+      "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
+      "coreLight", "coreSize", "softness",
+      "processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow",
+    ] as const;
+    const geoPatch: Partial<VoiceGeometry> = {};
+    for (const key of GEO_KEYS) {
+      const v = patch[key];
+      if (typeof v === "number") geoPatch[key] = v;
+    }
+    if (Object.keys(geoPatch).length) setGeo((g) => ({ ...g, ...geoPatch }));
+  }, [handleTypeChange]);
 
   useEffect(() => {
     setBrightness(resolveVoiceStyle(type, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
@@ -275,6 +423,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   if (hueDuration !== (theme === "light" ? 8.5 : 12)) props.push(`hueDuration={${num(hueDuration)}}`);
   if (staticColors) props.push("staticColors");
   if (paused) props.push("paused");
+  if (core) props.push("css={voiceCss}");
   if (hasVars) {
     const varLines = Object.entries(varStyle)
       .map(([k, v]) => `'${k}': ${typeof v === "string" ? `'${v}'` : v}`)
@@ -283,7 +432,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   }
   const attrs = "\n  " + props.join("\n  ") + "\n";
   const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';";
-  const decl = isMic ? "const mic = useMicrophone();\n\n" : "";
+  const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "");
   const snippet = `${imports}\n\n${decl}<VoiceBeam${attrs}>\n  ${CHILD_BY_TYPE[type]}\n</VoiceBeam>${isMic ? "\n\n<button onClick={mic.start}>Listen</button>" : ""}`;
 
   /* Choosing Microphone starts listening right away — the click is the
@@ -296,7 +445,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   return (
     <div className="pg">
-      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet }} />
+      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet }} agent={{ libraryId: "voice", params: agentParams, labels: VOICE_PARAM_LABELS, onApply: applyAgentParams }} />
       <div className="pg-stage">
         {visible && (
           <VoiceBeam
@@ -315,6 +464,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             colors={lobeColors}
             bandColors={bandCols}
             theme={theme}
+            css={core || undefined}
             paused={paused}
             strength={strength / 100}
             {...geo}
@@ -384,7 +534,16 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         </button>
       </div>
 
-      <ControlsPanel library="Voice">
+      <ControlsPanel
+        library="Voice"
+        agent={{
+          libraryId: "voice",
+          params: agentParams,
+          labels: VOICE_PARAM_LABELS,
+          onApply: applyAgentParams,
+          core: coreWiring,
+        }}
+      >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
         {isMic && MIC_STATUS[mic.state] && (
