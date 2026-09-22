@@ -5,6 +5,7 @@ import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { BotRoster, BotChat } from "./examples/avatars-mocks";
 import { PgTabs } from "./examples/PgTabs";
+import { DemoDevPanel } from "./examples/DemoDevPanel";
 
 /* Bot avatars detail page — one React island rendering the examples, the
    playground (stage + controls) and the live-updating snippet below it.
@@ -124,6 +125,9 @@ function AvatarsPlayground() {
       </div>
 
       <CodeBlock code={snippet} label="Copy playground code" className="pg-snippet" />
+
+      {/* localhost / ?dev only: strip the cards and the labels for a shot */}
+      <DemoDevPanel />
     </>
   );
 }

@@ -1361,6 +1361,16 @@ html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
 }
 .ex-avatars-name { font-size: 12px; line-height: 14px; color: #767676; }
 
+/* Dev switches (localhost / ?dev): shoot the demos without their card or
+   their labels. Nothing here reaches the shipped page — the attributes
+   are only ever written by the dev panel. */
+html[data-demo-fill="off"] .detail-examples .example-row-full,
+html[data-demo-fill="off"] .detail-examples .example-cell {
+  background: transparent;
+  box-shadow: none;
+}
+html[data-demo-names="off"] .ex-avatars-name { display: none; }
+
 .example-row-split--avatars { grid-template-columns: 1fr 1fr; }
 .example-row-split--avatars .example-cell { padding: 32px 28px; }
 @media (max-width: 740px) {
