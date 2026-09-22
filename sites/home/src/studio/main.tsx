@@ -426,14 +426,15 @@ function TopBar({ email, pro }: { email: string | null; pro: boolean }) {
   );
 }
 
+/* The rail follows the site's order: Bot avatars sits after Voice. */
 const LIBS = [
   { id: "beam", label: "Border beam", icon: "/assets/icons/figma-beam.png" },
   { id: "orb", label: "Thinking orbs", icon: "/assets/icons/figma-orbs.svg" },
-  { id: "avatars", label: "Bot avatars", icon: "/assets/icons/figma-avatars.svg" },
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
+  { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
+  { id: "avatars", label: "Bot avatars", icon: "/assets/icons/figma-avatars.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
-  { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
   ...Object.values(
     import.meta.glob<{ bench: PrivateBench }>("./private/*.tsx", { eager: true })
   ).map((m) => m.bench),
