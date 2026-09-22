@@ -29,7 +29,7 @@ const DEFAULTS = {
   interval: 2600, // ms between steps
   duration: 600, // ms a step takes
   ease: EASINGS[2].value as string, // ease in out
-  blur: 21, // px of motion blur at full speed
+  blur: 31, // px of motion blur at full speed
   size: 110, // px, the idle bots
   centre: 185, // % of that for the middle one
   gap: 170, // % of the size, slot to slot
@@ -77,6 +77,8 @@ interface Bot {
 function Carousel() {
   const [cfg, setCfg] = useState<Cfg>(DEFAULTS);
   const [paused, setPaused] = useState(false);
+  /* the panel folds down to its head, so the stage can be watched whole */
+  const [open, setOpen] = useState(true);
 
   /* the order the bots walk in — the strip below the stage sets it — and
      the ring drawn from it */
@@ -265,10 +267,20 @@ function Carousel() {
         ))}
       </div>
 
-      <div className="bcdev" role="group" aria-label="Carousel controls">
+      <div className="bcdev" role="group" aria-label="Carousel controls" data-open={open ? "true" : "false"}>
         <div className="bcdev-head">
           <span>Carousel</span>
           <div className="bcdev-actions">
+            <button
+              type="button"
+              className="bcdev-btn bcdev-fold"
+              aria-expanded={open}
+              aria-label={open ? "Minimise the controls" : "Show the controls"}
+              title={open ? "Minimise" : "Show"}
+              onClick={() => setOpen((v) => !v)}
+            >
+              {open ? "–" : "+"}
+            </button>
             <button
               type="button"
               className="bcdev-btn"

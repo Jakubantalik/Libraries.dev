@@ -129,6 +129,11 @@
       background: rgba(255,255,255,.06); color: #fbfbfb; font: 12px/26px inherit;
     }
     .bcdev-hint { color: #8a8a8a; font-size: 11px; line-height: 15px; }
+    /* Folded: the head stays, everything under it goes, so the panel is a
+       pill in the corner while the stage is watched. */
+    .bcdev-fold { width: 26px; padding: 0; font-size: 14px; line-height: 24px; }
+    .bcdev[data-open="false"] > :not(.bcdev-head) { display: none; }
+    .bcdev[data-open="false"] { width: auto; }
   </style>
 </head>
 <body>
