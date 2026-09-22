@@ -241,6 +241,63 @@
   .t-shimmer::before { animation: none !important; }
 }
 
+/* transitions.dev — texts reveal (18), one line per word: an answer that
+   arrives word by word, each rising out of a blur a beat after the last,
+   which is what a streaming reply looks like. */
+:root {
+  --stagger-dur: 500ms;
+  --stagger-distance: 12px;
+  --stagger-stagger: 40ms;
+  --stagger-blur: 3px;
+  --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.t-stagger-line {
+  display: block;
+  opacity: 0;
+  transform: translateY(var(--stagger-distance));
+  filter: blur(var(--stagger-blur));
+  transition:
+    opacity   var(--stagger-dur) var(--stagger-ease),
+    transform var(--stagger-dur) var(--stagger-ease),
+    filter    var(--stagger-dur) var(--stagger-ease);
+  will-change: transform, opacity, filter;
+}
+.t-stagger-line--2 { transition-delay: var(--stagger-stagger); }
+
+.t-stagger.is-shown .t-stagger-line {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+.t-stagger.is-hiding .t-stagger-line {
+  opacity: 0;
+  transform: translateY(0);
+  filter: blur(0);
+  transition:
+    opacity 200ms ease,
+    transform 0s linear,
+    filter 0s linear;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stagger-line { transition: none !important; }
+}
+
+/* Words, not stacked lines: they sit on the text's own line and travel a
+   shorter distance on a quicker beat, so a long answer still finishes in
+   about a second. */
+.mock-thread-reply.t-stagger {
+  --stagger-distance: 6px;
+  --stagger-dur: 420ms;
+  --stagger-stagger: 26ms;
+  --stagger-blur: 2px;
+}
+/* inline-block, because a transform does not apply to a plain inline
+   box; the spaces between the words stay outside the boxes, so the line
+   still breaks where it should. */
+.mock-thread-reply .t-stagger-line { display: inline-block; }
+
 .mock-working-list {
   display: flex;
   flex-direction: column;

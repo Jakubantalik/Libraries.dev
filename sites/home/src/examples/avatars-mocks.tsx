@@ -41,6 +41,33 @@ export function BotRoster() {
   );
 }
 
+/* The answer, word by word: transitions.dev's texts reveal (18) with one
+   line per word, so the reply arrives the way a streamed one does — each
+   word rising out of its blur a beat behind the last. */
+const REPLY =
+  "They only sign annual, Dana approves, and pricing is the same thread as last quarter. I answered without waiting on you.";
+
+function StreamedReply() {
+  const [shown, setShown] = useState(false);
+  /* a frame after mounting, so the words start from their offset rather
+     than arriving already in place */
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return (
+    <p className={`mock-thread-reply t-stagger${shown ? " is-shown" : ""}`}>
+      {REPLY.split(" ").map((word, i) => (
+        <span key={i}>
+          <span className="t-stagger-line" style={{ transitionDelay: `calc(var(--stagger-stagger) * ${i})` }}>
+            {word}
+          </span>{" "}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 /* The thread: a question, then the bot works on it and settles with the
    answer — on a loop, so the transitions between states can be watched. */
 const CYCLE: Array<{ state: BotAvatarState; ms: number }> = [
@@ -66,9 +93,7 @@ export function BotChat({ paused = false }: { paused?: boolean }) {
           {thinking ? (
             <span className="t-shimmer" data-text="Thinking…">Thinking…</span>
           ) : (
-            <p className="mock-thread-reply">
-              They only sign annual, Dana approves, and pricing is the same thread as last quarter. I answered without waiting on you.
-            </p>
+            <StreamedReply />
           )}
         </div>
       </div>
