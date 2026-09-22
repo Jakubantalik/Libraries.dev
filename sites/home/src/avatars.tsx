@@ -4,6 +4,7 @@ import { BotAvatar, botAvatarPresets, botAvatarTypes, type BotAvatarState, type 
 import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { BotRoster, BotChat } from "./examples/avatars-mocks";
+import { PgTabs } from "./examples/PgTabs";
 
 /* Bot avatars detail page — one React island rendering the examples, the
    playground (stage + controls) and the live-updating snippet below it.
@@ -35,80 +36,6 @@ const TYPE_OPTIONS = [...TEAM, ...botAvatarTypes.filter((t) => !TEAM.includes(t)
   label: botAvatarPresets[t].label,
 }));
 
-function PgTabs<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-  open,
-}: {
-  label: string;
-  /* `locked` is the note the option shows instead of being selectable. */
-  options: ReadonlyArray<{ value: T; label: string; locked?: string }>;
-  value: T;
-  onChange: (v: T) => void;
-  /* How many of the options this plan opens. The rest are shown behind
-     the same fade the Studio teaser uses, as a taste of what is there. */
-  open?: number;
-}) {
-  const live = open === undefined ? options : options.slice(0, open);
-  const behind = open === undefined ? [] : options.slice(open);
-  return (
-    <div className="pg-field" role="radiogroup" aria-label={label}>
-      <span className="pg-label">{label}</span>
-      <div className="pg-tabs">
-        {live.map((o) => (
-          /* A locked option keeps the button — `disabled` would take it out
-             of the tab order and, in some browsers, stop the hover that
-             reveals the note — and turns the click away instead. */
-          <button
-            key={o.value}
-            type="button"
-            className="pg-tab"
-            role="radio"
-            aria-checked={value === o.value}
-            aria-disabled={o.locked ? true : undefined}
-            aria-describedby={o.locked ? `${label}-${o.value}-note` : undefined}
-            data-active={value === o.value ? "true" : undefined}
-            data-locked={o.locked ? "true" : undefined}
-            onClick={() => {
-              if (o.locked) return;
-              onChange(o.value);
-            }}
-          >
-            {/* The dimming rides the label, not the button: on the button
-                it would take the note down with it. */}
-            <span className="pg-tab-label">{o.label}</span>
-            {o.locked ? (
-              <span className="pg-lock-note" id={`${label}-${o.value}-note`} role="tooltip">
-                {o.locked}
-              </span>
-            ) : null}
-          </button>
-        ))}
-      </div>
-      {behind.length > 0 ? (
-        /* Presentation only: static markup, out of the tab order and out
-           of the reader, dimmed under a fade to the panel. */
-        <div className="pg-tabs-behind" aria-hidden="true">
-          {/* the clip lives on the inner layer so the note, which sits on
-              the block itself, isn't cut off with the last row */}
-          <div className="pg-tabs-behind-clip">
-            <div className="pg-tabs">
-              {behind.map((o) => (
-                <div className="pg-tab" key={o.value}>
-                  <span className="pg-tab-label">{o.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="pg-tabs-scrim" />
-          <span className="pg-lock-note pg-lock-note--block">Available with Pro plan</span>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function Team() {
   const [hot, setHot] = useState<BotAvatarType | null>(null);

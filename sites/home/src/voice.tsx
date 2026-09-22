@@ -5,6 +5,7 @@ import { ChatInputMock } from "./examples/beam-mocks";
 import { PhoneScreen, DEMO_TRANSCRIPT, demoLevel, demoGetter, MIC_STATUS } from "./examples/voice-mocks";
 import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser } from "./examples/StudioTeaser";
+import { PgTabs } from "./examples/PgTabs";
 
 /* Voice detail page — one React island rendering the examples, the
    playground grid (stage + controls) and the live-updating snippet below
@@ -25,6 +26,8 @@ const TYPE_OPTIONS = [
   { value: "default", label: "Chat input" },
   { value: "mobile", label: "Mobile" },
 ] as const;
+/* The recording pill is a Studio host; it shows here, locked. */
+const TYPES_LOCKED = ["Recording pill"];
 
 /* Demo plays a synthetic speech envelope so the effect can be judged
    without a microphone; Microphone asks for the real thing through the
@@ -35,6 +38,7 @@ const SOURCE_OPTIONS = [
   { value: "mic", label: "Microphone" },
   { value: "processing", label: "Processing" },
 ] as const;
+const SOURCES_LOCKED = ["Manual drive"];
 
 const CHILD_BY_TYPE: Record<PageType, string> = {
   default: "<ChatInput />",
@@ -70,38 +74,6 @@ function useFitScale(): [React.RefObject<HTMLDivElement>, number] {
   return [ref, scale];
 }
 
-function PgTabs<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: ReadonlyArray<{ value: T; label: string }>;
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="pg-field" role="radiogroup" aria-label={label}>
-      <span className="pg-label">{label}</span>
-      <div className="pg-tabs">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            className="pg-tab"
-            role="radio"
-            aria-checked={value === o.value}
-            data-active={value === o.value ? "true" : undefined}
-            onClick={() => onChange(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /* The phone's live transcript, paced by the level the driver reports
    every frame (the Studio bench's pacing): a word every ~320 ms while the
@@ -283,8 +255,8 @@ function VoicePlayground() {
         </div>
 
         <div className="pg-controls" id="playground-controls">
-          <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
-          <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
+          <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} extra={TYPES_LOCKED} />
+          <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} extra={SOURCES_LOCKED} />
           {isMic && MIC_STATUS[mic.state] && (
             <div className="pg-field">
               <span className="pg-note" role="status">{MIC_STATUS[mic.state]}</span>
