@@ -177,7 +177,7 @@ Twelve multipliers (defaults are the tuned geometry) reshape the resting glow; t
 
 ## Looks
 
-Two ways to draw the same voice. `look="glow"` (the default) is coloured light: soft gradients, a band of light along the glow's ceiling and a blurred bloom. `look="dots"` is a gently domed sheet of dots seen in perspective along the bottom of the element, in the dotted language of [thinking-orbs](https://libraries.dev/orbs) — white on the dark theme, near-black ink on the light one.
+Three ways to draw the same voice. `look="glow"` (the default) is coloured light: soft gradients, a band of light along the glow's ceiling and a blurred bloom. `look="dots"` is a gently domed sheet of dots seen in perspective along the bottom of the element, in the dotted language of [thinking-orbs](https://libraries.dev/orbs) — white on the dark theme, near-black ink on the light one. `look="lines"` is the same sheet drawn as lines.
 
 ```tsx
 <VoiceBeam look="dots" stream={mic.stream}>
@@ -186,18 +186,46 @@ Two ways to draw the same voice. `look="glow"` (the default) is coloured light: 
 
 <VoiceBeam
   look="dots"
-  dotSize={1.2}   // bolder dots
-  dotGap={0.85}   // a denser, finer sheet
-  texture={0.8}   // more ripple carried by the flow
-  gravity={1.6}   // drops like sand
+  dotSize={1.2}      // bolder dots
+  dotGap={0.85}      // a denser, finer sheet
+  dotShape="square"  // a pixel grid
+  texture={0.8}      // more ripple carried by the flow
+  gravity={1.6}      // drops like sand
+>
+  <ChatInput />
+</VoiceBeam>
+
+<VoiceBeam
+  look="lines"
+  linePattern="grid" // rows across, columns into the depth, or both
+  lineWidth={1.4}
+  lineGap={1.2}
 >
   <ChatInput />
 </VoiceBeam>
 ```
 
-The voice raises hills out of the sheet, one per lobe, so the spectrum reads as a landscape that drifts with the flow; while processing they gather into one mound that sweeps across it. Every dot carries its own height and velocity: it is lifted toward the voice on a fast spring, keeps its momentum when the voice stops, then falls under gravity and lands on the sheet with a small bounce — so a falling hill comes down as a shower of dots rather than easing away. Depth is carried by dot size and ink, and lifted dots catch the light. `texture` sets a slow ripple across the sheet; `gravity` how hard the dots fall.
+The voice raises hills out of the sheet, one per lobe, so the spectrum reads as a landscape that drifts with the flow; while processing they gather into one mound that sweeps across it. Every point of the sheet carries its own height and velocity: it is lifted toward the voice on a fast spring, keeps its momentum when the voice stops, then falls under gravity and lands with a small bounce — so a falling hill comes down as a shower of dots, or as lines settling back like strings, rather than easing away. Depth is carried by size and ink, and lifted parts catch the light. `texture` sets a slow ripple across the sheet; `gravity` how hard it falls.
 
-The colour props (`colorVariant`, `colors`, `bandColors`, `saturation`, the hue drift), the band and `css` do not apply to dots. It is painted on one 2D canvas with plain fills — no filters — so every engine draws the same picture, and it costs less than the glow.
+Lines run across the sheet (`linePattern="rows"`, a ridgeline landscape), into the depth (`"columns"`, converging with the perspective) or both (`"grid"`). The sheet is solid: a raised ridge hides the lines behind it. `seeThrough` draws it as a wireframe instead.
+
+The sheet's own shape is yours to set, for dots and lines alike:
+
+```tsx
+<VoiceBeam
+  look="lines"
+  surfaceHeight={1.4}        // stands taller, covering more of the host
+  surfaceCurve={0.5}         // a flatter arc (0 is flat, below 0 cups upward)
+  surfaceTail={0.8}          // the ends curl up into the corners (below 0 they drop away)
+  surfaceTailPosition={0.5}  // from halfway out to either side
+  surfaceTailCurve={3}       // as a hook that whips up at the edge
+  surfaceFade={0.1}          // runs nearly all the way to the sides before dissolving
+>
+  <VoiceScreen />
+</VoiceBeam>
+```
+
+The colour props (`colorVariant`, `colors`, `bandColors`, `saturation`, the hue drift), the band and `css` do not apply to dots or lines. They are painted on one 2D canvas with plain paths — no filters — so every engine draws the same picture, and they cost less than the glow.
 
 ## Color variants
 
@@ -270,11 +298,22 @@ Slots you leave out keep the variant's colour for the theme. Light mode ships a 
 | `processingTravel` | `number` | `1.55` | How far the beam travels to each side, × half the lobe ring (2 for `pill`, 1 for `mobile`) |
 | `processingCurve` | `number` | `2.1` | How the sweep eases into each turn: 1 constant speed with sharp turns, 2 smooth, higher dwells at the ends |
 | `colorVariant` | `'colorful' \| 'mono' \| 'ocean' \| 'sunset' \| 'forest' \| 'candy' \| 'ice' \| 'gold'` | `'colorful'` | Color palette |
-| `look` | `'glow' \| 'dots'` | `'glow'` | Coloured light, or a dotted surface the voice raises and gravity brings down (see [Looks](#looks)) |
+| `look` | `'glow' \| 'dots' \| 'lines'` | `'glow'` | Coloured light, or a surface of dots or lines the voice raises and gravity brings down (see [Looks](#looks)) |
 | `dotSize` | `number` | `1` | Dot radius multiplier (`look="dots"`) |
 | `dotGap` | `number` | `1` | Dot spacing multiplier; below 1 is denser (`look="dots"`) |
-| `texture` | `number` | `0.6` | Ripple across the sheet, 0–1 (`look="dots"`) |
-| `gravity` | `number` | `1` | How hard the dots fall when the voice drops (`look="dots"`) |
+| `dotShape` | `'round' \| 'square'` | `'round'` | The dots' shape (`look="dots"`) |
+| `lineWidth` | `number` | `1` | Line width multiplier (`look="lines"`) |
+| `lineGap` | `number` | `1` | Line spacing multiplier, rows and columns alike (`look="lines"`) |
+| `linePattern` | `'rows' \| 'columns' \| 'grid'` | `'rows'` | Lines across the sheet, into the depth, or both (`look="lines"`) |
+| `seeThrough` | `boolean` | `false` | Show the lines behind a raised ridge instead of hiding them (`look="lines"`) |
+| `texture` | `number` | `0.6` | Ripple across the sheet, 0–1 (dots, lines) |
+| `gravity` | `number` | `1` | How hard the sheet falls when the voice drops (dots, lines) |
+| `surfaceHeight` | `number` | `1` | How tall the sheet stands, as a multiplier (dots, lines) |
+| `surfaceCurve` | `number` | `1` | How far the sheet arcs; 0 flat, below 0 cups upward (dots, lines) |
+| `surfaceTail` | `number` | `0` | How far the ends rise toward the corners, × the sheet's height; below 0 they drop (dots, lines) |
+| `surfaceTailPosition` | `number` | `0.6` | Where the tails start, as a share of the way from the centre to the side (dots, lines) |
+| `surfaceTailCurve` | `number` | `2.4` | The tails' exponent: 1 a ramp, higher a hook (dots, lines) |
+| `surfaceFade` | `number` | `0.2` | How far in from the sides the sheet dissolves, share of its half-width (dots, lines) |
 | `colors` | `string[]` | — | Up to 7 lobe colours overriding the palette |
 | `bandColors` | `{ core?, above?, mid?, below? }` | — | The band's ridge and fringe colours |
 | `theme` | `'dark' \| 'light' \| 'auto'` | `'dark'` | Background adaptation |
@@ -303,8 +342,8 @@ Slots you leave out keep the variant's colour for the theme. Light mode ships a 
 | `bandAberration` | `number` | `0.89` | Chromatic split of the band's fringes, 0–1 |
 | `distortion` (off on WebKit / Safari for large hosts, see notes) | `number` | `0.62` | Horizontal warp of the glow under the band, 0–1; 0 removes the filter |
 | `distortionDetail` | `number` | `2.3` | Grain of the distortion noise |
-| `glowWidth` / `glowHeight` | `number` | `0.65` / `1.25` | Width / height of every lobe, all layers |
-| `lobeSpacing` | `number` | `0.85` | Distance between lobes, and the flow ring |
+| `glowWidth` / `glowHeight` | `number` | `0.65` / `1.25` | Width / height of every lobe, all layers (`glowWidth` is the hills' width on dots and lines) |
+| `lobeSpacing` | `number` | `0.85` | Distance between lobes, and the flow ring (between the hills on dots and lines) |
 | `rangeWidth` / `rangeHeight` | `number` | `0.75` / `1` | The visible ellipse the glow is masked to |
 | `softness` | `number` | `1.07` | Lobe edge fade: below 1 crisper, above 1 softer |
 | `coreSize` | `number` | `1` | The white hot spot at the centre |
@@ -337,10 +376,10 @@ The generated stylesheet reads a few custom properties with a fallback of 1, so 
 
 The driver also writes `--vb-level-{id}` (the smoothed 0–1 level) on the wrapper each frame, for anything else in the host that wants to follow the voice.
 
-The wrapper carries `data-voice-type` and `data-voice-look`, so the host can style its own controls per type or look — frosting the buttons that sit over the dot surface, say:
+The wrapper carries `data-voice-type` and `data-voice-look`, so the host can style its own controls per type or look — frosting the buttons that sit over the dots or lines, say:
 
 ```css
-[data-voice-look="dots"] .my-button {
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .my-button {
   backdrop-filter: blur(10px);
 }
 ```
@@ -368,7 +407,7 @@ The hook is a convenience; any `MediaStream` with an audio track works, includin
 - **`[data-voice-beam-warp="inner"]` / `[data-voice-beam-warp="bloom"]`** — with `distortion` on, mirrors of the two soft layers clipped to below the band line, carrying the displacement filter
 - **`[data-voice-beam-band]`** — a canvas the driver draws the band on, above everything
 
-With `look="dots"` none of these exist: a single canvas, **`[data-voice-beam-dots]`**, carries the dot surface. The driver hands it the lobes each frame instead of writing custom properties, and lifts it on a fast envelope so gravity, not a release curve, brings it down.
+With `look="dots"` or `look="lines"` none of these exist: a single canvas, **`[data-voice-beam-surface]`**, carries the surface. The driver hands it the lobes each frame instead of writing custom properties, and lifts it on a fast envelope so gravity, not a release curve, brings it down.
 
 Every lobe's size and position multiplies a per-instance custom property. A single shared `requestAnimationFrame` loop (capped at ~60 fps) reads the audio each frame — RMS level plus low / mid / high band energy from one `AnalyserNode` per instance — shapes it (gain, gate, soft saturation), follows it with an attack/release envelope, advances the flow, folds in the idle breathing and the hue drift, and writes the properties. The browser does the painting; the loop is a few arithmetic ops per instance.
 
@@ -384,7 +423,7 @@ voice-glow/
 │   ├── types.ts           # TypeScript type definitions
 │   ├── styles.ts          # CSS generation engine, palettes and lobe geometry
 │   ├── voiceDriver.ts     # Shared rAF loop: analysis, envelope, custom properties
-│   ├── dots.ts            # The dot surface for look="dots": grid, hills, physics, painter
+│   ├── surface.ts         # The surface for look="dots" and "lines": grid, shape, hills, physics, painters
 │   ├── audio.ts           # Shared AudioContext and analyser leases
 │   └── useMicrophone.ts   # getUserMedia hook
 ├── dist/                  # Built output (ESM + CJS + types)

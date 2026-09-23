@@ -1316,30 +1316,31 @@ html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
 
 /* The phone is scaled with a transform, which makes it its own stacking
    context: the effect's layers paint over all of it, buttons included. For
-   the dots, the screen's fill moves onto the host and the phone's content
-   rises above the dot canvas (z 4), so the dots run between the screen and
-   its controls — and the frosted buttons below have them to blur. */
-[data-voice-look="dots"].mock-phone-host {
+   the surface looks (dots, lines), the screen's fill moves onto the host and
+   the phone's content rises above the surface canvas (z 4), so the surface
+   runs between the screen and its controls — and the frosted buttons below
+   have it to blur. */
+:is([data-voice-look="dots"], [data-voice-look="lines"]).mock-phone-host {
   background: #111111;
 }
-html[data-theme="light"] [data-voice-look="dots"].mock-phone-host {
+html[data-theme="light"] :is([data-voice-look="dots"], [data-voice-look="lines"]).mock-phone-host {
   background: #fbfbfc;
 }
-[data-voice-look="dots"] .mock-phone-scale {
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-scale {
   z-index: 5;
 }
 /* html-prefixed to outrank the light theme's own fill. */
-html [data-voice-look="dots"] .mock-phone {
+html :is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone {
   background: transparent;
 }
 
-/* Over the dot surface the controls are frosted: a backdrop blur (10px
-   unless the host sets --mock-btn-blur — the Studio's Button blur knob)
-   softens the dots passing behind them. The glow look keeps them clear. */
-[data-voice-look="dots"] .mock-vchat-btn,
-[data-voice-look="dots"] .mock-pill-stop,
-[data-voice-look="dots"] .mock-phone-agent,
-[data-voice-look="dots"] .mock-phone-btn {
+/* Over the surface the controls are frosted: a backdrop blur (10px unless
+   the host sets --mock-btn-blur — the Studio's Button blur knob) softens the
+   dots or lines passing behind them. The glow look keeps them clear. */
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-vchat-btn,
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-pill-stop,
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-agent,
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-btn {
   -webkit-backdrop-filter: blur(var(--mock-btn-blur, 10px));
   backdrop-filter: blur(var(--mock-btn-blur, 10px));
 }

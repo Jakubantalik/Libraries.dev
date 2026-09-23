@@ -15,6 +15,8 @@ export type {
   VoiceBeamType,
   VoiceBeamTheme,
   VoiceBeamLook,
+  VoiceBeamDotShape,
+  VoiceBeamLinePattern,
   VoiceBeamColorVariant,
   VoiceBeamLevel,
   VoiceThemeColors,

@@ -330,16 +330,17 @@ export interface GenerateVoiceStylesOptions {
   distortion?: boolean;
   /** The effect's overall scale, for the px values not carried by a multiplier. */
   scale?: number;
-  /** 'dots' drops the glow's layers for the dot field's one canvas. */
-  look?: 'glow' | 'dots';
+  /** 'dots' and 'lines' drop the glow's layers for the surface's one canvas. */
+  look?: 'glow' | 'dots' | 'lines';
 }
 
 /**
- * The stylesheet for `look="dots"`: the root, the fade in and out, and the
- * one canvas the driver paints the dot field on. None of the glow's layers
- * exist, so nothing here reads the per-frame custom properties but the fade.
+ * The stylesheet for the surface looks (`dots`, `lines`): the root, the fade
+ * in and out, and the one canvas the driver paints the surface on. None of
+ * the glow's layers exist, so nothing here reads the per-frame custom
+ * properties but the fade.
  */
-function generateDotsCSS(id: string, borderRadius: number): string {
+function generateSurfaceCSS(id: string, borderRadius: number): string {
   return `
 @property --vb-opacity-${id} {
   syntax: "<number>";
@@ -363,8 +364,8 @@ function generateDotsCSS(id: string, borderRadius: number): string {
   animation: vb-fade-out-${id} 0.5s ease forwards;
 }
 
-/* The dot field — under the host's content (z 5), above its surface. */
-[data-voice-beam="${id}"] [data-voice-beam-dots] {
+/* The surface — under the host's content (z 5), above its background. */
+[data-voice-beam="${id}"] [data-voice-beam-surface] {
   display: none;
   position: absolute;
   inset: 0;
@@ -375,8 +376,8 @@ function generateDotsCSS(id: string, borderRadius: number): string {
   z-index: 4;
 }
 
-[data-voice-beam="${id}"][data-active] [data-voice-beam-dots],
-[data-voice-beam="${id}"][data-fading] [data-voice-beam-dots] {
+[data-voice-beam="${id}"][data-active] [data-voice-beam-surface],
+[data-voice-beam="${id}"][data-fading] [data-voice-beam-surface] {
   display: block;
   opacity: calc(var(--vb-opacity-${id}, 1) * var(--voice-strength, 1));
 }
@@ -413,7 +414,7 @@ function generateDotsCSS(id: string, borderRadius: number): string {
  * range is — the processing travel) and `--vb-hue` (drift).
  */
 export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): string {
-  if (options.look === 'dots') return generateDotsCSS(options.id, options.borderRadius);
+  if (options.look === 'dots' || options.look === 'lines') return generateSurfaceCSS(options.id, options.borderRadius);
   const {
     id,
     borderRadius,

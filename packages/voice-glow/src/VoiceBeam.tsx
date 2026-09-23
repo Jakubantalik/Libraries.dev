@@ -110,8 +110,19 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       look = 'glow',
       dotSize = 1,
       dotGap = 1,
+      dotShape = 'round',
+      lineWidth = 1,
+      lineGap = 1,
+      linePattern = 'rows',
+      seeThrough = false,
       texture = 0.6,
       gravity = 1,
+      surfaceHeight = 1,
+      surfaceCurve = 1,
+      surfaceTail = 0,
+      surfaceTailPosition = 0.6,
+      surfaceTailCurve = 2.4,
+      surfaceFade = 0.2,
       scale: scaleProp,
       stream = null,
       level = 0,
@@ -268,9 +279,10 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       ro.observe(el);
       return () => ro.disconnect();
     }, []);
-    const isDots = look === 'dots';
-    // The WebKit gate is about the SVG warp's cost; the dot field's warp is a few multiplies.
-    const distortion = !isDots && IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
+    // Dots and lines are one surface, painted on a canvas instead of the glow's layers.
+    const isSurface = look === 'dots' || look === 'lines';
+    // The WebKit gate is about the SVG warp's cost; the surface has no warp.
+    const distortion = !isSurface && IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
 
     // Auto-detect child border radius when no explicit value is provided
     useEffect(() => {
@@ -464,8 +476,19 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         look,
         dotSize: Math.max(0.1, dotSize),
         dotGap: Math.max(0.3, dotGap),
+        dotShape: dotShape === 'square' ? 'square' : 'round',
+        lineWidth: Math.max(0.05, lineWidth),
+        lineGap: Math.max(0.3, lineGap),
+        linePattern: linePattern === 'columns' || linePattern === 'grid' ? linePattern : 'rows',
+        seeThrough,
         texture: Math.max(0, Math.min(1, texture)),
         gravity: Math.max(0.05, gravity),
+        surfaceHeight: Math.max(0.1, surfaceHeight),
+        surfaceCurve: Math.max(-3, Math.min(5, surfaceCurve)),
+        surfaceTail: Math.max(-2, Math.min(3, surfaceTail)),
+        surfaceTailPosition: Math.max(0, Math.min(0.98, surfaceTailPosition)),
+        surfaceTailCurve: Math.max(0.5, surfaceTailCurve),
+        surfaceFade: Math.max(0, Math.min(1, surfaceFade)),
         layers: {
           glowWidth,
           glowHeight,
@@ -532,8 +555,19 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         look,
         dotSize,
         dotGap,
+        dotShape,
+        lineWidth,
+        lineGap,
+        linePattern,
+        seeThrough,
         texture,
         gravity,
+        surfaceHeight,
+        surfaceCurve,
+        surfaceTail,
+        surfaceTailPosition,
+        surfaceTailCurve,
+        surfaceFade,
         glowWidth,
         glowHeight,
         innerScale,
@@ -608,9 +642,9 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           onAnimationEnd={handleAnimationEnd}
         >
           {children}
-          {isDots && <canvas data-voice-beam-dots aria-hidden="true" />}
-          {!isDots && <div data-voice-beam-bloom />}
-          {!isDots && distortion > 0 && (
+          {isSurface && <canvas data-voice-beam-surface aria-hidden="true" />}
+          {!isSurface && <div data-voice-beam-bloom />}
+          {!isSurface && distortion > 0 && (
             <>
               {/* Mirrors of the inner light and bloom, clipped to below the
                   band line and carrying the displacement filter. */}
@@ -618,17 +652,17 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
               <div data-voice-beam-warp="bloom" />
             </>
           )}
-          {!isDots && !CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
-          {!isDots && <canvas data-voice-beam-band aria-hidden="true" />}
+          {!isSurface && !CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
+          {!isSurface && <canvas data-voice-beam-band aria-hidden="true" />}
           {/* After the band canvases, so the wash sits over the band's halo
               under the line (it is clipped to below the line, so the ridge
               itself stays) while the host's own content stays above it. */}
-          {!isDots && coreLight > 0 && (
+          {!isSurface && coreLight > 0 && (
             <div data-voice-beam-core>
               <div />
             </div>
           )}
-          {!isDots && distortion > 0 && (
+          {!isSurface && distortion > 0 && (
             /* The distortion filter: drifting fractal noise, its green
                channel pinned to 0.5 so only x displaces, driven per frame by
                the driver (scale and offset), which also narrows the region
