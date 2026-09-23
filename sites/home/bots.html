@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- First-paint guard. Firefox has painted a frame before the stylesheets
+       applied on cached navigations (brand mark at full width, skip link in
+       view, menus open). These few rules make that frame harmless; site.css
+       overrides every one of them once it lands. -->
+  <style>
+    .skip-link { position: absolute; left: -9999px; }
+    .brand-mark svg, .footer-brand-logo svg { width: 22px; height: 14px; }
+    .mobile-menu, .mobile-menu-backdrop, .tl-menu, .t-dropdown { display: none; }
+  </style>
+  <!-- Paint gate. Firefox has painted before the external stylesheets applied
+       on navigation, so the body stays invisible on the site's ground until
+       every local sheet has loaded (script below); a 1.5s timeout reveals it
+       regardless, so a failed sheet can never leave the page blank. -->
+  <style>
+    html { background: #121212; }
+    html:not(.css-ready) body { visibility: hidden; }
+  </style>
+  <meta name="color-scheme" content="dark" />
+
+  <title>Bot avatars: bot-avatars playground | Libraries.dev</title>
+  <meta
+    name="description"
+    content="Animated bot avatars for AI agents: eighteen glossy 3D shapes with living faces that turn, hop and flip, in three states: idle, working and sleeping. Try them live and install bot-avatars from npm."
+  />
+  <meta
+    name="keywords"
+    content="react, avatars, bot, agent, ai, animated face, mascot, svg, border beam, thinking orb, gooey, liquid metal, image loader, UI libraries"
+  />
+  <meta name="author" content="Libraries.dev" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="googlebot" content="index, follow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#121212" />
+  <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
+  <meta name="application-name" content="Libraries.dev" />
+
+  <link rel="canonical" href="https://libraries.dev/bots.html" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/bots.html" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/bots.html" />
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/favicon.svg" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Libraries.dev" />
+  <meta property="og:url" content="https://libraries.dev/bots.html" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Bot avatars: bot-avatars playground | Libraries.dev" />
+  <meta property="og:description" content="Animated bot avatars for AI agents: eighteen glossy 3D shapes with living faces that turn, hop and flip, in three states: idle, working and sleeping. Try them live and install bot-avatars from npm." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta name="twitter:title" content="Bot avatars: bot-avatars playground | Libraries.dev" />
+  <meta name="twitter:description" content="Animated bot avatars for AI agents: eighteen glossy 3D shapes with living faces that turn, hop and flip, in three states: idle, working and sleeping. Try them live and install bot-avatars from npm." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="preload"
+    as="font"
+    type="font/woff2"
+    href="/assets/fonts/Saans-Medium.woff2"
+    crossorigin
+  />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/playground.css" />
+  <link rel="stylesheet" href="/assets/examples.css" />
+  <script>
+    (function () {
+      var h = document.documentElement;
+      var links = [].slice.call(document.querySelectorAll('link[rel="stylesheet"][href^="/assets/"]'));
+      var reveal = function () { h.classList.add("css-ready"); };
+      if (!links.length) return reveal();
+      var pending = links.length;
+      var done = function () { if (--pending <= 0) reveal(); };
+      links.forEach(function (l) {
+        if (l.sheet) return done();
+        l.addEventListener("load", done);
+        l.addEventListener("error", done);
+      });
+      setTimeout(reveal, 1500);
+    })();
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* Copy-button icon crossfade, as beam and gooey do it. The older
+       display:none swap lost to playground.css's `.code-block .code-copy svg
+       { display: block }` once these buttons moved onto the Studio's stage
+       card, and both icons showed at once; opacity has nothing to fight. */
+    .code-copy svg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+    }
+    .code-copy .icon-check { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
+    .code-copy[data-copied="true"] .icon-copy { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
+    .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+    /* The stage holds one avatar at up to 96px; a little taller than the
+       stock stage so the hop has room and the pose sits off the Play
+       button. */
+    #playground .pg-stage { min-height: 300px; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#playground">Skip to content</a>
+  <main id="main" class="app">
+    <header class="site-nav">
+      <div class="site-nav-inner">
+        <div class="site-nav-left">
+          <a class="brand" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <nav class="site-nav-menu" aria-label="Primary">
+            <a class="nav-pill nav-pill--active" href="/beam.html">Libraries</a>
+            <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
+          </nav>
+        </div>
+        <div class="site-nav-right">
+          <a class="nav-get-pro" href="/pro.html"><span class="nav-get-pro-label"><span class="nav-get-pro-word">Get </span>Pro</span></a>
+          <a
+            class="icon-btn-pill"
+            id="gh-stars-btn"
+            href="https://github.com/Jakubantalik/Libraries.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub repository — star count"
+            data-loading="true"
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="pill-label" id="gh-stars-count">—</span>
+          </a>
+          <div class="pm-anchor" id="more-anchor">
+            <button type="button" class="icon-btn" id="more-btn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 8C6.66667 7.26362 7.26362 6.66667 8 6.66667C8.73638 6.66667 9.33333 7.26362 9.33333 8C9.33333 8.73638 8.73638 9.33333 8 9.33333C7.26362 9.33333 6.66667 8.73638 6.66667 8Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 3.33333C6.66667 2.59695 7.26362 2 8 2C8.73638 2 9.33333 2.59695 9.33333 3.33333C9.33333 4.06971 8.73638 4.66667 8 4.66667C7.26362 4.66667 6.66667 4.06971 6.66667 3.33333Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 12.6667C6.66667 11.9303 7.26362 11.3333 8 11.3333C8.73638 11.3333 9.33333 11.9303 9.33333 12.6667C9.33333 13.403 8.73638 14 8 14C7.26362 14 6.66667 13.403 6.66667 12.6667Z" fill="currentColor"/>
+              </svg>
+            </button>
+            <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn nav-burger"
+            id="nav-burger"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="nav-burger-box" aria-hidden="true">
+              <span class="nav-burger-line nav-burger-line--top"></span>
+              <span class="nav-burger-line nav-burger-line--bottom"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+        <ul class="mobile-menu-list">
+          <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+        </ul>
+        <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
+      </nav>
+    </header>
+
+    <div class="docs" id="docs">
+      <aside class="docs-sidebar">
+        <div class="docs-group docs-group--links">
+          <div class="docs-group-label">Getting started</div>
+          <a class="docs-link docs-link--muted" href="/introduction.html">Introduction</a>
+          <a class="docs-link docs-link--muted" href="/accessibility.html">Accessibility</a>
+        </div>
+        <div class="docs-group">
+          <div class="docs-group-label">Libraries</div>
+          <nav class="docs-list" aria-label="Libraries">
+            <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
+            <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
+            <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link is-active" href="/bots.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
+            <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
+            <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="docs-main">
+        <div class="detail-topbar">
+          <a class="detail-arrow" href="/voice.html" aria-label="Previous library — Voice">
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.667 8H3.333M6.667 4.667 3.333 8l3.334 3.333" /></svg>
+          </a>
+          <a class="detail-arrow" href="/metal.html" aria-label="Next library — Metal">
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.333 8h9.334M9.333 4.667 12.667 8l-3.334 3.333" /></svg>
+          </a>
+        </div>
+
+        <header class="detail-head">
+          <div class="detail-titles">
+            <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_avatars)"><path d="M26.53 22.38A25 25 0 0 1 73.47 22.38A7 7 0 0 0 77.62 26.53A25 25 0 0 1 77.62 73.47A7 7 0 0 0 73.47 77.62A25 25 0 0 1 26.53 77.62A7 7 0 0 0 22.38 73.47A25 25 0 0 1 22.38 26.53A7 7 0 0 0 26.53 22.38Z" fill="url(#paint0_linear_avatars)" fill-opacity="0.7"/></g><g fill="#2A2A2A" fill-opacity="0.9"><rect x="35.3" y="43.2" width="7.4" height="13.6" rx="3.7"/><rect x="57.3" y="43.2" width="7.4" height="13.6" rx="3.7"/></g><defs><filter id="filter0_ii_avatars" x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="2.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_avatars"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="1.34"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_avatars" result="effect2_innerShadow_avatars"/></filter><linearGradient id="paint0_linear_avatars" x1="22" y1="102" x2="82" y2="-18" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
+            <h1 class="detail-title">Bot avatars</h1>
+            <p class="detail-sub">Animated avatars for your AI agents: eighteen glossy 3D shapes with living faces that look around, jump, hop while they work and doze off between tasks. Drawn on a plain canvas, so no WebGL and no dependencies.</p>
+          </div>
+
+          <div class="detail-head-row">
+            <div class="detail-tabs proto-modal-tabs" data-detail-tabs role="tablist" aria-label="View">
+              <span class="proto-modal-tabs-indicator" aria-hidden="true"></span>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="preview" aria-selected="true">Preview</button>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install &amp; Usage</button>
+            </div>
+
+            <div class="detail-head-actions">
+              <a class="t-pro-btn detail-studio" href="/studio/app.html#avatars">
+                <img src="/assets/icons/magic-wand.svg" alt="" width="16" height="16" decoding="async" />
+                <span class="detail-studio-sparks" aria-hidden="true"><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 900ms; --sdelay: 0ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 1000ms; --sdelay: 120ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 950ms; --sdelay: 240ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 1000ms; --sdelay: 360ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 920ms; --sdelay: 480ms;"></i><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 950ms; --sdelay: 520ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 900ms; --sdelay: 650ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 1000ms; --sdelay: 760ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 930ms; --sdelay: 180ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 980ms; --sdelay: 300ms;"></i></span>
+                <span class="t-pro-btn-label">Tune in Studio</span>
+              </a>
+
+              <button type="button" class="detail-prompt" data-prompt-target="#agent-prompt" aria-label="Copy agent prompt">
+                <span class="detail-prompt-ico" aria-hidden="true">
+                  <!-- copy-03, exported from Figma 1419:38547. -->
+                  <svg class="icon-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5.6 5.6V3.92C5.6 3.24794 5.6 2.91191 5.73079 2.65521C5.84584 2.42942 6.02942 2.24584 6.25521 2.13079C6.51191 2 6.84794 2 7.52 2H12.08C12.7521 2 13.0881 2 13.3448 2.13079C13.5706 2.24584 13.7542 2.42942 13.8692 2.65521C14 2.91191 14 3.24794 14 3.92V8.48C14 9.15206 14 9.4881 13.8692 9.74479C13.7542 9.97058 13.5706 10.1542 13.3448 10.2692C13.0881 10.4 12.7521 10.4 12.08 10.4H10.4M3.92 14H8.48C9.15206 14 9.48809 14 9.74479 13.8692C9.97058 13.7542 10.1542 13.5706 10.2692 13.3448C10.4 13.0881 10.4 12.7521 10.4 12.08V7.52C10.4 6.84794 10.4 6.51191 10.2692 6.25521C10.1542 6.02942 9.97058 5.84584 9.74479 5.73079C9.48809 5.6 9.15206 5.6 8.48 5.6H3.92C3.24794 5.6 2.91191 5.6 2.65521 5.73079C2.42942 5.84584 2.24584 6.02942 2.13079 6.25521C2 6.51191 2 6.84794 2 7.52V12.08C2 12.7521 2 13.0881 2.13079 13.3448C2.24584 13.5706 2.42942 13.7542 2.65521 13.8692C2.91191 14 3.24794 14 3.92 14Z" />
+                  </svg>
+                  <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+                </span>
+                <span class="detail-prompt-label">Copy prompt</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="detail-body">
+          <div class="detail-panel" id="playground" data-detail-panel="preview">
+            <div id="playground-root"></div>
+          </div>
+
+          <!-- One tab, both blocks: the install line and the usage snippet read
+               together under their own titles, as the Studio's Install & Usage does. -->
+          <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
+          <div class="st-stage-panel">
+
+          <!-- Ports, as the Studio's Install & Usage has them: the row swaps
+               the whole install+usage pair rather than a single block. -->
+          <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="react" aria-selected="true" data-active="true">React</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="rn" aria-selected="false">React Native</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="false">Swift UI</button>
+          </div>
+
+          <div class="detail-platform" data-platform="react">
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre id="install-code">npm install bot-avatars</pre>
+              <button type="button" class="code-copy" data-copy-target="#install-code" aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre id="usage-code">import { BotAvatar } from 'bot-avatars';
+
+&lt;BotAvatar type="clover" state={busy ? 'working' : 'default'} /&gt;</pre>
+              <button type="button" class="code-copy" data-copy-target="#usage-code" aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
+          <div class="detail-platform" data-platform="rn" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>npm install @shopify/react-native-skia react-native-reanimated react-native-worklets</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">bot-avatars-native is not on npm yet — it lives in this repo at packages/bot-avatars/ports/react-native/bot-avatars-native. Expo needs expo run:ios / run:android (native modules).</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import { BotAvatar } from &#x27;bot-avatars-native&#x27;;
+
+&lt;BotAvatar type=&quot;clover&quot; state={busy ? &#x27;working&#x27; : &#x27;default&#x27;} size={64} /&gt;</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
+          <div class="detail-platform" data-platform="swift" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
+.package(path: &quot;packages/bot-avatars/ports/ios/BotAvatarsKit&quot;)</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">iOS 17+. It draws into SwiftUI&#x27;s Canvas, so SwiftPM builds it on its own; BotAvatarStage puts a whole roster on one canvas.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import BotAvatarsKit
+
+BotAvatar(type: .clover, state: busy ? .working : .default)</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
+          </div>
+        </div>
+</div>
+      </div>
+    </div>
+
+    <!-- Agent prompt source for the Copy prompt button. A hidden <pre>
+         rather than a <script>: script content is raw text, so the
+         escaped tags below would reach the clipboard still escaped. -->
+    <pre id="agent-prompt" hidden>
+Add the Bot avatars from Libraries.dev to my React app.
+
+Install:
+npm install bot-avatars
+
+Usage:
+import { BotAvatar } from 'bot-avatars';
+
+&lt;BotAvatar type="clover" state={busy ? 'working' : 'default'} /&gt;
+
+// A roster: each agent gets its own shape
+&lt;BotAvatar type="star" size={36} /&gt;
+&lt;BotAvatar type="flower" face="mouth" state="working" /&gt;
+
+Props:
+- type: "clover" | "flower" | "triangle" | "square" | "blob" | "ghost" | "circle" | "drop" | "star" | "droid" | "mech" | "alien" | "hexagon" | "cat" | "cloud" | "pill" | "pebble" | "puddle" — the body shape, each with its own colour
+- face: "eyes" (default) | "mouth" — the eyes alone, or eyes with a mouth
+- state: "default" | "working" | "sleeping" — looking around with a jump now and then, hopping and spinning with a laugh now and then, head down with shut lids and slow breaths
+- size: px or any CSS length (default 64)
+- color: body colour (defaults to the type's palette colour); brightness: 0.5–1.5, darker or lighter body; saturation: 0.5–1.5, duller or more vivid body; ink: face colour (auto dark or light)
+- speed: multiplier on the animations; paused: freeze; seed: 0–1 offset so a row does not blink in unison
+- shading: "plastic" (default: a per-pixel glossy material — baked pillow form with occluded cusps, hot spot, sheen, Fresnel rim, window reflection) | "crisp" (lit rim with a clean edge) | "smooth" (soft shadow and highlight, no edge) | "flat" (depth only)
+- shadow (default 0.35), highlight (1.3): 0–2 intensities; light: degrees clockwise from the top (265, from the left); depth: 0.2–2 body thickness (0.65); rim: 0–2 Fresnel strength in plastic, rim width in crisp (0.5); spread: 0.4–2.5 highlight width in plastic, reach of the soft shading in smooth (1.55)
+- turn: 0–2, how far the head turns from side to side while idle (1 as the library has it, 0 faces forward)
+- interactive: true by default — the eyes and head follow a pointer nearby and a click makes the avatar hop and turn round; false turns it off
+- jumpHeight (body units, default 26), jumpTime (seconds in the air, 0.68), jumpStretch (stretch in the air, 0–2, 1), jumpSquash (squash on the ground, 0–2, 1.15), jumpSquashTime (seconds the landing squash takes, 0.37), jumpSquashEase (sharp | pulse | soft | bouncy), jumpGroundTime (seconds held at the deepest squash on the ground, 0.11; 0 for none), jumpGroundEase (how the weight settles through that hold: sharp | pulse | soft | bouncy, pulse), jumpRiseTime (seconds from the deepest squash back to shape, 0.33), jumpRiseEase (how it rises: sharp | pulse | soft | bouncy, pulse), jumpClickSquashTime (seconds a click's crouch and landing squash take, 0.24), jumpSpin (whole turns, 1), jumpLean (degrees, 6), jumpEvery (seconds between idle jumps, 8; 0 for none), jumpLand (seconds before or after touch-down that the landing squash begins, 0 = at contact): the idle flip and a click's jump
+- theme: "auto" (default, from an ancestor data-theme / dark / light class, then prefers-color-scheme) | "dark" | "light" — the surface the avatar sits on
+- whirl (0–2 strength, off by default, 1 turns it on), whirlSize (0.6–1.6), whirlWidth (0.4–2), whirlLength (0.4–1.6), whirlTilt (0.5–1.8): the motion ring round a spin, a translucent tube of the body's own plastic
+
+Bot avatars draws each avatar on a 2D canvas as a lit, rounded extrusion
+of a vector shape — a simple 3D head that turns, hops and flips — with a
+small rig that cross-animates every state change. No WebGL, zero runtime
+dependencies, React 18 or newer. It respects prefers-reduced-motion
+(still pose, no motion), pauses offscreen, and carries role="img" with a
+per-state label.
+Docs: https://libraries.dev/bots.html
+    </pre>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="footer-brand-logo" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <p class="footer-tagline">High-crafted UI libraries for AI agents</p>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <p class="footer-col-title">Libraries</p>
+            <a href="/beam.html">Border beam</a>
+            <a href="/orbs.html">Thinking orbs</a>
+            <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
+            <a href="/metal.html">Metal</a>
+            <a href="/image.html">Image</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Product</p>
+            <a href="/">Home</a>
+            <a href="/studio.html">Studio</a>
+            <a href="/how-to-use.html">How to use</a>
+            <a href="/pro.html">Get Pro</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Legal &amp; Account</p>
+            <a href="/pro.html" id="footer-signin">Sign in</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="mailto:jakubja@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-byline">
+        <p class="footer-credit"><span class="footer-muted">Created by</span><a class="footer-name" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer">Jakub Antalik</a></p>
+        <p class="footer-thanks">Made with help from <a href="https://x.com/a_brinza" target="_blank" rel="noopener noreferrer">Alexandr Brinza</a> (Orbs) and <a href="https://x.com/mpetercak" target="_blank" rel="noopener noreferrer">Martin Petercak</a> (Metal)</p>
+      </div>
+    </footer>
+  </main>
+
+  <script src="/assets/site.js" defer></script>
+  <script src="/assets/pro-client.js" defer></script>
+  <script type="module" src="/src/avatars.tsx"></script>
+  <!-- GoatCounter: privacy-friendly page views, no cookies. -->
+  <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

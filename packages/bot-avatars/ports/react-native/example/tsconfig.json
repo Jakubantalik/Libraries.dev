@@ -1,0 +1,12 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "bot-avatars-native": [
+        "../bot-avatars-native/src"
+      ]
+    },
+    "baseUrl": "."
+  }
+}

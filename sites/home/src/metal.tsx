@@ -4,6 +4,7 @@ import { CodeBlock } from "./examples/CodeCopy";
 import { MetalExamples } from "./examples/metal-examples";
 import { MetalExamplesV2, useMetalCursorSprite } from "./examples/metal-examples-v2";
 import { StudioTeaser } from "./examples/StudioTeaser";
+import { PgTabs } from "./examples/PgTabs";
 import { MetalFx as MetalFxV1, type MetalFxPreset, type MetalFxVariant } from "metal-fx-v1";
 import { MetalFx, MetalText, setCursorLightConfig, useMetalBend, useMetalTextReflection } from "metal-fx";
 
@@ -34,8 +35,15 @@ const V2_TYPES: Array<{ id: V2Type; label: string }> = [
   { id: "circle", label: "Circle button" },
   { id: "text", label: "Text" },
 ];
+const V2_TYPE_OPTIONS = V2_TYPES.map((t) => ({ value: t.id, label: t.label }));
+/* The other two v2 components are the Studio's; they show here, locked. */
+const V2_TYPES_LOCKED = ["Button", "Badge"];
 
 const V1_VARIANTS: MetalFxVariant[] = ["button", "circle"];
+const V1_VARIANT_OPTIONS = V1_VARIANTS.map((v) => ({
+  value: v,
+  label: v.charAt(0).toUpperCase() + v.slice(1),
+}));
 
 function buildSnippetV1(
   variant: MetalFxVariant,
@@ -268,57 +276,24 @@ function MetalPlayground() {
       </div>
 
       <div className="pg-controls">
-        <div className="pg-field" role="radiogroup" aria-label="Version">
-          <span className="pg-label">Version</span>
-          <div className="pg-tabs">
-            {FAMILIES.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="pg-tab"
-                role="radio"
-                aria-checked={family === f.id}
-                data-active={family === f.id}
-                onClick={() => setFamily(f.id)}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PgTabs
+          label="Version"
+          options={FAMILIES.map((f) => ({ value: f.id, label: f.label }))}
+          value={family}
+          onChange={setFamily}
+        />
 
-        <div className="pg-field" role="radiogroup" aria-label="Component type">
-          <span className="pg-label">Type</span>
-          <div className="pg-tabs">
-            {family === "v2"
-              ? V2_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className="pg-tab"
-                    role="radio"
-                    aria-checked={v2Type === t.id}
-                    data-active={v2Type === t.id}
-                    onClick={() => setV2Type(t.id)}
-                  >
-                    {t.label}
-                  </button>
-                ))
-              : V1_VARIANTS.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className="pg-tab"
-                    role="radio"
-                    aria-checked={variant === v}
-                    data-active={variant === v}
-                    onClick={() => setVariant(v)}
-                  >
-                    {v.charAt(0).toUpperCase() + v.slice(1)}
-                  </button>
-                ))}
-          </div>
-        </div>
+        {family === "v2" ? (
+          <PgTabs
+            label="Type"
+            options={V2_TYPE_OPTIONS}
+            value={v2Type}
+            onChange={setV2Type}
+            extra={V2_TYPES_LOCKED}
+          />
+        ) : (
+          <PgTabs label="Type" options={V1_VARIANT_OPTIONS} value={variant} onChange={setVariant} />
+        )}
 
         <div className="pg-field">
           <span className="pg-label">Options</span>

@@ -1,0 +1,6 @@
+# Cloudflare Pages redirects.
+#
+# The Bot avatars page shipped as /avatars.html and moved to /bots.html;
+# anything already linking to the old path lands on the new one.
+/avatars.html  /bots.html  301
+/avatars       /bots.html  301

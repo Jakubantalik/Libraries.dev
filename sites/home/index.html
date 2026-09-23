@@ -458,12 +458,21 @@
       filter: invert(1);
     }
     html[data-theme="light"] .home-customer-logo { filter: none; opacity: 0.6; }
+    /* Five logos on one line, or three and two — never four and a lone
+       one. The break is a zero-height flex line that only exists once the
+       row is too narrow to hold all five. */
+    .home-customers-break { display: none; flex-basis: 100%; height: 0; margin: 0; }
+    @media (max-width: 600px) { .home-customers-break { display: block; } }
     @media (max-width: 640px) {
       /* The hero fills the first screen on phones; no pull-up here, so
          the row starts below the fold. */
       .home-customers { margin: 24px auto 48px; }
       .home-customers-row { gap: 18px 28px; }
       .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.85); }
+    }
+    /* Narrower than this, three logos only fit at a smaller size. */
+    @media (max-width: 380px) {
+      .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.7); }
     }
     .home-section-title {
       text-align: center; font-family: "Saans", var(--font-sans);
@@ -929,6 +938,7 @@
         <img class="home-customer-logo" src="/assets/customers/vercel.svg" alt="Vercel" style="--logo-h: 20px" loading="lazy" decoding="async" />
         <img class="home-customer-logo" src="/assets/customers/google.svg" alt="Google" style="--logo-h: 28px" loading="lazy" decoding="async" />
         <img class="home-customer-logo" src="/assets/customers/sarvam-ai.svg" alt="Sarvam AI" style="--logo-h: 14.5px" loading="lazy" decoding="async" />
+            <span class="home-customers-break" aria-hidden="true"></span>
         <img class="home-customer-logo" src="/assets/customers/gradial.svg" alt="Gradial" style="--logo-h: 21px" loading="lazy" decoding="async" />
         <img class="home-customer-logo" src="/assets/customers/gecko-robotics.svg" alt="Gecko Robotics" style="--logo-h: 24px" loading="lazy" decoding="async" />
       </div>
@@ -963,6 +973,7 @@
         </div>
       </article>
 
+
       <article class="card lib-card" data-lib="gooey">
         <a class="lib-card-hit" href="/gooey.html" aria-label="Gooey playground"></a>
         <div class="card-stage">
@@ -990,6 +1001,21 @@
           </span>
         </div>
       </article>
+
+      <article class="card lib-card" data-lib="avatars">
+        <a class="lib-card-hit" href="/bots.html" aria-label="Bot avatars playground"></a>
+        <div class="card-stage">
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAGAABAAMBAAAAAAAAAAAAAAAAAAECAwb/xAAeEAADAQACAgMAAAAAAAAAAAABAgMABBEhMRJRYf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFxEBAAMAAAAAAAAAAAAAAAAAAAEhYf/aAAwDAQACEQMRAD8A5ozdZrQowRiQGI8HS8qIVDoylh2vY9jWbkVbjrBnJkp7C/umnLvWk3ehLSACHr11k4lsnRkYq6lWHggjojNe1qcizVq3ydj2T95is8zMDMzB/9k=&quot;)"><video class="lib-video" src="/assets/videos/bots-main-card.mp4" poster="/assets/videos/posters/bots-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico"><img src="/assets/icons/figma-avatars.svg" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Bot avatars</span>
+            <span class="lib-desc">Animated faces for your AI agents</span>
+          </span>
+        </div>
+      </article>
+
       <article class="card lib-card" data-lib="metal">
         <a class="lib-card-hit" href="/metal.html" aria-label="Liquid Metal playground"></a>
         <div class="card-stage">
@@ -1210,6 +1236,7 @@
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
             <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
           </div>

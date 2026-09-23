@@ -5,6 +5,7 @@ import { StudioTeaser } from "./examples/StudioTeaser";
 import { ThinkingOrb, type OrbSize, type OrbState } from "thinking-orbs";
 import { MAC_ARROW, isMacPointer } from "./examples/macCursor";
 import { GravityDevPanel } from "./examples/GravityDevPanel";
+import { PgTabs } from "./examples/PgTabs";
 
 /* The tuning panel is a dev tool: localhost, or ?dev anywhere. */
 const SHOW_GRAVITY_DEV =
@@ -45,7 +46,8 @@ const LABEL_OVERRIDES: Partial<Record<OrbState, string>> = {
 
 const cap = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
 
-/* Weaving and shaping live in the Studio, not here. */
+/* Weaving and shaping live in the Studio, not here — the page shows them
+   locked rather than leaving them out. */
 const STATES: OrbState[] = [
   "working",
   "searching",
@@ -55,8 +57,13 @@ const STATES: OrbState[] = [
   "composing",
   "breathing",
 ];
+const STATE_OPTIONS = STATES.map((s) => ({ value: s, label: cap(s) }));
+const STATES_LOCKED = ["Weaving", "Shaping"];
+
 /* Two sizes here; 32px and the speed knob live in the Studio. */
 const SIZES: OrbSize[] = [64, 20];
+const SIZE_OPTIONS = SIZES.map((s) => ({ value: String(s), label: `${s}px` }));
+const SIZES_LOCKED = ["32px"];
 
 
 function buildSnippet(state: OrbState, size: OrbSize, gravity: boolean): string {
@@ -168,43 +175,15 @@ function OrbPlayground() {
       </div>
 
       <div className="pg-controls">
-        <div className="pg-field" role="radiogroup" aria-label="Orb state">
-          <span className="pg-label">State</span>
-          <div className="pg-tabs">
-            {STATES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="pg-tab"
-                role="radio"
-                aria-checked={state === s}
-                data-active={state === s}
-                onClick={() => setState(s)}
-              >
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} extra={STATES_LOCKED} />
 
-        <div className="pg-field" role="radiogroup" aria-label="Orb size">
-          <span className="pg-label">Size</span>
-          <div className="pg-tabs">
-            {SIZES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="pg-tab"
-                role="radio"
-                aria-checked={size === s}
-                data-active={size === s}
-                onClick={() => setSize(s)}
-              >
-                {s}px
-              </button>
-            ))}
-          </div>
-        </div>
+        <PgTabs
+          label="Size"
+          options={SIZE_OPTIONS}
+          value={String(size)}
+          onChange={(v) => setSize(Number(v) as OrbSize)}
+          extra={SIZES_LOCKED}
+        />
 
         <div className="pg-field" role="radiogroup" aria-label="Cursor gravity">
           <span className="pg-label">Cursor gravity</span>

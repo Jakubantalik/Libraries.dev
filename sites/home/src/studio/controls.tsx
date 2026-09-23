@@ -173,38 +173,9 @@ export function PgGroup({ label, children }: { label: string; children: ReactNod
   );
 }
 
-export function PgTabs<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: ReadonlyArray<{ value: T; label: string }>;
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="pg-field" role="radiogroup" aria-label={label}>
-      <span className="pg-label">{label}</span>
-      <div className="pg-tabs">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            className="pg-tab"
-            role="radio"
-            aria-checked={value === o.value}
-            data-active={value === o.value ? "true" : undefined}
-            onClick={() => onChange(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+/* The pill radio tabs live with the detail pages now, so the Studio
+   and the public playgrounds share one component. */
+export { PgTabs } from "../examples/PgTabs";
 
 /** Value slider + input (Figma 1418:38136): the fill grows inside a 32px
     block, the label rides the fill, the value sits at the right. The

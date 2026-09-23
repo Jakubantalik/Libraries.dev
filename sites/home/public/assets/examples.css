@@ -241,6 +241,33 @@
   .t-shimmer::before { animation: none !important; }
 }
 
+/* transitions.dev — Streaming text: each word resolves through opacity
+   and a small blur, one every --stream-gap, so the answer arrives the way
+   a streamed one does. The spans rest visible; the replay wipes them with
+   the transition off, flushes a reflow, then adds .is-in word by word. */
+:root {
+  --stream-gap: 60ms;
+  --stream-fade: 350ms;
+  --stream-blur: 1px;
+  --stream-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t-stream-w {
+  opacity: 0;
+  filter: blur(var(--stream-blur));
+  transition:
+    opacity var(--stream-fade) var(--stream-ease),
+    filter var(--stream-fade) var(--stream-ease);
+}
+.t-stream-w.is-in {
+  opacity: 1;
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stream-w { transition: none !important; filter: none !important; opacity: 1 !important; }
+}
+
 .mock-working-list {
   display: flex;
   flex-direction: column;
@@ -1344,3 +1371,123 @@ html :is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone {
   -webkit-backdrop-filter: blur(var(--mock-btn-blur, 10px));
   backdrop-filter: blur(var(--mock-btn-blur, 10px));
 }
+
+/* ── Bot avatars ── */
+/* The team row: ten seats, wrapping on a narrow card. */
+.example-row-full--team { height: auto; min-height: 280px; padding: 40px 32px; }
+.ex-avatars-team {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px 12px;
+  width: 100%;
+}
+.ex-avatars-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 84px;
+  cursor: default;
+}
+.ex-avatars-name { font-size: 12px; line-height: 14px; color: #767676; }
+
+/* Dev switches (localhost / ?dev): shoot the demos without their card or
+   their labels. Nothing here reaches the shipped page — the attributes
+   are only ever written by the dev panel. */
+html[data-demo-fill="off"] .detail-examples .example-row-full,
+html[data-demo-fill="off"] .detail-examples .example-cell {
+  background: transparent;
+  box-shadow: none;
+}
+html[data-demo-names="off"] .ex-avatars-name { display: none; }
+/* Arrange mode: the seats become draggable, so a shot can put the team
+   wherever it wants. The transform rides on top of the layout. */
+.ex-avatars-team[data-arrange="true"] .ex-avatars-seat {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.ex-avatars-team[data-arrange="true"] .ex-avatars-seat:active { cursor: grabbing; }
+
+.example-row-split--avatars { grid-template-columns: 1fr 1fr; }
+.example-row-split--avatars .example-cell { padding: 32px 28px; }
+@media (max-width: 740px) {
+  .example-row-split--avatars { grid-template-columns: 1fr; }
+}
+
+/* The roster: a compact agent list. */
+.mock-bots {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 16px;
+  background: var(--c-mock-bg);
+  box-shadow: inset 0 0 0 1px var(--c-mock-border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.mock-bots-head {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--c-mock-placeholder);
+  padding: 6px 10px 8px;
+}
+.mock-bots-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.mock-bots-row:hover { background: var(--c-mock-chip-bg); }
+.mock-bots-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mock-bots-name { font-size: 13px; font-weight: 500; line-height: 16px; color: var(--c-mock-text-strong); }
+.mock-bots-status {
+  font-size: 12px;
+  line-height: 15px;
+  /* the site's secondary text, so a status reads as secondary here too */
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The working row is the thinking state: the same grey as every other
+   status, with a bright band sweeping across it. Left to the shimmer's
+   own tokens the base turns half-white and that row reads brighter than
+   its neighbours. */
+.mock-bots-status.t-shimmer {
+  display: inline-block;
+  --shimmer-base: var(--text-muted);
+  --shimmer-highlight: #f5f5f5;
+}
+
+/* The thread: a question and the bot's answer. */
+.mock-thread {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mock-thread-user {
+  align-self: flex-end;
+  max-width: 82%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--c-mock-chip-bg);
+  box-shadow: inset 0 0 0 1px var(--c-mock-border);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--c-mock-text-strong);
+}
+.mock-thread-bot { display: flex; align-items: flex-start; gap: 10px; }
+/* The body is the answer's size at all times: a hidden copy of the reply
+   sets it, and what is actually showing — the shimmer or the streaming
+   text — sits on top. Nothing above it moves when the state changes. */
+.mock-thread-body { position: relative; min-height: 32px; padding-top: 1px; }
+.mock-thread-ghost { visibility: hidden; }
+.mock-thread-live { position: absolute; inset: 1px 0 0; display: flex; align-items: flex-start; }
+.mock-thread-body .t-shimmer { font-size: 13px; line-height: 18px; }
+.mock-thread-reply { margin: 0; font-size: 13px; line-height: 18px; color: var(--c-mock-text); }
