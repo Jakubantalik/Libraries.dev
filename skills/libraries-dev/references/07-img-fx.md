@@ -90,6 +90,42 @@ Tuner to prop mapping: "Type" tabs Organic / Mechanic / Gradient Sweep map to `p
 
 ## Recipes
 
+Loading flag with a known image. Use when: your app has a boolean such as `generating` or `loading`, and the image URL is already known (or arrives before the flag turns off).
+
+```tsx
+import { useEffect, useRef } from 'react';
+import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
+
+function ResultCard({ generating, src }: { generating: boolean; src: string }) {
+  const ref = useRef<ImageGenerationHandle>(null);
+  const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  useEffect(() => {
+    // Generating: fade any shown image back to the shader.
+    // Done: reveal the image and keep it until the next run.
+    if (generating) ref.current?.triggerHide();
+    else ref.current?.triggerReveal({ hold: 'manual' });
+  }, [generating, src]);
+  return (
+    <ImageGeneration
+      ref={ref}
+      images={[src]}
+      paused={reduced && generating}
+      role="img"
+      aria-label={generating ? 'Generating image' : 'Result'}
+      aria-busy={generating}
+    >
+      <div style={{ width: 320, height: 200, borderRadius: 12 }} />
+    </ImageGeneration>
+  );
+}
+```
+
+How the calls behave, so this stays correct:
+
+- `triggerReveal()` and `triggerHide()` do nothing while `paused` is true. Pause only while waiting (`reduced && generating`), never for the whole lifetime, or the image never reveals.
+- `triggerReveal()` does nothing while a reveal, hold or hide is already running, and with an empty `images` list. `triggerHide()` only acts while an image is revealing or shown.
+- Calling them from an effect in the parent is safe on the first render: the component sets itself up in its own effect, which runs before the parent's.
+
 Generated image result. Use when: a text-to-image request is in flight and the URL arrives later.
 
 ```tsx
@@ -157,7 +193,7 @@ Only animate while working. Use when: the card stays mounted after the job ends.
 
 - Both canvases are `aria-hidden="true"`. The wrapper `<div>` has no role. It forwards any HTML attribute, so add `role="img"` and an `aria-label` (for example "Generating image"), or `aria-busy={isGenerating}`, on `<ImageGeneration>` itself.
 - The revealed image is painted into a canvas, not an `<img>`. It has no alt text. If the result matters to screen readers, render a visually hidden description or an `<img>` elsewhere.
-- No `prefers-reduced-motion` handling in the package. Do it yourself: `paused={prefersReducedMotion}` (read `matchMedia('(prefers-reduced-motion: reduce)')`).
+- No `prefers-reduced-motion` handling in the package. Do it yourself with `paused`, but only while waiting: `paused={reduced && generating}`. A paused card ignores `triggerReveal()`, so pausing it for good means the image never appears (see the loading flag recipe).
 - One shared `THREE.WebGLRenderer` and one WebGL context for the whole page. Each card copies its frame into its own 2D canvas.
 - Frame rate is capped at 10 fps. The GL canvas renders at a device-pixel-ratio cap of 1.25; the visible canvas is capped at 2.
 - Cards pause when offscreen (`IntersectionObserver`, 64px margin). When no card is active the animation loop stops completely.
