@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <meta name="color-scheme" content="dark" />
+  <title>Skill demo · Libraries.dev</title>
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/examples.css" />
+  <style>
+    /* The skill page's compare panes embed this page twice: plain
+       (?style=generic) and built with the skill. Same screen, same
+       timing; only the components differ. */
+    html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+    body { font-family: var(--font-sans, Inter, system-ui, sans-serif); }
+    .sx-card {
+      box-sizing: border-box;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 20px 20px;
+      border-radius: 14px;
+      background: #181818;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    .sx-thread { min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+    .sx-user {
+      align-self: flex-end;
+      max-width: 82%;
+      padding: 9px 13px;
+      border-radius: 16px 16px 4px 16px;
+      background: var(--c-mock-chip-bg);
+      box-shadow: inset 0 0 0 1px var(--c-mock-border);
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--c-mock-text-strong);
+    }
+    .sx-bot { display: flex; align-items: flex-start; gap: 10px; }
+    .sx-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .sx-line { min-height: 20px; display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; color: var(--c-mock-text); }
+    .sx-line .t-shimmer { font-size: 13px; line-height: 18px; }
+    .sx-image { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; }
+    .sx-input .mock-vchat { width: 100%; max-width: none; box-sizing: border-box; }
+
+    /* Generic: what an agent writes without the skill. */
+    .sx-avatar-plain {
+      flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: #2a2a2a; color: #9a9a9a; font-size: 11px; font-weight: 500;
+    }
+    .sx-spinner {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2px solid #3a3a3a; border-top-color: #9a9a9a;
+      animation: sx-spin 0.8s linear infinite;
+    }
+    @keyframes sx-spin { to { transform: rotate(360deg); } }
+    .sx-image-plain {
+      display: grid; place-items: center;
+      background: #232323; color: #6a6a6a; font-size: 12px;
+    }
+    .sx-image-plain img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    @media (prefers-reduced-motion: reduce) { .sx-spinner { animation: none; } }
+  </style>
+</head>
+<body>
+  <div id="skill-example-root" style="height: 100%"></div>
+  <script type="module" src="/src/skill-example.tsx"></script>
+</body>
+</html>

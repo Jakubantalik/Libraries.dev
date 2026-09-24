@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- First-paint guard. Firefox has painted a frame before the stylesheets
+       applied on cached navigations (brand mark at full width, skip link in
+       view, menus open). These few rules make that frame harmless; site.css
+       overrides every one of them once it lands. -->
+  <style>
+    .skip-link { position: absolute; left: -9999px; }
+    .brand-mark svg, .footer-brand-logo svg { width: 22px; height: 14px; }
+    .mobile-menu, .mobile-menu-backdrop, .tl-menu, .t-dropdown { display: none; }
+  </style>
+  <!-- Paint gate. Firefox has painted before the external stylesheets applied
+       on navigation, so the body stays invisible on the site's ground until
+       every local sheet has loaded (script below); a 1.5s timeout reveals it
+       regardless, so a failed sheet can never leave the page blank. -->
+  <style>
+    html { background: #121212; }
+    html:not(.css-ready) body { visibility: hidden; }
+  </style>
+  <meta name="color-scheme" content="dark" />
+
+  <title>Agent skill · Libraries.dev</title>
+  <meta name="description" content="The Libraries.dev skill teaches your coding agent all seven libraries, finds where each one fits in your project, and installs it with the right options. Works with Claude Code, Cursor, Codex, Copilot and Gemini CLI." />
+  <meta name="author" content="Libraries.dev" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="googlebot" content="index, follow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#121212" />
+  <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
+  <meta name="application-name" content="Libraries.dev" />
+
+  <link rel="canonical" href="https://libraries.dev/skill.html" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/skill.html" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/skill.html" />
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/favicon.svg" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Libraries.dev" />
+  <meta property="og:url" content="https://libraries.dev/skill.html" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Agent skill · Libraries.dev" />
+  <meta property="og:description" content="Teach your coding agent Border beam, Thinking orbs, Gooey, Voice, Bot avatars, Liquid metal and Image." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta name="twitter:title" content="Agent skill · Libraries.dev" />
+  <meta name="twitter:description" content="Teach your coding agent Border beam, Thinking orbs, Gooey, Voice, Bot avatars, Liquid metal and Image." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="preload"
+    as="font"
+    type="font/woff2"
+    href="/assets/fonts/Saans-Medium.woff2"
+    crossorigin
+  />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/playground.css" />
+  <script>
+    (function () {
+      var h = document.documentElement;
+      var links = [].slice.call(document.querySelectorAll('link[rel="stylesheet"][href^="/assets/"]'));
+      var reveal = function () { h.classList.add("css-ready"); };
+      if (!links.length) return reveal();
+      var pending = links.length;
+      var done = function () { if (--pending <= 0) reveal(); };
+      links.forEach(function (l) {
+        if (l.sheet) return done();
+        l.addEventListener("load", done);
+        l.addEventListener("error", done);
+      });
+      setTimeout(reveal, 1500);
+    })();
+  </script>
+  <style>
+    /* Skill page — the structure of transitions.dev/skill: hero, a
+       with/without comparison, then Installation, Commands and Try it.
+       The compare stage and code rows are the Pro page's skill styles. */
+
+    .skill-page .header { padding-bottom: 24px; }
+    .skill-page .subtitle { max-width: 470px; }
+
+    /* The site's Pro chip (as on the nav's Studio pill), leading a note. */
+    .skill-section-note .nav-pill-pro { margin: 0 6px 0 0; vertical-align: 1px; }
+    /* Body copy and links as the Introduction page (.docs-prose in
+       playground.css): 14/22 in near-white ink, links in the same ink
+       with a 30% underline that goes full on hover, 12px code chips. */
+    .skill-page { --docs-ink: #cdcdcd; --docs-code-bg: rgba(255, 255, 255, 0.06); }
+    html[data-theme="light"] .skill-page { --docs-ink: #3f3f3f; --docs-code-bg: rgba(0, 0, 0, 0.05); }
+    .skill-section-note a {
+      color: var(--docs-ink);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+      transition: text-decoration-color 180ms ease;
+    }
+    .skill-section-note a:hover { text-decoration-color: currentColor; }
+    .skill-section-note strong { color: var(--text); font-weight: 500; }
+    /* 28px from one command's note to the next command's row (the rows
+       gap is 16px, so 12px more). Try it rows have no notes and stay tight. */
+    .skill-command + .skill-command { margin-top: 12px; }
+
+    /* Compare stage — side-by-side on desktop; switch toggle on mobile.
+       Desktop: both panes visible with Figma 450:547 headings above
+       each iframe. Mobile: a compact toggle drives data-active on
+       the stage and cross-fades the two stacked panes. */
+    .skill-compare-stage {
+      display: flex;
+      width: 100%;
+      max-width: 1100px;
+      margin: 32px auto 56px;
+      padding: 0 24px;
+      gap: 24px;
+      flex-direction: row;
+      justify-content: center;
+      align-items: stretch;
+      flex-wrap: wrap;
+      box-sizing: border-box;
+    }
+    /* Legacy tab row (kept for semantics/aria mapping), hidden in UI. */
+    .skill-compare-tabs {
+      display: none;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .skill-compare-tab {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .skill-compare-tab:hover { opacity: 0.9; }
+    .skill-compare-tab[aria-selected="true"] { opacity: 1; }
+    .skill-compare-tab[aria-selected="true"]:hover { opacity: 1; }
+    .skill-compare-tab:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+    /* Mobile-only switch row (replaces old tab pills on phones). */
+    .skill-compare-mobile-toggle {
+      display: none;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+    }
+    .skill-compare-mobile-label {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 22px;
+      color: var(--text-muted);
+      opacity: 0.72;
+      cursor: pointer;
+      transition: opacity 160ms ease, color 160ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .skill-compare-mobile-label[data-active="true"] {
+      opacity: 1;
+      color: var(--text);
+    }
+    .skill-compare-mobile-label:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+    .skill-compare-mobile-switch {
+      position: relative;
+      width: 34px;
+      height: 20px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+      transition: background-color 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .skill-compare-mobile-switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.12),
+        0 1px 4px rgba(0, 0, 0, 0.16);
+      transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .skill-compare-mobile-switch[aria-checked="true"] {
+      background: #35ba00;
+    }
+    .skill-compare-mobile-switch[aria-checked="true"]::after {
+      transform: translateX(14px);
+    }
+    .skill-compare-mobile-switch:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+    }
+    html[data-theme="dark"] .skill-compare-mobile-switch {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    html[data-theme="dark"] .skill-compare-mobile-switch[aria-checked="true"] {
+      background: #35ba00;
+    }
+    html[data-theme="dark"] .skill-compare-mobile-label[data-active="true"] {
+      color: #ededed;
+    }
+    .skill-compare-mobile-label[data-compare-side="on"][data-active="true"] {
+      color: #35ba00;
+    }
+    html[data-theme="dark"] .skill-compare-mobile-label[data-compare-side="on"][data-active="true"] {
+      color: #35ba00;
+    }
+    /* Desktop: panes are direct flex children of the stage. */
+    .skill-compare-panes {
+      display: contents;
+    }
+    .skill-compare-pane {
+      flex: 1 1 360px;
+      min-width: 0;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .skill-compare-pane-heading {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* Figma 450:547 / 459:1516–459:1518 — 20px status badge with
+       outer elevation + inset bezel, red (generic) or green (skill). */
+    .skill-compare-pane-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 20px;
+      flex: 0 0 20px;
+      display: inline-grid;
+      place-items: center;
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.1),
+        0 1px 4px rgba(0, 0, 0, 0.08),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.05),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.09);
+    }
+    .skill-compare-pane-badge--off { background: #f03434; }
+    .skill-compare-pane-badge--on  { background: #35ba00; }
+    .skill-compare-pane-badge svg {
+      display: block;
+      width: 10px;
+      height: 10px;
+    }
+    .skill-compare-pane-label {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 14px;
+      color: #232323;
+      letter-spacing: 0;
+      user-select: none;
+    }
+    html[data-theme="dark"] .skill-compare-pane-label { color: #ededed; }
+    .skill-compare-iframe {
+      display: block;
+      width: 100%;
+      height: 460px;
+      min-height: 460px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    /* Content sections (Installation, Try it). Each section holds
+       one label + a stack of code rows. The code row mirrors the
+       Figma 450:526 style: 40px tall, 10px radius, grey fill, mono
+       label on the left, copy affordance on the right. */
+    .skill-content {
+      width: 100%;
+      max-width: 837px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .skill-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .skill-section-title {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 24px;
+      color: var(--text);
+      margin: 0;
+    }
+    .skill-section-note {
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--docs-ink);
+      margin: 0;
+    }
+    /* Inline code chip inside notes — used to highlight the literal
+       verb when it shows up inside running prose (e.g. the
+       `transitions apply menu-dropdown` example under Commands).
+       Reads as a soft chip rather than raw monospace so it doesn't
+       fight the surrounding description for attention. */
+    .skill-section-note code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 18px;
+      padding: 1px 4px;
+      border-radius: 6px;
+      background: var(--docs-code-bg);
+      box-shadow: none;
+      color: var(--text);
+    }
+    .skill-section-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    /* Commands section: each entry is the literal `transitions …` verb
+       in a copyable code row plus a one-line description underneath.
+       The wrapper keeps the verb and its blurb visually paired so the
+       reader can scan the bold command first and then the rationale,
+       while the section's outer gap is widened so the commands
+       don't look like a tight rhythm of similar rows. */
+    #commands .skill-section-rows,
+    #installation .skill-section-rows { gap: 16px; }
+    .skill-command {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .skill-code-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 4px 8px 4px 14px;
+      border-radius: 10px;
+      background: #f7f7f7;
+      transition: background-color 150ms ease;
+    }
+    html[data-theme="dark"] .skill-code-row {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .skill-code-row code {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 22px;
+      color: #3c3c3c;
+      background: transparent;
+      padding: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    html[data-theme="dark"] .skill-code-row code {
+      color: #d6d6d6;
+    }
+    /* Re-using .card-copy keeps the icon-swap + tooltip behaviour
+       from the main page. Override the resting size + fill so the
+       button reads as ghost-style inside the row. */
+    .skill-code-row .card-copy {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      margin-right: -3px;
+      border-radius: 6px;
+      background: transparent;
+      background-image: none;
+    }
+    html[data-theme="dark"] .skill-code-row .card-copy {
+      background: transparent;
+      background-image: none;
+    }
+    .skill-code-row .card-copy:hover {
+      background-image: none;
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--icon-color);
+    }
+    html[data-theme="dark"] .skill-code-row .card-copy:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .skill-code-row .card-copy:active {
+      background-image: none;
+      background: rgba(0, 0, 0, 0.06);
+    }
+    html[data-theme="dark"] .skill-code-row .card-copy:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ─── Skill page responsive ────────────────────────────────── */
+    @media (max-width: 900px) {
+      .skill-content,
+      .skill-compare-stage { max-width: 100%; }
+    }
+    @media (max-width: 760px) {
+      .skill-compare-stage {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+      }
+      .skill-compare-tabs { display: none; }
+      .skill-compare-mobile-toggle { display: inline-flex; }
+      .skill-compare-panes {
+        display: grid;
+        width: 100%;
+        min-height: 460px;
+      }
+      .skill-compare-pane-heading--desktop { display: none; }
+      .skill-compare-pane {
+        grid-area: 1 / 1;
+        max-width: 100%;
+        width: 100%;
+        transition:
+          opacity 250ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 250ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .skill-compare-stage[data-active="off"] .skill-compare-pane--off,
+      .skill-compare-stage[data-active="on"]  .skill-compare-pane--on {
+        opacity: 1;
+        filter: blur(0);
+        pointer-events: auto;
+        visibility: visible;
+      }
+      .skill-compare-stage[data-active="on"]  .skill-compare-pane--off,
+      .skill-compare-stage[data-active="off"] .skill-compare-pane--on {
+        opacity: 0;
+        filter: blur(3px);
+        pointer-events: none;
+        visibility: hidden;
+      }
+    }
+    @media (max-width: 639px) {
+      .skill-cta-row { flex-wrap: wrap; }
+      .skill-compare-stage { margin-bottom: 32px; padding: 0 16px; }
+      .skill-code-row { padding: 4px 6px 4px 12px; }
+      .skill-code-row code { font-size: 12px; line-height: 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .skill-compare-pane { transition: none !important; }
+    }
+  </style>
+</head>
+<body class="skill-page">
+  <a class="skip-link" href="#installation">Skip to content</a>
+
+  <main id="main" class="app">
+    <header class="site-nav">
+      <div class="site-nav-inner">
+        <div class="site-nav-left">
+          <a class="brand" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <nav class="site-nav-menu" aria-label="Primary">
+            <a class="nav-pill" href="/beam.html">Libraries</a>
+            <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
+          </nav>
+        </div>
+        <div class="site-nav-right">
+          <a class="nav-get-pro" href="/pro.html"><span class="nav-get-pro-label"><span class="nav-get-pro-word">Get </span>Pro</span></a>
+          <a
+            class="icon-btn-pill"
+            id="gh-stars-btn"
+            href="https://github.com/Jakubantalik/Libraries.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub repository star count"
+            data-loading="true"
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="pill-label" id="gh-stars-count">—</span>
+          </a>
+          <div class="pm-anchor" id="more-anchor">
+            <button type="button" class="icon-btn" id="more-btn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 8C6.66667 7.26362 7.26362 6.66667 8 6.66667C8.73638 6.66667 9.33333 7.26362 9.33333 8C9.33333 8.73638 8.73638 9.33333 8 9.33333C7.26362 9.33333 6.66667 8.73638 6.66667 8Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 3.33333C6.66667 2.59695 7.26362 2 8 2C8.73638 2 9.33333 2.59695 9.33333 3.33333C9.33333 4.06971 8.73638 4.66667 8 4.66667C7.26362 4.66667 6.66667 4.06971 6.66667 3.33333Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 12.6667C6.66667 11.9303 7.26362 11.3333 8 11.3333C8.73638 11.3333 9.33333 11.9303 9.33333 12.6667C9.33333 13.403 8.73638 14 8 14C7.26362 14 6.66667 13.403 6.66667 12.6667Z" fill="currentColor"/>
+              </svg>
+            </button>
+            <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn nav-burger"
+            id="nav-burger"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="nav-burger-box" aria-hidden="true">
+              <span class="nav-burger-line nav-burger-line--top"></span>
+              <span class="nav-burger-line nav-burger-line--bottom"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+        <ul class="mobile-menu-list">
+          <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+        </ul>
+        <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
+      </nav>
+    </header>
+
+    <header class="header">
+      <h1 class="title">Libraries.dev Skill</h1>
+      <p class="subtitle">
+        The Libraries.dev skill teaches your AI agent all seven libraries,
+        finds where each one fits in your project and installs it
+        with the right options.
+      </p>
+      <div class="skill-cta-row">
+        <a class="skill-btn skill-btn--primary" href="#installation">Get started</a>
+        <a class="skill-btn skill-btn--secondary" href="https://github.com/Jakubantalik/Libraries.dev/tree/main/skills/libraries-dev" target="_blank" rel="noopener noreferrer">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>View on GitHub</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- ─── Compare: side-by-side desktop, switch on mobile ─────────
+         The same chat turn twice: what an agent writes on its own, and
+         what it writes with the skill (Bot avatars, Thinking orbs, Image
+         and Border beam in the spots the skill suggests). -->
+    <div class="skill-compare-stage" id="skill-compare-stage" data-active="off">
+      <div class="skill-compare-tabs" role="tablist" aria-label="Compare AI output">
+        <button type="button" class="skill-compare-tab" id="skill-compare-tab-off" role="tab" data-compare-tab="off" aria-selected="true" aria-controls="skill-compare-pane-off">
+          <span class="skill-compare-pane-heading">
+            <span class="skill-compare-pane-badge skill-compare-pane-badge--off" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2.25 2.25L7.75 7.75M7.75 2.25L2.25 7.75" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <span class="skill-compare-pane-label">Generic AI output</span>
+          </span>
+        </button>
+        <button type="button" class="skill-compare-tab" id="skill-compare-tab-on" role="tab" data-compare-tab="on" aria-selected="false" aria-controls="skill-compare-pane-on">
+          <span class="skill-compare-pane-heading">
+            <span class="skill-compare-pane-badge skill-compare-pane-badge--on" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.55 2.27a.75.75 0 0 1 0 1.06L4.28 7.6a.75.75 0 0 1-1.06 0L1.45 5.83a.75.75 0 1 1 1.06-1.06l1.24 1.24 3.74-3.74a.75.75 0 0 1 1.06 0Z" fill="#ffffff"/></svg></span>
+            <span class="skill-compare-pane-label">With Libraries.dev Skill</span>
+          </span>
+        </button>
+      </div>
+      <div class="skill-compare-mobile-toggle" role="group" aria-label="Compare AI output">
+        <button type="button" class="skill-compare-mobile-label" data-compare-side="off" data-active="true">Generic AI output</button>
+        <button type="button" class="skill-compare-mobile-switch" id="skill-compare-switch" role="switch" aria-checked="false" aria-label="Use the Libraries.dev skill"></button>
+        <button type="button" class="skill-compare-mobile-label" data-compare-side="on" data-active="false">With Libraries.dev Skill</button>
+      </div>
+      <div class="skill-compare-panes">
+        <div class="skill-compare-pane skill-compare-pane--off" id="skill-compare-pane-off" role="tabpanel" aria-labelledby="skill-compare-tab-off">
+          <div class="skill-compare-pane-heading skill-compare-pane-heading--desktop">
+            <span class="skill-compare-pane-badge skill-compare-pane-badge--off" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2.25 2.25L7.75 7.75M7.75 2.25L2.25 7.75" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <span class="skill-compare-pane-label">Generic AI output</span>
+          </div>
+          <iframe id="skill-compare-iframe-off" class="skill-compare-iframe" src="/skill-example.html?embed=1&amp;style=generic" title="Chat screen built without the Libraries.dev skill" loading="lazy"></iframe>
+        </div>
+        <div class="skill-compare-pane skill-compare-pane--on" id="skill-compare-pane-on" role="tabpanel" aria-labelledby="skill-compare-tab-on" aria-hidden="true">
+          <div class="skill-compare-pane-heading skill-compare-pane-heading--desktop">
+            <span class="skill-compare-pane-badge skill-compare-pane-badge--on" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.55 2.27a.75.75 0 0 1 0 1.06L4.28 7.6a.75.75 0 0 1-1.06 0L1.45 5.83a.75.75 0 1 1 1.06-1.06l1.24 1.24 3.74-3.74a.75.75 0 0 1 1.06 0Z" fill="#ffffff"/></svg></span>
+            <span class="skill-compare-pane-label">With Libraries.dev Skill</span>
+          </div>
+          <iframe id="skill-compare-iframe" class="skill-compare-iframe" src="/skill-example.html?embed=1" title="Chat screen built with the Libraries.dev skill" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <section class="skill-content" aria-label="Skill contents">
+      <div class="skill-section" id="installation">
+        <h2 class="skill-section-title">Installation</h2>
+        <div class="skill-section-rows">
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="install-cmd">npx skills add Jakubantalik/Libraries.dev</code>
+              <button type="button" class="card-copy" aria-label="Copy install command" data-copy-target="#install-cmd">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              Installs the free skill: all seven libraries with the options their detail pages offer, plus commands to find where each one fits. Works with Claude Code, Cursor, GitHub Copilot, Codex, and Gemini CLI.
+            </p>
+          </div>
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="install-cmd-pro">npx libraries-dev skill --pro</code>
+              <button type="button" class="card-copy" aria-label="Copy Pro skill install command" data-copy-target="#install-cmd-pro">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              <span class="nav-pill-pro">Pro</span>Installs the <strong>Pro</strong> skill: every option the Studio exposes, palettes, cursor gravity, and core customization for rebuilding an effect’s geometry or shader. Requires a <a href="/pro.html">Libraries Pro</a> plan; it opens your browser to confirm your account and replaces the free skill. Run it again to update.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="skill-section" id="commands">
+        <h2 class="skill-section-title">Commands</h2>
+        <div class="skill-section-rows">
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="cmd-reveal">libraries reveal</code>
+              <button type="button" class="card-copy" aria-label="Copy libraries reveal command" data-copy-target="#cmd-reveal">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              List the seven libraries with a line on what each is for. “What’s in libraries.dev” routes here too.
+            </p>
+          </div>
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="cmd-review">libraries review</code>
+              <button type="button" class="card-copy" aria-label="Copy libraries review command" data-copy-target="#cmd-review">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              Read your stack and scan the project for spots that fit: waiting states, chat inputs, mic buttons, bot avatars, image placeholders, primary buttons. Returns a per-file list of which library goes where, and why. Read-only; nothing gets edited.
+            </p>
+          </div>
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="cmd-apply">libraries apply</code>
+              <button type="button" class="card-copy" aria-label="Copy libraries apply command" data-copy-target="#cmd-apply">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              Install the best-fit library where you are working: picks it, installs the package with your package manager, places the component with the right options and wires it to real app state. Name one to skip the choice, for example <code>libraries apply thinking-orbs</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="skill-section" id="pro-commands">
+        <h2 class="skill-section-title">Pro commands</h2>
+        <p class="skill-section-note">Included in the Pro skill, <code>npx libraries-dev skill --pro</code>, with a <a href="/pro.html">Libraries Pro</a> plan.</p>
+        <div class="skill-section-rows">
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="cmd-tune">libraries tune</code>
+              <button type="button" class="card-copy" aria-label="Copy libraries tune command" data-copy-target="#cmd-tune">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              Turn a description into exact values: “calmer, slower orb”, “warmer beam”, “tone down the metal”. Changes the fewest options, inside each library’s ranges, for light and dark.
+            </p>
+          </div>
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="cmd-match">libraries match</code>
+              <button type="button" class="card-copy" aria-label="Copy libraries match command" data-copy-target="#cmd-match">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              Fit every library in the project to your design system: reads your CSS variables or Tailwind theme and maps them onto palettes, colours and radii, with the token each value came from.
+            </p>
+          </div>
+          <div class="skill-command">
+            <div class="skill-code-row">
+              <code id="cmd-core">libraries core</code>
+              <button type="button" class="card-copy" aria-label="Copy libraries core command" data-copy-target="#cmd-core">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+            </div>
+            <p class="skill-section-note">
+              Rebuild what an effect is, not just how it looks: a cube instead of a sphere for the orb, a custom shader for Image, a new filter for Gooey. Written to each library’s core contract, the same one the Studio’s agent uses.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="skill-section" id="try-it">
+        <h2 class="skill-section-title">Try it</h2>
+        <div class="skill-section-rows">
+          <div class="skill-code-row">
+            <code id="try-1">Review my project and suggest where libraries.dev effects fit</code>
+            <button type="button" class="card-copy" aria-label="Copy prompt" data-copy-target="#try-1">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+          </div>
+          <div class="skill-code-row">
+            <code id="try-2">Show a thinking orb while the chat reply is streaming</code>
+            <button type="button" class="card-copy" aria-label="Copy prompt" data-copy-target="#try-2">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+          </div>
+          <div class="skill-code-row">
+            <code id="try-3">Add a border beam to the prompt input while it generates</code>
+            <button type="button" class="card-copy" aria-label="Copy prompt" data-copy-target="#try-3">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+          </div>
+          <div class="skill-code-row">
+            <code id="try-4">Give each agent in the sidebar a bot avatar that follows its status</code>
+            <button type="button" class="card-copy" aria-label="Copy prompt" data-copy-target="#try-4">
+              <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="footer-brand-logo" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <p class="footer-tagline">High-crafted UI libraries for AI agents</p>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <p class="footer-col-title">Libraries</p>
+            <a href="/beam.html">Beam</a>
+            <a href="/orbs.html">Orb</a>
+            <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Avatars</a>
+            <a href="/metal.html">Metal</a>
+            <a href="/image.html">Image</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Product</p>
+            <a href="/">Home</a>
+            <a href="/studio.html">Studio</a>
+            <a href="/how-to-use.html">How to use</a>
+            <a href="/pro.html">Get Pro</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Legal &amp; Account</p>
+            <a href="/pro.html" id="footer-signin">Sign in</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="mailto:jakubja@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-byline">
+        <p class="footer-credit"><span class="footer-muted">Created by</span><a class="footer-name" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer">Jakub Antalik</a></p>
+        <p class="footer-thanks">Made with help from <a href="https://x.com/a_brinza" target="_blank" rel="noopener noreferrer">Alexandr Brinza</a> (Orbs) and <a href="https://x.com/mpetercak" target="_blank" rel="noopener noreferrer">Martin Petercak</a> (Metal)</p>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    /* Compare panes: both visible on desktop; on phones a switch picks
+       which one shows (the transitions.dev skill page's wiring). */
+    document.addEventListener("DOMContentLoaded", function () {
+      var stage = document.getElementById("skill-compare-stage");
+      if (!stage) return;
+      var tabs = stage.querySelectorAll(".skill-compare-tab");
+      var sw = document.getElementById("skill-compare-switch");
+      var labels = stage.querySelectorAll(".skill-compare-mobile-label");
+      var mq = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+      var mobile = function () { return mq && mq.matches; };
+      function set(active) {
+        stage.setAttribute("data-active", active);
+        tabs.forEach(function (t) { t.setAttribute("aria-selected", t.getAttribute("data-compare-tab") === active ? "true" : "false"); });
+        if (sw) sw.setAttribute("aria-checked", active === "on" ? "true" : "false");
+        labels.forEach(function (l) { l.setAttribute("data-active", l.getAttribute("data-compare-side") === active ? "true" : "false"); });
+        stage.querySelectorAll(".skill-compare-pane").forEach(function (p) {
+          if (!mobile()) { p.setAttribute("aria-hidden", "false"); return; }
+          var isOn = p.classList.contains("skill-compare-pane--on");
+          p.setAttribute("aria-hidden", (active === "on") === isOn ? "false" : "true");
+        });
+      }
+      tabs.forEach(function (t) { t.addEventListener("click", function () { set(t.getAttribute("data-compare-tab")); }); });
+      labels.forEach(function (l) { l.addEventListener("click", function () { set(l.getAttribute("data-compare-side")); }); });
+      if (sw) sw.addEventListener("click", function () { set(stage.getAttribute("data-active") === "on" ? "off" : "on"); });
+      set("off");
+      if (mq) {
+        var sync = function () { set(stage.getAttribute("data-active") || "off"); };
+        if (mq.addEventListener) mq.addEventListener("change", sync); else if (mq.addListener) mq.addListener(sync);
+      }
+    });
+  </script>
+  <script src="/assets/site.js" defer></script>
+  <script src="/assets/pro-client.js" defer></script>
+  <!-- GoatCounter: privacy-friendly page views, no cookies. -->
+  <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

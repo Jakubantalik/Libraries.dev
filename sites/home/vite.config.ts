@@ -79,6 +79,8 @@ export default mergeConfig(defineConfig({
       input: {
         index: resolve(__dirname, "index.html"),
         "how-to-use": resolve(__dirname, "how-to-use.html"),
+        skill: resolve(__dirname, "skill.html"),
+        "skill-example": resolve(__dirname, "skill-example.html"),
         introduction: resolve(__dirname, "introduction.html"),
         accessibility: resolve(__dirname, "accessibility.html"),
         beam: resolve(__dirname, "beam.html"),
