@@ -16,6 +16,36 @@ export type VoiceBeamType = 'default' | 'pill' | 'mobile';
 export type VoiceBeamTheme = 'dark' | 'light' | 'auto';
 
 /**
+ * How the voice is drawn
+ * - 'glow': coloured light — soft gradients, a band of light along the
+ *   glow's ceiling and a blurred bloom (default)
+ * - 'dots': a gently domed sheet of dots seen in perspective, in the
+ *   dotted language of thinking-orbs. The voice raises hills out of it —
+ *   the spectrum as a landscape, drifting with the flow — and when the
+ *   voice drops the dots fall back under gravity, landing with a small
+ *   bounce. White on the dark theme, near-black ink on the light one; the
+ *   colour props do not apply.
+ * - 'lines': the same sheet drawn as lines — rows across it, columns into
+ *   the depth, or a grid — solid, so a raised ridge hides the lines behind
+ *   it, and falling back as smooth curves.
+ *
+ * Dots and lines share the surface props (`surfaceHeight`, `surfaceCurve`,
+ * the `surfaceTail` set, `surfaceFade`, `texture`, `gravity`).
+ */
+export type VoiceBeamLook = 'glow' | 'dots' | 'lines';
+
+/** A dot's shape, for `look="dots"`. */
+export type VoiceBeamDotShape = 'round' | 'square';
+
+/**
+ * Which way the lines run, for `look="lines"`
+ * - 'rows': across the surface, one line per row — a ridgeline landscape (default)
+ * - 'columns': into the depth, converging with the perspective
+ * - 'grid': both, a wireframe sheet
+ */
+export type VoiceBeamLinePattern = 'rows' | 'columns' | 'grid';
+
+/**
  * Color variant for the beam — the same eight palettes as border-beam
  * - 'colorful': Full spectrum, Siri-like (default)
  * - 'mono': Monochromatic grayscale
@@ -77,6 +107,119 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    * @default 'default'
    */
   type?: VoiceBeamType;
+
+  /**
+   * How the voice is drawn: coloured light, or a surface of dots or lines
+   * that the voice raises and gravity brings down.
+   * @default 'glow'
+   */
+  look?: VoiceBeamLook;
+
+  /**
+   * Dot radius, as a multiplier on the tuned size. `look="dots"` only.
+   * @default 1
+   */
+  dotSize?: number;
+
+  /**
+   * Spacing between dots, as a multiplier — below 1 is a denser, finer
+   * surface, above 1 a sparser, coarser one. `look="dots"` only.
+   * @default 1
+   */
+  dotGap?: number;
+
+  /**
+   * The dots' shape: round, or square for a pixel grid. `look="dots"` only.
+   * @default 'round'
+   */
+  dotShape?: VoiceBeamDotShape;
+
+  /**
+   * Line width, as a multiplier on the tuned width (lines thin out into the
+   * distance). `look="lines"` only.
+   * @default 1
+   */
+  lineWidth?: number;
+
+  /**
+   * Spacing between lines, as a multiplier — the rows and the columns alike.
+   * `look="lines"` only.
+   * @default 1
+   */
+  lineGap?: number;
+
+  /**
+   * Which way the lines run: across the surface, into the depth, or both.
+   * `look="lines"` only.
+   * @default 'rows'
+   */
+  linePattern?: VoiceBeamLinePattern;
+
+  /**
+   * Draw the lines as a wireframe: those behind a raised ridge show through
+   * it instead of being hidden by it. `look="lines"` only.
+   * @default false
+   */
+  seeThrough?: boolean;
+
+  /**
+   * Organic texture, 0–1: a slow ripple the flow carries across the
+   * surface. 0 is a still sheet that only the voice moves. Dots and lines.
+   * @default 0.6
+   */
+  texture?: number;
+
+  /**
+   * How hard the surface falls when the voice drops, as a multiplier on its
+   * gravity. Lower floats down, higher drops like sand. Dots and lines.
+   * @default 1
+   */
+  gravity?: number;
+
+  /**
+   * How tall the surface stands along the bottom, as a multiplier — how far
+   * back the sheet runs, and so how much of the host it covers. Dots and lines.
+   * @default 1
+   */
+  surfaceHeight?: number;
+
+  /**
+   * How far the surface arcs, as a multiplier: its sides and far edge fall
+   * away like a horizon. 0 is a flat sheet; below 0 it cups upward instead.
+   * Dots and lines.
+   * @default 1
+   */
+  surfaceCurve?: number;
+
+  /**
+   * The surface's tails: how far its ends rise toward the corners, as a share
+   * of the sheet's height — the ends curl up into the host's corners instead
+   * of running flat into its sides. Below 0 they drop away instead. Dots and lines.
+   * @default 0
+   */
+  surfaceTail?: number;
+
+  /**
+   * Where the tails start, as a share of the distance from the centre to
+   * the side (0.8 = only the last 20%); they reach their full lift at the edge.
+   * @default 0.6
+   */
+  surfaceTailPosition?: number;
+
+  /**
+   * Exponent of the tails' rise: 1 a straight ramp, 2 a parabola, higher a
+   * hook that stays low and whips up at the edge.
+   * @default 2.4
+   */
+  surfaceTailCurve?: number;
+
+  /**
+   * How far in from the sides the surface dissolves, as a share of its
+   * half-width, 0–1. 0 runs it hard into the edges; 1 fades it from the
+   * centre out. Dots and lines.
+   * @default 0.2
+   */
+  surfaceFade?: number;
 
   /**
    * Size of the whole effect. Multiplies every pixel dimension at once —
@@ -389,11 +532,11 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   /** Grain of the distortion's noise: below 1 broad slow waves, above 1 finer ripples. @default 2.3 */
   distortionDetail?: number;
 
-  /** Width of every colour lobe, all layers. @default 0.65 */
+  /** Width of every colour lobe, all layers — on the dots and lines, the width of each hill. @default 0.65 */
   glowWidth?: number;
   /** Height of every colour lobe, all layers. @default 1.25 */
   glowHeight?: number;
-  /** Distance between the lobes (and the ring the flow travels). @default 0.85 */
+  /** Distance between the lobes (and the ring the flow travels) — on the dots and lines, between the hills. @default 0.85 */
   lobeSpacing?: number;
   /** Width of the visible ellipse the glow is masked to. @default 0.75 */
   rangeWidth?: number;

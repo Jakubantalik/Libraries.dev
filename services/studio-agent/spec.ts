@@ -984,6 +984,137 @@ export const VOICE_SPEC: LibrarySpec = {
         "a full phone screen. Changing it re-tunes every other prop to that type's defaults, so set it " +
         "alone on a turn unless the user asked for both at once.",
     },
+    look: {
+      kind: "enum",
+      values: ["glow", "dots", "lines"],
+      describe:
+        "How the voice is drawn. glow is coloured light — gradients, a band of light and a blurred bloom. " +
+        "dots is a gently domed sheet of white dots seen in perspective (near-black ink on the light theme), " +
+        "in the dotted language of the Thinking orbs: the voice raises hills out of it, one per spectrum band, " +
+        "and when the voice drops the dots fall back under gravity with a small bounce. lines is the same " +
+        "sheet drawn as lines — rows across it like a ridgeline landscape, columns into the depth, or a grid — " +
+        "solid, so a raised ridge hides the lines behind it. The palette, saturation, hue and band props do " +
+        "nothing in dots or lines. Reach for dots when the request is monochrome, minimal, physical, 3D, " +
+        "textured or 'like the orbs'; for lines when it is graphic, technical, terrain, wireframe or " +
+        "'like a sound wave'.",
+    },
+    dotSize: {
+      kind: "number",
+      min: 0.4,
+      max: 2.5,
+      step: 0.05,
+      describe: "Dot radius, as a multiplier. Larger reads bolder and brighter; smaller finer and more delicate.",
+      when: "look is dots",
+    },
+    dotGap: {
+      kind: "number",
+      min: 0.6,
+      max: 2.5,
+      step: 0.05,
+      describe: "Spacing between dots, as a multiplier. Below 1 is a denser, finer sheet; above 1 sparser and more graphic.",
+      when: "look is dots",
+    },
+    dotShape: {
+      kind: "enum",
+      values: ["round", "square"],
+      describe: "The dots' shape: round, or square for a pixel grid.",
+      when: "look is dots",
+    },
+    lineWidth: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Line width, as a multiplier (the lines thin out into the distance). Higher reads bolder and brighter.",
+      when: "look is lines",
+    },
+    lineGap: {
+      kind: "number",
+      min: 0.5,
+      max: 3,
+      step: 0.05,
+      describe: "Spacing between the lines, rows and columns alike. Below 1 is a dense, fine sheet; above 1 sparse and graphic.",
+      when: "look is lines",
+    },
+    linePattern: {
+      kind: "enum",
+      values: ["rows", "columns", "grid"],
+      describe:
+        "Which way the lines run: rows across the sheet (a ridgeline landscape, the default), columns into the " +
+        "depth (converging with the perspective), or a grid of both (a wireframe terrain).",
+      when: "look is lines",
+    },
+    seeThrough: {
+      kind: "boolean",
+      describe: "Draw the lines as a see-through wireframe: the lines behind a raised ridge show through it instead of being hidden.",
+      when: "look is lines",
+    },
+    texture: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "A slow ripple the flow carries across the sheet, 0–1. 0 is a still sheet only the voice moves.",
+      when: "look is dots or lines",
+    },
+    gravity: {
+      kind: "number",
+      min: 0.2,
+      max: 3,
+      step: 0.05,
+      describe: "How hard the sheet falls when the voice drops. Lower floats down softly; higher drops like sand.",
+      when: "look is dots or lines",
+    },
+    surfaceHeight: {
+      kind: "number",
+      min: 0.4,
+      max: 3,
+      step: 0.05,
+      describe: "How tall the sheet stands along the bottom, as a multiplier: how far back it runs, so how much of the host it covers.",
+      when: "look is dots or lines",
+    },
+    surfaceCurve: {
+      kind: "number",
+      min: -1,
+      max: 3,
+      step: 0.05,
+      describe: "How far the sheet arcs, as a multiplier: its sides and far edge fall away like a horizon. 0 is flat; below 0 it cups upward.",
+      when: "look is dots or lines",
+    },
+    surfaceTail: {
+      kind: "number",
+      min: -1,
+      max: 1.5,
+      step: 0.01,
+      describe:
+        "The sheet's tails: how far its ends rise toward the host's corners, as a share of its height — the ends " +
+        "curl up into the corners instead of running flat into the sides. Below 0 they drop away. 0 is off.",
+      when: "look is dots or lines",
+    },
+    surfaceTailPosition: {
+      kind: "number",
+      min: 0,
+      max: 0.95,
+      step: 0.01,
+      describe: "Where the tails start, as a share of the way from the centre to the side; low is a long gentle curl, high only the very ends.",
+      when: "look is dots or lines and surfaceTail is not 0",
+    },
+    surfaceTailCurve: {
+      kind: "number",
+      min: 1,
+      max: 6,
+      step: 0.1,
+      describe: "The tails' shape: 1 a straight ramp, 2 a parabola, higher a hook that stays low and whips up at the edge.",
+      when: "look is dots or lines and surfaceTail is not 0",
+    },
+    surfaceFade: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How far in from the sides the sheet dissolves, as a share of its half-width. 0 runs it hard into the edges; 1 fades it from the centre out.",
+      when: "look is dots or lines",
+    },
     colorVariant: {
       kind: "enum",
       values: ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"],
@@ -1288,18 +1419,30 @@ export const VOICE_SPEC: LibrarySpec = {
     },
   },
   relevant(params) {
+    const surface = params.look === "dots" || params.look === "lines";
     const keys = [
-      "core",
-      "type", "colorVariant", "sensitivity", "threshold", "attack", "release",
-      "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
-      "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
-      "coreLight", "coreSize", "softness", "strength", "brightness", "saturation",
-      "strokeOpacity", "innerOpacity", "bloomOpacity", "radius", "staticColors", "paused",
+      "look",
+      "type", "sensitivity", "threshold", "attack", "release",
+      "reach", "spread", "scale", "idle", "flow", "strength", "radius", "paused",
     ];
     // The resting shimmer's breath is invisible when nothing rests.
     if (Number(params.idle) > 0) keys.push("breathe");
-    // The hue only drifts when the palette is not held still.
-    if (!params.staticColors) keys.push("hueRange", "hueDuration", "hueShift");
+    if (surface) {
+      // The surface has no palette, no glow layers and no stylesheet to
+      // rebuild: its shape and its own style are the knobs.
+      keys.push("texture", "gravity", "surfaceHeight", "surfaceCurve", "surfaceTail", "surfaceFade");
+      if (Number(params.surfaceTail) !== 0) keys.push("surfaceTailPosition", "surfaceTailCurve");
+      if (params.look === "dots") keys.push("dotSize", "dotGap", "dotShape");
+      else keys.push("lineWidth", "lineGap", "linePattern", "seeThrough");
+    } else {
+      keys.push(
+        "glowSize", "bend", "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
+        "coreSize", "softness", "brightness", "strokeOpacity", "innerOpacity", "bloomOpacity",
+        "core", "colorVariant", "saturation", "coreLight", "staticColors"
+      );
+      // The hue only drifts when the palette is not held still.
+      if (!params.staticColors) keys.push("hueRange", "hueDuration", "hueShift");
+    }
     // The travelling beam exists only while processing.
     if (params.processing) {
       keys.push("processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow");

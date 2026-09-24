@@ -7,6 +7,9 @@ import {
   voicePalettes,
   parseRgb,
   type VoiceBeamColorVariant,
+  type VoiceBeamDotShape,
+  type VoiceBeamLinePattern,
+  type VoiceBeamLook,
   type VoiceBeamType,
   type VoiceGeometry,
 } from "voice-glow";
@@ -49,6 +52,31 @@ function stockVoiceCss(): string {
   if (!root || !id || !style || style.tagName !== "STYLE") return "";
   return (style.textContent ?? "").split(id).join("{id}");
 }
+
+const LOOK_OPTIONS = [
+  { value: "glow", label: "Glow" },
+  { value: "dots", label: "Dots" },
+  { value: "lines", label: "Lines" },
+] as const;
+const DOT_SHAPE_OPTIONS = [
+  { value: "round", label: "Round" },
+  { value: "square", label: "Square" },
+] as const;
+const LINE_PATTERN_OPTIONS = [
+  { value: "rows", label: "Rows" },
+  { value: "columns", label: "Columns" },
+  { value: "grid", label: "Grid" },
+] as const;
+/* The surface looks' own defaults (the library's), so the snippet only
+   carries what was moved. */
+const SURFACE_DEFAULTS = {
+  surfaceHeight: 1,
+  surfaceCurve: 1,
+  surfaceTail: 0,
+  surfaceTailPosition: 0.6,
+  surfaceTailCurve: 2.4,
+  surfaceFade: 0.2,
+} as const;
 
 const RADIUS_BY_TYPE: Record<VoiceBeamType, number> = { default: 20, pill: 106, mobile: 66 };
 /* The phone mock is 402×874 shown at 0.68 in a 273×357 crop; the beam wraps the crop. */
@@ -102,6 +130,22 @@ const SOURCE_OPTIONS = [
    services/studio-agent/spec.ts. */
 const VOICE_PARAM_LABELS: Record<string, string> = {
   type: "Type",
+  look: "Look",
+  dotSize: "Dot size",
+  dotGap: "Dot spacing",
+  dotShape: "Dot shape",
+  lineWidth: "Line width",
+  lineGap: "Line spacing",
+  linePattern: "Pattern",
+  seeThrough: "See-through",
+  texture: "Texture",
+  gravity: "Gravity",
+  surfaceHeight: "Height",
+  surfaceCurve: "Curve",
+  surfaceTail: "Tail lift",
+  surfaceTailPosition: "Tail position",
+  surfaceTailCurve: "Tail curve",
+  surfaceFade: "Edge fade",
   colorVariant: "Color theme",
   sensitivity: "Sensitivity",
   threshold: "Threshold",
@@ -191,6 +235,29 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. */
   const [paused, setPaused] = useState(false);
+  /* The look: coloured light, or the voice as a surface of dots or lines. */
+  const [look, setLook] = useState<VoiceBeamLook>("glow");
+  const [dotSize, setDotSize] = useState(1);
+  const [dotGap, setDotGap] = useState(1);
+  const [dotShape, setDotShape] = useState<VoiceBeamDotShape>("round");
+  const [lineWidth, setLineWidth] = useState(1);
+  const [lineGap, setLineGap] = useState(1);
+  const [linePattern, setLinePattern] = useState<VoiceBeamLinePattern>("rows");
+  const [seeThrough, setSeeThrough] = useState(false);
+  const [texture, setTexture] = useState(0.6);
+  const [gravity, setGravity] = useState(1);
+  /* The surface's shape: its height, arc, tails and fading sides. */
+  const [surfaceHeight, setSurfaceHeight] = useState<number>(SURFACE_DEFAULTS.surfaceHeight);
+  const [surfaceCurve, setSurfaceCurve] = useState<number>(SURFACE_DEFAULTS.surfaceCurve);
+  const [surfaceTail, setSurfaceTail] = useState<number>(SURFACE_DEFAULTS.surfaceTail);
+  const [surfaceTailPosition, setSurfaceTailPosition] = useState<number>(SURFACE_DEFAULTS.surfaceTailPosition);
+  const [surfaceTailCurve, setSurfaceTailCurve] = useState<number>(SURFACE_DEFAULTS.surfaceTailCurve);
+  const [surfaceFade, setSurfaceFade] = useState<number>(SURFACE_DEFAULTS.surfaceFade);
+  /* The mock buttons' backdrop blur over the surface — the host's CSS, not a prop, so it stays out of the snippet. */
+  const [buttonBlur, setButtonBlur] = useState(10);
+  const isDots = look === "dots";
+  const isLines = look === "lines";
+  const isSurface = isDots || isLines;
   /* A stylesheet the agent rewrote, appended after the generated one; "" is
      the stock effect. */
   const [core, setCore] = useState("");
@@ -224,6 +291,22 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
      the spec whether the travelling-beam props are live. */
   const agentParams: Record<string, unknown> = {
     type,
+    look,
+    dotSize,
+    dotGap,
+    dotShape,
+    lineWidth,
+    lineGap,
+    linePattern,
+    seeThrough,
+    texture,
+    gravity,
+    surfaceHeight,
+    surfaceCurve,
+    surfaceTail,
+    surfaceTailPosition,
+    surfaceTailCurve,
+    surfaceFade,
     colorVariant,
     sensitivity,
     threshold,
@@ -270,6 +353,22 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     /* Type first: it re-tunes the geometry, so anything else in the same
        patch must land on top of the new defaults. */
     if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
+    if (patch.look === "glow" || patch.look === "dots" || patch.look === "lines") setLook(patch.look);
+    if (typeof patch.dotSize === "number") setDotSize(patch.dotSize);
+    if (typeof patch.dotGap === "number") setDotGap(patch.dotGap);
+    if (patch.dotShape === "round" || patch.dotShape === "square") setDotShape(patch.dotShape);
+    if (typeof patch.lineWidth === "number") setLineWidth(patch.lineWidth);
+    if (typeof patch.lineGap === "number") setLineGap(patch.lineGap);
+    if (patch.linePattern === "rows" || patch.linePattern === "columns" || patch.linePattern === "grid") setLinePattern(patch.linePattern);
+    if (typeof patch.seeThrough === "boolean") setSeeThrough(patch.seeThrough);
+    if (typeof patch.texture === "number") setTexture(patch.texture);
+    if (typeof patch.gravity === "number") setGravity(patch.gravity);
+    if (typeof patch.surfaceHeight === "number") setSurfaceHeight(patch.surfaceHeight);
+    if (typeof patch.surfaceCurve === "number") setSurfaceCurve(patch.surfaceCurve);
+    if (typeof patch.surfaceTail === "number") setSurfaceTail(patch.surfaceTail);
+    if (typeof patch.surfaceTailPosition === "number") setSurfaceTailPosition(patch.surfaceTailPosition);
+    if (typeof patch.surfaceTailCurve === "number") setSurfaceTailCurve(patch.surfaceTailCurve);
+    if (typeof patch.surfaceFade === "number") setSurfaceFade(patch.surfaceFade);
     if (typeof patch.colorVariant === "string") setColorVariant(patch.colorVariant as VoiceBeamColorVariant);
     if (typeof patch.sensitivity === "number") setSensitivity(patch.sensitivity);
     if (typeof patch.threshold === "number") setThreshold(patch.threshold);
@@ -394,6 +493,24 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   /* Live snippet: only non-default props survive. */
   const props: string[] = [];
+  if (isSurface) props.push(`look="${look}"`);
+  if (isDots && dotShape !== "round") props.push(`dotShape="${dotShape}"`);
+  if (isDots && dotSize !== 1) props.push(`dotSize={${num(dotSize)}}`);
+  if (isDots && dotGap !== 1) props.push(`dotGap={${num(dotGap)}}`);
+  if (isLines && linePattern !== "rows") props.push(`linePattern="${linePattern}"`);
+  if (isLines && lineWidth !== 1) props.push(`lineWidth={${num(lineWidth)}}`);
+  if (isLines && lineGap !== 1) props.push(`lineGap={${num(lineGap)}}`);
+  if (isLines && seeThrough) props.push("seeThrough");
+  if (isSurface) {
+    const shape = { surfaceHeight, surfaceCurve, surfaceTail, surfaceTailPosition, surfaceTailCurve, surfaceFade };
+    for (const [key, value] of Object.entries(shape)) {
+      // The tail's position and curve only shape a tail that lifts.
+      if ((key === "surfaceTailPosition" || key === "surfaceTailCurve") && surfaceTail === 0) continue;
+      if (value !== SURFACE_DEFAULTS[key as keyof typeof SURFACE_DEFAULTS]) props.push(`${key}={${num(value)}}`);
+    }
+  }
+  if (isSurface && texture !== 0.6) props.push(`texture={${num(texture)}}`);
+  if (isSurface && gravity !== 1) props.push(`gravity={${num(gravity)}}`);
   if (isMic) props.push("stream={mic.stream}");
   else if (source === "manual") props.push(`level={${num(manualLevel / 100)}}`);
   else props.push("level={() => yourLevel}");
@@ -450,6 +567,22 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         {visible && (
           <VoiceBeam
             type={type}
+            look={look}
+            dotSize={dotSize}
+            dotGap={dotGap}
+            dotShape={dotShape}
+            lineWidth={lineWidth}
+            lineGap={lineGap}
+            linePattern={linePattern}
+            seeThrough={seeThrough}
+            texture={texture}
+            gravity={gravity}
+            surfaceHeight={surfaceHeight}
+            surfaceCurve={surfaceCurve}
+            surfaceTail={surfaceTail}
+            surfaceTailPosition={surfaceTailPosition}
+            surfaceTailCurve={surfaceTailCurve}
+            surfaceFade={surfaceFade}
             stream={stream}
             level={level}
             sensitivity={sensitivity}
@@ -479,7 +612,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             hueRange={hueRange}
             hueDuration={hueDuration}
             staticColors={staticColors}
-            style={beamStyle}
+            style={isSurface ? ({ ...(beamStyle ?? {}), "--mock-btn-blur": `${buttonBlur}px` } as CSSProperties) : beamStyle}
             onLevel={onLevel}
           >
             {type === "pill" ? (
@@ -545,6 +678,37 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         }}
       >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
+        <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} />
+        {isDots && (
+          <PgGroup label="Dots">
+            <PgTabs label="Shape" options={DOT_SHAPE_OPTIONS} value={dotShape} onChange={setDotShape} />
+            <PgSlider label="Dot size" value={dotSize} min={0.4} max={2.5} step={0.05} display={`${num(dotSize)}×`} onChange={setDotSize} />
+            <PgSlider label="Spacing" value={dotGap} min={0.6} max={2.5} step={0.05} display={`${num(dotGap)}×`} onChange={setDotGap} />
+          </PgGroup>
+        )}
+        {isLines && (
+          <PgGroup label="Lines">
+            <PgTabs label="Pattern" options={LINE_PATTERN_OPTIONS} value={linePattern} onChange={setLinePattern} />
+            <PgSlider label="Line width" value={lineWidth} min={0.3} max={3} step={0.05} display={`${num(lineWidth)}×`} onChange={setLineWidth} />
+            <PgSlider label="Spacing" value={lineGap} min={0.5} max={3} step={0.05} display={`${num(lineGap)}×`} onChange={setLineGap} />
+            <PgToggles label="Options" options={[{ label: "See-through", active: seeThrough, onToggle: () => setSeeThrough((v) => !v) }]} />
+          </PgGroup>
+        )}
+        {/* The sheet both surface looks share: its shape — height, arc, the
+            tails at its ends, how its sides dissolve — then how it moves. */}
+        {isSurface && (
+          <PgGroup label="Surface">
+            <PgSlider label="Height" value={surfaceHeight} min={0.4} max={3} step={0.05} display={`${num(surfaceHeight)}×`} onChange={setSurfaceHeight} />
+            <PgSlider label="Curve" value={surfaceCurve} min={-1} max={3} step={0.05} display={`${num(surfaceCurve)}×`} onChange={setSurfaceCurve} />
+            <PgSlider label="Tail lift" value={surfaceTail} min={-1} max={1.5} step={0.01} display={`${Math.round(surfaceTail * 100)}%`} onChange={setSurfaceTail} />
+            <PgSlider label="Tail position" value={surfaceTailPosition} min={0} max={0.95} step={0.01} display={`${Math.round(surfaceTailPosition * 100)}%`} onChange={setSurfaceTailPosition} />
+            <PgSlider label="Tail curve" value={surfaceTailCurve} min={1} max={6} step={0.1} display={num(surfaceTailCurve)} onChange={setSurfaceTailCurve} />
+            <PgSlider label="Edge fade" value={surfaceFade} min={0} max={1} step={0.01} display={`${Math.round(surfaceFade * 100)}%`} onChange={setSurfaceFade} />
+            <PgSlider label="Texture" value={texture} min={0} max={1} step={0.01} display={`${Math.round(texture * 100)}%`} onChange={setTexture} />
+            <PgSlider label="Gravity" value={gravity} min={0.2} max={3} step={0.05} display={`${num(gravity)}×`} onChange={setGravity} />
+            <PgSlider label="Button blur" value={buttonBlur} min={0} max={30} step={1} display={`${buttonBlur}px`} onChange={setButtonBlur} />
+          </PgGroup>
+        )}
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
         {isMic && MIC_STATUS[mic.state] && (
           <div className="pg-field">
@@ -566,6 +730,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             <PgSlider label="Morph" value={processingEase} min={0.1} max={2} step={0.05} display={`${num(processingEase)}s`} onChange={setProcessingEase} />
           </>
         )}
+        {!isSurface && (
+          <>
         <PgTabs label="Color theme" options={COLOR_OPTIONS} value={colorVariant} onChange={setColorVariant} />
         <PanelSep />
         {/* Every colour the effect paints, each with the eight variants'
@@ -598,6 +764,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           ))}
         </PgGroup>
         </div>
+          </>
+        )}
         <PanelSep />
         {/* The input chain, in signal order: gain, gate, then the envelope. */}
         <PgGroup label="Response">
@@ -617,15 +785,31 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           <PgSlider label="Flow" value={geo.flow} min={-200} max={200} step={4} display={`${geo.flow} px/s`} onChange={setG("flow")} />
           <PgSlider label="Idle presence" value={geo.idle} min={0} max={1} step={0.01} display={`${Math.round(geo.idle * 100)}%`} onChange={setG("idle")} />
           <PgSlider label="Breathe" value={breathe} min={1} max={8} step={0.1} display={`${num(breathe)}s`} onChange={setBreathe} />
+          {/* On a surface the lobes are its hills. */}
+          {isSurface && (
+            <>
+              <PgSlider label="Hill width" value={geo.glowWidth} min={0.3} max={3} step={0.05} display={`${num(geo.glowWidth)}×`} onChange={setG("glowWidth")} />
+              <PgSlider label="Hill spacing" value={geo.lobeSpacing} min={0.4} max={2.2} step={0.05} display={`${num(geo.lobeSpacing)}×`} onChange={setG("lobeSpacing")} />
+            </>
+          )}
           <PgToggles
             label="Options"
             options={[
               { label: "Bands", active: bands, onToggle: () => setBands((b) => !b) },
-              { label: "Static colors", active: staticColors, onToggle: () => setStaticColors((s) => !s) },
+              ...(isSurface ? [] : [{ label: "Static colors", active: staticColors, onToggle: () => setStaticColors((s) => !s) }]),
             ]}
           />
         </PgGroup>
         <PanelSep />
+        {/* A surface has no glow to shape: only its strength and the corners it is clipped to. */}
+        {isSurface && (
+          <PgGroup label="Styling">
+            <PgSlider label="Strength" value={strength} min={0} max={100} step={1} display={`${strength}%`} onChange={setStrength} />
+            <PgSlider label="Corner radius" value={radius} min={0} max={120} step={1} display={`${radius}px`} onChange={setRadius} />
+          </PgGroup>
+        )}
+        {!isSurface && (
+          <>
         {/* The bend and its band: the hump on top of the glow and the light
             that traces it, with its chromatic split. */}
         <PgGroup label="Bend & band">
@@ -687,6 +871,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             </>
           )}
         </PgGroup>
+          </>
+        )}
       </ControlsPanel>
 
       <Snippet code={snippet} />
