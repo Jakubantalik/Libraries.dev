@@ -15,7 +15,7 @@
     /* The skill page's compare panes embed this page twice: plain
        (?style=generic) and built with the skill. The rows are the skill
        demo page's prototypes (skill-demo.html, Figma 1635:1035) with
-       that page's styling, on its #070707 ground. */
+       that page's styling, on the site's own page ground (--bg). */
     html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
     body { color: #ebebeb; font-family: Inter, var(--font-sans); }
     p { margin: 0; }
@@ -27,7 +27,7 @@
       justify-content: center;
       padding: 24px 20px;
       border-radius: 14px;
-      background: #070707;
+      background: var(--bg, #121212);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
     /* Fixed row heights (the taller of each pair), so both panes stack to
