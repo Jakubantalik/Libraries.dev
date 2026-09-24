@@ -93,6 +93,7 @@ export default mergeConfig(defineConfig({
         image: resolve(__dirname, "image.html"),
         voice: resolve(__dirname, "voice.html"),
         "voice-phone": resolve(__dirname, "voice-phone.html"),
+        "skill-demo": resolve(__dirname, "skill-demo.html"),
         pro: resolve(__dirname, "pro.html"),
         studio: resolve(__dirname, "studio.html"),
         "studio-app": resolve(__dirname, "studio/app.html"),
