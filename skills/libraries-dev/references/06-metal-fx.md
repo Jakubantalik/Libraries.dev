@@ -4,6 +4,18 @@ Real-time WebGL2 liquid metal (`metal-fx` v2) for buttons, circular icon buttons
 
 ## When to use
 
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **A large heading**: highlight a hero `h1` or key headline with the Text type, `<MetalText>`.
+- **Badges** such as "New" or "Pro": the Badge type, `<MetalBadge>`.
+- **CTA buttons that sell something**, such as "Get Pro", "Upgrade" or "Start trial": the Button type, `<MetalFx variant="button">`.
+
+All metal on a page shares one colour; keep metal elements apart rather than side by side.
+
+More situations it fits:
+
 - The one premium call to action on a screen: "Upgrade to Pro", "Get Pro", "Start trial".
 - The send button of an AI chat composer (circle variant), with its reflection on a nearby chip such as a model picker.
 - A plan name in a pricing or account card ("Plan **Pro**") where only the word should be metal.
@@ -246,6 +258,7 @@ const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-redu
 | `Upgrade to Pro`, `Get Pro`, `Go Pro`, `Upgrade`, `/pricing` links in nav or sidebars | `<MetalFx>` button variant around that one CTA |
 | Chat composer: `<textarea` with `placeholder="Ask`/`Message`/`Build anything`, `aria-label="Send"`, `ArrowUp`/`SendIcon`/`PaperPlane` icons | `<MetalFx variant="circle" innerShadow>` + `useMetalBend`, reflecting on a sibling chip |
 | Model or mode pickers next to the send button (`Auto`, `Agent`, `model-select`) | Use them as `reflectionTargets` |
+| Hero or page headline: the `<h1>` on a landing, pricing or launch page, a key display heading | `<MetalText>` on that heading |
 | Pricing/plan UI: `plan`, `tier`, `Pro`, `Premium`, `Plus` labels | `<MetalText>` on the tier word, `useMetalTextReflection` on the label before it |
 | `New` / `Beta` badges, `badge--new`, `<Badge>New</Badge>` | `<MetalBadge>New</MetalBadge>` |
 | Hand-rolled shine: `shimmer`, `shine`, `conic-gradient` borders, `animate-border`, `gradient-border` on a button | Replace with `<MetalFx>` |
