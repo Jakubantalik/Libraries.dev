@@ -4,6 +4,15 @@ Animated 3D bot avatars for AI agents: a glossy body with a living face that loo
 
 ## When to use
 
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Anything avatar related for a bot or agent**: assistant avatars in a thread, agent lists and sidebars, agent pickers, job headers and empty-state mascots.
+- The state follows the agent's real status (see the status mapping under Common mistakes).
+
+More situations it fits:
+
 - The avatar next to an assistant's reply in a chat thread: `working` while the model streams, idle once the answer lands.
 - A roster or sidebar of agents, one body shape per agent, each showing whether it is busy.
 - A status chip or header for a background job or agent run ("Booking the venue…").

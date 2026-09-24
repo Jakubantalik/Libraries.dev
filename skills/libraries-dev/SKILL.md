@@ -26,19 +26,44 @@ Docs and live playgrounds: https://libraries.dev (one detail page per library).
 
 ## Decision rules
 
-Match on what the UI is doing, then on the element:
+The author's placement rules. Apply them first; the general cues follow.
 
-- **An agent or model is working and the user waits** (chat reply streaming, tool call running, "Thinking…" label) → **Thinking orbs**, sized to the text line. Pick the state that names the activity.
-- **An agent has a persistent identity** (assistant in a sidebar, agent list, team of agents, empty state mascot) → **Bot avatars**, with the state following the agent's status.
-- **Voice is being captured or spoken** (mic button, dictation, voice mode, call UI) → **Voice**.
-- **An input, card or button must read as "active" or "AI-powered"** (prompt box while generating, selected plan, focused command bar) → **Border beam**.
-- **An image is being generated, uploaded or lazy-loaded** → **Image**.
-- **A premium, tactile surface** (primary CTA, pro badge, logo, hero word) → **Liquid metal**. One per view; it is the most expensive effect.
-- **Shapes or images should merge, melt or morph organically** (gooey plus menu, blob loader, image melt transition) → **Gooey**.
-- **No clear match** → run `libraries reveal` and let the user pick. Do not force an effect.
+**By how long the wait is** (estimate it from the code: streaming model
+replies, agent runs, image generation and uploads are long; small fetches,
+toggles and route changes are short; if you cannot tell, say so):
 
-When two fit, prefer the cheaper one: Thinking orbs and Border beam are light;
-Voice, Bot avatars and Gooey are moderate; Liquid metal and Image run WebGL.
+| Wait | What to add |
+| --- | --- |
+| Under 2 s | Nothing. No orb, no beam. |
+| 2 s or more | **Thinking orbs**, usually beside a text label, or alone where there is no room for text. |
+| More than 3 s | Also **Border beam** on the element doing the work (`active` from the loading flag). |
+
+**By element:**
+
+- **Prompt input or CTA button to highlight** → **Border beam**, Pulse type:
+  `pulse-inner` for a button, `pulse-outside` for an input.
+- **An input that loads after the user submits text** (search, ask, command
+  bar) → **Border beam** `line`, active from submit until results arrive.
+- **A large `h1` or key headline to highlight** → **Liquid metal**, Text type
+  (`MetalText`).
+- **A badge** ("New", "Pro") → **Liquid metal**, Badge type (`MetalBadge`).
+- **A CTA that sells something** ("Get Pro", "Upgrade") → **Liquid metal**,
+  Button type (`MetalFx variant="button"`).
+- **Anything voice or recording related** → **Voice**.
+- **Anything avatar related for a bot or agent** → **Bot avatars**, state from
+  the agent's real status.
+- **An image being generated, uploaded or lazy-loaded** → **Image**.
+- **Shapes or images that should merge, melt or morph** (gooey plus menu,
+  blob loader, image melt) → **Gooey**.
+- **No clear match** → run `libraries reveal` and let the user pick. Do not
+  force an effect.
+
+When two fit the same spot, prefer the cheaper one: Thinking orbs and Border
+beam are light; Voice, Bot avatars and Gooey are moderate; Liquid metal and
+Image run WebGL. Liquid metal: every metal element on a page shares one
+colour, so pick one preset for the page, and keep metal elements apart
+(a headline and a CTA in the same header is fine; two metal buttons side by
+side is not).
 
 ## Commands
 
@@ -68,8 +93,10 @@ Triggers: `libraries review`, "review my project for libraries.dev",
    plus/FAB menus.
 3. **Rank.** Order all suggestions by impact: an AI waiting state beats a
    decorative border. Suggest at most one library per UI area (a sidebar, a
-   thread, a composer, a card), keep to one loud effect (Border beam, Liquid
-   metal, Gooey) per view, and skip spots already using the library. When
+   thread, a composer, a card), never two effects on the same element or on
+   elements right next to each other, and skip spots already using the
+   library. Effects in different areas can coexist: a beam on the composer
+   and metal on the header's headline, badge or CTA are fine together. When
    two suggestions wrap the same element, say they are alternatives.
 4. **Output** a numbered list grouped by file, each line:
    `path/File.tsx:42` — what the spot is → **Library** (state or variant to
@@ -122,8 +149,9 @@ input", "use libraries.dev here".
 - **Size to the context.** Orbs sit on a text line, beams follow the
   element's radius, metal and image fill their box. Give containers explicit
   size and radius.
-- **One loud effect per view.** Beam, metal and gooey draw the eye; pairing
-  two on the same screen dilutes both.
+- **Don't stack effects.** Never put two effects on one element or on
+  neighbouring elements; beam, metal and gooey each draw the eye, so give
+  each its own area of the screen.
 - **Motion safety.** Keep each library's reduced-motion handling; do not
   override it.
 

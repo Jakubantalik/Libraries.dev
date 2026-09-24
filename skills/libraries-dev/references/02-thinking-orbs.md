@@ -4,6 +4,16 @@
 
 ## When to use
 
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Any loading state**, usually beside a text label ("Thinking…", "Searching the web…"), or on its own where there is no room for text.
+- **Not for loading under 2 seconds.** A flash of an orb reads as a glitch; show nothing or the result directly.
+- Pick the `state` that names the activity (see the table under Options).
+
+More situations it fits:
+
 - Assistant avatar while a chat reply is being generated (`breathing`, `composing`).
 - Inline status next to an agent step or tool call: "Searching the web…", "Running code…", "Reading files…" (size 20).
 - Web search, retrieval or lookup in progress (`searching`).
@@ -224,6 +234,7 @@ Pinned theme on a fixed dark surface. Use when: the orb sits on a dark panel ins
 
 | Signal to grep for | Suggest |
 | --- | --- |
+| Waits under 2 s: optimistic updates, cached or local reads, quick toggles | Nothing. Do not add an orb |
 | `Thinking…`, `Thinking...`, `isThinking`, `reasoning` in chat components | `breathing` at 64 in the assistant avatar slot |
 | `Loader2` with `animate-spin`, `<Spinner`, `CircularProgress` near chat or agent code | the orb state that names the activity, size 20 inline |
 | Typing indicators: `TypingIndicator`, `typing-dots`, three bouncing dots CSS | `composing` or `breathing` |
