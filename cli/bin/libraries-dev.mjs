@@ -2,7 +2,8 @@
 // libraries-dev — install the Libraries.dev agent skill.
 //
 //   npx libraries-dev skill           install the free skill (no account)
-//   npx libraries-dev skill --pro     install the Pro skill (signs you in if needed)
+//   npx libraries-dev skill --pro     install the Pro skill (signs you in if needed),
+//                                     next to every free copy, replacing it
 //   npx libraries-dev login           sign in (opens the browser)
 //   npx libraries-dev logout          sign out
 //   npx libraries-dev whoami          show sign-in status
@@ -15,7 +16,7 @@
 //
 // No dependencies — Node 18+ (built-in fetch).
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, cpSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, cpSync, readdirSync, lstatSync, realpathSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
@@ -75,6 +76,51 @@ function isOurSkill(dir, name) {
   catch { return false; }
 }
 
+// Every place the free skill is installed. `npx skills add` writes into the
+// folder of each agent it targets (.agents/skills for Cursor and friends,
+// .claude/skills, .codex/skills, ~/.config/agents/skills, ...), sometimes as
+// a symlink to one shared copy. Rather than keep a list of agents, look for
+// <dot-folder>/skills/libraries-dev and <dot-folder>/<sub>/skills/libraries-dev
+// under the project and the home folder, and keep the ones that really are
+// our skill (checked by the name in their SKILL.md).
+function findInstalls(name) {
+  const found = new Map(); // realpath -> [paths that point at it]
+  const consider = (dir) => {
+    if (!existsSync(join(dir, "SKILL.md")) || !isOurSkill(dir, name)) return;
+    let real = dir;
+    try { real = realpathSync(dir); } catch { /* keep the path */ }
+    if (!found.has(real)) found.set(real, []);
+    found.get(real).push(dir);
+  };
+  const scan = (base) => {
+    let entries = [];
+    try { entries = readdirSync(base, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (!e.name.startsWith(".") || e.name === ".git" || !(e.isDirectory() || e.isSymbolicLink())) continue;
+      const top = join(base, e.name);
+      consider(join(top, "skills", name));
+      let subs = [];
+      try { subs = readdirSync(top, { withFileTypes: true }); } catch { continue; }
+      for (const sub of subs) {
+        if (sub.name === "skills" || sub.name === "node_modules" || !(sub.isDirectory() || sub.isSymbolicLink())) continue;
+        consider(join(top, sub.name, "skills", name));
+      }
+    }
+  };
+  scan(process.cwd());
+  if (resolve(process.cwd()) !== resolve(homedir())) scan(homedir());
+  return found;
+}
+
+// Remove one installed copy: a symlink is unlinked, a real folder deleted.
+function removeInstall(path) {
+  try {
+    if (lstatSync(path).isSymbolicLink()) unlinkSync(path);
+    else rmSync(path, { recursive: true, force: true });
+    return true;
+  } catch { return false; }
+}
+
 // ── free ─────────────────────────────────────────────────────────────────────
 
 function installFree() {
@@ -120,28 +166,47 @@ async function installPro() {
   const { files, version } = await res.json();
   if (!Array.isArray(files) || !files.some((f) => f.path === "SKILL.md")) die("The Pro skill came back empty.");
 
-  const dest = skillDir(PRO_NAME);
-  if (existsSync(dest) && !isOurSkill(dest, PRO_NAME) && !flags.dir) {
-    die(`${dest} exists and is not the Libraries Pro skill. Pass --dir to choose another folder.`);
+  // Where Pro goes: an explicit --dir or --project wins; otherwise next to
+  // every free copy, in the same agents' folders, so Cursor, Codex and the
+  // rest keep a skill after the upgrade; with no free copy, ~/.claude/skills.
+  const free = findInstalls(FREE_NAME);
+  let targets;
+  if (flags.dir || flags.project) {
+    targets = [skillDir(PRO_NAME)];
+  } else {
+    const dirs = new Set();
+    for (const paths of free.values()) for (const p of paths) dirs.add(join(dirname(p), PRO_NAME));
+    targets = dirs.size ? [...dirs] : [skillDir(PRO_NAME)];
   }
-  rmSync(dest, { recursive: true, force: true });
-  let wrote = 0;
-  for (const f of files) {
-    // Paths come from our API, but never let one climb out of the skill folder.
-    const out = resolve(dest, f.path);
-    if (!out.startsWith(resolve(dest) + sep)) continue;
-    mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, f.text);
-    wrote++;
+
+  for (const dest of targets) {
+    if (existsSync(dest) && !isOurSkill(dest, PRO_NAME) && !flags.dir) {
+      die(`${dest} exists and is not the Libraries Pro skill. Pass --dir to choose another folder.`);
+    }
   }
-  log(c.green("✓ ") + `Installed the ${c.bold("Libraries Pro")} skill ${c.blue(`(v${version}, ${wrote} files)`)} → ${c.dim(dest)}`);
+  for (const dest of targets) {
+    removeInstall(dest);
+    let wrote = 0;
+    for (const f of files) {
+      // Paths come from our API, but never let one climb out of the skill folder.
+      const out = resolve(dest, f.path);
+      if (!out.startsWith(resolve(dest) + sep)) continue;
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, f.text);
+      wrote++;
+    }
+    log(c.green("✓ ") + `Installed the ${c.bold("Libraries Pro")} skill ${c.blue(`(v${version}, ${wrote} files)`)} → ${c.dim(dest)}`);
+  }
 
   // The Pro skill covers everything the free one does; two skills answering
-  // the same requests would fight, so the free one goes unless asked not to.
-  const free = flags.dir ? null : skillDir(FREE_NAME);
-  if (free && !flags["keep-free"] && isOurSkill(free, FREE_NAME)) {
-    rmSync(free, { recursive: true, force: true });
-    log(c.dim(`Removed the free skill at ${free}; Pro includes it. (--keep-free to keep both.)`));
+  // the same requests would fight, so every free copy goes unless asked not to.
+  if (!flags["keep-free"]) {
+    for (const paths of free.values()) {
+      for (const p of paths) {
+        if (removeInstall(p)) log(c.dim(`Removed the free skill at ${p}; Pro includes it.`));
+      }
+    }
+    if (free.size) log(c.dim("(--keep-free keeps the free skill alongside.)"));
   }
   log(c.dim("Reload your agent's skills to pick it up. Run this again after updates."));
 }
@@ -203,7 +268,8 @@ ${c.bold("libraries-dev")} — the Libraries.dev agent skill.
 
 ${c.bold("Commands")}
   skill                    install the free skill (no account needed)
-  skill --pro              install the Pro skill (signs you in if needed)
+  skill --pro              install the Pro skill (signs you in if needed) in every
+                           agent folder that has the free skill, replacing it
   login                    sign in to Libraries Pro (opens the browser)
   logout                   sign out
   whoami                   show sign-in status

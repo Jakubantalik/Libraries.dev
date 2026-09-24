@@ -32,8 +32,14 @@ npx libraries-dev skill --pro
 For Libraries Pro members. Signs you in through the browser the first time,
 then installs `libraries-pro`: every option the Studio exposes, palettes,
 cursor gravity, and the core customization contracts for rebuilding an
-effect's geometry or shader. It replaces the free skill (`--keep-free` to
-keep both). Run it again to update.
+effect's geometry or shader.
+
+It goes wherever the free skill is installed, in this project and in your
+home folder, whichever agents `npx skills add` set it up for (`.agents/skills`
+for Cursor and Codex, `.claude/skills`, and so on, including symlinked
+copies), and removes the free copies it replaces (`--keep-free` to keep both).
+With no free copy it installs to `~/.claude/skills`; `--project` or `--dir`
+choose the folder yourself. Run it again to update.
 
 ## Using it
 
