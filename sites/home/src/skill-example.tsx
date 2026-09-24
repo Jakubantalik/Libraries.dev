@@ -1,94 +1,90 @@
-import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BorderBeam } from "border-beam";
+import { MetalBadge } from "metal-fx";
 import { ThinkingOrb } from "thinking-orbs";
 import { BotAvatar } from "bot-avatars";
-import { ImageGeneration, type ImageGenerationHandle } from "img-fx";
-import { ChatInputMock } from "./examples/beam-mocks";
 
-/* One chat turn on a loop: the user asks for an image, the assistant works
-   on it, then answers with the result. `?style=generic` renders what an
-   agent writes without the skill (a spinner, a grey box, a letter avatar);
-   the default renders what the Libraries.dev skill suggests for the same
-   spots. Both panes run the same clock so they stay comparable. */
+/* The skill page's hero compare: prototypes from the skill demo page
+   (skill-demo.html, Figma 1635:1035) — a prompt input, a "New" badge, a
+   Get Pro button, a planning status and an assistant row. `?style=generic`
+   renders them with the stock effect a generic AI agent writes (a
+   breathing glow, a flat badge, Tailwind's ping, a border spinner, an
+   emoji on a gradient circle); the default
+   renders what the Libraries.dev skill uses for the same spots. The
+   components and their styling are the demo page's, so the two panes
+   differ only in the effect. */
 
 const GENERIC = new URLSearchParams(location.search).get("style") === "generic";
-const THINK_MS = 3400;
-const ANSWER_MS = 4200;
-const IMAGES = ["/images/gen-1.jpg", "/images/gen-2.jpg", "/images/gen-3.jpg"];
 
-function usePhase(): [boolean, number] {
-  const [turn, setTurn] = useState(0);
-  const [thinking, setThinking] = useState(true);
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      if (thinking) setThinking(false);
-      else { setThinking(true); setTurn((n) => n + 1); }
-    }, thinking ? THINK_MS : ANSWER_MS);
-    return () => window.clearTimeout(t);
-  }, [thinking]);
-  return [thinking, turn];
+function PromptForm() {
+  return (
+    <form className="sd-input" onSubmit={(e) => e.preventDefault()}>
+      <input className="sd-input-field" placeholder="Build anything..." aria-label="What should the agent build?" />
+      <button type="submit" className="sd-input-send" aria-label="Send">
+        <img src="/assets/icons/arrow-up-16.svg" width={16} height={16} alt="" draggable={false} />
+      </button>
+    </form>
+  );
 }
 
-function Generic() {
-  const [thinking, turn] = usePhase();
+function AgentText() {
   return (
-    <div className="sx-card">
-      <div className="sx-thread">
-        <div className="sx-user">Make a cover image for our launch post</div>
-        <div className="sx-bot">
-          <div className="sx-avatar-plain" aria-hidden="true">AI</div>
-          <div className="sx-body">
-            <div className="sx-line">
-              {thinking ? <><span className="sx-spinner" aria-hidden="true" />Loading...</> : "Here's a cover for the launch post."}
-            </div>
-            <div className="sx-image sx-image-plain">
-              {thinking ? "Generating image..." : <img src={IMAGES[turn % IMAGES.length]} alt="" />}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="sx-input"><ChatInputMock /></div>
+    <div className="sd-agent-text">
+      <p>Personal assistant</p>
+      <p className="t-shimmer" data-text="Booking the venue…">Booking the venue…</p>
     </div>
   );
 }
 
 function WithSkill() {
-  const [thinking, turn] = usePhase();
-  const image = useRef<ImageGenerationHandle>(null);
-  // The generation shader runs while the assistant works; the finished
-  // image dissolves in with the answer and goes back to the shader next turn.
-  useEffect(() => {
-    if (thinking) image.current?.triggerHide();
-    else image.current?.triggerReveal({ hold: "manual" });
-  }, [thinking, turn]);
   return (
     <div className="sx-card">
-      <div className="sx-thread">
-        <div className="sx-user">Make a cover image for our launch post</div>
-        <div className="sx-bot">
-          <BotAvatar type="clover" state={thinking ? "working" : "default"} size={32} />
-          <div className="sx-body">
-            <div className="sx-line">
-              {thinking ? (
-                <>
-                  <ThinkingOrb state="composing" size={20} theme="dark" aria-label="Generating" />
-                  <span className="t-shimmer" data-text="Generating image…">Generating image…</span>
-                </>
-              ) : (
-                "Here's a cover for the launch post."
-              )}
-            </div>
-            <ImageGeneration ref={image} preset="pixels-organic" theme="dark" images={IMAGES}>
-              <div className="sx-image" />
-            </ImageGeneration>
-          </div>
+      <div className="sx-col">
+        <BorderBeam size="md" theme="dark" className="sd-beam">
+          <PromptForm />
+        </BorderBeam>
+        <div className="sd-studio">
+          <span className="sd-studio-label">Studio app</span>
+          {/* 0.88 × the Figma's 45×25 badge: 22px tall. */}
+          <MetalBadge theme="dark" scale={0.88}>New</MetalBadge>
+        </div>
+        <BorderBeam size="pulse-inner" theme="dark" strength={0.8} className="sd-beam">
+          <button type="button" className="sd-btn">Get Pro</button>
+        </BorderBeam>
+        <div className="sd-status">
+          {/* Sizes are 64 / 32 / 20 presets; the 32 drawn at 24px stays crisp. */}
+          <ThinkingOrb state="connecting" size={32} theme="dark" style={{ width: 24, height: 24 }} />
+          <span className="t-shimmer" data-text="Planning next steps">Planning next steps</span>
+        </div>
+        <div className="sd-agent">
+          <BotAvatar type="triangle" state="default" size={48} theme="dark" />
+          <AgentText />
         </div>
       </div>
-      <div className="sx-input">
-        <BorderBeam size="md" colorVariant="colorful" theme="dark" active={thinking}>
-          <ChatInputMock />
-        </BorderBeam>
+    </div>
+  );
+}
+
+function Generic() {
+  return (
+    <div className="sx-card">
+      <div className="sx-col">
+        <div className="gx-input-glow">
+          <PromptForm />
+        </div>
+        <div className="sd-studio">
+          <span className="sd-studio-label">Studio app</span>
+          <span className="gx-badge">New</span>
+        </div>
+        <button type="button" className="sd-btn gx-ping">Get Pro</button>
+        <div className="sd-status">
+          <span className="gx-spinner" aria-hidden="true" />
+          <span className="t-shimmer" data-text="Planning next steps">Planning next steps</span>
+        </div>
+        <div className="sd-agent">
+          <span className="gx-avatar" aria-hidden="true">🤖</span>
+          <AgentText />
+        </div>
       </div>
     </div>
   );
@@ -96,5 +92,7 @@ function WithSkill() {
 
 const el = document.getElementById("skill-example-root");
 if (el) {
-  createRoot(el).render(<StrictMode>{GENERIC ? <Generic /> : <WithSkill />}</StrictMode>);
+  /* No StrictMode: metal-fx keeps one shared renderer, and the simulated
+     double mount leaves its loop frozen (see metal.tsx). */
+  createRoot(el).render(GENERIC ? <Generic /> : <WithSkill />);
 }
