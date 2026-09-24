@@ -1,0 +1,41 @@
+{
+  "name": "libraries-dev",
+  "version": "0.1.0",
+  "description": "Install the Libraries.dev agent skill: teaches your coding agent to use Border beam, Thinking orbs, Gooey, Voice, Bot avatars, Liquid metal and Image, and to find where they fit in your project. Free skill works out of the box; the Pro skill unlocks after a browser sign-in.",
+  "type": "module",
+  "bin": {
+    "libraries-dev": "bin/libraries-dev.mjs"
+  },
+  "files": [
+    "bin",
+    "skill"
+  ],
+  "scripts": {
+    "prepack": "node bin/sync-skill.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "agent-skill",
+    "claude-code",
+    "cursor",
+    "ui",
+    "react",
+    "animation",
+    "border-beam",
+    "thinking-orbs",
+    "liquid-gooey",
+    "voice-glow",
+    "bot-avatars",
+    "metal-fx",
+    "img-fx"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
+    "directory": "cli"
+  },
+  "homepage": "https://libraries.dev/how-to-use"
+}
