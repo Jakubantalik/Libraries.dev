@@ -6,7 +6,7 @@
  * one-line reason on failure, which the chat shows and sends back on the
  * next turn so the model can fix it. */
 
-export type CoreLang = "js" | "css" | "glsl" | "svg";
+export type CoreLang = "js" | "css" | "glsl" | "svg" | "path";
 
 /** What a library hands the Agent tab so its core can be rebuilt. */
 export interface CoreWiring {
@@ -48,6 +48,44 @@ export function checkSvgFilter(code: string): string | null {
     for (const a of Array.from(el.attributes)) {
       if (/^on/i.test(a.name) || /href/i.test(a.name)) return `attribute ${a.name} is not allowed`;
     }
+  }
+  return null;
+}
+
+/* ── SVG path outline ───────────────────────────────────────────────── */
+
+/* A bot's body outline: path data in the 100×100 body box. Path2D never
+   throws on bad data — it silently drops the rest — so the outline is
+   sampled on a grid instead: it must fill a real share of the box, stay
+   inside it, and cover the point the face is drawn at. */
+let pathCtx: CanvasRenderingContext2D | null | undefined;
+
+export function checkPath(code: string, face: { x: number; y: number }): string | null {
+  const bad = code.match(/[^MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]/);
+  if (bad) return `${JSON.stringify(bad[0])} is not path data — send the d attribute only`;
+  if (!/^\s*M/i.test(code)) return "path data must start with a moveto (M)";
+  if (pathCtx === undefined) pathCtx = document.createElement("canvas").getContext("2d");
+  const ctx = pathCtx;
+  if (!ctx || typeof Path2D === "undefined") return null;
+  let p: Path2D;
+  try {
+    p = new Path2D(code);
+  } catch (e) {
+    return `path did not parse: ${(e as Error).message}`;
+  }
+  let inside = 0;
+  let outside = 0;
+  for (let y = -30; y <= 130; y += 2) {
+    for (let x = -30; x <= 130; x += 2) {
+      if (!ctx.isPointInPath(p, x, y)) continue;
+      if (x >= 0 && x <= 100 && y >= 0 && y <= 100) inside++;
+      else outside++;
+    }
+  }
+  if (inside < 250) return "the outline is empty or tiny — draw it roughly 70–90 units across in the 100×100 box";
+  if (outside > inside * 0.03) return "the outline spills outside the 100×100 box — keep it inside 2..98";
+  if (!ctx.isPointInPath(p, face.x, face.y)) {
+    return `the face point (${face.x}, ${face.y}) falls outside the outline — keep the body solid round it`;
   }
   return null;
 }

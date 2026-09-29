@@ -45,6 +45,18 @@ Eighteen bodies, each with its own colour:
 <BotAvatar type="puddle" />    {/* salmon, a taller lumpy blob */}
 ```
 
+### Your own shape
+
+`path` takes SVG path data for the body outline, in a 100×100 box centred on (50, 50), in place of the type's own. It is extruded, lit and animated like any stock shape. The type still sets where the face sits, the default colour and the label, so keep the outline solid round the face.
+
+```tsx
+const heart = 'M50 88C50 88 12 64 12 38C12 24 23 14 35 14C42 14 47 18 50 23C53 18 58 14 65 14C77 14 88 24 88 38C88 64 50 88 50 88Z';
+
+<BotAvatar type="circle" path={heart} color="#ff5c8a" />
+```
+
+The stock outlines are exported as `botAvatarShapes`, a good place to start from.
+
 ## Faces
 
 The eyes alone by default. `face="mouth"` adds a small mouth that changes with the state:

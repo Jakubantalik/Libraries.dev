@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+`path`: a custom body outline — SVG path data in the 100×100 body box, centred on (50, 50) — in place of the type's own (and its antennae). The type still sets the face's place, the default colour and the label. The material caches are keyed by the outline, so custom shapes bake and light like the stock ones. The Studio agent redraws it when asked for a shape the library does not ship.
+
 ## 0.1.0
 
 First release: eighteen types (clover, flower, triangle, square, blob, ghost, circle, drop, star, droid, mech, alien, hexagon, cat, cloud, pill, pebble, puddle), two faces (eyes, mouth), three states (default, working, sleeping) with head turns, hops, flips and cross-animated switches, palette colours with `color`, `brightness`, `saturation` and `ink` overrides, `size`, `speed`, `paused`, `seed`, `shading` (per-pixel plastic by default, crisp, smooth or flat) with `shadow`, `highlight`, `light`, `depth`, `rim` and `spread`. Eyes and head follow the pointer, a click hops and flips (`interactive`). The face is clipped to the front of the body, so a wide turn can never carry a feature off the silhouette. Settling back to idle from working takes a second and a fifth,, and a hop under way flies its whole arc, finishes its turn and lands with a jump's proper landing — the hold on the ground and the rise back — before the hops stop; every state switch eases on a sine. Idle, the head looks to a corner, stays a few seconds and then swings across to the opposite one — fifty degrees of turn either side, fourteen of rise and a slight tilt with it — the eyes running ahead of the turn (`turn` scales how far it goes to the side), and they draw taller looking up and shorter looking down. Rendered on a 2D canvas as a lit extrusion; the rig and renderer are exported.

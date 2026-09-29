@@ -3,15 +3,18 @@ import {
   BotAvatar,
   botAvatarPalette,
   botAvatarPresets,
+  botAvatarShapes,
   botAvatarTypes,
   autoInk,
   shade,
   type BotAvatarFace,
   type BotAvatarShading,
+  type BotAvatarSquashEase,
   type BotAvatarState,
   type BotAvatarType,
 } from "bot-avatars";
 import { ControlsPanel, PgTabs, PgSlider, PgSwatches, PgToggles, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
+import { checkPath, type CoreWiring } from "./core";
 
 /* Studio — Bot avatars workbench. Every prop on the component is a knob:
    the type, the face and the state, then the size, the body colour and
@@ -57,6 +60,47 @@ const INK_OPTIONS = [
   { value: "#DC48FF", label: "Magenta" },
 ];
 
+/* Param key -> the knob's own label, for the agent's applied-change line. */
+const AVATAR_PARAM_LABELS: Record<string, string> = {
+  type: "Type",
+  face: "Face",
+  state: "State",
+  size: "Size",
+  color: "Color",
+  ink: "Ink",
+  brightness: "Brightness",
+  saturation: "Saturation",
+  shading: "Shading",
+  shadow: "Shadow",
+  highlight: "Highlight",
+  light: "Light angle",
+  rim: "Rim",
+  spread: "Spread",
+  depth: "Depth",
+  speed: "Speed",
+  turn: "Side turn",
+  interactive: "Follow pointer",
+  whirl: "Whirl ring",
+  jumpEvery: "Every",
+  jumpHeight: "Height",
+  jumpTime: "Air time",
+  jumpStretch: "Stretch",
+  jumpSpin: "Spin",
+  jumpLean: "Lean",
+  jumpSquash: "Squash",
+  jumpSquashTime: "Squash time",
+  jumpSquashEase: "Squash easing",
+  jumpGroundTime: "Ground time",
+  jumpGroundEase: "Ground easing",
+  jumpRiseTime: "Rise time",
+  jumpRiseEase: "Rise easing",
+  jumpClickSquashTime: "Click squash time",
+  jumpLand: "Land squash",
+  paused: "Paused",
+  core: "Outline",
+};
+const EASES = new Set<string>(SQUASH_EASE_OPTIONS.map((o) => o.value));
+
 export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: boolean; theme?: "dark" | "light" }) {
   const [type, setType] = useState<BotAvatarType>("clover");
   /* The face follows the type's own until one is picked; the colour and
@@ -98,6 +142,10 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [jumpGroundEase, setJumpGroundEase] = useState<"sharp" | "pulse" | "soft" | "bouncy">("pulse");
   const [jumpRiseTime, setJumpRiseTime] = useState(330); // ms back to shape
   const [jumpRiseEase, setJumpRiseEase] = useState<"sharp" | "pulse" | "soft" | "bouncy">("pulse");
+  /* The agent's redrawn body outline (SVG path data), or "" for the
+     type's own. It replaces that type's shape, so picking another type
+     drops it. */
+  const [core, setCore] = useState("");
 
   const preset = botAvatarPresets[type];
   const shownFace = face ?? preset.face;
@@ -117,10 +165,80 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
     setFace(saved?.face ?? null);
     setColor(saved?.color ?? null);
     setInk(saved?.ink ?? null);
+    setCore("");
+  };
+
+  /* Agent wiring — keys match the Worker's spec (AVATARS_SPEC), which
+     owns the ranges; values are in the knobs' own units (% and ms). The
+     colour and ink are sent as shown, so the model sees the palette
+     colour even before one is picked. */
+  const agentParams: Record<string, unknown> = {
+    type, face: shownFace, state, size, color: shownColor, ink: shownInk, brightness, saturation,
+    shading, shadow, highlight, light, rim, spread, depth, speed, turn, interactive, whirl: whirl > 0,
+    jumpEvery, jumpHeight, jumpTime, jumpStretch, jumpSpin, jumpLean, jumpSquash, jumpSquashTime,
+    jumpSquashEase, jumpGroundTime, jumpGroundEase, jumpRiseTime, jumpRiseEase, jumpClickSquashTime,
+    jumpLand, paused, core,
+  };
+
+  /* A patch that switches type and picks a colour in one call must land
+     the colour on the NEW type, so the type goes first. */
+  const applyAgentParams = (patch: Record<string, unknown>) => {
+    const n = (k: string, set: (v: number) => void) => {
+      if (typeof patch[k] === "number") set(patch[k] as number);
+    };
+    const ease = (k: string, set: (v: BotAvatarSquashEase) => void) => {
+      if (typeof patch[k] === "string" && EASES.has(patch[k] as string)) set(patch[k] as BotAvatarSquashEase);
+    };
+    if (typeof patch.type === "string" && patch.type in botAvatarPresets) chooseType(patch.type as BotAvatarType);
+    if (typeof patch.core === "string") setCore(patch.core);
+    if (patch.face === "eyes" || patch.face === "mouth") setFace(patch.face);
+    if (patch.state === "default" || patch.state === "working" || patch.state === "sleeping") setState(patch.state);
+    if (typeof patch.color === "string") setColor(patch.color);
+    if (typeof patch.ink === "string") setInk(patch.ink);
+    if (typeof patch.shading === "string" && SHADING_OPTIONS.some((o) => o.value === patch.shading)) setShading(patch.shading as BotAvatarShading);
+    n("size", setSize);
+    n("brightness", setBrightness);
+    n("saturation", setSaturation);
+    n("shadow", setShadow);
+    n("highlight", setHighlight);
+    n("light", setLight);
+    n("rim", setRim);
+    n("spread", setSpread);
+    n("depth", setDepth);
+    n("speed", setSpeed);
+    n("turn", setTurn);
+    if (typeof patch.interactive === "boolean") setInteractive(patch.interactive);
+    if (typeof patch.whirl === "boolean") setWhirl(patch.whirl ? 100 : 0);
+    n("jumpEvery", setJumpEvery);
+    n("jumpHeight", setJumpHeight);
+    n("jumpTime", setJumpTime);
+    n("jumpStretch", setJumpStretch);
+    if (patch.jumpSpin === "0" || patch.jumpSpin === "1" || patch.jumpSpin === "2") setJumpSpin(patch.jumpSpin);
+    n("jumpLean", setJumpLean);
+    n("jumpSquash", setJumpSquash);
+    n("jumpSquashTime", setJumpSquashTime);
+    ease("jumpSquashEase", setJumpSquashEase);
+    n("jumpGroundTime", setJumpGroundTime);
+    ease("jumpGroundEase", setJumpGroundEase);
+    n("jumpRiseTime", setJumpRiseTime);
+    ease("jumpRiseEase", setJumpRiseEase);
+    n("jumpClickSquashTime", setJumpClickSquashTime);
+    n("jumpLand", setJumpLand);
+    if (typeof patch.paused === "boolean") setPaused(patch.paused);
+  };
+
+  const coreWiring: CoreWiring = {
+    lang: "path",
+    source: () =>
+      `// Stock outline for type "${type}" — SVG path data in the 100×100 body box, centred on (50, 50).\n` +
+      `// The face is drawn at (${preset.faceX}, ${preset.faceY}), scale ${preset.faceScale}; keep the outline solid round it.\n` +
+      (botAvatarShapes[type] ?? ""),
+    check: (code) => checkPath(code, { x: preset.faceX, y: preset.faceY }),
   };
 
   /* Live snippet: only non-default props survive. */
   const props = [`type="${type}"`];
+  if (core) props.push("path={outline}");
   if (face && face !== preset.face) props.push(`face="${face}"`);
   if (state !== "default") props.push(`state="${state}"`);
   if (size !== 64) props.push(`size={${size}}`);
@@ -159,15 +277,19 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (jumpClickSquashTime !== 240) props.push(`jumpClickSquashTime={${num(jumpClickSquashTime / 1000)}}`);
   if (theme === "light") props.push(`theme="light"`);
   if (paused) props.push("paused");
-  const snippet = `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
+  const snippet = core
+    ? `import { BotAvatar } from 'bot-avatars';\n\n// A custom body outline: SVG path data in the 100×100 body box.\nconst outline = '${core}';\n\n<BotAvatar ${props.join(" ")} />`
+    : `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
+  const agent = { libraryId: "avatars", params: agentParams, labels: AVATAR_PARAM_LABELS, onApply: applyAgentParams };
 
   return (
     <div className="pg">
-      <StageBar library="Bot avatars" prompt={{ pkg: "bot-avatars", docsPath: "/bots.html", snippet }} />
+      <StageBar library="Bot avatars" prompt={{ pkg: "bot-avatars", docsPath: "/bots.html", snippet }} agent={agent} />
       <div className="pg-stage">
         {visible && (
           <BotAvatar
             type={type}
+            path={core || undefined}
             face={shownFace}
             state={state}
             size={size}
@@ -216,7 +338,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
         </button>
       </div>
 
-      <ControlsPanel library="Bot avatars">
+      <ControlsPanel library="Bot avatars" agent={{ ...agent, core: coreWiring }}>
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={chooseType} />
         <PgTabs label="Face" options={FACE_OPTIONS} value={shownFace} onChange={setFace} />
         <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />

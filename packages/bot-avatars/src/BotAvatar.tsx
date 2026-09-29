@@ -34,6 +34,7 @@ const reducedMotion = () =>
 export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function BotAvatar(
   {
     type = 'clover',
+    path,
     face,
     state = 'default',
     size = 64,
@@ -96,6 +97,11 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const stateKey: BotAvatarState = state in stateLabels ? state : 'default';
   const frozen = paused || !(speed > 0);
   const shadingMode: BotAvatarShading = shading === true ? 'crisp' : shading === false ? 'flat' : shading;
+  /* A custom outline replaces the type's (and its thin parts); the material
+     caches are keyed by the outline itself, so two avatars with the same
+     path share one bake and a changed path never reuses the old one. */
+  const customPath = typeof path === 'string' && path.trim() ? path.trim() : null;
+  const outlineKey = customPath ? `path:${hashSeed(customPath)}:${customPath.length}` : type;
 
   /* the sim lives across renders; props reach it through refs */
   const sim = useRef<Sim | null>(null);
@@ -107,7 +113,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   interactiveRef.current = interactive;
 
   cfg.current = {
-    path: typeof Path2D === 'undefined' ? (null as unknown as Path2D) : bodyPath(SHAPE_PATHS[type] ?? SHAPE_PATHS.clover),
+    path: typeof Path2D === 'undefined' ? (null as unknown as Path2D) : bodyPath(customPath ?? SHAPE_PATHS[type] ?? SHAPE_PATHS.clover),
     face: faceKind,
     faceX: preset.faceX,
     faceY: preset.faceY,
@@ -121,10 +127,10 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     light,
     rim: clamp(rim, 0, 2),
     spread: clamp(spread, 0.4, 2.5),
-    typeKey: type,
+    typeKey: outlineKey,
     still: frozen || reducedMotion(),
     whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
-    parts: typeof Path2D !== 'undefined' && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
+    parts: typeof Path2D !== 'undefined' && !customPath && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
   };
 
   /* the surface: an ancestor's say, else the system's */
@@ -201,12 +207,12 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const path = cfg.current.path;
     const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
-    const id = ric(() => warmPlastic(type, path, dev, depth));
+    const id = ric(() => warmPlastic(outlineKey, path, dev, depth));
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);
     };
-  }, [shadingMode, type, size, depth]);
+  }, [shadingMode, outlineKey, size, depth]);
 
   /* the loop: only while visible, animated and not reduced */
   useEffect(() => {
