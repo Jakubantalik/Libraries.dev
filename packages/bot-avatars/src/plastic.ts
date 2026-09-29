@@ -231,7 +231,7 @@ export function buildForm(cov: Uint8Array | Uint8ClampedArray, N: number, halfDe
   const form: Form = { N, i00: new Uint16Array(NN), wx: new Uint8Array(NN), wy: new Uint8Array(NN), ao: new Uint8Array(NN), sd, h };
   const { i00, wx, wy, ao } = form;
   const STEPS = N <= 64 ? [1, 2, 3, 5, 8] : N <= 96 ? [1, 2, 4, 7, 11] : [1, 2, 4, 7, 11, 15];
-  const halo = 25; // outside texels within 5 texels borrow their nearest inside texel (fabric's fringe reaches that far)
+  const halo = 64; // outside texels within 8 texels borrow their nearest inside texel (fabric's fringe reaches that far)
   const last = N - 1;
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
@@ -700,7 +700,7 @@ export function furFor(form: Form): Fur {
   for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
   const fringe: Path2D = new Path2D();
   const area = SPAN * SPAN;
-  const count = Math.round(area * 3.4);
+  const count = Math.round(area * 2.8);
   for (let n = 0; n < count; n++) {
     const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
     const d = sdAt(X, Y);
@@ -709,7 +709,7 @@ export function furFor(form: Form): Fur {
     const ang = (rand() - 0.5) * 0.55;
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
-    const len = 0.75 + 1.1 * rand();
+    const len = 1.6 + 2.4 * rand();
     /* fibres in a clump's middle catch the light; between clumps they sit
        in the dark; tips are lighter than roots */
     const c = clump(X, Y);
@@ -720,25 +720,32 @@ export function furFor(form: Form): Fur {
     v = Math.max(-1, Math.min(1, v));
     const b = Math.min(SHADES - 1, Math.max(0, Math.round(((v + 1) / 2) * (SHADES - 1))));
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
+    /* a long fibre does not lie straight: a slight bend along its length */
+    const bendF = (rand() - 0.5) * 0.3 * len * px;
     buckets[b].moveTo(x0, y0);
-    buckets[b].lineTo(x0 + ux * len * px, y0 + uy * len * px);
+    buckets[b].quadraticCurveTo(
+      x0 + ux * len * px * 0.5 - uy * bendF,
+      y0 + uy * len * px * 0.5 + ux * bendF,
+      x0 + ux * len * px,
+      y0 + uy * len * px
+    );
   }
   /* the fuzz: fibres rooted just inside the edge, standing out past it —
      many, very fine, of mixed length (mostly short, a few long), leaning
      with the flow, so the edge is a soft haze rather than a comb */
-  const edgeTries = Math.round(area * 5);
+  const edgeTries = Math.round(area * 6.5);
   for (let n = 0; n < edgeTries; n++) {
     const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
     const d = sdAt(X, Y);
-    if (d < -0.1 || d > 0.9) continue;
+    if (d < -0.2 || d > 1.5) continue;
     const [fx, fy] = flow(X, Y);
     const ang = (rand() - 0.5) * 0.9;
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
     const r1 = rand();
-    const fl = (0.25 + 1.25 * r1 * r1 * r1) * px;
+    const fl = (0.6 + 3.4 * r1 * r1) * px;
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-    const bend = (rand() - 0.5) * 0.35 * fl;
+    const bend = (rand() - 0.5) * 0.45 * fl;
     fringe.moveTo(x0, y0);
     fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl);
   }
@@ -758,7 +765,7 @@ export function furFor(form: Form): Fur {
   for (let y = 0; y < R; y++) {
     for (let x = 0; x < R; x++) {
       const d = sdAt(x / px - PAD, y / px - PAD);
-      const a = d >= 0.35 ? 1 : d <= -0.75 ? 0 : (d + 0.75) / 1.1;
+      const a = d >= 0.4 ? 1 : d <= -1.1 ? 0 : (d + 1.1) / 1.5;
       const k = (y * R + x) * 4;
       mi.data[k] = mi.data[k + 1] = mi.data[k + 2] = 255;
       mi.data[k + 3] = Math.round(255 * a * a * (3 - 2 * a));
@@ -767,7 +774,7 @@ export function furFor(form: Form): Fur {
   mg.putImageData(mi, 0, 0);
   mg.lineCap = 'round';
   mg.lineWidth = Math.max(0.35, 0.12 * px);
-  mg.strokeStyle = 'rgba(255,255,255,0.34)';
+  mg.strokeStyle = 'rgba(255,255,255,0.3)';
   mg.stroke(fringe);
 
   fur.fibre = fc;
