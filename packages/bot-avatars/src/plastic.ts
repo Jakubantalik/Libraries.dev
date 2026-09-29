@@ -334,18 +334,24 @@ function pathId(p: Path2D): string {
    stacks all of them into one frame */
 const queue: (() => void)[] = [];
 let scheduled = false;
-function pump() {
+/* one task at least, then as many more as the idle period has room for;
+   a callback forced by its timeout runs just the one */
+function pump(deadline?: { timeRemaining(): number; didTimeout?: boolean }) {
   scheduled = false;
-  const fn = queue.shift();
-  if (fn) fn();
+  let fn = queue.shift();
+  while (fn) {
+    fn();
+    if (!deadline || deadline.didTimeout || deadline.timeRemaining() < 6) break;
+    fn = queue.shift();
+  }
   if (queue.length) schedule();
 }
 function schedule() {
   if (scheduled) return;
   scheduled = true;
-  const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+  const ric = (globalThis as { requestIdleCallback?: (cb: (d: { timeRemaining(): number; didTimeout?: boolean }) => void, o?: { timeout: number }) => void }).requestIdleCallback;
   if (ric) ric(pump, { timeout: 120 });
-  else setTimeout(pump, 16);
+  else setTimeout(() => pump(), 16);
 }
 function idle(fn: () => void) {
   queue.push(fn);
@@ -377,7 +383,12 @@ function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: 
 /** Build a form ahead of time (call from an idle callback at mount). */
 export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65, fabric = false) {
   const form = formFor(key, path, tierFor(devicePx), 15 * depth, true);
-  if (fabric && form) furFor(form);
+  if (fabric && form) {
+    /* the stock light, 265°: toward the source on screen. The pile is
+       queued as idle steps rather than baked here in one long task. */
+    const a = (265 * Math.PI) / 180;
+    furReady(form, key, 15 * depth, Math.ceil((SPAN * devicePx) / 100), false, Math.sin(a), -Math.cos(a));
+  }
 }
 /** Texture size for an avatar `devicePx` wide (CSS px × device pixel ratio). */
 export function tierFor(devicePx: number): number {
@@ -572,7 +583,17 @@ export interface Fur {
   /** the body plus a fringe of hairs past its edge, as alpha */
   mask: AnyCanvas | null;
 }
-const furs = new WeakMap<Form, Fur>();
+/* The pile is a property of the shape, not of one avatar or one texture
+   size: it is kept per outline and depth, per resolution tier (matched to
+   how large the avatar is drawn, so a small one never pays for a large
+   pile), and per light direction in 15° bins (the tufts are lit). A page
+   of avatars of one type shares one pile. */
+const furs = new Map<string, Fur>();
+const furPending = new Set<string>();
+const lightBin = (lx: number, ly: number) => Math.round(Math.atan2(ly, lx) / (Math.PI / 12));
+/* the pile's resolution for a cap drawn `capPx` device pixels across */
+const furTier = (capPx: number) => (capPx <= 200 ? 192 : capPx <= 360 ? 320 : 512);
+const furKey = (key: string, halfDepth: number, R: number, bin: number) => `${key}|${Math.round(halfDepth)}|${R}|${bin}`;
 
 /* a stable white noise, so every avatar of a type wears the same pile */
 function hash2(x: number, y: number): number {
@@ -590,17 +611,23 @@ function bilerp(f: Float32Array, N: number, x: number, y: number): number {
   return (f[i] * (1 - tx) + f[i + 1] * tx) * (1 - ty) + (f[i + N] * (1 - tx) + f[i + N + 1] * tx) * ty;
 }
 
-/* the pile takes 10–20 ms to make: on idle time, like the form, unless
+/* the pile takes 30–50 ms to make: on idle time, in small steps, unless
    no animation will follow (then now) */
-const furPending = new WeakSet<Form>();
-function furReady(form: Form, sync: boolean): Fur | null {
-  const hit = furs.get(form);
+function furReady(form: Form, key: string, halfDepth: number, capPx: number, sync: boolean, lx: number, ly: number): Fur | null {
+  const R = furTier(capPx), bin = lightBin(lx, ly);
+  const id = furKey(key, halfDepth, R, bin);
+  const hit = furs.get(id);
   if (hit) return hit;
-  if (sync) return furFor(form);
-  if (!furPending.has(form)) {
-    furPending.add(form);
-    idle(() => furFor(form));
+  if (sync) return furFor(form, key, halfDepth, capPx, lx, ly);
+  if (!furPending.has(id)) {
+    furPending.add(id);
+    const job = furJob(form, id, R, lx, ly);
+    if (job) for (const step of job.steps) idle(step);
   }
+  /* while it bakes, the same shape's pile at another tier or light will
+     do — close enough for the few frames until this one lands */
+  const prefix = `${key}|${Math.round(halfDepth)}|`;
+  for (const [k, f] of furs) if (k.startsWith(prefix)) return f;
   return null;
 }
 
@@ -630,45 +657,71 @@ function valueNoise(scale: number, seed: number) {
 }
 
 /**
- * The pile for a form: made once per outline and texture size.
+ * The pile for a form: made once per outline, texture size and light.
  *
- * Real plush is short fibres combed in one flow — away from the crown and
- * down, the way a toy's fur lies — each fibre a thin line with a light tip
- * and a darker gap beside it, gathered into small clumps. So the pile is
- * drawn, not averaged: thousands of short strokes along that flow, light
- * and dark, into a grey layer centred on mid-grey that is laid over the lit
- * texels with an overlay blend (mid-grey leaves them alone, lighter fibres
- * lift them, darker ones sink them). The silhouette stays a smooth curve
- * with a fine fuzz of fibres standing just past it, not a ragged edge.
+ * Real plush is built in layers: a dense, fine undercoat; the main fibres,
+ * darker at the root and lighter toward the tip; a few long guard hairs
+ * with bright tips standing over them; all gathered into small tufts that
+ * lean together and catch the light on the side that faces it. The fibres
+ * are combed in one flow — away from a crown near the top of the head and
+ * down, turning outward at the edge. So the pile is drawn stroke by stroke
+ * into a grey layer centred on mid-grey and laid over the lit texels with an
+ * overlay blend (mid-grey leaves them alone, lighter fibres lift them,
+ * darker ones sink them). The silhouette stays a smooth curve with a haze
+ * of fine hairs standing past it.
  */
-export function furFor(form: Form): Fur {
-  let fur = furs.get(form);
-  if (fur) return fur;
+export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0): Fur {
+  const R = furTier(capPx);
+  const id = furKey(key, halfDepth, R, lightBin(lx, ly));
+  const hit = furs.get(id);
+  if (hit) return hit;
+  const job = furJob(form, id, R, lx, ly);
+  if (job) for (const step of job.steps) step();
+  return furs.get(id) ?? { R: 0, fibre: null, mask: null };
+}
+
+/* the bake as a list of steps sharing one closure; the last one files the
+   finished pile in the cache */
+function furJob(form: Form, id: string, R: number, lx: number, ly: number): { steps: (() => void)[] } | null {
+  if (furs.has(id)) return null;
+  /* files the finished pile, keeping the cache to a couple of dozen */
+  const file = (f: Fur) => {
+    if (furs.size >= 24) furs.delete(furs.keys().next().value as string);
+    furs.set(id, f);
+    furPending.delete(id);
+  };
   const { N } = form;
-  const R = Math.min(384, N * 3);
   const px = R / SPAN; // pixels per design unit
   const at = (f: Float32Array, x: number, y: number) => bilerp(f, N, ((x + PAD) / SPAN) * N - 0.5, ((y + PAD) / SPAN) * N - 0.5);
   const sdAt = (x: number, y: number) => at(form.sd, x, y);
-  fur = { R, fibre: null, mask: null };
+  const fur: Fur = { R, fibre: null, mask: null };
   const fc = makeCanvas(R), mc = makeCanvas(R);
   const fg = fc && ctx2d(fc, false), mg = mc && ctx2d(mc, false);
   if (!fc || !mc || !fg || !mg) {
-    furs.set(form, fur);
-    return fur;
+    file(fur);
+    return null;
   }
   const rand = rng(N * 7919 + 17);
-  const clump = valueNoise(3.2, 3), tone = valueNoise(22, 9);
+  const clump = valueNoise(2.6, 3), lean = valueNoise(3.4, 21), tone = valueNoise(22, 9);
+  const ll = Math.hypot(lx, ly) || 1;
+  const Lx = lx / ll, Ly = ly / ll;
+  /* a tuft is a small mound: lit on the side toward the light, in shade on
+     the other — the clump noise read as a height, its slope against the light */
+  const tuftLit = (x: number, y: number) => {
+    const e = 0.5;
+    const gx = clump(x + e, y) - clump(x - e, y), gy = clump(x, y + e) - clump(x, y - e);
+    return Math.max(-1, Math.min(1, ((gx * Lx + gy * Ly) / (2 * e)) * 2.6 * 1.4));
+  };
 
   /* the flow: away from a crown high on the head and down, turning to lie
-     outward along the outline near the edge */
+     outward along the outline near the edge; each tuft leans its own way */
   const crownX = 50, crownY = 12;
   const flow = (x: number, y: number): [number, number] => {
     let dx = x - crownX, dy = y - crownY;
     const l = Math.hypot(dx, dy) || 1;
-    dx = dx / l + 0; dy = dy / l + 0.55;
+    dx = dx / l; dy = dy / l + 0.55;
     const d0 = sdAt(x, y);
     if (d0 < 5) {
-      /* near the edge: outward, from the distance field's slope */
       const e = 0.8;
       let ox = sdAt(x - e, y) - sdAt(x + e, y), oy = sdAt(x, y - e) - sdAt(x, y + e);
       const ol = Math.hypot(ox, oy) || 1;
@@ -676,70 +729,113 @@ export function furFor(form: Form): Fur {
       const w = Math.max(0, Math.min(1, 1 - d0 / 5)) * 0.75;
       dx = dx * (1 - w) + ox * w * 1.6; dy = dy * (1 - w) + oy * w * 1.6;
     }
-    const m = Math.hypot(dx, dy) || 1;
-    return [dx / m, dy / m];
+    const a = (lean(x, y) - 0.5) * 0.9;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    const rx = dx * ca - dy * sa, ry = dx * sa + dy * ca;
+    const m = Math.hypot(rx, ry) || 1;
+    return [rx / m, ry / m];
   };
 
+  const steps: (() => void)[] = [];
   /* 1. the base: mid-grey, with a slow drift in the pile's tone */
-  const base = new ImageData(R, R);
-  for (let y = 0; y < R; y++) {
-    for (let x = 0; x < R; x++) {
-      const X = x / px - PAD, Y = y / px - PAD;
-      const v = Math.round(128 + (tone(X, Y) - 0.5) * 18);
-      const k = (y * R + x) * 4;
-      base.data[k] = base.data[k + 1] = base.data[k + 2] = v;
-      base.data[k + 3] = 255;
+  steps.push(() => {
+  /* the tone drifts over twenty units: a quarter of the resolution,
+     scaled up, is the same picture for a sixteenth of the work */
+  const Rq = Math.max(16, R >> 2), pq = Rq / SPAN;
+  const tc = makeCanvas(Rq), tg = tc && ctx2d(tc, false);
+  if (tc && tg) {
+    const base = new ImageData(Rq, Rq);
+    for (let y = 0; y < Rq; y++) {
+      for (let x = 0; x < Rq; x++) {
+        const v = Math.round(128 + (tone(x / pq - PAD, y / pq - PAD) - 0.5) * 18);
+        const k = (y * Rq + x) * 4;
+        base.data[k] = base.data[k + 1] = base.data[k + 2] = v;
+        base.data[k + 3] = 255;
+      }
     }
+    tg.putImageData(base, 0, 0);
+    fg.imageSmoothingEnabled = true;
+    fg.imageSmoothingQuality = 'high';
+    fg.drawImage(tc as HTMLCanvasElement, 0, 0, R, R);
+  } else {
+    fg.fillStyle = 'rgb(128,128,128)';
+    fg.fillRect(0, 0, R, R);
   }
-  fg.putImageData(base, 0, 0);
+  fg.lineCap = 'round';
+  fg.lineJoin = 'round';
+  });
 
-  /* 2. the fibres: strokes bucketed by shade, so a bake is a few dozen
-     stroke calls however many fibres it draws */
-  const SHADES = 14;
-  const buckets: Path2D[] = [];
-  for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
-  const fringe: Path2D = new Path2D();
+  /* 2. the fibres, layer by layer, a step each: strokes bucketed by shade,
+     so a layer is a few dozen stroke calls however many fibres it draws */
+  const SHADES = 16;
   const area = SPAN * SPAN;
-  const count = Math.round(area * 2.8);
-  for (let n = 0; n < count; n++) {
-    const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
-    const d = sdAt(X, Y);
-    if (d < -0.3) continue;
-    const [fx, fy] = flow(X, Y);
-    const ang = (rand() - 0.5) * 0.55;
-    const ca = Math.cos(ang), sa = Math.sin(ang);
-    const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
-    const len = 1.6 + 2.4 * rand();
-    /* fibres in a clump's middle catch the light; between clumps they sit
-       in the dark; tips are lighter than roots */
-    const c = clump(X, Y);
-    const r0 = rand();
-    let v = (c - 0.5) * 0.9;
-    if (r0 < 0.34) v += 0.35 + 0.35 * rand();
-    else if (r0 < 0.8) v -= 0.3 + 0.35 * rand();
-    v = Math.max(-1, Math.min(1, v));
-    const b = Math.min(SHADES - 1, Math.max(0, Math.round(((v + 1) / 2) * (SHADES - 1))));
-    const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-    /* a long fibre does not lie straight: a slight bend along its length */
-    const bendF = (rand() - 0.5) * 0.3 * len * px;
-    buckets[b].moveTo(x0, y0);
-    buckets[b].quadraticCurveTo(
-      x0 + ux * len * px * 0.5 - uy * bendF,
-      y0 + uy * len * px * 0.5 + ux * bendF,
-      x0 + ux * len * px,
-      y0 + uy * len * px
-    );
-  }
-  /* the fuzz: fibres rooted just inside the edge, standing out past it —
+  const layers = [
+    /* undercoat: dense, fine, short, quiet */
+    { count: 3.4, len: [0.5, 0.8], width: 0.12, spread: 70, alpha: 0.42, split: false, lift: 0 },
+    /* the main fibres: root darker than tip */
+    { count: 2.1, len: [1.6, 2.5], width: 0.18, spread: 80, alpha: 0.55, split: true, lift: 0.05 },
+    /* guard hairs: few, long, thin, bright-tipped */
+    { count: 0.36, len: [3.0, 2.4], width: 0.11, spread: 95, alpha: 0.7, split: true, lift: 0.3 },
+  ];
+  const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
+  for (const L of layers) for (let half = 0; half < 2; half++) steps.push(() => {
+    const buckets: Path2D[] = [];
+    for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
+    const count = Math.round((area * L.count) / 2);
+    for (let n = 0; n < count; n++) {
+      const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
+      if (sdAt(X, Y) < -0.3) continue;
+      const [fx, fy] = flow(X, Y);
+      const ang = (rand() - 0.5) * 0.35;
+      const ca = Math.cos(ang), sa = Math.sin(ang);
+      const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
+      const len = (L.len[0] + L.len[1] * rand()) * px;
+      /* the fibre's own shade: its tuft's light and height, and whether it
+         is one catching the light or one in a gap */
+      const r0 = rand();
+      let v = (clump(X, Y) - 0.5) * 0.7 + tuftLit(X, Y) * 0.45;
+      if (r0 < 0.34) v += 0.3 + 0.3 * rand();
+      else if (r0 < 0.78) v -= 0.25 + 0.3 * rand();
+      v += L.lift;
+      const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
+      const bend = (rand() - 0.5) * 0.28 * len;
+      const mx = x0 + ux * len * 0.45 - uy * bend, my = y0 + uy * len * 0.45 + ux * bend;
+      const x1 = x0 + ux * len, y1 = y0 + uy * len;
+      if (L.split) {
+        /* root in shade, tip in the light */
+        const rb = buckets[shadeOf(v - 0.28)], tb = buckets[shadeOf(v + 0.22)];
+        rb.moveTo(x0, y0);
+        rb.lineTo(mx, my);
+        tb.moveTo(mx, my);
+        tb.lineTo(x1, y1);
+      } else {
+        const b = buckets[shadeOf(v)];
+        b.moveTo(x0, y0);
+        b.quadraticCurveTo(mx, my, x1, y1);
+      }
+    }
+    fg.lineWidth = Math.max(0.45, L.width * px);
+    fg.globalAlpha = L.alpha;
+    for (let i = 0; i < SHADES; i++) {
+      const g = Math.round(128 + ((i / (SHADES - 1)) * 2 - 1) * L.spread);
+      fg.strokeStyle = `rgb(${g},${g},${g})`;
+      fg.stroke(buckets[i]);
+    }
+    fg.globalAlpha = 1;
+  });
+
+  /* 3. the fuzz: fibres rooted just inside the edge, standing out past it —
      many, very fine, of mixed length (mostly short, a few long), leaning
      with the flow, so the edge is a soft haze rather than a comb */
-  const edgeTries = Math.round(area * 6.5);
+  steps.push(() => {
+  const fringe = new Path2D();
+  const edgeTries = Math.round(area * 8);
   for (let n = 0; n < edgeTries; n++) {
     const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
     const d = sdAt(X, Y);
     if (d < -0.2 || d > 1.5) continue;
     const [fx, fy] = flow(X, Y);
-    const ang = (rand() - 0.5) * 0.9;
+    const ang = (rand() - 0.5) * 0.8;
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
     const r1 = rand();
@@ -749,38 +845,45 @@ export function furFor(form: Form): Fur {
     fringe.moveTo(x0, y0);
     fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl);
   }
-  fg.lineCap = 'round';
-  fg.lineWidth = Math.max(0.55, 0.24 * px);
-  for (let i = 0; i < SHADES; i++) {
-    const v = Math.round(128 + ((i / (SHADES - 1)) * 2 - 1) * 70);
-    fg.strokeStyle = `rgb(${v},${v},${v})`;
-    fg.globalAlpha = 0.5;
-    fg.stroke(buckets[i]);
-  }
+  /* the edge hairs are seen side-on against the light: a touch lighter */
+  fg.lineWidth = Math.max(0.35, 0.1 * px);
+  fg.globalAlpha = 0.45;
+  fg.strokeStyle = 'rgb(168,168,168)';
+  fg.stroke(fringe);
   fg.globalAlpha = 1;
 
-  /* 3. the coverage: the outline with a soft one-unit feather — a smooth
-     curve, as plush is — and the fuzz of fibres standing just past it */
-  const mi = new ImageData(R, R);
-  for (let y = 0; y < R; y++) {
-    for (let x = 0; x < R; x++) {
-      const d = sdAt(x / px - PAD, y / px - PAD);
+  /* 4. the coverage: the outline with a soft feather — a smooth curve, as
+     plush is — and the fuzz standing past it */
+  /* the feather spans a unit and a half: half the resolution, scaled up,
+     draws it the same */
+  const Rh = R >> 1, ph = Rh / SPAN;
+  const hc = makeCanvas(Rh), hg = hc && ctx2d(hc, false);
+  const mi = new ImageData(Rh, Rh);
+  for (let y = 0; y < Rh; y++) {
+    for (let x = 0; x < Rh; x++) {
+      const d = sdAt((x + 0.5) / ph - PAD, (y + 0.5) / ph - PAD);
       const a = d >= 0.4 ? 1 : d <= -1.1 ? 0 : (d + 1.1) / 1.5;
-      const k = (y * R + x) * 4;
+      const k = (y * Rh + x) * 4;
       mi.data[k] = mi.data[k + 1] = mi.data[k + 2] = 255;
       mi.data[k + 3] = Math.round(255 * a * a * (3 - 2 * a));
     }
   }
-  mg.putImageData(mi, 0, 0);
+  if (hc && hg) {
+    hg.putImageData(mi, 0, 0);
+    mg.imageSmoothingEnabled = true;
+    mg.imageSmoothingQuality = 'high';
+    mg.drawImage(hc as HTMLCanvasElement, 0, 0, R, R);
+  }
   mg.lineCap = 'round';
-  mg.lineWidth = Math.max(0.35, 0.12 * px);
-  mg.strokeStyle = 'rgba(255,255,255,0.3)';
+  mg.lineWidth = Math.max(0.35, 0.1 * px);
+  mg.strokeStyle = 'rgba(255,255,255,0.32)';
   mg.stroke(fringe);
 
   fur.fibre = fc;
   fur.mask = mc;
-  furs.set(form, fur);
-  return fur;
+  file(fur);
+  });
+  return { steps };
 }
 
 /** The lit sphere for the pile: a softly wrapped diffuse that still
@@ -927,6 +1030,10 @@ interface State {
   furCapIdx: number;
   furCapFrom: AnyCanvas | null;
   furCapR: number;
+  /** the pile the composite was made with: a new light bakes a new one */
+  furCapFur: Fur | null;
+  /** the pile the side sprites were made with */
+  spriteFur: Fur | null;
 }
 const states = new WeakMap<object, Map<string, State>>();
 function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
@@ -946,7 +1053,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
       near: null, rimG: null, far: null,
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
       sprites: [null, null, null], spriteVersion: -1, spritePx: 0,
-      furCap: [null, null], furCapIdx: 0, furCapFrom: null, furCapR: 0,
+      furCap: [null, null], furCapIdx: 0, furCapFrom: null, furCapR: 0, furCapFur: null, spriteFur: null,
     };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
@@ -1019,7 +1126,8 @@ export function drawPlasticCap(
   if (!form) return false;
   /* fabric wears the same form in a pile instead of a clear coat */
   const fabric = cfg.shading === 'fabric';
-  const fur = fabric ? furReady(form, !!rig.still) : null;
+  const capPx = Math.ceil((SPAN * rig.dev) / 100);
+  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still, rig.lx, rig.ly) : null;
   if (fabric && !fur) return false;
   const st = stateFor(ctx, (cfg.typeKey ?? pathId(cfg.path)) + (fabric ? '|fabric' : ''));
   const f = capFrame(rig);
@@ -1112,7 +1220,7 @@ export function drawPlasticCap(
       st.furCapR = fur.R;
       st.furCapFrom = null;
     }
-    if (st.furCapFrom !== sc.c || st.imgVersion !== st.mixVersion) {
+    if (st.furCapFrom !== sc.c || st.furCapFur !== fur) {
       st.furCapIdx ^= 1;
       let fc = st.furCap[st.furCapIdx];
       if (!fc) {
@@ -1134,6 +1242,7 @@ export function drawPlasticCap(
         fc.g.drawImage(fur.mask as HTMLCanvasElement, 0, 0);
         fc.g.globalCompositeOperation = 'source-over';
         st.furCapFrom = sc.c;
+        st.furCapFur = fur;
       }
     }
     const fc = st.furCap[st.furCapIdx];
@@ -1152,7 +1261,7 @@ export function drawPlasticCap(
       st.spritePx = px;
       st.spriteVersion = -1;
     }
-    if (st.spriteVersion !== st.version) {
+    if (st.spriteVersion !== st.version || st.spriteFur !== fur) {
       const k = px / SPAN;
       for (let i = 0; i < 3 && fast; i++) {
         let spr = st.sprites[i];
@@ -1185,7 +1294,10 @@ export function drawPlasticCap(
           spr.g.globalCompositeOperation = 'source-over';
         } else spr.g.fill(cfg.path);
       }
-      if (fast) st.spriteVersion = st.version;
+      if (fast) {
+        st.spriteVersion = st.version;
+        st.spriteFur = fur;
+      }
     }
   }
   if (!fast && !st.near) {
