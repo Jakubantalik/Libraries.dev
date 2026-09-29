@@ -45,6 +45,11 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     paused = false,
     seed,
     shading = 'plastic',
+    hat = 'none',
+    glasses = 'none',
+    headphones = false,
+    bowTie = false,
+    accessoryColor = '#27272b',
     shadow = 0.35,
     highlight = 1.3,
     depth = 0.65,
@@ -125,6 +130,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     still: frozen || reducedMotion(),
     whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
     parts: typeof Path2D !== 'undefined' && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
+    wear: { hat, glasses, headphones, bowTie, color: accessoryColor },
   };
 
   /* the surface: an ancestor's say, else the system's */
@@ -197,11 +203,11 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   /* plastic bakes its form per type; start that on idle time at mount so
      the first frames do not stand in with the smooth look for long */
   useEffect(() => {
-    if (shadingMode !== 'plastic' || !cfg.current?.path) return;
+    if ((shadingMode !== 'plastic' && shadingMode !== 'fabric') || !cfg.current?.path) return;
     const path = cfg.current.path;
     const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
-    const id = ric(() => warmPlastic(type, path, dev, depth));
+    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric'));
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);

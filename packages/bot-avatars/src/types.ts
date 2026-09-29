@@ -30,17 +30,27 @@ export type BotAvatarFace = 'eyes' | 'mouth';
 /** What the bot is doing. Each state is a pose plus its own motion. */
 export type BotAvatarState = 'default' | 'working' | 'sleeping';
 
-/**
- * How the body is lit. `plastic` (default): a real glossy material shaded
- * per pixel — a baked pillow form, a hot spot and a sheen, a Fresnel rim,
- * a window reflection, saturated shadows. `crisp`: a lit rim with a clean
- * edge round the front, vector-style. `smooth`: no edge, a soft shadow
- * and highlight across the whole form. `flat`: the depth alone, no lighting.
- */
 /** How the landing squash of a jump plays out. */
 export type BotAvatarSquashEase = 'sharp' | 'pulse' | 'soft' | 'bouncy';
 
-export type BotAvatarShading = 'crisp' | 'smooth' | 'plastic' | 'flat';
+/**
+ * How the body is lit. `plastic` (default): a real glossy material shaded
+ * per pixel — a baked pillow form, a hot spot and a sheen, a Fresnel rim,
+ * a window reflection, saturated shadows. `fabric`: the same form in a
+ * short dense plush pile — soft wrapped light, a sheen toward the edge, a
+ * fibre texture that lies down the form, and a fuzzy fringe of hairs round
+ * the silhouette; the eyes turn into glossy beads. `crisp`: a lit rim with
+ * a clean edge round the front, vector-style. `smooth`: no edge, a soft
+ * shadow and highlight across the whole form. `flat`: the depth alone, no
+ * lighting.
+ */
+export type BotAvatarShading = 'crisp' | 'smooth' | 'plastic' | 'flat' | 'fabric';
+
+/** Something to wear on the head. */
+export type BotAvatarHat = 'none' | 'beret' | 'beanie' | 'party' | 'crown';
+
+/** Something to wear over the eyes. */
+export type BotAvatarGlasses = 'none' | 'round' | 'square' | 'shades';
 
 export interface BotAvatarPreset {
   /** Display name, for labels and the default `aria-label`. */
@@ -89,9 +99,20 @@ export interface BotAvatarProps
    * blink in unison. Defaults to a value derived from the instance id.
    */
   seed?: number;
-  /** How the body is lit: `plastic` (default), `crisp`, `smooth` or
-   * `flat`. `true` and `false` mean crisp and flat. */
+  /** How the body is lit: `plastic` (default), `fabric`, `crisp`, `smooth`
+   * or `flat`. `true` and `false` mean crisp and flat. */
   shading?: BotAvatarShading | boolean;
+  /** A hat, sitting on the top of the head and turning with it: `beret`,
+   * `beanie`, `party` or `crown`. Default `none`. */
+  hat?: BotAvatarHat;
+  /** Glasses over the eyes: `round`, `square` or `shades`. Default `none`. */
+  glasses?: BotAvatarGlasses;
+  /** Headphones over the head, a cup on either side. Default `false`. */
+  headphones?: boolean;
+  /** A bow tie under the face. Default `false`. */
+  bowTie?: boolean;
+  /** Colour of the hat, the headphones and the bow tie. Default a soft black. */
+  accessoryColor?: string;
   /** Strength of the shadow side, 0–2. Default `0.35`. */
   shadow?: number;
   /** Strength of the lit side, 0–2. Default `1.3`. */

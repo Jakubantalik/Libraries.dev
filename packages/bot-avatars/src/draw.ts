@@ -9,6 +9,7 @@ import type { Pose } from './engine';
 import type { BotAvatarFace, BotAvatarShading } from './types';
 import { shade } from './color';
 import { drawPlasticCap, mulAffine } from './plastic';
+import { drawGlasses, drawWearBehind, drawWearFront, type EyeSpot, type Wear, type WearRig } from './wear';
 
 export interface DrawConfig {
   path: Path2D;
@@ -46,6 +47,8 @@ export interface DrawConfig {
   sides?: 'auto' | 'vector' | 'sprite';
   /** the whirl's knobs; 1 everywhere is the stock look */
   whirl?: { strength: number; size: number; width: number; length: number; tilt: number };
+  /** what the bot wears: a hat, glasses, headphones, a bow tie */
+  wear?: Wear;
 }
 
 /* The canvas is drawn larger than the avatar's layout box, so a hop or a
@@ -296,7 +299,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
        baking on idle time it declines, and the stock slices with the smooth
        overlay stand in for that frame. */
     let plasticDone = false;
-    if (mode === 'plastic') {
+    if (mode === 'plastic' || mode === 'fabric') {
       plasticDone = drawPlasticCap(
         ctx,
         { ...cfg, path, typeKey: key },
@@ -306,7 +309,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
         { shadow, highlight, spread, rim: cfg.rim ?? 0.5 }
       );
     }
-    const mode2: BotAvatarShading = mode === 'plastic' && !plasticDone ? 'smooth' : mode;
+    const mode2: BotAvatarShading = (mode === 'plastic' || mode === 'fabric') && !plasticDone ? 'smooth' : mode;
     const soft = mode2 === 'smooth';
     const union = soft && typeof Path2D === 'function' ? new Path2D() : null;
     /* slices, far to near; each sets its transform outright from the
@@ -374,12 +377,31 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   /* the far half of the whirl sits behind everything */
   drawWhirl(ctx, pose, cfg.color, lx, ly, false, cfg.whirl);
 
+  /* what the bot wears, placed on its own geometry and turned with it */
+  const wear = cfg.wear;
+  const worn = !!wear && (wear.hat !== 'none' || wear.glasses !== 'none' || wear.headphones || wear.bowTie);
+  const wr: WearRig = { cy, sy, cp, sp, facing, halfDepth, lx, ly };
+  if (worn) drawWearBehind(ctx, cfg.path, wr, wear!);
+
   if (cfg.parts) drawSolid(cfg.parts, `${cfg.typeKey ?? 'custom'}:parts`, halfDepth * (cfg.partsDepth ?? 0.4));
   const plasticDone = drawSolid(cfg.path, cfg.typeKey ?? 'custom', halfDepth);
 
   /* the face: each feature sits on a sphere behind the front cap, so a
      turn slides it round the head — the eye moving toward the edge
      narrows, the other comes to the front, and past the side they go */
+  /* the front slice's outline in body space: the face's clip, and where
+     worn things cast their shadows */
+  const zf = facing >= 0 ? 1 : -1;
+  const sf = profile(zf, cap);
+  const fm0 = cy * sf, fm1 = sy * sp * sf, fm3 = cp * sf;
+  const fe = zf * sy * halfDepth - 50 * fm0;
+  const ffo = -zf * cy * sp * halfDepth - 50 * fm1 - 50 * fm3;
+  let frontClip: Path2D | null = null;
+  if (worn && typeof Path2D === 'function') {
+    frontClip = new Path2D();
+    frontClip.addPath(cfg.path, { a: fm0, b: fm1, c: 0, d: fm3, e: fe, f: ffo });
+  }
+
   if (facing > -0.2) {
     ctx.save();
     /* The face is printed on the front of the body, so it cannot leave
@@ -387,23 +409,31 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
        feature's place on the sphere can reach past the body's foreshortened
        silhouette, and without this it floats off the side. */
     {
-      const zf = facing >= 0 ? 1 : -1;
-      const sf = profile(zf, cap);
-      const m0 = cy * sf, m1 = sy * sp * sf, m3 = cp * sf;
-      const e = zf * sy * halfDepth - 50 * m0;
-      const fo = -zf * cy * sp * halfDepth - 50 * m1 - 50 * m3;
       const [ca, cb, cc, cd, ce, cf] = body;
-      ctx.setTransform(ca * m0 + cc * m1, cb * m0 + cd * m1, cc * m3, cd * m3, ca * e + cc * fo + ce, cb * e + cd * fo + cf);
+      ctx.setTransform(ca * fm0 + cc * fm1, cb * fm0 + cd * fm1, cc * fm3, cd * fm3, ca * fe + cc * ffo + ce, cb * fe + cd * ffo + cf);
       ctx.clip(cfg.path);
       ctx.setTransform(ca, cb, cc, cd, ce, cf);
     }
     ctx.translate(cfg.faceX - 50, cfg.faceY - 50);
     ctx.scale(cfg.faceScale, cfg.faceScale);
     /* under a clear coat the print shows the gloss faintly through it */
-    if (plasticDone) ctx.globalAlpha = 0.93;
-    drawFace(ctx, pose, cfg);
+    if (mode === 'plastic' && plasticDone) ctx.globalAlpha = 0.93;
+    const eyes = drawFace(ctx, pose, cfg);
+    ctx.globalAlpha = 1;
+    /* glasses: their shadow falls on the face (inside its clip), the frames
+       themselves may reach past the body's edge */
+    const glasses = wear && wear.glasses !== 'none' ? wear.glasses : null;
+    if (glasses) drawGlasses(ctx, glasses, eyes, { lx, ly }, 'shadow');
     ctx.restore();
+    if (glasses) {
+      ctx.save();
+      ctx.translate(cfg.faceX - 50, cfg.faceY - 50);
+      ctx.scale(cfg.faceScale, cfg.faceScale);
+      drawGlasses(ctx, glasses, eyes, { lx, ly }, 'frame');
+      ctx.restore();
+    }
   }
+  if (worn) drawWearFront(ctx, cfg.path, wr, wear!, frontClip, halfDepth * sf, { y: cfg.faceY, scale: cfg.faceScale });
   /* the near half of the whirl passes in front of the face */
   drawWhirl(ctx, pose, cfg.color, lx, ly, true, cfg.whirl);
   ctx.restore();
@@ -485,7 +515,7 @@ function mouthPath(m: Mouth): Path2D {
   return p;
 }
 
-function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
+function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig): [EyeSpot, EyeSpot] {
   const [wd, ww, ws] = pose.w;
   const ink = cfg.ink;
   const ey = EYE_Y[cfg.face];
@@ -539,6 +569,20 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
       ctx.strokeStyle = ink;
       ctx.lineWidth = w;
       ctx.stroke(eyePath(x0, y0, cy));
+      /* fabric's eyes are glossy beads sewn into the pile: a window of
+         light high on each open eye, and a faint bounce low on it */
+      const bead = cfg.shading === 'fabric' ? kOpen * e : 0;
+      if (bead > 0.05) {
+        const top = cy * 0.5 + y0 * 0.5 - w * 0.12;
+        ctx.fillStyle = `rgba(255,255,255,${(0.9 * bead).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(-w * 0.14, top, w * 0.15, w * 0.2, -0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${(0.28 * bead).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(w * 0.12, y0 + w * 0.12, w * 0.12, w * 0.07, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
   }
 
@@ -567,4 +611,12 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig) {
       ctx.fill(mouthPath(m));
     });
   }
+
+  /* where the eyes sit on the face, for anything worn over them: the
+     design spots on the sphere, without the look's drift */
+  const spot = (x: number): EyeSpot => {
+    const q = onSphere(x, ey, yaw, pitch);
+    return { x: q.x, y: q.y, sx: q.sx, sy: q.sy, z: q.z };
+  };
+  return [spot(-half), spot(half)];
 }

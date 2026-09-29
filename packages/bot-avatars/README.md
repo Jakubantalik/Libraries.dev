@@ -71,6 +71,7 @@ Every state is a resting pose plus its own motion. The pose is a small rig — y
 <BotAvatar type="star" ink="#4D7CFF" />             {/* or pick the ink yourself */}
 <BotAvatar type="drop" brightness={1.25} />          {/* lighter body; below 1 darker */}
 <BotAvatar type="drop" saturation={0.7} />           {/* duller body; the default is 1.5, more vivid than the palette */}
+<BotAvatar type="clover" shading="fabric" />        {/* a soft plush pile with a fuzzy edge */}
 <BotAvatar type="square" shading="crisp" />         {/* a lit rim with a clean edge */}
 <BotAvatar type="square" shading="smooth" />        {/* soft shadow and highlight, no edge */}
 <BotAvatar type="square" shading="flat" />          {/* keep the depth, drop the lighting */}
@@ -80,7 +81,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
 
 ## Shading
 
-`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
+`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a short, dense plush pile: soft wrapped light that still rounds every lobe, deeper shade in the creases, a sheen toward the edge where the fibres catch the light side-on, a fine fibre grain that lies down the slope of the form, and a ragged fringe of hairs round the silhouette instead of a cut edge; the eyes become glossy beads. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
 
 ```tsx
 <BotAvatar
@@ -92,6 +93,21 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
   spread={0.7}      // 0.4–2.5, width of the highlight in plastic, reach of the soft shading in smooth (default 1.55)
 />
 ```
+
+## Wear
+
+A hat, glasses, headphones and a bow tie, each a small 3D object placed on the body's own shape — the hat seated where the head is wide enough to hold it, the headphones on its widest row, the glasses over the eyes, the bow tie under the face — and turned with the head, so it tips, turns and flips with the body. They are lit from the body's light and cast a soft shadow where they sit.
+
+```tsx
+<BotAvatar type="clover" shading="fabric" hat="beret" />
+<BotAvatar type="triangle" glasses="round" bowTie />
+<BotAvatar type="flower" headphones accessoryColor="#f4efe6" />
+```
+
+- `hat`: `none` (default), `beret` (soft felt with a stalk), `beanie` (knit, with a cuff and a pompom), `party` (a striped paper cone) or `crown` (gold, with gems)
+- `glasses`: `none` (default), `round`, `square` or `shades`
+- `headphones`, `bowTie`: booleans
+- `accessoryColor`: the hat's, the headphones' and the bow tie's colour, a soft black by default (the crown stays gold)
 
 ## Other props
 

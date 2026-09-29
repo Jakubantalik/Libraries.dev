@@ -7,6 +7,8 @@ import {
   autoInk,
   shade,
   type BotAvatarFace,
+  type BotAvatarGlasses,
+  type BotAvatarHat,
   type BotAvatarShading,
   type BotAvatarState,
   type BotAvatarType,
@@ -42,10 +44,34 @@ const STATE_OPTIONS = [
 
 const SHADING_OPTIONS = [
   { value: "plastic", label: "Plastic" },
+  { value: "fabric", label: "Fabric" },
   { value: "crisp", label: "Crisp" },
   { value: "smooth", label: "Smooth" },
   { value: "flat", label: "Flat" },
 ] as const;
+
+/* what the bot can wear */
+const HAT_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "beret", label: "Beret" },
+  { value: "beanie", label: "Beanie" },
+  { value: "party", label: "Party" },
+  { value: "crown", label: "Crown" },
+] as const;
+const GLASSES_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "round", label: "Round" },
+  { value: "square", label: "Square" },
+  { value: "shades", label: "Shades" },
+] as const;
+const WEAR_COLOR_OPTIONS = [
+  { value: "#27272b", label: "Charcoal" },
+  { value: "#f4efe6", label: "Cream" },
+  { value: "#c8323c", label: "Red" },
+  { value: "#2f5fd0", label: "Blue" },
+  { value: "#e9a93b", label: "Mustard" },
+  { value: "#2e8b57", label: "Green" },
+];
 
 const COLOR_OPTIONS = botAvatarTypes
   .map((t) => ({ value: botAvatarPalette[t], label: botAvatarPresets[t].label }))
@@ -82,6 +108,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [turn, setTurn] = useState(100); // % of the idle side turn (35° either way)
   const [whirl, setWhirl] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [hat, setHat] = useState<BotAvatarHat>("none");
+  const [glasses, setGlasses] = useState<BotAvatarGlasses>("none");
+  const [headphones, setHeadphones] = useState(false);
+  const [bowTie, setBowTie] = useState(false);
+  const [wearColor, setWearColor] = useState("#27272b");
   /* the jump: an idle flip and a click's; the library's defaults */
   const [jumpHeight, setJumpHeight] = useState(26);
   const [jumpTime, setJumpTime] = useState(68);
@@ -142,6 +173,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (!interactive) props.push("interactive={false}");
   if (turn !== 100) props.push(`turn={${num(turn / 100)}}`);
   if (whirl !== 0) props.push(`whirl={${num(whirl / 100)}}`);
+  if (hat !== "none") props.push(`hat="${hat}"`);
+  if (glasses !== "none") props.push(`glasses="${glasses}"`);
+  if (headphones) props.push("headphones");
+  if (bowTie) props.push("bowTie");
+  if ((hat !== "none" || headphones || bowTie) && wearColor !== "#27272b") props.push(`accessoryColor="${wearColor}"`);
   if (jumpHeight !== 26) props.push(`jumpHeight={${jumpHeight}}`);
   if (jumpTime !== 68) props.push(`jumpTime={${num(jumpTime / 100)}}`);
   if (jumpStretch !== 100) props.push(`jumpStretch={${num(jumpStretch / 100)}}`);
@@ -203,6 +239,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             jumpGroundEase={jumpGroundEase}
             jumpRiseTime={jumpRiseTime / 1000}
             jumpRiseEase={jumpRiseEase}
+            hat={hat}
+            glasses={glasses}
+            headphones={headphones}
+            bowTie={bowTie}
+            accessoryColor={wearColor}
             paused={paused}
           />
         )}
@@ -243,6 +284,23 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
           )}
           {/* the thickness shows whenever the head turns */}
           <PgSlider label="Depth" value={depth} min={20} max={200} step={5} display={`${depth}%`} onChange={setDepth} />
+        </PgGroup>
+        <PanelSep />
+        {/* things to wear, each sitting on the body's own shape and
+            turning with the head */}
+        <PgGroup label="Wear">
+          <PgTabs label="Hat" options={HAT_OPTIONS} value={hat} onChange={setHat} />
+          <PgTabs label="Glasses" options={GLASSES_OPTIONS} value={glasses} onChange={setGlasses} />
+          <PgToggles
+            label="Extras"
+            options={[
+              { label: "Headphones", active: headphones, onToggle: () => setHeadphones((v) => !v) },
+              { label: "Bow tie", active: bowTie, onToggle: () => setBowTie((v) => !v) },
+            ]}
+          />
+          {(hat !== "none" || headphones || bowTie) && (
+            <PgSwatches label="Wear color" options={WEAR_COLOR_OPTIONS} value={wearColor} onChange={setWearColor} allowCustom />
+          )}
         </PgGroup>
         <PanelSep />
         <PgGroup label="Motion">

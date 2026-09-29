@@ -50,6 +50,11 @@ export interface Form {
   wy: Uint8Array;
   /** baked occlusion × edge darkening, gamma-compensated, 0–255; 0 = not drawn */
   ao: Uint8Array;
+  /** signed distance to the outline in design units (positive inside) and
+      the pillow height: kept for the fabric's fibres, which grow down the
+      slope of the height and out past the edge */
+  sd: Float32Array;
+  h: Float32Array;
 }
 
 /* Felzenszwalb–Huttenlocher 1-D squared distance transform; s gets the
@@ -223,10 +228,10 @@ export function buildForm(cov: Uint8Array | Uint8ClampedArray, N: number, halfDe
   blur5(h, N, tmp);
 
   /* normals, silhouette fix, horizon AO, matcap cells */
-  const form: Form = { N, i00: new Uint16Array(NN), wx: new Uint8Array(NN), wy: new Uint8Array(NN), ao: new Uint8Array(NN) };
+  const form: Form = { N, i00: new Uint16Array(NN), wx: new Uint8Array(NN), wy: new Uint8Array(NN), ao: new Uint8Array(NN), sd, h };
   const { i00, wx, wy, ao } = form;
   const STEPS = N <= 64 ? [1, 2, 3, 5, 8] : N <= 96 ? [1, 2, 4, 7, 11] : [1, 2, 4, 7, 11, 15];
-  const halo = 9; // outside texels within 3 texels borrow their nearest inside texel
+  const halo = 25; // outside texels within 5 texels borrow their nearest inside texel (fabric's fringe reaches that far)
   const last = N - 1;
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
@@ -370,8 +375,9 @@ function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: 
   return null;
 }
 /** Build a form ahead of time (call from an idle callback at mount). */
-export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65) {
-  formFor(key, path, tierFor(devicePx), 15 * depth, true);
+export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65, fabric = false) {
+  const form = formFor(key, path, tierFor(devicePx), 15 * depth, true);
+  if (fabric && form) furFor(form);
 }
 /** Texture size for an avatar `devicePx` wide (CSS px × device pixel ratio). */
 export function tierFor(devicePx: number): number {
@@ -526,6 +532,196 @@ export function shadeTexels(form: Form, mc: Float32Array, px: Uint8ClampedArray,
   }
 }
 
+/* ── fabric: a plush pile instead of a clear coat ─────────────────── */
+
+/* The same form, dressed in a short dense pile. The fibres grow down the
+   slope of the pillow — out from the top of every lobe, the way a plush
+   toy's fur lies — and past the edge they stand out as a ragged fringe,
+   so the silhouette is soft instead of cut. Everything here depends only
+   on the form, so it is made once per outline and size and kept. */
+
+export interface Fur {
+  /** the pile's own resolution: finer than the form, so the fibres stay
+      thin on a large avatar */
+  R: number;
+  /** grey streaks of the pile (multiplied over the lit texels) */
+  fibre: AnyCanvas | null;
+  /** the body plus a fringe of hairs past its edge, as alpha */
+  mask: AnyCanvas | null;
+}
+const furs = new WeakMap<Form, Fur>();
+
+/* a stable white noise, so every avatar of a type wears the same pile */
+function hash2(x: number, y: number): number {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/* a field on the form's grid read at any point, bilinear */
+function bilerp(f: Float32Array, N: number, x: number, y: number): number {
+  const last = N - 1;
+  const fx = Math.min(last, Math.max(0, x)), fy = Math.min(last, Math.max(0, y));
+  const x0 = Math.min(last - 1, fx | 0), y0 = Math.min(last - 1, fy | 0);
+  const tx = fx - x0, ty = fy - y0, i = y0 * N + x0;
+  return (f[i] * (1 - tx) + f[i + 1] * tx) * (1 - ty) + (f[i + N] * (1 - tx) + f[i + N + 1] * tx) * ty;
+}
+
+/* the pile takes 10–20 ms to make: on idle time, like the form, unless
+   no animation will follow (then now) */
+const furPending = new WeakSet<Form>();
+function furReady(form: Form, sync: boolean): Fur | null {
+  const hit = furs.get(form);
+  if (hit) return hit;
+  if (sync) return furFor(form);
+  if (!furPending.has(form)) {
+    furPending.add(form);
+    idle(() => furFor(form));
+  }
+  return null;
+}
+
+export function furFor(form: Form): Fur {
+  let fur = furs.get(form);
+  if (fur) return fur;
+  const { N } = form;
+  const R = Math.min(256, N * 2), RR = R * R, k = N / R, u = SPAN / R, last = R - 1;
+  /* the form's distance and height on the pile's finer grid */
+  const sd = new Float32Array(RR), h = new Float32Array(RR);
+  for (let y = 0; y < R; y++) {
+    for (let x = 0; x < R; x++) {
+      const gx = (x + 0.5) * k - 0.5, gy = (y + 0.5) * k - 0.5;
+      sd[y * R + x] = bilerp(form.sd, N, gx, gy);
+      h[y * R + x] = bilerp(form.h, N, gx, gy);
+    }
+  }
+  /* how far the fringe reaches past the edge, in design units: a short
+     plush pile, not a shag */
+  const F = 1.9;
+  const live = (i: number) => sd[i] > -F - 1;
+  /* the direction each fibre lies in: down the pillow's slope, turning to
+     straight out of the outline near and past the edge, with a little
+     noise in the angle so the pile is not combed */
+  const dx = new Float32Array(RR), dy = new Float32Array(RR);
+  for (let y = 0; y < R; y++) {
+    for (let x = 0; x < R; x++) {
+      const i = y * R + x;
+      if (!live(i)) continue;
+      const xl = x > 0 ? x - 1 : 0, xr = x < last ? x + 1 : last, yu = y > 0 ? y - 1 : 0, yd = y < last ? y + 1 : last;
+      let hx = -(h[y * R + xr] - h[y * R + xl]), hy = -(h[yd * R + x] - h[yu * R + x]);
+      let ox = -(sd[y * R + xr] - sd[y * R + xl]), oy = -(sd[yd * R + x] - sd[yu * R + x]);
+      const hl = Math.hypot(hx, hy), ol = Math.hypot(ox, oy) || 1;
+      ox /= ol; oy /= ol;
+      if (hl > 1e-6) { hx /= hl; hy /= hl; }
+      const out = Math.min(1, Math.max(0, 1 - sd[i] / 6));
+      const vx = hx * (1 - out) + ox * out, vy = hy * (1 - out) + oy * out;
+      const a = (hash2(x + 911, y + 57) - 0.5) * 0.6;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const rx = vx * ca - vy * sa, ry = vx * sa + vy * ca;
+      const l = Math.hypot(rx, ry) || 1;
+      dx[i] = rx / l; dy[i] = ry / l;
+    }
+  }
+  /* line integral convolution: white noise averaged along each fibre, so
+     a streak runs the fibre's length — about two design units */
+  const noise = new Float32Array(RR);
+  for (let y = 0; y < R; y++) for (let x = 0; x < R; x++) noise[y * R + x] = hash2(x, y);
+  const L = Math.max(3, Math.round(2.2 / u));
+  const lic = new Float32Array(RR);
+  for (let y = 0; y < R; y++) {
+    for (let x = 0; x < R; x++) {
+      const i = y * R + x;
+      if (!live(i)) continue;
+      let sum = noise[i], wsum = 1;
+      for (let dir = -1; dir <= 1; dir += 2) {
+        let px = x + 0.5, py = y + 0.5, vx = dx[i], vy = dy[i];
+        for (let s = 1; s <= L; s++) {
+          px += dir * vx * 0.8; py += dir * vy * 0.8;
+          const xi = px < 0 ? 0 : px > last ? last : px | 0, yi = py < 0 ? 0 : py > last ? last : py | 0;
+          const j = yi * R + xi;
+          const w = 1 - s / (L + 1);
+          sum += w * noise[j];
+          wsum += w;
+          if (live(j)) { vx = dx[j]; vy = dy[j]; }
+        }
+      }
+      lic[i] = sum / wsum;
+    }
+  }
+  const spread = 0.29 / Math.sqrt(L * 0.9 + 1);
+  fur = { R, fibre: null, mask: null };
+  const fc = makeCanvas(R), mc = makeCanvas(R);
+  const fg = fc && ctx2d(fc, false), mg = mc && ctx2d(mc, false);
+  if (fc && mc && fg && mg) {
+    const fi = new ImageData(R, R), mi = new ImageData(R, R);
+    for (let i = 0, q = 0; i < RR; i++, q += 4) {
+      const v = Math.max(0, Math.min(1, 0.5 + (lic[i] - 0.5) * (0.2 / spread)));
+      /* the streaks: a fine, fairly quiet grain — the pile reads as a
+         texture, not as stripes */
+      const m = live(i) ? Math.round(255 * (0.8 + 0.2 * v)) : 255;
+      fi.data[q] = fi.data[q + 1] = fi.data[q + 2] = m;
+      fi.data[q + 3] = 255;
+      mi.data[q] = mi.data[q + 1] = mi.data[q + 2] = 255;
+      const d = sd[i];
+      let a = 0;
+      if (d >= 0.35) a = 1;
+      else if (d > -F) {
+        /* the edge: past it, only the stronger streaks carry on, thinning
+           out toward the fringe's reach, so the outline is a soft ragged
+           rim of hairs rather than a blur */
+        const t = Math.max(0, (0.35 - d) / (F + 0.35));
+        const thr = 0.3 + 0.55 * t;
+        a = Math.max(0, Math.min(1, (v - thr) / 0.14)) * Math.pow(1 - t, 0.7);
+        if (d > 0) a = Math.max(a, d / 0.35);
+      }
+      mi.data[q + 3] = Math.round(255 * a);
+    }
+    fg.putImageData(fi, 0, 0);
+    mg.putImageData(mi, 0, 0);
+    fur.fibre = fc;
+    fur.mask = mc;
+  }
+  furs.set(form, fur);
+  return fur;
+}
+
+/** The lit sphere for the pile: a softly wrapped diffuse that still
+    rounds every lobe, and a sheen that grows toward the silhouette, where
+    the fibres catch the light side-on. No specular lobe and no
+    reflections — fur has no clear coat. */
+export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
+  const { L, V } = f;
+  const amb = Math.max(0.05, 0.3 - 0.12 * p.shadow);
+  const wrap = Math.min(0.8, 0.26 + 0.14 * p.spread);
+  const kd = 0.92;
+  const sheenK = 0.3 * p.highlight, edgeK = 0.2 * p.rim;
+  /* the sheen is the body colour lifted toward white, not a white glare */
+  const tint: V3 = [0.6 * c[0] + 0.4, 0.6 * c[1] + 0.4, 0.6 * c[2] + 0.4];
+  for (let j = 0; j < M; j++) {
+    for (let i = 0; i < M; i++) {
+      let nx = (i / (M - 1)) * 2 - 1, ny = (j / (M - 1)) * 2 - 1;
+      let r2 = nx * nx + ny * ny;
+      if (r2 > 1.14) continue;
+      if (r2 > 1) {
+        const s = 1 / Math.sqrt(r2);
+        nx *= s; ny *= s; r2 = 1;
+      }
+      const nz = Math.sqrt(1 - r2);
+      const nl = nx * L[0] + ny * L[1] + nz * L[2];
+      const nv = Math.max(0, nx * V[0] + ny * V[1] + nz * V[2]);
+      let dif = Math.min(1, Math.max(0, (nl + wrap) / (1 + wrap)));
+      dif = Math.pow(dif, 1.1);
+      const q = 1 - nv, graze = q * q;
+      const lit = 0.25 + 0.75 * Math.min(1, Math.max(0, (nl + 0.35) / 1.35));
+      const sheen = sheenK * graze * lit + edgeK * graze * q;
+      const k = (j * M + i) * 3;
+      out[k] = tone(c[0] * (amb + kd * dif) + sheen * tint[0]);
+      out[k + 1] = tone(c[1] * (amb + kd * dif) + sheen * tint[1]);
+      out[k + 2] = tone(c[2] * (amb + kd * dif) + sheen * tint[2]);
+    }
+  }
+}
+
 /* ── the cap's frame: light and view in the cap's own space ────────── */
 
 export interface Rig {
@@ -627,6 +823,12 @@ interface State {
   sprites: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
   spriteVersion: number;
   spritePx: number;
+  /** fabric: the lit texels at the pile's resolution with its streaks and
+      fringe applied, two in turn for the same reason as the scratch */
+  furCap: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
+  furCapIdx: number;
+  furCapFrom: AnyCanvas | null;
+  furCapR: number;
 }
 const states = new WeakMap<object, Map<string, State>>();
 function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
@@ -646,6 +848,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
       near: null, rimG: null, far: null,
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
       sprites: [null, null, null], spriteVersion: -1, spritePx: 0,
+      furCap: [null, null], furCapIdx: 0, furCapFrom: null, furCapR: 0,
     };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
@@ -716,7 +919,11 @@ export function drawPlasticCap(
   const N = tierFor(rig.dev);
   const form = formFor(cfg.typeKey ?? pathId(cfg.path), cfg.path, N, rig.halfDepth, !!rig.still);
   if (!form) return false;
-  const st = stateFor(ctx, cfg.typeKey ?? pathId(cfg.path));
+  /* fabric wears the same form in a pile instead of a clear coat */
+  const fabric = cfg.shading === 'fabric';
+  const fur = fabric ? furReady(form, !!rig.still) : null;
+  if (fabric && !fur) return false;
+  const st = stateFor(ctx, (cfg.typeKey ?? pathId(cfg.path)) + (fabric ? '|fabric' : ''));
   const f = capFrame(rig);
   const lxy: [number, number] = (() => {
     const l = Math.hypot(f.L[0], f.L[1]);
@@ -729,7 +936,8 @@ export function drawPlasticCap(
     /* the fade starts from what is showing now, so a rebuild during a
        fade does not jump */
     if (st.version > 0) st.mcPrev.set(st.mcMix);
-    buildMatcap(st.mc, linearColor(pal.base), f, mat);
+    if (fabric) buildFabricMatcap(st.mc, linearColor(pal.base), f, mat);
+    else buildMatcap(st.mc, linearColor(pal.base), f, mat);
     if (st.version === 0) {
       st.mcMix.set(st.mc);
       st.blendT = 1;
@@ -759,8 +967,9 @@ export function drawPlasticCap(
     for (let i = 0; i < MM * 3; i++) o[i] = a[i] + (b[i] - a[i]) * e;
     st.mixVersion++;
   }
-  /* the occlusion strength follows `shadow` */
-  const aoK = Math.min(1.3, 1.2 * mat.shadow);
+  /* the occlusion strength follows `shadow`; a pile sinks deeper into its
+     creases than a clear coat does, which is what keeps fur's lobes apart */
+  const aoK = fur ? Math.min(1.6, 0.45 + 1.4 * mat.shadow) : Math.min(1.3, 1.2 * mat.shadow);
   if (aoK !== st.aoK) {
     for (let a = 0; a < 256; a++) st.aoMul[a] = Math.max(0, 1 - aoK * (1 - a / 255));
     st.aoK = aoK;
@@ -795,10 +1004,47 @@ export function drawPlasticCap(
     st.scratchStale = false;
   }
   const sc = st.scratch[st.scratchIdx]!;
+  /* fabric: the texels enlarged to the pile's resolution, the streaks
+     multiplied in, then cut to the body plus its fringe — redone only when
+     the texels change */
+  let capSrc: AnyCanvas = sc.c;
+  if (fur && fur.fibre && fur.mask) {
+    if (st.furCapR !== fur.R) {
+      st.furCap = [null, null];
+      st.furCapR = fur.R;
+      st.furCapFrom = null;
+    }
+    if (st.furCapFrom !== sc.c || st.imgVersion !== st.mixVersion) {
+      st.furCapIdx ^= 1;
+      let fc = st.furCap[st.furCapIdx];
+      if (!fc) {
+        const c = makeCanvas(fur.R);
+        const g = c && ctx2d(c, false);
+        if (c && g) fc = st.furCap[st.furCapIdx] = { c, g };
+      }
+      if (fc) {
+        const R = fur.R;
+        fc.g.globalCompositeOperation = 'copy';
+        fc.g.imageSmoothingEnabled = true;
+        fc.g.imageSmoothingQuality = 'high';
+        fc.g.drawImage(sc.c as HTMLCanvasElement, 0, 0, R, R);
+        fc.g.globalCompositeOperation = 'multiply';
+        fc.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0);
+        fc.g.globalCompositeOperation = 'destination-in';
+        fc.g.drawImage(fur.mask as HTMLCanvasElement, 0, 0);
+        fc.g.globalCompositeOperation = 'source-over';
+        st.furCapFrom = sc.c;
+      }
+    }
+    const fc = st.furCap[st.furCapIdx];
+    if (fc) capSrc = fc.c;
+  }
 
   /* WebKit: the side sprites, at the avatar's device resolution, redrawn
      with the matcap */
-  let fast = cfg.sides === 'sprite' || (cfg.sides !== 'vector' && WEBKIT);
+  /* fabric always blits: its side copies are sprites of the pile with the
+     fringe's coverage, so a turned body's edge is as soft as the front's */
+  let fast = !!(fur && fur.mask && fur.fibre) || cfg.sides === 'sprite' || (cfg.sides !== 'vector' && WEBKIT);
   if (fast) {
     const px = Math.ceil((SPAN * rig.dev) / 100);
     if (st.spritePx !== px) {
@@ -823,7 +1069,19 @@ export function drawPlasticCap(
         spr.g.clearRect(0, 0, px, px);
         spr.g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
         spr.g.fillStyle = sideGradient(spr.g, st.mc, SIDE_KINDS[i][0], SIDE_KINDS[i][1](mat), lxy);
-        spr.g.fill(cfg.path);
+        if (fur && fur.fibre && fur.mask) {
+          /* the whole square in the side colour, the pile's streaks
+             multiplied in, then cut to the body plus its fringe */
+          spr.g.fillRect(-PAD, -PAD, SPAN, SPAN);
+          spr.g.setTransform(1, 0, 0, 1, 0, 0);
+          spr.g.imageSmoothingEnabled = true;
+          spr.g.imageSmoothingQuality = 'high';
+          spr.g.globalCompositeOperation = 'multiply';
+          spr.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0, px, px);
+          spr.g.globalCompositeOperation = 'destination-in';
+          spr.g.drawImage(fur.mask as HTMLCanvasElement, 0, 0, px, px);
+          spr.g.globalCompositeOperation = 'source-over';
+        } else spr.g.fill(cfg.path);
       }
       if (fast) st.spriteVersion = st.version;
     }
@@ -889,15 +1147,17 @@ export function drawPlasticCap(
   const capM = mulAffine(mulAffine(rig.ctm, [cy, sy * sp, 0, cp, 0, 0]), [a, b, b, d, shift * ex - 50 * a - 50 * b, shift * ey - 50 * b - 50 * d]);
   ctx.save();
   ctx.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4], capM[5]);
-  ctx.clip(cfg.path);
+  /* plastic is cut by its outline; fabric's texels carry their own soft
+     edge — the fringe — so they go down unclipped */
+  if (!fur) ctx.clip(cfg.path);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(sc.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+  ctx.drawImage(capSrc as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
   ctx.restore();
 
   /* 3. large avatars: the texture is upscaled 2–3×, so a crisp hairline of
      the environment along the lit side of the silhouette */
-  if (rig.dev >= 256 && mat.rim > 0 && mat.highlight > 0) {
+  if (!fur && rig.dev >= 256 && mat.rim > 0 && mat.highlight > 0) {
     ctx.save();
     if (union) ctx.clip(union);
     else ctx.globalCompositeOperation = 'source-atop';

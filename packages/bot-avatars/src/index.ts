@@ -29,4 +29,6 @@ export type {
   BotAvatarState,
   BotAvatarShading,
   BotAvatarPreset,
+  BotAvatarHat,
+  BotAvatarGlasses,
 } from './types';

@@ -156,12 +156,14 @@ function AvatarsPlayground() {
           <PgTabs label="Size" options={SIZE_OPTIONS} value={size} onChange={setSize} />
           <StudioTeaser
             rows={[
+              { kind: "tabs", label: "Shading", options: ["Plastic", "Fabric", "Crisp", "Smooth", "Flat"] },
+              { kind: "tabs", label: "Hat", options: ["None", "Beret", "Beanie", "Party", "Crown"] },
+              { kind: "tabs", label: "Glasses", options: ["None", "Round", "Square", "Shades"] },
               { kind: "swatches", label: "Color", colors: ["#35B8FF", "#FF7AB8", "#DC48FF", "#2FCB7A", "#FFD32B"] },
               { kind: "slider", label: "Brightness", value: "100%", fill: 50 },
               { kind: "slider", label: "Saturation", value: "100%", fill: 50 },
               { kind: "swatches", label: "Ink", colors: ["#1E1A33", "#F7F5F2", "#35B8FF"] },
               { kind: "slider", label: "Speed", value: "1×", fill: 33 },
-              { kind: "tabs", label: "Shading", options: ["Plastic", "Crisp", "Smooth", "Flat"] },
               { kind: "slider", label: "Shadow", value: "35%", fill: 17 },
               { kind: "slider", label: "Depth", value: "65%", fill: 25 },
             ]}

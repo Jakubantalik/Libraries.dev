@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bot-avatars — fabric and wear</title>
+  <style>
+    body { margin: 0; font: 13px/1.4 system-ui, sans-serif; background: #111; color: #ddd; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0; }
+    .scene { height: 300px; display: grid; place-items: center; position: relative; }
+    .scene .label { position: absolute; left: 12px; bottom: 10px; font-size: 11px; color: rgba(0,0,0,.45); }
+    .row { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; align-items: center; background: #171717; }
+    .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .cell .label { font-size: 11px; opacity: .6 }
+    h2 { font-size: 12px; font-weight: 500; margin: 18px 20px 6px; opacity: .6 }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="./fabric.tsx"></script>
+</body>
+</html>
