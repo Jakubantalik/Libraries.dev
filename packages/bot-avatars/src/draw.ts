@@ -573,14 +573,16 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig): [
          light high on each open eye, and a faint bounce low on it */
       const bead = cfg.shading === 'fabric' ? kOpen * e : 0;
       if (bead > 0.05) {
-        const top = cy * 0.5 + y0 * 0.5 - w * 0.12;
-        ctx.fillStyle = `rgba(255,255,255,${(0.9 * bead).toFixed(3)})`;
+        /* one small, crisp window of light high on the bead, and the bead's
+           curve darkening a touch toward its lower edge */
+        const top = cy * 0.5 + y0 * 0.5 - w * 0.16;
+        ctx.fillStyle = `rgba(255,255,255,${(0.92 * bead).toFixed(3)})`;
         ctx.beginPath();
-        ctx.ellipse(-w * 0.14, top, w * 0.15, w * 0.2, -0.35, 0, Math.PI * 2);
+        ctx.ellipse(-w * 0.16, top, w * 0.1, w * 0.13, -0.4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = `rgba(255,255,255,${(0.28 * bead).toFixed(3)})`;
+        ctx.fillStyle = `rgba(255,255,255,${(0.35 * bead).toFixed(3)})`;
         ctx.beginPath();
-        ctx.ellipse(w * 0.12, y0 + w * 0.12, w * 0.12, w * 0.07, 0, 0, Math.PI * 2);
+        ctx.arc(w * 0.14, top + w * 0.1, w * 0.04, 0, Math.PI * 2);
         ctx.fill();
       }
     });
