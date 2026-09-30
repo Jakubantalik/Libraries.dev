@@ -126,16 +126,22 @@ export interface BotAvatarProps
    * turn shows a round side; toward `0` it becomes a slab with soft edges.
    */
   roundness?: number;
-  /** `fabric`: length of the pile, as a multiple of the stock, 0.3–2.5. Default `1`. */
+  /** `fabric`: length of the pile, 0.3–2.5. Default `1.4`. */
   furLength?: number;
-  /** `fabric`: how many fibres, as a multiple of the stock, 0.3–2. Default `1`. */
+  /** `fabric`: how many fibres, 0.3–2. Default `1.6`. */
   furDensity?: number;
-  /** `fabric`: softness of the silhouette — the haze of fine hairs standing past it, 0–1. Default `0.5`. */
+  /** `fabric`: softness of the silhouette — the haze of fine hairs standing past it, 0–1. Default `0.9`. */
   furFuzz?: number;
-  /** `fabric`: how much the fibres gather into tufts, 0–1. Default `0.5`. */
+  /** `fabric`: how much the fibres gather into tufts, 0–1. Default `0.35`. */
   furClumps?: number;
   /** `fabric`: how wavy the fibres are, 0 (straight) – 1. Default `0.3`. */
   furCurl?: number;
+  /**
+   * `fabric`: how much the pile hangs, 0–1 — combed down from a parting at
+   * the top, lying over the top edge and hanging off the sides and bottom,
+   * rather than standing out evenly all round. Default `0.6`.
+   */
+  furGravity?: number;
   /** Where the light comes from, in degrees clockwise from the top. Default `300` (from the upper left, like a studio key light). */
   light?: number;
   /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, 0–2. Default `0.5`. */

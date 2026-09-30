@@ -783,18 +783,23 @@ const furPending = new Set<string>();
 const lightBin = (lx: number, ly: number) => Math.round(Math.atan2(ly, lx) / (Math.PI / 12));
 /* the pile's resolution for a cap drawn `capPx` device pixels across */
 const furTier = (capPx: number) => (capPx <= 200 ? 192 : capPx <= 360 ? 320 : 512);
-/** The pile's style: `length` and `density` multiply the stock fibres',
+/** The pile's style: `length` and `density` multiply the base fibres',
     `fuzz` (0–1) is how soft the silhouette is, `clumps` (0–1) how much the
-    fibres gather into tufts, `curl` (0–1) how wavy they are. */
+    fibres gather into tufts, `curl` (0–1) how wavy they are, `gravity`
+    (0–1) how much they hang down. */
 export interface FurStyle {
   length: number;
   density: number;
   fuzz: number;
   clumps: number;
   curl: number;
+  /** 0–1: how much the pile hangs down — combed down from a parting at the
+      top rather than standing out evenly all round */
+  gravity: number;
 }
-export const FUR_STOCK: FurStyle = { length: 1, density: 1, fuzz: 0.5, clumps: 0.5, curl: 0.3 };
-const styleId = (s: FurStyle) => `${s.length.toFixed(2)},${s.density.toFixed(2)},${s.fuzz.toFixed(2)},${s.clumps.toFixed(2)},${s.curl.toFixed(2)}`;
+export const FUR_STOCK: FurStyle = { length: 1.4, density: 1.6, fuzz: 0.9, clumps: 0.35, curl: 0.3, gravity: 0.6 };
+const styleId = (s: FurStyle) =>
+  `${s.length.toFixed(2)},${s.density.toFixed(2)},${s.fuzz.toFixed(2)},${s.clumps.toFixed(2)},${s.curl.toFixed(2)},${(s.gravity ?? FUR_STOCK.gravity).toFixed(2)}`;
 const furKey = (key: string, halfDepth: number, R: number, bin: number, style: FurStyle) => `${key}|${Math.round(halfDepth)}|${R}|${bin}|${styleId(style)}`;
 /* a slider dragged through styles queues a bake per stop: past the two
    newest for a shape, the older ones are dropped before they run */
@@ -925,9 +930,14 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   }
   const rand = rng(N * 7919 + 17);
   const clump = valueNoise(2.6, 3), lean = valueNoise(3.4, 21), tone = valueNoise(22, 9);
+  /* slow swirls across the body: where the pile parts and turns, so it is
+     not combed the same way everywhere */
+  const swirl = valueNoise(13, 57);
   /* the style: longer or shorter fibres, more or fewer, gathered into
-     tufts more or less, straighter or wavier, and a softer or crisper edge */
+     tufts more or less, straighter or wavier, hanging or standing, and a
+     softer or crisper edge */
   const { length: kLen, density: kDen, fuzz, clumps, curl } = style;
+  const gravity = style.gravity ?? FUR_STOCK.gravity;
   const ll = Math.hypot(lx, ly) || 1;
   const Lx = lx / ll, Ly = ly / ll;
   /* a tuft is a small mound: lit on the side toward the light, in shade on
@@ -938,27 +948,46 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     return Math.max(-1, Math.min(1, ((gx * Lx + gy * Ly) / (2 * e)) * 2.6 * 1.4));
   };
 
-  /* the flow: away from a crown high on the head and down, turning to lie
-     outward along the outline near the edge; each tuft leans its own way */
-  const crownX = 50, crownY = 12;
+  /* the parting: at the top of the head over its middle */
+  let crownY = 12;
+  for (let y = -PAD; y < 60; y += 0.5) if (sdAt(50, y) > 0.5) { crownY = y + 1; break; }
+  const crownX = 50;
+  /* the outline's outward direction at a point */
+  const outward = (x: number, y: number): [number, number] => {
+    const e = 0.8;
+    const ox = sdAt(x - e, y) - sdAt(x + e, y), oy = sdAt(x, y - e) - sdAt(x, y + e);
+    const ol = Math.hypot(ox, oy) || 1;
+    return [ox / ol, oy / ol];
+  };
+  /* The flow: away from the parting, and falling — with gravity the pile
+     hangs, so away from the parting it points down more and more. Near the
+     edge it turns out over the outline, but only where the edge faces
+     sideways or down: over the top of the head it lies down the front
+     instead of standing up. Each tuft leans its own way, and slow swirls
+     turn whole patches, so it is not the same all over. */
   const flow = (x: number, y: number): [number, number] => {
-    let dx = x - crownX, dy = y - crownY;
-    const l = Math.hypot(dx, dy) || 1;
-    dx = dx / l; dy = dy / l + 0.55;
+    let rx = x - crownX, ry = y - crownY;
+    const rl = Math.hypot(rx, ry) || 1;
+    rx /= rl;
+    ry /= rl;
+    const fall = gravity * (1 - 0.6 * Math.exp(-rl / 8));
+    let dx = rx * (1 - 0.8 * fall), dy = ry * (1 - 0.8 * fall) + fall;
     const d0 = sdAt(x, y);
     if (d0 < 5) {
-      const e = 0.8;
-      let ox = sdAt(x - e, y) - sdAt(x + e, y), oy = sdAt(x, y - e) - sdAt(x, y + e);
-      const ol = Math.hypot(ox, oy) || 1;
-      ox /= ol; oy /= ol;
+      const [ox, oy] = outward(x, y);
+      /* the edge's own direction: out, pulled down by gravity — at the top
+         the pull wins and the fibres lie down over the edge */
+      const up = Math.max(0, -oy);
+      const ex = ox * (1 - gravity * up), ey = oy * (1 - gravity * up) + 1.2 * gravity;
       const w = Math.max(0, Math.min(1, 1 - d0 / 5)) * 0.75;
-      dx = dx * (1 - w) + ox * w * 1.6; dy = dy * (1 - w) + oy * w * 1.6;
+      dx = dx * (1 - w) + ex * w * 1.6;
+      dy = dy * (1 - w) + ey * w * 1.6;
     }
-    const a = (lean(x, y) - 0.5) * 0.9;
+    const a = (lean(x, y) - 0.5) * 1.3 + (swirl(x, y) - 0.5) * 1.1;
     const ca = Math.cos(a), sa = Math.sin(a);
-    const rx = dx * ca - dy * sa, ry = dx * sa + dy * ca;
-    const m = Math.hypot(rx, ry) || 1;
-    return [rx / m, ry / m];
+    const qx = dx * ca - dy * sa, qy = dx * sa + dy * ca;
+    const m = Math.hypot(qx, qy) || 1;
+    return [qx / m, qy / m];
   };
 
   const steps: (() => void)[] = [];
@@ -1005,10 +1034,14 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     { count: 0.32, len: [2.2, 1.8], width: 0.12, spread: 66, alpha: 0.42, split: true, lift: 0.18 },
   ];
   const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
-  for (const L of layers) for (let half = 0; half < 2; half++) steps.push(() => {
+  /* a dense layer goes in more, smaller steps, so no one idle task runs
+     long enough to cost a frame */
+  for (const L of layers) {
+    const parts = Math.max(2, Math.ceil((L.count * kDen) / 1.6));
+    for (let part = 0; part < parts; part++) steps.push(() => {
     const buckets: Path2D[] = [];
     for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
-    const count = Math.round((area * L.count * kDen) / 2);
+    const count = Math.round((area * L.count * kDen) / parts);
     for (let n = 0; n < count; n++) {
       const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
       if (sdAt(X, Y) < -0.3) continue;
@@ -1016,7 +1049,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
       const ang = (rand() - 0.5) * (0.2 + 0.5 * curl);
       const ca = Math.cos(ang), sa = Math.sin(ang);
       const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
-      const len = (L.len[0] + L.len[1] * rand()) * px * kLen;
+      /* mostly the layer's length, now and then a stray half as long again */
+      const stray = rand() < 0.1 ? 1.35 + 0.6 * rand() : 1;
+      const len = (L.len[0] + L.len[1] * rand()) * px * kLen * stray;
       /* the fibre's own shade: its tuft's light and height, and whether it
          is one catching the light or one in a gap */
       const r0 = rand();
@@ -1051,7 +1086,8 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
       fg.stroke(buckets[i]);
     }
     fg.globalAlpha = 1;
-  });
+    });
+  }
 
   /* 3. the fuzz: fibres rooted just inside the edge, standing out past it —
      many, very fine, of mixed length (mostly short, a few long), leaning
@@ -1064,15 +1100,26 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     const d = sdAt(X, Y);
     if (d < -0.2 || d > 1.0) continue;
     const [fx, fy] = flow(X, Y);
-    const ang = (rand() - 0.5) * 0.8;
+    const [ox, oy] = outward(X, Y);
+    const ang = (rand() - 0.5) * 1.1;
     const ca = Math.cos(ang), sa = Math.sin(ang);
-    const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
+    let ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
     const r1 = rand();
-    const fl = (0.35 + 1.9 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz);
+    /* hanging hairs are longer below and at the sides than on top */
+    const hang = 1 + 0.5 * gravity * Math.max(0, oy) - 0.35 * gravity * Math.max(0, -oy);
+    let fl = (0.35 + 1.9 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz) * hang;
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-    const bend = (rand() - 0.5) * 1.17 * curl * fl;
+    let bend = (rand() - 0.5) * 1.17 * curl * fl;
+    /* a few flyaways on top: out over the edge, then arching down */
+    if (oy < -0.3 && rand() < 0.06 * (0.3 + fuzz)) {
+      ux = ox * 0.8 + (rand() - 0.5) * 0.6;
+      uy = oy * 0.8;
+      fl *= 1.2;
+      bend = (rand() < 0.5 ? -1 : 1) * (0.25 + 0.3 * gravity) * fl;
+    }
     fringe.moveTo(x0, y0);
-    fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl);
+    /* and the tip sags a little more under its own weight */
+    fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl + gravity * fl * 0.25);
   }
   /* the edge hairs are seen side-on against the light: a touch lighter */
   fg.lineWidth = Math.max(0.35, 0.08 * px);
@@ -1091,7 +1138,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   for (let y = 0; y < Rh; y++) {
     for (let x = 0; x < Rh; x++) {
       const d = sdAt((x + 0.5) / ph - PAD, (y + 0.5) / ph - PAD);
-      const fIn = 0.2 + 0.5 * fuzz, fOut = 0.4 + 1.8 * fuzz;
+      const fIn = 0.2 + 0.35 * fuzz, fOut = 0.35 + 0.9 * fuzz;
       const a = d >= fIn ? 1 : d <= -fOut ? 0 : (d + fOut) / (fIn + fOut);
       const k = (y * Rh + x) * 4;
       mi.data[k] = mi.data[k + 1] = mi.data[k + 2] = 255;
@@ -1603,10 +1650,15 @@ export function drawPlasticCap(
       ctx.globalAlpha = 1;
     }
   }
-  /* the outline at the centre plane, then the near half's levels out to
-     the top, each the lit texture cut to its contour */
+  /* the outline at the centre plane — backed by the side's sprite at full
+     size, so fabric's soft edge is the pile's colour all through rather
+     than a see-through band — then the near half's levels out to the top,
+     each the lit texture cut to its contour */
   at(0);
-  if (fur) ctx.drawImage(capSrc as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+  if (fur) {
+    ctx.drawImage(st.sprites[0]!.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+    ctx.drawImage(capSrc as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+  }
   else ctx.fill(cfg.path);
   for (let k = 1; k < K; k++) {
     at(near * rel.z[k]);

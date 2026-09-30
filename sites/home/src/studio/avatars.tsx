@@ -102,11 +102,12 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [highlight, setHighlight] = useState(130);
   const [depth, setDepth] = useState(65);
   const [roundness, setRoundness] = useState(100);
-  const [furLength, setFurLength] = useState(100);
-  const [furDensity, setFurDensity] = useState(100);
-  const [furFuzz, setFurFuzz] = useState(50);
-  const [furClumps, setFurClumps] = useState(50);
+  const [furLength, setFurLength] = useState(140);
+  const [furDensity, setFurDensity] = useState(160);
+  const [furFuzz, setFurFuzz] = useState(90);
+  const [furClumps, setFurClumps] = useState(35);
   const [furCurl, setFurCurl] = useState(30);
+  const [furGravity, setFurGravity] = useState(60);
   const [light, setLight] = useState(300);
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
@@ -178,11 +179,12 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if ((shading === "plastic" || shading === "fabric") && roundness !== 100) props.push(`roundness={${num(roundness / 100)}}`);
   if (shading === "fabric") {
-    if (furLength !== 100) props.push(`furLength={${num(furLength / 100)}}`);
-    if (furDensity !== 100) props.push(`furDensity={${num(furDensity / 100)}}`);
-    if (furFuzz !== 50) props.push(`furFuzz={${num(furFuzz / 100)}}`);
-    if (furClumps !== 50) props.push(`furClumps={${num(furClumps / 100)}}`);
+    if (furLength !== 140) props.push(`furLength={${num(furLength / 100)}}`);
+    if (furDensity !== 160) props.push(`furDensity={${num(furDensity / 100)}}`);
+    if (furFuzz !== 90) props.push(`furFuzz={${num(furFuzz / 100)}}`);
+    if (furClumps !== 35) props.push(`furClumps={${num(furClumps / 100)}}`);
     if (furCurl !== 30) props.push(`furCurl={${num(furCurl / 100)}}`);
+    if (furGravity !== 60) props.push(`furGravity={${num(furGravity / 100)}}`);
   }
   if (!interactive) props.push("interactive={false}");
   if (turn !== 100) props.push(`turn={${num(turn / 100)}}`);
@@ -237,6 +239,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             furFuzz={furFuzz / 100}
             furClumps={furClumps / 100}
             furCurl={furCurl / 100}
+            furGravity={furGravity / 100}
             light={light}
             rim={rim / 100}
             spread={spread / 100}
@@ -318,6 +321,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
               <PgSlider label="Edge fuzz" value={furFuzz} min={0} max={100} step={5} display={`${furFuzz}%`} onChange={setFurFuzz} />
               <PgSlider label="Clumps" value={furClumps} min={0} max={100} step={5} display={`${furClumps}%`} onChange={setFurClumps} />
               <PgSlider label="Curl" value={furCurl} min={0} max={100} step={5} display={`${furCurl}%`} onChange={setFurCurl} />
+              <PgSlider label="Gravity" value={furGravity} min={0} max={100} step={5} display={`${furGravity}%`} onChange={setFurGravity} />
             </PgGroup>
           </>
         )}

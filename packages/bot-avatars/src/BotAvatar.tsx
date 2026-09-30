@@ -54,11 +54,12 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     highlight = 1.3,
     depth = 0.65,
     roundness = 1,
-    furLength = 1,
-    furDensity = 1,
-    furFuzz = 0.5,
-    furClumps = 0.5,
+    furLength = 1.4,
+    furDensity = 1.6,
+    furFuzz = 0.9,
+    furClumps = 0.35,
     furCurl = 0.3,
+    furGravity = 0.6,
     light = 300,
     rim = 0.5,
     spread = 1.55,
@@ -109,8 +110,15 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const shadingMode: BotAvatarShading = shading === true ? 'crisp' : shading === false ? 'flat' : shading;
   /* the pile's style, rounded so a slider does not bake a pile per pixel */
   const q = (v: number, lo: number, hi: number) => Math.round(clamp(v, lo, hi) * 20) / 20;
-  const fur: FurStyle = { length: q(furLength, 0.3, 2.5), density: q(furDensity, 0.3, 2), fuzz: q(furFuzz, 0, 1), clumps: q(furClumps, 0, 1), curl: q(furCurl, 0, 1) };
-  const furId = `${fur.length},${fur.density},${fur.fuzz},${fur.clumps},${fur.curl}`;
+  const fur: FurStyle = {
+    length: q(furLength, 0.3, 2.5),
+    density: q(furDensity, 0.3, 2),
+    fuzz: q(furFuzz, 0, 1),
+    clumps: q(furClumps, 0, 1),
+    curl: q(furCurl, 0, 1),
+    gravity: q(furGravity, 0, 1),
+  };
+  const furId = `${fur.length},${fur.density},${fur.fuzz},${fur.clumps},${fur.curl},${fur.gravity}`;
 
   /* the sim lives across renders; props reach it through refs */
   const sim = useRef<Sim | null>(null);
