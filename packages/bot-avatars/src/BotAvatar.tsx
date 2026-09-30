@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, use
 import type { BotAvatarProps, BotAvatarShading, BotAvatarState } from './types';
 import { botAvatarPresets, stateLabels } from './presets';
 import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
-import { autoInk, shade } from './color';
+import { autoInk, richer, shade } from './color';
 import { Sim, restPose } from './engine';
 import { draw, LIGHT_DEFAULTS, OVERSCAN, RISE, type DrawConfig } from './draw';
 import { warmPlastic, type FurStyle } from './plastic';
@@ -99,13 +99,15 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const preset = botAvatarPresets[type] ?? botAvatarPresets.clover;
   const faceKind = face ?? preset.face;
   const picked = color ?? preset.color;
-  const body =
+  /* past 1.5 the colour itself is as saturated as it goes for most of the
+     palette: the rest deepens it and makes the light keep more of it */
+  const vivid = clamp(saturation, 1.5, 2.5) - 1.5;
+  const body = richer(
     brightness === 1 && saturation === 1
       ? picked
-      : shade(picked, (Math.min(2, Math.max(0, brightness)) - 1) * 0.35, (Math.min(2, Math.max(0, saturation)) - 1) * 0.5);
-  /* past 1.5 the colour itself is as saturated as it goes for most of the
-     palette: the rest makes the light keep more of it (plastic, fabric) */
-  const vivid = clamp(saturation, 1.5, 2.5) - 1.5;
+      : shade(picked, (Math.min(2, Math.max(0, brightness)) - 1) * 0.35, (Math.min(1.5, Math.max(0, saturation)) - 1) * 0.5),
+    vivid
+  );
   const inkColor = ink ?? autoInk(body);
   const seedValue = Math.min(1, Math.max(0, seed ?? hashSeed(reactId)));
   const stateKey: BotAvatarState = state in stateLabels ? state : 'default';

@@ -81,3 +81,17 @@ export function shade(color: string, dl: number, ds = 0): string {
   const [h, s, l] = rgbToHsl(c);
   return hslToCss([h, clamp01(s + ds + (dl < 0 ? -dl * 0.25 : 0)), clamp01(l + dl)]);
 }
+
+/** A richer version of a colour, `t` 0–1: past full saturation a colour can
+    only look more saturated by deepening — each channel's share of the
+    strongest raised to a power, so the weaker channels fall away faster
+    and the strongest stays — the way a dye deepens. */
+export function richer(color: string, t: number): string {
+  const c = parseColor(color);
+  if (!c || !(t > 0)) return color;
+  const mx = Math.max(c[0], c[1], c[2], 1);
+  const e = 1 + 1.6 * t;
+  const k = 1 - 0.18 * t;
+  const ch = (v: number) => Math.round(mx * k * Math.pow(v / mx, e));
+  return `rgb(${ch(c[0])} ${ch(c[1])} ${ch(c[2])})`;
+}

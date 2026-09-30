@@ -88,8 +88,9 @@ export interface BotAvatarProps
   /**
    * Saturation of the body colour: 1 as the palette has it, below 1
    * duller, above 1 more vivid, 0.5–2.5. Past 1.5, where most of the
-   * palette is already fully saturated, `plastic` and `fabric` keep more of
-   * the colour in the light — highlights, sheen, rim and fur tips stay
+   * palette is already fully saturated, the colour deepens and grows
+   * richer (a sky blue toward royal blue), and `plastic` and `fabric` keep
+   * more of it in the light — highlights, sheen, rim and fur tips stay
    * coloured rather than paling toward white. Default `1.5`.
    */
   saturation?: number;

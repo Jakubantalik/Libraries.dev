@@ -572,7 +572,7 @@ function vivify(c: V3, v: number) {
   if (!(v > 0)) return;
   const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   const mn = Math.min(c[0], c[1], c[2]);
-  let k = 1 + 1.5 * v;
+  let k = 1 + 0.9 * v;
   if (mn < y) k = Math.min(k, y / (y - mn));
   c[0] = y + (c[0] - y) * k;
   c[1] = y + (c[1] - y) * k;
