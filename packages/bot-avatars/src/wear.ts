@@ -54,6 +54,8 @@ export interface Wear {
   bowTie: boolean;
   /** the hat's, the headphones' and the bow tie's colour */
   color: string;
+  /** the body is plush: the bow tie is the same felt rather than satin */
+  fabric?: boolean;
 }
 
 /** The rig as the slices use it: floored cos/sin of yaw and pitch, the
@@ -1031,7 +1033,8 @@ function drawBowTie(
   base: string,
   bodyZ: (x: number, y: number) => number,
   bodyClip: Path2D | null,
-  face: { y: number; scale: number }
+  face: { y: number; scale: number },
+  fabricBow = false
 ) {
   if (r.facing < 0.05) return;
   const W = m.right - m.left;
@@ -1054,7 +1057,9 @@ function drawBowTie(
   contact(ctx, bodyClip, sh[0], sh[1], bb.w * 0.52, bb.h * 0.5, 0.3);
   const nu = segs(view, 0.32 * k, 8, 16), nv = segs(view, 0.3 * k, 8, 16, 6);
   const at = `${zFront.toFixed(2)},${cyB.toFixed(2)},${k.toFixed(2)}`;
-  const wingShade = satin(view, rgb);
+  /* satin on a plastic body; on a plush one the same felt as the body */
+  const soft = !!fabricBow;
+  const wingShade = soft ? felt(view, rgb) : satin(view, rgb);
   const layers: Layer[] = [];
   for (const dir of [-1, 1] as const) {
     const wing = (u: number, v: number): V3 => {
@@ -1097,8 +1102,19 @@ function drawBowTie(
     6,
     Q(0, 0, -0.02)
   );
-  layers.push({ parts: [knot], shade: satin(view, scale(rgb, 0.9)) });
-  paintLayers(ctx, layers, view.px);
+  layers.push({ parts: [knot], shade: soft ? felt(view, rgb, 0.9) : satin(view, scale(rgb, 0.9)) });
+  if (!soft) {
+    paintLayers(ctx, layers, view.px);
+    return;
+  }
+  /* felt: each wing and the knot in turn, each with its own grain and fuzz
+     round its own outline (the bow's is not convex) */
+  for (let i = 0; i < layers.length; i += 2) {
+    const part = layers.slice(i, i + 2);
+    const outline = hull(paintLayers(ctx, part, view.px));
+    grainOver(ctx, outline, 0.5, 0.1);
+    fuzz(ctx, outline, base, 41 + i, 0.3, view.px);
+  }
 }
 
 /* ── glasses: in face space, on the eyes ────────────────────────────── */
@@ -1281,7 +1297,7 @@ export function drawWearFront(
   if (!m) return;
   owner = m;
   const view = viewOf(r, pxOf(ctx));
-  if (wear.bowTie) drawBowTie(ctx, view, r, m, wear.color, bodyZ, bodyClip, face);
+  if (wear.bowTie) drawBowTie(ctx, view, r, m, wear.color, bodyZ, bodyClip, face, wear.fabric);
   if (wear.headphones) drawPhones(ctx, view, m, wear.color, 'front', bodyClip);
   switch (wear.hat) {
     case 'beret':

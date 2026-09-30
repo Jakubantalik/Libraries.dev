@@ -607,6 +607,8 @@ for (let i = 0; i < TONE_N; i++) {
   toneLut[i] = 255 * (y <= 0.0031308 ? 12.92 * y : 1.055 * Math.pow(y, 1 / 2.4) - 0.055);
 }
 const tone = (v: number) => toneLut[v <= 0 ? 0 : v >= TONE_MAX ? TONE_N - 1 : (v * TONE_SCALE) | 0];
+/* linear to 0–255 sRGB, no shoulder */
+const srgb = (v: number) => (v <= 0 ? 0 : v >= 1 ? 255 : 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055));
 
 /* x^e over x ∈ [0, 1], as a table, cached by exponent */
 const POW_N = 1024;
@@ -991,53 +993,77 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   };
 
   const steps: (() => void)[] = [];
-  /* 1. the base: the pile's mean grey, with a slow drift in its tone */
-  steps.push(() => {
-  /* the tone drifts over twenty units: a quarter of the resolution,
-     scaled up, is the same picture for a sixteenth of the work */
-  const Rq = Math.max(16, R >> 2), pq = Rq / SPAN;
-  const tc = makeCanvas(Rq), tg = tc && ctx2d(tc, false);
-  if (tc && tg) {
-    const base = new ImageData(Rq, Rq);
-    for (let y = 0; y < Rq; y++) {
-      for (let x = 0; x < Rq; x++) {
-        const v = Math.round(FUR_MID + (tone(x / pq - PAD, y / pq - PAD) - 0.5) * 14);
-        const k = (y * Rq + x) * 4;
-        base.data[k] = base.data[k + 1] = base.data[k + 2] = v;
-        base.data[k + 3] = 255;
+  /* 1. the fleece: a plush like this is a dense, very short pile, and what
+     the eye reads is its grain — a fine stipple of fibre tips and the dark
+     gaps between them, gathered into tiny tufts that each catch the light
+     on one side — over a slow drift in the pile's tone. It is made per
+     pixel, a band of rows at a time. */
+  const img = new ImageData(R, R);
+  const white = new Float32Array(R * R);
+  const tuft = valueNoise(0.55 + 0.35 * kLen, 77);
+  const tuftLight = (x: number, y: number) => {
+    const e = 0.2;
+    const gx = tuft(x + e, y) - tuft(x - e, y), gy = tuft(x, y + e) - tuft(x, y - e);
+    return Math.max(-1, Math.min(1, ((gx * Lx + gy * Ly) / (2 * e)) * 1.1));
+  };
+  const BAND = 96;
+  for (let y0 = 0; y0 < R; y0 += BAND) {
+    steps.push(() => {
+      const y1 = Math.min(R, y0 + BAND);
+      /* white noise for these rows and one either side, for the blur */
+      for (let y = Math.max(0, y0 - 1); y < Math.min(R, y1 + 1); y++) for (let x = 0; x < R; x++) white[y * R + x] = hash2(x + 911, y + 37);
+      const grainA = 38, tuftA = 26 * (0.35 + clumps), litA = 20 * (0.3 + clumps);
+      /* the grain's cells: about a third of a unit, never under a pixel */
+      const gc = Math.max(1, 0.34 * px);
+      for (let y = y0; y < y1; y++) {
+        const Y = (y + 0.5) / px - PAD;
+        for (let x = 0; x < R; x++) {
+          const X = (x + 0.5) / px - PAD;
+          const i = y * R + x;
+          let grain: number;
+          if (gc <= 1.05) {
+            const l = x > 0 ? white[i - 1] : white[i], r = x < R - 1 ? white[i + 1] : white[i];
+            const u = y > 0 ? white[i - R] : white[i], d = y < R - 1 ? white[i + R] : white[i];
+            grain = (4 * white[i] + l + r + u + d) / 8 - 0.5;
+          } else {
+            /* smooth blobs a grain cell across: value noise on the lattice */
+            const gx = x / gc, gy = y / gc, ix = Math.floor(gx), iy = Math.floor(gy);
+            const tx = gx - ix, ty = gy - iy, sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+            const a = hash2(ix + 911, iy + 37), b = hash2(ix + 912, iy + 37), c = hash2(ix + 911, iy + 38), dd = hash2(ix + 912, iy + 38);
+            grain = ((a + (b - a) * sx) * (1 - sy) + (c + (dd - c) * sx) * sy - 0.5) * 1.35;
+          }
+          const v =
+            FUR_MID +
+            (tone(X, Y) - 0.5) * 14 +
+            grain * 2 * grainA +
+            (tuft(X, Y) - 0.5) * 2 * tuftA +
+            tuftLight(X, Y) * litA;
+          const k = i * 4;
+          img.data[k] = img.data[k + 1] = img.data[k + 2] = v < 0 ? 0 : v > 255 ? 255 : v;
+          img.data[k + 3] = 255;
+        }
       }
-    }
-    tg.putImageData(base, 0, 0);
-    fg.imageSmoothingEnabled = true;
-    fg.imageSmoothingQuality = 'high';
-    fg.drawImage(tc as HTMLCanvasElement, 0, 0, R, R);
-  } else {
-    fg.fillStyle = `rgb(${FUR_MID},${FUR_MID},${FUR_MID})`;
-    fg.fillRect(0, 0, R, R);
+      fg.putImageData(img, 0, 0, 0, y0, R, y1 - y0);
+      fg.lineCap = 'round';
+      fg.lineJoin = 'round';
+    });
   }
-  fg.lineCap = 'round';
-  fg.lineJoin = 'round';
-  });
 
-  /* 2. the fibres, layer by layer, a step each: strokes bucketed by shade,
-     so a layer is a few dozen stroke calls however many fibres it draws */
+  /* 2. the pile over it: short fibres combed with the flow but messily,
+     root in shade and tip in the light, and a sparse few longer ones that
+     glint — strokes bucketed by shade, so a layer is a few dozen stroke
+     calls however many fibres it draws */
   const SHADES = 16;
   const area = SPAN * SPAN;
   const layers = [
-    /* undercoat: dense, fine, short, quiet — most of what the eye reads as
-       the velvet */
-    { count: 4.2, len: [0.5, 0.7], width: 0.11, spread: 60, alpha: 0.5, split: false, lift: 0 },
-    /* the pile: short fibres, root a little darker than tip */
-    { count: 2.4, len: [1.2, 1.7], width: 0.14, spread: 72, alpha: 0.55, split: true, lift: 0.04 },
-    /* guard hairs: a sparse few, longer, standing over the pile with their
-       tips in the light — what makes it read as fur rather than felt */
-    { count: 0.32, len: [2.2, 1.8], width: 0.12, spread: 66, alpha: 0.42, split: true, lift: 0.18 },
+    { count: 1.4, len: [0.45, 0.65], width: 0.12, spread: 56, alpha: 0.5, split: true, lift: 0.02 },
+    { count: 0.12, len: [1.0, 0.9], width: 0.1, spread: 50, alpha: 0.36, split: true, lift: 0.16 },
   ];
   const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
   /* a dense layer goes in more, smaller steps, so no one idle task runs
      long enough to cost a frame */
   for (const L of layers) {
-    const parts = Math.max(2, Math.ceil((L.count * kDen) / 1.6));
+    const parts = Math.max(1, Math.ceil((L.count * kDen) / 1.2));
     for (let part = 0; part < parts; part++) steps.push(() => {
     const buckets: Path2D[] = [];
     for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
@@ -1046,7 +1072,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
       const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
       if (sdAt(X, Y) < -0.3) continue;
       const [fx, fy] = flow(X, Y);
-      const ang = (rand() - 0.5) * (0.2 + 0.5 * curl);
+      const ang = (rand() - 0.5) * (0.6 + 0.8 * curl);
       const ca = Math.cos(ang), sa = Math.sin(ang);
       const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
       /* mostly the layer's length, now and then a stray half as long again */
@@ -1107,7 +1133,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     const r1 = rand();
     /* hanging hairs are longer below and at the sides than on top */
     const hang = 1 + 0.5 * gravity * Math.max(0, oy) - 0.35 * gravity * Math.max(0, -oy);
-    let fl = (0.35 + 1.9 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz) * hang;
+    let fl = (0.25 + 1.1 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz) * hang;
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
     let bend = (rand() - 0.5) * 1.17 * curl * fl;
     /* a few flyaways on top: out over the edge, then arching down */
@@ -1171,7 +1197,7 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
   const { V, U, D } = f;
   /* the key comes in lower than plastic's, from further round the side, so
      the far side of the form falls into real shade */
-  const EK = (30 * Math.PI) / 180;
+  const EK = (34 * Math.PI) / 180;
   const L = norm3([U[0] * Math.cos(EK) + V[0] * Math.sin(EK), U[1] * Math.cos(EK) + V[1] * Math.sin(EK), U[2] * Math.cos(EK) + V[2] * Math.sin(EK)]);
   /* A plush toy under studio light: a large soft key high on the light's
      side, turning into shade gradually — the pile scatters it, so the
@@ -1179,17 +1205,17 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
      rather than greyed; a dim fill from the other side and the front, so
      no side goes flat; a thin back light the fibres at the silhouette catch
      all round; and the floor's occlusion under the body. */
-  const amb = Math.max(0.05, 0.17 - 0.12 * p.shadow);
+  const amb = Math.max(0.03, 0.12 - 0.1 * p.shadow);
   const wrap = Math.min(0.9, 0.2 + 0.16 * p.spread);
-  const kd = 1.32;
-  const fillK = 0.16, floorK = 0.3 * Math.min(1.5, p.shadow / 0.35);
+  const kd = 1.4;
+  const fillK = 0.1, floorK = 0.34 * Math.min(1.5, p.shadow / 0.35);
   /* the fill: from the other side of the screen, a little low, mostly from
      the front */
   const Fl = norm3([-0.55 * U[0] + 0.85 * V[0] + 0.15 * D[0], -0.55 * U[1] + 0.85 * V[1] + 0.15 * D[1], -0.55 * U[2] + 0.85 * V[2] + 0.15 * D[2]]);
   const sheenK = 0.26 * p.highlight, rimK = 0.3 * p.rim;
-  /* the sheen and the back light are the body colour itself, lifted:
-     plush keeps its colour where it catches the light, it does not go white */
-  const tint: V3 = [0.72 * c[0] + 0.28, 0.72 * c[1] + 0.28, 0.72 * c[2] + 0.28];
+  /* the sheen and the back light are the body colour itself: plush keeps
+     its colour where it catches the light, it does not go white */
+  const tint: V3 = [c[0], c[1], c[2]];
   /* the shade is the colour deepened: a little more saturated, not grey */
   const deep: V3 = [c[0] * c[0] * 0.9 + c[0] * 0.1, c[1] * c[1] * 0.9 + c[1] * 0.1, c[2] * c[2] * 0.9 + c[2] * 0.1];
   for (let j = 0; j < M; j++) {
@@ -1209,7 +1235,7 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
          silhouette where the fibres scatter it */
       const w = wrap + (1.2 - wrap) * (1 - nz) * (1 - nz);
       let dif = Math.min(1, Math.max(0, (nl + w) / (1 + w)));
-      dif = Math.pow(dif, 1.3);
+      dif = Math.pow(dif, 1.25);
       const fill = fillK * Math.max(0, nx * Fl[0] + ny * Fl[1] + nz * Fl[2]);
       const floor = 1 - floorK * Math.max(0, nx * D[0] + ny * D[1] + nz * D[2]) * (0.6 + 0.4 * (1 - nv));
       const q = 1 - nv, graze = q * q;
@@ -1222,10 +1248,27 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
       /* toward the shade the colour deepens rather than greys */
       const t = Math.min(1, Math.max(0, (1.1 - light) / 1.1));
       const k = (j * M + i) * 3;
+      let r = 0, g = 0, b = 0;
       for (let ch = 0; ch < 3; ch++) {
         const base = c[ch] + (deep[ch] - c[ch]) * t * 0.85;
-        out[k + ch] = tone(base * light + sheen * tint[ch]);
+        const v = base * light + sheen * tint[ch];
+        if (ch === 0) r = v;
+        else if (ch === 1) g = v;
+        else b = v;
       }
+      /* bright parts roll off as a whole, not channel by channel: a lit
+         yellow stays yellow instead of its red clipping first and the rest
+         running on toward green */
+      const mx = Math.max(r, g, b);
+      if (mx > 0.8) {
+        const kk = (0.8 + 0.2 * (1 - Math.exp(-(mx - 0.8) / 0.2))) / mx;
+        r *= kk;
+        g *= kk;
+        b *= kk;
+      }
+      out[k] = srgb(r);
+      out[k + 1] = srgb(g);
+      out[k + 2] = srgb(b);
     }
   }
 }
@@ -1481,7 +1524,7 @@ export function drawPlasticCap(
   }
   /* the occlusion strength follows `shadow`; a pile sinks deeper into its
      creases than a clear coat does, which is what keeps fur's lobes apart */
-  const aoK = fur ? Math.min(1.4, 0.3 + 1.1 * mat.shadow) : Math.min(1.3, 1.2 * mat.shadow);
+  const aoK = fur ? Math.min(1.5, 0.4 + 1.3 * mat.shadow) : Math.min(1.3, 1.2 * mat.shadow);
   if (aoK !== st.aoK) {
     for (let a = 0; a < 256; a++) st.aoMul[a] = Math.max(0, 1 - aoK * (1 - a / 255));
     st.aoK = aoK;
@@ -1543,7 +1586,11 @@ export function drawPlasticCap(
         fc.g.globalCompositeOperation = 'soft-light';
         fc.g.globalAlpha = 1;
         fc.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0);
-        fc.g.globalAlpha = 1;
+        /* the pile changes how light the colour is, never the colour: its
+           hue and saturation come back from the lit texels, so paler tips
+           do not wash a saturated yellow out */
+        fc.g.globalCompositeOperation = 'color';
+        fc.g.drawImage(sc.c as HTMLCanvasElement, 0, 0, R, R);
         fc.g.globalCompositeOperation = 'destination-in';
         fc.g.drawImage(fur.mask as HTMLCanvasElement, 0, 0);
         fc.g.globalCompositeOperation = 'source-over';
@@ -1610,6 +1657,11 @@ export function drawPlasticCap(
         if (i === 0) {
           g.globalCompositeOperation = 'soft-light';
           g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0, spx, spx);
+          /* and the side's own colour back over the grain, as for the texture */
+          g.globalCompositeOperation = 'color';
+          g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
+          g.fillRect(-PAD, -PAD, SPAN, SPAN);
+          g.setTransform(1, 0, 0, 1, 0, 0);
         }
         g.globalCompositeOperation = 'destination-in';
         g.drawImage(fur.mask as HTMLCanvasElement, 0, 0, spx, spx);
