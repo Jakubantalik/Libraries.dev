@@ -717,6 +717,32 @@ function softMask(form: Form, R: number): AnyCanvas | null {
   return c;
 }
 
+/* the outline's rim as points: the texels just inside it, each with its
+   distance in. A texel p that far inside reaches at least e·p + d along
+   any direction e, and the one nearest the outline there reaches exactly
+   its extent — so how far the outline reaches along a direction is a max
+   over these few hundred points */
+const rims = new WeakMap<Form, Float32Array>();
+function rimOf(form: Form): Float32Array {
+  let r = rims.get(form);
+  if (r) return r;
+  const { N, sd } = form;
+  const u = SPAN / N;
+  const pts: number[] = [];
+  for (let j = 0, i = 0; j < N; j++) for (let x = 0; x < N; x++, i++) if (sd[i] >= 0 && sd[i] < 2 * u) pts.push((x + 0.5) * u - PAD, (j + 0.5) * u - PAD, sd[i]);
+  r = Float32Array.from(pts);
+  rims.set(form, r);
+  return r;
+}
+function reach(rim: Float32Array, ex: number, ey: number): number {
+  let m = -INF;
+  for (let i = 0; i < rim.length; i += 3) {
+    const v = rim[i] * ex + rim[i + 1] * ey + rim[i + 2];
+    if (v > m) m = v;
+  }
+  return m;
+}
+
 /* ── fabric: a plush pile instead of a clear coat ─────────────────── */
 
 /* The same form, dressed in a plush pile. The fibres are combed from a
@@ -730,8 +756,15 @@ export interface Fur {
   /** the pile's own resolution: finer than the form, so the fibres stay
       thin on a large avatar */
   R: number;
-  /** the body plus a fringe of hairs past its edge, as alpha */
+  /** the body plus a fringe of hairs past its edge, as alpha: the halo */
   mask: AnyCanvas | null;
+  /** how far the halo's hairs are lit toward their tips, as alpha */
+  haze: AnyCanvas | null;
+  /** the halo's complement: what laying it over the body cuts away —
+      made on first use (see furCut): only a far turn needs it */
+  cut: AnyCanvas | null;
+  /** the body's inside, clear of the halo's band along the outline */
+  core: AnyCanvas | null;
   /** the pile as a film over the wider square FILM_SPAN across, in two
       parts: black where it deepens the colour (laid over it, black at
       alpha a multiplies by 1 − a — the gaps between locks and strands,
@@ -780,6 +813,38 @@ const FUR_MID = 128;
 /* how far past the body's square the pile's film reaches, and its span */
 const FILM_M = 12;
 const FILM_SPAN = SPAN + 2 * FILM_M;
+/* the halo: how dense its haze is at the outline, how much its hairs
+   streak it, and how far each is drawn out along the flow, in design
+   units per unit of the pile's length */
+const HALO_A = 0.8;
+const HALO_STREAK = 0.3;
+const HALO_HAIR = 0.8;
+/* how far the halo's hairs turn to the front's brightest colour toward
+   their tips */
+const HALO_LIFT = 0.7;
+/* how much of the far half's shade the halo keeps where that half forms
+   the silhouette */
+const HALO_SHADE = 0.5;
+/* how far the halo's stretched outline may miss the turned stack's
+   silhouette, in design units: up to half this it is laid over the body;
+   past that it cuts into the body and shows behind it instead, an
+   overhanging one faded out by this and the cut receded entirely by
+   twice this */
+const HALO_FIT = 2.5;
+/* how far in from the outline the halo's band reaches, in design units:
+   under (or over) the body's edge, and no further */
+const HALO_CORE = 1.2;
+/* how far in on the front the halo's colour comes from at least, in
+   design units: past the edge's shade, as a pile lit through */
+const HALO_INSET = 3;
+/* how much of the halo's colour is laid over the body's own edge */
+const HALO_VEIL = 0.8;
+/* over how much of the recession (`back`, see drawPlasticCap) the halo
+   laid over the body is cross-faded into the cut, and how far that
+   weight moves in a frame while animating: the miss is measured in steps
+   of the turn, so it would otherwise step with it */
+const HALO_BLEND = 0.3;
+const HALO_EASE = 0.1;
 
 /* a stable white noise, so every avatar of a type wears the same pile */
 function hash2(x: number, y: number): number {
@@ -903,7 +968,7 @@ export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320
   if (hit) return hit;
   const job = furJob(form, id, R, lx, ly, style);
   if (job) for (const step of job.steps) step();
-  return furs.get(id) ?? { R: 0, mask: null, dark: null, light: null };
+  return furs.get(id) ?? { R: 0, mask: null, haze: null, cut: null, core: null, dark: null, light: null };
 }
 
 /* the bake as a list of steps sharing one closure; the last one files the
@@ -924,7 +989,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      units past it all round, so the film laid over a turned body still
      covers the back half showing past the front's outline */
   const O = PAD + FILM_M, Rb = Math.round((R * FILM_SPAN) / SPAN);
-  const fur: Fur = { R, mask: null, dark: null, light: null };
+  const fur: Fur = { R, mask: null, haze: null, cut: null, core: null, dark: null, light: null };
   const dc = makeCanvas(Rb), lc = makeCanvas(Rb), mc = makeCanvas(R);
   const dg = dc && ctx2d(dc, false), lg = lc && ctx2d(lc, false), mg = mc && ctx2d(mc, false);
   if (!dc || !lc || !mc || !dg || !lg || !mg) {
@@ -1049,10 +1114,10 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      past it and the gaps between them fall a little short, so the edge
      breaks into soft tufts — the locks' own pattern and a rounder bump of
      their size, as far out as the pile is long */
-  const bump = valueNoise(0.7 + 0.35 * kLen, 61);
-  const tuftK = (0.2 + 0.5 * fuzz) * Math.min(1.8, kLen) * 0.55;
+  const bump = valueNoise(0.7 + 0.35 * kLen, 61), swell = valueNoise(2.2 + 0.6 * kLen, 67);
+  const tuftK = (0.2 + 0.5 * fuzz) * Math.min(1.8, kLen);
   const tuftAt = (X: number, Y: number) => {
-    const v = 0.45 * Math.max(-1.6, Math.min(1.6, lockAt(lock, X, Y))) / 1.6 + 0.55 * (bump(X, Y) - 0.5) * 2.4;
+    const v = 0.3 * Math.max(-1.6, Math.min(1.6, lockAt(lock, X, Y))) / 1.6 + 0.25 * (bump(X, Y) - 0.5) * 2.4 + 0.45 * (swell(X, Y) - 0.5) * 2.4;
     return tuftK * Math.max(-1, Math.min(1, v));
   };
   const lockW = 0.8 + 0.45 * kLen;
@@ -1108,7 +1173,27 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         const sx = Math.round(x - lux[i] * back), sy = Math.round(y - luy[i] * back);
         const up = sx >= 0 && sy >= 0 && sx < Rl && sy < Rl ? lock[sy * Rl + sx] : lock[i];
         const shade = Math.max(0, up - lock[i]);
-        lockLit[i] = Math.max(-2, Math.min(2, 0.6 * lit - 0.9 * shade));
+        lockLit[i] = Math.max(-2, Math.min(2, 0.6 * lit - 0.65 * shade));
+      }
+    }
+  });
+  /* the shade a lock casts is soft — the fibres at its tip thin out, and
+     the light scatters through them — so its light is blurred a little:
+     the gaps read as soft warm hollows rather than drawn lines */
+  steps.push(() => {
+    const tmp = new Float32Array(Rl * Rl);
+    for (let pass = 0; pass < 2; pass++) {
+      for (let y = 0, i = 0; y < Rl; y++) {
+        for (let x = 0; x < Rl; x++, i++) {
+          const l = x > 0 ? lockLit[i - 1] : lockLit[i], r = x < Rl - 1 ? lockLit[i + 1] : lockLit[i];
+          tmp[i] = (l + 2 * lockLit[i] + r) / 4;
+        }
+      }
+      for (let y = 0, i = 0; y < Rl; y++) {
+        for (let x = 0; x < Rl; x++, i++) {
+          const u = y > 0 ? tmp[i - Rl] : tmp[i], d = y < Rl - 1 ? tmp[i + Rl] : tmp[i];
+          lockLit[i] = (u + 2 * tmp[i] + d) / 4;
+        }
       }
     }
   });
@@ -1261,21 +1346,29 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      many, very fine, of mixed length (mostly short, a few long), leaning
      with the flow, so the edge is a soft haze rather than a comb */
   const fringe = new Path2D();
-  steps.push(() => {
   /* tried only in the form's cells along the outline, where a hair can
      root: as many tries per unit of that band as over the whole square */
   const cells: number[] = [];
   const cu = SPAN / N;
-  for (let i = 0; i < N * N; i++) if (form.sd[i] > -1.6 && form.sd[i] < 2.2) cells.push(i);
-  /* fewer on a small pile, whose hairs are finer than its pixels */
-  const edgeTries = Math.round(cells.length * cu * cu * 18 * (0.3 + 1.4 * fuzz) * Math.sqrt(kDen) * (0.5 + 0.5 * Math.min(1, R / 512)));
-  for (let n = 0; n < edgeTries; n++) {
+  let edgeTries = 0;
+  /* the path is built over two steps (the same draws in the same order, so
+     the same hairs) and stroked whole in a third, so no one idle task runs
+     long */
+  const FRINGE_PARTS = 2;
+  for (let part = 0; part < FRINGE_PARTS; part++) steps.push(() => {
+  if (part === 0) {
+    for (let i = 0; i < N * N; i++) if (form.sd[i] > -1.6 && form.sd[i] < 2.2) cells.push(i);
+    /* fewer on a small pile, whose hairs are finer than its pixels */
+    edgeTries = Math.round(cells.length * cu * cu * 24 * (0.3 + 1.4 * fuzz) * Math.sqrt(kDen) * (0.5 + 0.5 * Math.min(1, R / 512)));
+  }
+  const n1 = Math.floor((edgeTries * (part + 1)) / FRINGE_PARTS);
+  for (let n = Math.floor((edgeTries * part) / FRINGE_PARTS); n < n1; n++) {
     const c = cells[(rand() * cells.length) | 0];
     const X = ((c % N) + rand()) * cu - PAD, Y = (((c / N) | 0) + rand()) * cu - PAD;
     const d0 = sdAt(X, Y);
     if (d0 < -1.2 || d0 > 1.8) continue;
     const d = d0 + tuftAt(X, Y);
-    if (d < -0.2 || d > 1.0) continue;
+    if (d < -0.2 || d > 1.2) continue;
     const [fx, fy] = flow(X, Y);
     const [ox, oy] = outward(X, Y);
     const ang = (rand() - 0.5) * 1.1;
@@ -1284,7 +1377,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     const r1 = rand();
     /* hanging hairs are longer below and at the sides than on top */
     const hang = 1 + 0.5 * gravity * Math.max(0, oy) - 0.35 * gravity * Math.max(0, -oy);
-    let fl = (0.25 + 1.1 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz) * hang;
+    let fl = (0.3 + 1.5 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz) * hang;
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
     let bend = (rand() - 0.5) * 1.17 * curl * fl;
     /* a few flyaways on top: out over the edge, then arching down */
@@ -1298,43 +1391,89 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     /* and the tip sags a little more under its own weight */
     fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl + gravity * fl * 0.25);
   }
-  /* the edge hairs are seen side-on against the light: a touch lighter */
-  lg.lineWidth = Math.max(0.35, 0.08 * px);
+  });
+  steps.push(() => {
+  /* the edge hairs are seen side-on against the light: a touch lighter,
+     and clear of the gaps' shade the film holds where they stand */
+  lg.lineWidth = dg.lineWidth = Math.max(0.35, 0.08 * px);
   lg.globalAlpha = 0.5 * ((140 - FUR_MID) / (255 - FUR_MID));
   lg.strokeStyle = '#fff';
   lg.stroke(fringe);
   lg.globalAlpha = 1;
+  dg.globalCompositeOperation = 'destination-out';
+  dg.globalAlpha = 0.7;
+  dg.strokeStyle = '#000';
+  dg.stroke(fringe);
+  dg.globalAlpha = 1;
+  dg.globalCompositeOperation = 'source-over';
+  });
+
+  /* 4. the halo: the body's coverage, laid over the silhouette of the
+     whole turned body. Solid inside, to the outline; past it the pile's
+     outermost tips, a haze of fine hairs thinning outward — drawn out
+     along the flow from the same sparse noise as the fleece's strands, so
+     it is streaked with hairs rather than blurred — sparse enough at its
+     edge to see the backdrop through, with the fuzz's longer hairs
+     standing in it. The tufts push it out and pull it in, so the
+     silhouette breaks into soft bumps. */
+  const mi = new ImageData(R, R), zi = new ImageData(R, R), ci = new ImageData(R, R);
+  const hOut = 0.5 + 1.2 * fuzz, reachOut = hOut + tuftK;
+  /* the halo's hairs are seen whole, standing free: drawn out further
+     than the fleece's strands */
+  const hn = Math.max(1, Math.round(HALO_HAIR * kLen * px)), hs1 = hn + 1;
+  const hsd = (W_SD * Math.sqrt(1 + (hn * (2 * hn + 1)) / (3 * hs1))) / hs1;
+  const off = Math.round(FILM_M * px);
+  rows(R, 64, (y0, y1) => {
+    const md = mi.data, zd = zi.data, cd = ci.data;
+    for (let y = y0; y < y1; y++) {
+      const Y = (y + 0.5) / px - PAD;
+      for (let x = 0; x < R; x++) {
+        const X = (x + 0.5) / px - PAD;
+        const k = (y * R + x) * 4;
+        md[k] = md[k + 1] = md[k + 2] = zd[k] = zd[k + 1] = zd[k + 2] = 255;
+        const d0 = sdAt(X, Y);
+        if (d0 >= tuftK + HALO_CORE) {
+          md[k + 3] = cd[k + 3] = 255;
+          continue;
+        }
+        const d = d0 <= -reachOut ? d0 : d0 + tuftAt(X, Y);
+        if (d >= 0) {
+          md[k + 3] = 255;
+          cd[k + 3] = Math.round(255 * smooth(0.25 * HALO_CORE, HALO_CORE, d));
+          continue;
+        }
+        /* past the outline the hairs are lit, the further out the more */
+        const z = Math.min(1, -d / (2 * hOut));
+        zd[k + 3] = Math.round(255 * HALO_LIFT * z * z * (3 - 2 * z));
+        if (d <= -hOut) continue;
+        const o = 1 + d / hOut, f = o * o * (3 - 2 * o);
+        const [ux, uy] = dirAt(X, Y);
+        let acc = 0;
+        for (let t = -hn; t <= hn; t++) {
+          const sx = Math.round(x + off + ux * t), sy = Math.round(y + off + uy * t);
+          acc += (sx < 0 || sy < 0 || sx >= Rb || sy >= Rb ? W_MEAN : white[sy * Rb + sx]) * (1 - Math.abs(t) / hs1);
+        }
+        const strand = (acc / hs1 - W_MEAN) / hsd;
+        md[k + 3] = Math.round(255 * Math.max(0, Math.min(1, f * (HALO_A + HALO_STREAK * strand))));
+      }
+    }
   });
   steps.push(() => {
-
-  /* 4. the coverage: the outline with a soft feather — a smooth curve, as
-     plush is — and the fuzz standing past it */
-  /* the feather spans a unit and a half: half the resolution, scaled up,
-     draws it the same */
-  const Rh = R >> 1, ph = Rh / SPAN;
-  const hc = makeCanvas(Rh), hg = hc && ctx2d(hc, false);
-  const mi = new ImageData(Rh, Rh);
-  for (let y = 0; y < Rh; y++) {
-    for (let x = 0; x < Rh; x++) {
-      const X = (x + 0.5) / ph - PAD, Y = (y + 0.5) / ph - PAD;
-      const d = sdAt(X, Y) + tuftAt(X, Y);
-      const fIn = 0.2 + 0.35 * fuzz, fOut = 0.35 + 0.9 * fuzz;
-      const a = d >= fIn ? 1 : d <= -fOut ? 0 : (d + fOut) / (fIn + fOut);
-      const k = (y * Rh + x) * 4;
-      mi.data[k] = mi.data[k + 1] = mi.data[k + 2] = 255;
-      mi.data[k + 3] = Math.round(255 * a * a * (3 - 2 * a));
-    }
+  const zc = makeCanvas(R), zg = zc && ctx2d(zc, false);
+  if (zc && zg) {
+    zg.putImageData(zi, 0, 0);
+    fur.haze = zc;
   }
-  if (hc && hg) {
-    hg.putImageData(mi, 0, 0);
-    mg.imageSmoothingEnabled = true;
-    mg.imageSmoothingQuality = 'high';
-    mg.drawImage(hc as HTMLCanvasElement, 0, 0, R, R);
-  }
+  mg.putImageData(mi, 0, 0);
   mg.lineCap = 'round';
   mg.lineWidth = Math.max(0.35, 0.08 * px);
-  mg.strokeStyle = 'rgba(255,255,255,0.3)';
+  mg.strokeStyle = 'rgba(255,255,255,0.45)';
   mg.stroke(fringe);
+  const oc = makeCanvas(R), og = oc && ctx2d(oc, false);
+  if (oc && og) {
+    og.putImageData(ci, 0, 0);
+    fur.core = oc;
+  }
 
   fur.dark = dc;
   fur.light = lc;
@@ -1343,6 +1482,19 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   });
 
   return { steps };
+}
+
+/* the halo's complement, made the first time a turn needs it and kept */
+function furCut(fur: Fur): AnyCanvas | null {
+  if (fur.cut || !fur.mask) return fur.cut;
+  const R = fur.mask.width, cc = makeCanvas(R), cg = cc && ctx2d(cc, false);
+  if (cc && cg) {
+    cg.fillRect(0, 0, R, R);
+    cg.globalCompositeOperation = 'destination-out';
+    cg.drawImage(fur.mask as HTMLCanvasElement, 0, 0);
+    fur.cut = cc;
+  }
+  return fur.cut;
 }
 
 /** The lit sphere for the pile: a softly wrapped diffuse that still
@@ -1430,6 +1582,38 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
       out[k + 2] = srgb(b);
     }
   }
+}
+
+/* The gaps between locks and strands are the pile's own colour in shade —
+   a dyed fibre deepens and warms there, it does not grey — so the film's
+   dark part is laid in a deep, richer shade of the body colour rather
+   than black: one copy per pile and colour, made on first use. Laid at
+   twice the film's alpha, it deepens the gaps about as far as black did. */
+const gapFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
+function gapFilm(fur: Fur, color: string): AnyCanvas | null {
+  const src = fur.dark;
+  if (!src) return null;
+  let byColor = gapFilms.get(fur);
+  if (!byColor) gapFilms.set(fur, (byColor = new Map()));
+  const hit = byColor.get(color);
+  if (hit !== undefined) return hit;
+  const c = makeCanvas(src.width), g = c && ctx2d(c, false);
+  if (c && g) {
+    g.drawImage(src as HTMLCanvasElement, 0, 0);
+    g.drawImage(src as HTMLCanvasElement, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    /* half as light, and each channel scaled again by its share of the
+       strongest, so the hue holds and the saturation grows */
+    const lin = linearColor(color);
+    const e: V3 = [srgb(lin[0]) / 255, srgb(lin[1]) / 255, srgb(lin[2]) / 255];
+    const mx = Math.max(e[0], e[1], e[2], 1e-3);
+    const ch = (v: number) => Math.round(255 * 0.5 * v * (v / mx) * (v / mx));
+    g.fillStyle = `rgb(${ch(e[0])} ${ch(e[1])} ${ch(e[2])})`;
+    g.fillRect(0, 0, src.width, src.height);
+  }
+  if (byColor.size >= 4) byColor.clear();
+  byColor.set(color, c && g ? c : null);
+  return c && g ? c : null;
 }
 
 /* ── the cap's frame: light and view in the cap's own space ────────── */
@@ -1531,7 +1715,8 @@ interface State {
   scratchStale: boolean;
   /** the far half's sprites: the outline in the side's light — its rim and
       its shaded back — with the pile and its fringe for fabric; redrawn
-      with the matcap */
+      with the matcap. Fabric's halo takes the first (its fringe, over its
+      tips' colour) and the fifth (its band along the outline). */
   sprites: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
   /** the near half's slices' side light, one gradient a slice, and what
       they were made for */
@@ -1543,6 +1728,20 @@ interface State {
   spriteVersion: number;
   spritePx: number;
   spriteFur: Fur | null;
+    /** fabric: the last turn's halo miss (see haloMiss), and the turn it
+      was measured at */
+  miss: [number, number];
+  missAt: [number, number];
+  /** fabric: the last frame's turn, to tell a quick turn from a slow one */
+  turnAt: [number, number];
+  /** fabric: the halo's recession and overhang fade last drawn, which a
+      moving avatar eases toward the miss's (that is measured per turn step,
+      on a coarse grid, so it moves in steps); and the weight shown of the
+      halo laid over the body, with the copy of the body it is drawn on
+      while both looks are shown */
+  fade: [number, number] | null;
+  lay: number;
+  layTmp: { c: AnyCanvas; g: CanvasRenderingContext2D } | null;
 }
 const states = new WeakMap<object, Map<string, State>>();
 function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
@@ -1560,7 +1759,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
       L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
-      sprites: [null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null,
+      sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null,
     };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
@@ -1613,16 +1812,17 @@ function raysOf(img: ImageData, form: Form, c0: [number, number]): Rays {
   return { d: dOut, c: cOut };
 }
 /* one slice's side light: every ray's colour at `inset` from the outline,
-   darkened by `dark`, as a conic ramp round the centre (a linear one along
-   the light where conic fills are slow) */
-function sliceGradient(ctx: CanvasRenderingContext2D, rays: Rays, inset: number, dark: number, c0: [number, number], lxy: [number, number], linear: boolean): CanvasGradient {
-  const k = 1 - dark;
+   darkened by `dark` (either the same for every ray or one per ray), as a
+   conic ramp round the centre (a linear one along the light where conic
+   fills are slow) */
+function sliceGradient(ctx: CanvasRenderingContext2D, rays: Rays, inset: number | Float32Array, dark: number | Float32Array, c0: [number, number], lxy: [number, number], linear: boolean): CanvasGradient {
   const at = (s: number): string => {
     const d = rays.d[s], c = rays.c[s];
+    const ins = typeof inset === 'number' ? inset : inset[s], k = 1 - (typeof dark === 'number' ? dark : dark[s]);
     /* the samples run from the centre out, their distance to the outline
        falling: the last one at least `inset` in */
     let j = 0;
-    for (let i = 0; i < d.length; i++) if (d[i] >= inset) j = i;
+    for (let i = 0; i < d.length; i++) if (d[i] >= ins) j = i;
     return c.length ? `rgb(${(c[j * 3] * k) | 0} ${(c[j * 3 + 1] * k) | 0} ${(c[j * 3 + 2] * k) | 0})` : 'rgb(0 0 0)';
   };
   if (!linear && typeof ctx.createConicGradient === 'function') {
@@ -1636,6 +1836,148 @@ function sliceGradient(ctx: CanvasRenderingContext2D, rays: Rays, inset: number,
   g.addColorStop(0.5, at(ray(Math.atan2(lxy[0], -lxy[1]))));
   g.addColorStop(1, at(ray(Math.atan2(-lxy[1], -lxy[0]))));
   return g;
+}
+
+/* the front's brightest colour, where it faces the light */
+function brightest(rays: Rays): string {
+  let best = -1, r = 0, g = 0, b = 0;
+  for (const c of rays.c) {
+    for (let i = 0; i < c.length; i += 3) {
+      const l = 0.2126 * c[i] + 0.7152 * c[i + 1] + 0.0722 * c[i + 2];
+      if (l > best) (best = l), (r = c[i]), (g = c[i + 1]), (b = c[i + 2]);
+    }
+  }
+  /* in steps of four, so a turn that barely moves it keeps the colour */
+  const q = (v: number) => Math.min(255, Math.round(v / 4) * 4);
+  return `rgb(${q(r)} ${q(g)} ${q(b)})`;
+}
+
+/* Fabric's halo is the outline's fringe laid over the turned body's
+   silhouette. Turned, that silhouette is no longer the outline but the
+   slice stack's: the near half's slices reach out on the side turning
+   toward the viewer, the far half's on the other. The halo takes the
+   outline stretched along the turn to span exactly that reach on both
+   sides (face-on, the outline itself), and in each of the rays'
+   directions the colour of the slice that forms the silhouette there —
+   where on the front that slice's edge lies, and how deep in the far
+   half's shade — so the body's edge runs on into it without a step. */
+
+/* the stack's reach along a direction v, given the outline's (h): the
+   furthest of the slices of either half that way — and which one it is */
+interface Reach {
+  k: number;
+  far: boolean;
+}
+function stackReach(rel: Relief, K: number, ex: number, ey: number, dl1: number, vx: number, vy: number, h: number, at?: Reach): number {
+  const v0 = vx * rel.cx[0] + vy * rel.cy[0], ve = (vx * ex + vy * ey) * dl1;
+  let best = h, kb = 0, far = false;
+  for (let k = 1; k < K; k++) {
+    const r = vx * rel.cx[k] + vy * rel.cy[k] + rel.scale[k] * (h - v0);
+    if (r + rel.z[k] * ve > best) (best = r + rel.z[k] * ve), (kb = k), (far = false);
+    if (r - rel.z[k] * ve > best) (best = r - rel.z[k] * ve), (kb = k), (far = true);
+  }
+  if (at) (at.k = kb), (at.far = far);
+  return best;
+}
+/* the stretch, as a canvas affine in design units: along the turn e by
+   1 + s1, shifted by t, so the outline spans the stack's reach both ways */
+function haloStretch(form: Form, rel: Relief, K: number, ex: number, ey: number, dl1: number): number[] {
+  if (dl1 <= 1e-4) return [1, 0, 0, 1, 0, 0];
+  const rim = rimOf(form);
+  const hp = reach(rim, ex, ey), hn = reach(rim, -ex, -ey);
+  const up = stackReach(rel, K, ex, ey, dl1, ex, ey, hp), un = stackReach(rel, K, ex, ey, dl1, -ex, -ey, hn);
+  const s1 = (up + un) / Math.max(1, hp + hn) - 1, t = up - (s1 + 1) * hp;
+  return [1 + s1 * ex * ex, s1 * ex * ey, s1 * ex * ey, 1 + s1 * ey * ey, ex * t, ey * t];
+}
+/* the halo's colour along each ray: that of the slice forming the stack's
+   silhouette where the stretched outline's ray lands */
+function haloRays(form: Form, rel: Relief, K: number, ex: number, ey: number, dl1: number, S: number[], backShade: number): { inset: Float32Array; dark: Float32Array } {
+  const rim = rimOf(form);
+  const inset = new Float32Array(CONIC_STOPS), dark = new Float32Array(CONIC_STOPS);
+  const s1 = S[0] + S[3] - 2, at: Reach = { k: 0, far: false };
+  for (let s = 0; s < CONIC_STOPS; s++) {
+    const phi = (s / CONIC_STOPS) * Math.PI * 2, ux = Math.cos(phi), uy = Math.sin(phi);
+    /* the direction the stretched outline faces where this ray lands */
+    const ue = ux * ex + uy * ey, q = s1 / (1 + s1);
+    let vx = ux - q * ue * ex, vy = uy - q * ue * ey;
+    const vl = Math.hypot(vx, vy);
+    vx /= vl;
+    vy /= vl;
+    stackReach(rel, K, ex, ey, dl1, vx, vy, reach(rim, vx, vy), at);
+    /* never from the front's outermost units, which are in the edge's
+       shade: the hairs past the edge are lit through */
+    inset[s] = Math.max(HALO_INSET, rel.inset[at.k]);
+    /* the hairs standing past the far half's edge stand out of its shade,
+       into the light: they keep only a little of it */
+    dark[s] = at.far ? HALO_SHADE * backShade * (1 - Math.exp(-2.4 * (at.k / K))) : 0;
+  }
+  return { inset, dark };
+}
+
+/* How far the stretched outline misses the stack's silhouette, in design
+   units: a rounded body fits at any turn, but a lobed or pointed one only
+   while the turn is moderate — far round, the stack sweeps the lobes into
+   one rounded side, which the stretched outline cuts into (the stack
+   reaching past it) or overhangs (reaching past the stack). Measured on a
+   coarse grid with the stretch undone, where the outline is the form's
+   own: the stack's cells outside the outline, and the outline's cells
+   away from the stack. Once per form and turn, in steps of MISS_STEP of
+   the slices' shift per unit of depth, on idle time while the avatar
+   moves slowly (a millisecond or so a turn) — a quick turn is measured at
+   once (see drawPlasticCap). */
+const misses = new WeakMap<Form, Map<string, [number, number] | null>>();
+const MISS_N = 96, MISS_STEP = 0.1;
+/* the measure, or null while it waits for idle time (unless `sync`) */
+function haloMiss(form: Form, path: Path2D, rel: Relief, K: number, S: number[], dxs: number, dys: number, sync: boolean): [number, number] | null {
+  const key = `${K}|${rel.q}|${Math.round(dxs / MISS_STEP)}|${Math.round(dys / MISS_STEP)}`;
+  let byKey = misses.get(form);
+  if (!byKey) misses.set(form, (byKey = new Map()));
+  const hit = byKey.get(key);
+  if (hit || (hit === null && !sync)) return hit ?? null;
+  if (byKey.size > 256) byKey.clear();
+  if (!sync) {
+    byKey.set(key, null);
+    idle(() => {
+      byKey.set(key, measureMiss(form, path, rel, K, S, dxs, dys));
+    });
+    return null;
+  }
+  const r = measureMiss(form, path, rel, K, S, dxs, dys);
+  byKey.set(key, r);
+  return r;
+}
+function measureMiss(form: Form, path: Path2D, rel: Relief, K: number, S: number[], dxs: number, dys: number): [number, number] {
+  const c = makeCanvas(MISS_N), g = c && ctx2d(c, true);
+  if (!g) return [0, 0];
+  const u = SPAN / MISS_N;
+  /* the stretch undone: S⁻¹ of a symmetric stretch along e */
+  const det = S[0] * S[3] - S[1] * S[2];
+  const ia = S[3] / det, ib = -S[1] / det, ic = -S[2] / det, id = S[0] / det;
+  const ie = -(ia * S[4] + ic * S[5]), jf = -(ib * S[4] + id * S[5]);
+  g.fillStyle = '#fff';
+  for (let k = 0; k < K; k++) {
+    for (const z of k ? [rel.z[k], -rel.z[k]] : [0]) {
+      g.setTransform(1 / u, 0, 0, 1 / u, PAD / u, PAD / u);
+      g.transform(ia, ib, ic, id, ie, jf);
+      g.translate(z * dxs, z * dys);
+      const sk = rel.scale[k];
+      if (k) g.transform(sk, 0, 0, sk, rel.cx[k] - sk * rel.cx[0], rel.cy[k] - sk * rel.cy[0]);
+      g.fill(path);
+    }
+  }
+  const px = g.getImageData(0, 0, MISS_N, MISS_N).data;
+  const on = new Uint8Array(MISS_N * MISS_N), dist = new Float32Array(MISS_N * MISS_N);
+  for (let i = 0; i < MISS_N * MISS_N; i++) on[i] = px[i * 4 + 3] > 127 ? 1 : 0;
+  edt2d(on, 1, MISS_N, dist, null);
+  let cut = 0, over = 0;
+  for (let y = 0, i = 0; y < MISS_N; y++) {
+    for (let x = 0; x < MISS_N; x++, i++) {
+      const d = bilerp(form.sd, form.N, ((x + 0.5) / MISS_N) * form.N - 0.5, ((y + 0.5) / MISS_N) * form.N - 0.5);
+      if (on[i] && d < 0) cut = Math.max(cut, -d);
+      if (!on[i] && d > 0) over = Math.max(over, Math.sqrt(dist[i]) * u);
+    }
+  }
+  return [cut, over];
 }
 
 /**
@@ -1758,55 +2100,6 @@ export function drawPlasticCap(
      fabric's pile is laid over the whole at once. */
   const K = rig.dev <= 100 ? 14 : rig.dev <= 224 ? 20 : 26;
   const rel = reliefFor(form, K, rig.round ?? 1);
-  /* the slices' sprites — the side's light at the equator with fabric's
-     fringe, black for the far half's shade, and the side's light again
-     without the fringe — at the avatar's device size */
-  const spx = Math.ceil((SPAN * rig.dev) / 100);
-  if (st.spritePx !== spx) {
-    st.sprites = [null, null, null, null];
-    st.spritePx = spx;
-    st.spriteVersion = -1;
-  }
-  if (st.spriteVersion !== st.version || st.spriteFur !== fur) {
-    const k = spx / SPAN;
-    /* fabric: only the equator's slice carries the fringe; the others end
-       in a plain soft edge, so a side view is not combed with fringes */
-    const soft = fur ? softMask(form, fur.R) : null;
-    for (let i = 0; i < 4; i++) {
-      if (i === 2) continue;
-      let spr = st.sprites[i];
-      if (!spr) {
-        const c = makeCanvas(spx);
-        const g = c && ctx2d(c, false);
-        if (!c || !g) return false;
-        spr = st.sprites[i] = { c, g };
-      }
-      const g = spr.g;
-      g.setTransform(1, 0, 0, 1, 0, 0);
-      g.globalCompositeOperation = 'source-over';
-      g.clearRect(0, 0, spx, spx);
-      g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
-      /* the side's light at the equator (with the fringe, and again
-         without), and a black silhouette laid over the far half's deeper
-         slices */
-      g.fillStyle = i === 1 ? '#000' : sliceGradient(g, raysOf(st.img!, form, [rel.cx[0], rel.cy[0]]), rel.inset[0], 0, [rel.cx[0], rel.cy[0]], lxy, WEBKIT);
-      if (fur && fur.mask) {
-        /* the square in the side's light, the pile multiplied in, then cut
-           to the body and its fringe */
-        g.fillRect(-PAD, -PAD, SPAN, SPAN);
-        g.setTransform(1, 0, 0, 1, 0, 0);
-        g.imageSmoothingEnabled = true;
-        g.imageSmoothingQuality = 'high';
-        /* no pile here: the film laid over all the slices at once brings it
-           (the fringe's hairs too) */
-        g.globalCompositeOperation = 'destination-in';
-        g.drawImage(((i === 0 ? fur.mask : soft) ?? fur.mask) as HTMLCanvasElement, 0, 0, spx, spx);
-        g.globalCompositeOperation = 'source-over';
-      } else g.fill(cfg.path);
-    }
-    st.spriteVersion = st.version;
-    st.spriteFur = fur;
-  }
   const { cy, sy, cp, sp } = rig;
   const [ca, cb, cc, cd, ce, cf] = rig.ctm;
   const m1 = sy * sp;
@@ -1825,6 +2118,99 @@ export function drawPlasticCap(
   let lead = 50;
   for (let k = 1; k < K; k++) lead = Math.max(lead, 50 * rel.scale[k] + rel.z[k] * dl1);
   const ex = dl1 > 1e-6 ? (near * dxs) / dl1 : 1, ey = dl1 > 1e-6 ? (near * dys) / dl1 : 0;
+  const backShade = Math.min(0.7, 0.55 * Math.min(1.6, mat.shadow / 0.35));
+  /* fabric's halo: where the turned body's silhouette is, and how well
+     the stretched outline fits it there (below) */
+  const haloS = fur ? haloStretch(form, rel, K, ex, ey, dl1) : null;
+  /* the slices' sprites — fabric's halo (the outline and its fringe, laid
+     over the whole stack after the front), black for the far half's shade,
+     the side's light at the equator without the fringe, and the halo's
+     band — at the avatar's device size */
+  const spx = Math.ceil((SPAN * rig.dev) / 100);
+  if (st.spritePx !== spx) {
+    st.sprites = [null, null, null, null, null];
+    st.spritePx = spx;
+    st.spriteVersion = -1;
+  }
+  if (st.spriteVersion !== st.version || st.spriteFur !== fur) {
+    const k = spx / SPAN;
+    /* fabric: no slice carries the fringe, the equator's included; each
+       ends in a plain soft edge, and the fringe is the halo laid over the
+       whole stack after the front, so a side view is not combed with
+       fringes */
+    const soft = fur ? softMask(form, fur.R) : null;
+    const rays = raysOf(st.img!, form, [rel.cx[0], rel.cy[0]]);
+    for (let i = 0; i < 4; i++) {
+      if (i === 2) continue;
+      let spr = st.sprites[i];
+      if (!spr) {
+        const c = makeCanvas(spx);
+        const g = c && ctx2d(c, false);
+        if (!c || !g) return false;
+        spr = st.sprites[i] = { c, g };
+      }
+      const g = spr.g;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalCompositeOperation = 'source-over';
+      g.clearRect(0, 0, spx, spx);
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = 'high';
+      /* the side's light at the equator (with the fringe, and again
+         without), and a black silhouette laid over the far half's deeper
+         slices. Fabric's fringe is the halo round the whole turned body:
+         in each direction it takes the colour of the slice that forms the
+         silhouette there, so the body's edge runs on into it without a
+         step — and its hairs are lit toward their tips, out of the body's
+         shade and thin enough for the backdrop's light to come through,
+         so past the edge they turn to the front's brightest colour: that
+         where the haze says, the silhouette's own under it */
+      const halo = i === 0 && fur && fur.mask ? fur : null;
+      if (halo && halo.haze) {
+        /* the tips' layer, straight into this sprite and under what
+           follows: the haze in the front's brightest colour */
+        g.imageSmoothingQuality = 'low';
+        g.drawImage(halo.haze as HTMLCanvasElement, 0, 0, spx, spx);
+        g.imageSmoothingQuality = 'high';
+        g.globalCompositeOperation = 'source-in';
+        g.fillStyle = brightest(rays);
+        g.fillRect(0, 0, spx, spx);
+        g.globalCompositeOperation = 'destination-over';
+      }
+      g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
+      const edge = halo && haloS ? haloRays(form, rel, K, ex, ey, dl1, haloS, backShade) : null;
+      g.fillStyle = i === 1 ? '#000' : sliceGradient(g, rays, edge ? edge.inset : fur ? Math.max(HALO_INSET, rel.inset[0]) : rel.inset[0], edge ? edge.dark : 0, [rel.cx[0], rel.cy[0]], lxy, WEBKIT);
+      if (fur && fur.mask) {
+        /* the square in the side's light, then cut to the body and its
+           fringe; no pile here: the film laid over all the slices at once
+           brings it (the fringe's hairs too) */
+        g.fillRect(-PAD, -PAD, SPAN, SPAN);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalCompositeOperation = 'destination-in';
+        g.drawImage(((i === 0 ? fur.mask : soft) ?? fur.mask) as HTMLCanvasElement, 0, 0, spx, spx);
+        g.globalCompositeOperation = 'source-over';
+      } else g.fill(cfg.path);
+    }
+    /* and the halo's band: the halo less the body's inside, for what of
+       it is veiled over the body's edge */
+    if (fur && fur.core) {
+      let band = st.sprites[4];
+      if (!band) {
+        const c = makeCanvas(spx);
+        const bg = c && ctx2d(c, false);
+        if (c && bg) band = st.sprites[4] = { c, g: bg };
+      }
+      if (band) {
+        band.g.setTransform(1, 0, 0, 1, 0, 0);
+        band.g.globalCompositeOperation = 'copy';
+        band.g.drawImage(st.sprites[0]!.c as HTMLCanvasElement, 0, 0);
+        band.g.globalCompositeOperation = 'destination-out';
+        band.g.drawImage(fur.core as HTMLCanvasElement, 0, 0, spx, spx);
+        band.g.globalCompositeOperation = 'source-over';
+      }
+    }
+    st.spriteVersion = st.version;
+    st.spriteFur = fur;
+  }
   const stretch = (lead + 50) / 100, shift = (lead - 50) / 2;
   const A = 1 + (stretch - 1) * ex * ex, B = (stretch - 1) * ex * ey, D = 1 + (stretch - 1) * ey * ey;
   const capM = mulAffine(mulAffine(rig.ctm, [cy, m1, 0, cp, 0, 0]), [A, B, B, D, shift * ex - 50 * A - 50 * B, shift * ey - 50 * B - 50 * D]);
@@ -1895,7 +2281,10 @@ export function drawPlasticCap(
   if (st.sliceKey !== sliceKey) {
     const rays = raysOf(st.img!, form, c0);
     st.sliceG = [];
-    for (let k = 0; k < K; k++) st.sliceG.push(sliceGradient(ctx, rays, rel.inset[k], 0, c0, lxy, WEBKIT));
+    /* fabric's from past the front's outermost units, whose light is the
+       pile's rim — lit where the fibres at the silhouette catch it, which
+       turned into view is no longer the silhouette, a light ring inside it */
+    for (let k = 0; k < K; k++) st.sliceG.push(sliceGradient(ctx, rays, fur ? Math.max(HALO_INSET, rel.inset[k]) : rel.inset[k], 0, c0, lxy, WEBKIT));
     st.sliceKey = sliceKey;
   }
   const slice = (k: number, z: number, dark: number) => {
@@ -1913,15 +2302,16 @@ export function drawPlasticCap(
       }
       return;
     }
-    /* the equator: fabric's ends in its soft edge, and seen face-on carries
-       the fringe — turned side-on that edge runs across the middle of the
-       view, where a line of hairs has no business */
+    /* the equator: fabric's ends in its soft edge (its fringe is the halo
+       laid over the whole stack) */
     if (fur) g.drawImage(side.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
     else {
       g.fillStyle = st.sliceG[0];
       g.fill(cfg.path);
     }
-    if (fur && fringeA > 0.01) {
+    /* with no body buffer there is no halo pass (below): the fringe on the
+       equator, seen face-on, as before the halo */
+    if (fur && g === ctx && fringeA > 0.01) {
       g.globalAlpha = fringeA;
       g.drawImage(fringed.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
       g.globalAlpha = 1;
@@ -1934,15 +2324,28 @@ export function drawPlasticCap(
   };
   const faceOn = Math.abs(rig.facing);
   const fringeA = faceOn >= 0.8 ? 1 : faceOn <= 0.45 ? 0 : (faceOn - 0.45) / 0.35;
-  const backShade = Math.min(0.7, 0.55 * Math.min(1.6, mat.shadow / 0.35));
   /* the far half, deepest first, each slice a little further into shade */
-  for (let k = K - 1; k >= 1; k--) slice(k, -near * rel.z[k], backShade * (1 - Math.exp(-2.4 * (k / K))));
+  for (let k = K - 1; k >= 1; k--) slice(k, -near * rel.z[k], fur ? 0 : backShade * (1 - Math.exp(-2.4 * (k / K))));
+  /* fabric's far half sinks into shade smoothly rather than a step a slice
+     (the steps show through a pile as fine stripes): one ramp laid over
+     it, from the outline's far edge out to the stack's, as deep as the
+     slices' shade would be at that depth */
+  if (fur && dl1 > 1e-3) {
+    const hn = reach(rimOf(form), -ex, -ey), span = rel.top * dl1;
+    at(0);
+    const ramp = g.createLinearGradient(-ex * hn, -ey * hn, -ex * (hn + span), -ey * (hn + span));
+    for (let s = 0; s <= 4; s++) ramp.addColorStop(s / 4, `rgba(0,0,0,${(backShade * (1 - Math.exp(-2.4 * (s / 4)))).toFixed(3)})`);
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = ramp;
+    g.fillRect(-PAD - 60, -PAD - 60, SPAN + 120, SPAN + 120);
+    g.globalCompositeOperation = 'source-over';
+  }
   slice(0, 0, 0);
   /* the near half */
   for (let k = 1; k < K; k++) slice(k, near * rel.z[k], 0);
 
   /* The front fades out over its outer band into the slices under it; the
-     silhouette is the slices' (and fabric's fringe is the equator slice's).
+     silhouette is the slices' (and fabric's fringe is the halo's, below).
      Turned far round, the front is seen so obliquely that a flat picture
      of it no longer fits the form: it gives way to the slices' own smooth
      light, so a side view is one rounded surface without a seam. */
@@ -1956,17 +2359,154 @@ export function drawPlasticCap(
     g.restore();
   }
 
+  /* Fabric's halo over the silhouette: the outline stretched to the
+     turned stack's reach (see haloStretch), laid over the body keeping the
+     body only where the halo covers it — the body's edge thins into the
+     halo's and breaks with its tufts, and the halo shows past it, the
+     body's own colour running on into the hairs'. Where the stretch no
+     longer fits the stack (see haloMiss), that would cut the body back to
+     the stretched outline, or show a body that is not: the same is drawn
+     in two steps — the cut the halo makes into the body, then the halo
+     behind it — and as the miss grows the cut recedes outward, past
+     whatever of the stack reaches beyond the outline (never thinning it,
+     which would show the backdrop through the body), and an overhanging
+     halo fades, so the stack's own silhouette stands. */
+  if (fur && fur.mask && haloS && g !== ctx) {
+    /* a turn not measured yet is taken as the last one measured while
+       that is within a step or so of it (a slow turn); further off (a
+       quick one, a spin), it is measured now: the last one may be a front
+       view's, whose outline is no side view's silhouette */
+    const mx = near * dxs, my = near * dys;
+    const stale = Math.abs(mx - st.missAt[0]) > 1.5 * MISS_STEP || Math.abs(my - st.missAt[1]) > 1.5 * MISS_STEP;
+    const measured = dl1 > 1e-4 ? haloMiss(form, cfg.path, rel, K, haloS, mx, my, !!rig.still || stale) : ([0, 0] as [number, number]);
+    if (measured) {
+      st.miss = measured;
+      st.missAt = [mx, my];
+    }
+    const [cut, over] = st.miss;
+    const miss = Math.max(cut, over);
+    let back = smooth(HALO_FIT / 2, 2 * HALO_FIT, miss), gone = smooth(HALO_FIT / 2, HALO_FIT, over);
+    /* the miss moves in steps — once per turn step, on a coarse grid — so a
+       slowly turning avatar eases toward it rather than jumping with it; a
+       quick turn (a spin) follows it at once, since easing would trail the
+       wrong silhouette behind a body moving that fast */
+    const quick = Math.abs(mx - st.turnAt[0]) > MISS_STEP || Math.abs(my - st.turnAt[1]) > MISS_STEP;
+    st.turnAt = [mx, my];
+    const settle = !rig.still && !quick;
+    if (settle && st.fade) {
+      const ease = (a: number, b: number) => (Math.abs(b - a) < 0.02 ? b : a + (b - a) * 0.2);
+      back = ease(st.fade[0], back);
+      gone = ease(st.fade[1], gone);
+    }
+    st.fade = [back, gone];
+    const band = st.sprites[4];
+    /* the sprites are at the device size: plain bilinear filtering draws
+       them the same as the high-quality filter, for a fraction of it */
+    g.imageSmoothingQuality = 'low';
+    at(0);
+    g.transform(haloS[0], haloS[1], haloS[2], haloS[3], haloS[4], haloS[5]);
+    /* The two looks differ all along the outline (laid over, the body's
+       edge is see-through and veiled; cut, the halo behind fills it in),
+       so they are not switched at once: over the first HALO_BLEND of the
+       recession the halo laid over, drawn on a copy of the body, is
+       cross-faded into the cut, and an overhanging one fades with it as it
+       does behind */
+    const layTo = (1 - smooth(0, HALO_BLEND, back)) * (1 - gone);
+    const lay = (st.lay = !settle ? layTo : st.lay + Math.max(-HALO_EASE, Math.min(HALO_EASE, layTo - st.lay)));
+    let h: CanvasRenderingContext2D | null = null;
+    if (lay > 0 && lay < 1) {
+      let t = st.layTmp;
+      if (!t || t.c.width < bw || t.c.height < bh) {
+        /* a document canvas where there is one, as for the body */
+        const n = Math.ceil(Math.max(bw, bh) / 64) * 64;
+        let c: AnyCanvas | null = null;
+        if (typeof document !== 'undefined') {
+          c = document.createElement('canvas');
+          c.width = c.height = n;
+        } else c = makeCanvas(n);
+        const cg = c && ctx2d(c, false);
+        t = st.layTmp = c && cg ? { c, g: cg } : null;
+      }
+      if (t) {
+        h = t.g;
+        h.setTransform(1, 0, 0, 1, 0, 0);
+        h.globalAlpha = 1;
+        h.globalCompositeOperation = 'copy';
+        h.drawImage(g.canvas as HTMLCanvasElement, 0, 0, bw, bh, 0, 0, bw, bh);
+        h.imageSmoothingQuality = 'low';
+        h.setTransform(g.getTransform());
+      }
+    }
+    /* the veil below comes in with the turn: face-on no slice reaches past
+       the outline, and it would only lay the halo's lighter colour over the
+       edge's own shade, a light contour on a dark page */
+    const veil = HALO_VEIL * Math.min(1, dl1 / 0.2);
+    const laid = (d: CanvasRenderingContext2D) => {
+      d.globalCompositeOperation = 'destination-atop';
+      d.drawImage(fringed.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+      /* and over the body's own edge, in part, the halo's colour: the
+         stack's outermost slices, reaching a little past the outline,
+         would otherwise show there as a dark line inside the halo */
+      if (band && veil > 0.01) {
+        d.globalCompositeOperation = 'source-atop';
+        d.globalAlpha = veil;
+        d.drawImage(band.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+        d.globalAlpha = 1;
+      }
+      d.globalCompositeOperation = 'source-over';
+    };
+    if (h) laid(h);
+    if (lay >= 1 || (!h && lay >= 0.5)) laid(g);
+    else {
+      const cutAway = back < 1 ? furCut(fur) : null;
+      if (cutAway) {
+        /* the cut grown about the outline's centre, by as much as the
+           stack may reach past it at the outline's middle distance */
+        const f = 1 + (back * (miss + HALO_FIT)) / 25, cx = rel.cx[0], cy = rel.cy[0];
+        g.save();
+        g.transform(f, 0, 0, f, cx * (1 - f), cy * (1 - f));
+        g.globalCompositeOperation = 'destination-out';
+        g.drawImage(cutAway as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+        g.restore();
+      }
+      if (gone < 1) {
+        g.globalAlpha = 1 - gone;
+        g.globalCompositeOperation = 'destination-over';
+        /* the whole halo, solid inside and all: the body hides it but where
+           the outline overhangs the stack — by no more than `over`, which
+           `gone` fades — so the halo meets the body's edge there */
+        g.drawImage(fringed.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+        g.globalAlpha = 1;
+      }
+      if (h) {
+        /* (1 − lay) of the cut plus lay of the halo laid over, both
+           premultiplied */
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalCompositeOperation = 'destination-in';
+        g.globalAlpha = 1 - lay;
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, bw, bh);
+        g.globalCompositeOperation = 'lighter';
+        g.globalAlpha = lay;
+        g.drawImage(h.canvas as HTMLCanvasElement, 0, 0, bw, bh, 0, 0, bw, bh);
+        g.globalAlpha = 1;
+      }
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+
   if (g !== ctx && film) {
     /* the pile over the whole body at once, only where it is: its dark
-       part in full, its light part less on a dark colour, whose tips are a
-       lighter shade of it rather than white */
+       part in full, in a deep shade of the colour (see gapFilm), its light
+       part less on a dark colour, whose tips are a lighter shade of it
+       rather than white */
     g.globalCompositeOperation = 'source-atop';
     /* the film is drawn at about its own resolution: plain bilinear
        filtering looks the same, where the high-quality filter costs
        milliseconds on a large avatar */
     g.imageSmoothingQuality = 'low';
     g.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4] - ox, capM[5] - oy);
-    g.drawImage(film.dark as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+    g.drawImage((gapFilm(film, pal.base) ?? film.dark) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     const lin = linearColor(pal.base);
     const lum = Math.pow(0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2], 1 / 2.2);
     g.globalAlpha = 0.25 + 0.75 * lum;
