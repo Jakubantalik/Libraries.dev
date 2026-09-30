@@ -103,6 +103,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     brightness === 1 && saturation === 1
       ? picked
       : shade(picked, (Math.min(2, Math.max(0, brightness)) - 1) * 0.35, (Math.min(2, Math.max(0, saturation)) - 1) * 0.5);
+  /* past 1.5 the colour itself is as saturated as it goes for most of the
+     palette: the rest makes the light keep more of it (plastic, fabric) */
+  const vivid = clamp(saturation, 1.5, 2.5) - 1.5;
   const inkColor = ink ?? autoInk(body);
   const seedValue = Math.min(1, Math.max(0, seed ?? hashSeed(reactId)));
   const stateKey: BotAvatarState = state in stateLabels ? state : 'default';
@@ -145,6 +148,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     depth: clamp(depth, 0.2, 2),
     roundness: clamp(roundness, 0, 1),
     fur: fur,
+    vivid,
     light: light ?? lit.light,
     rim: clamp(rim ?? lit.rim, 0, 2),
     spread: clamp(spread ?? lit.spread, 0.4, 2.5),

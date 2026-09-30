@@ -558,6 +558,25 @@ export interface Material {
   highlight: number;
   spread: number;
   rim: number;
+  /** 0–1: how much colour the light keeps past the palette's full
+      saturation (see vivify) */
+  vivid?: number;
+}
+/* More colour than a fully saturated palette colour has: the light's own
+   mixes — a highlight, a sheen, a rim, a fill — pulled away from grey
+   about their luminance, as far as the gamut allows (no channel below
+   zero), so a lit aqua stays aqua rather than paling toward white. The
+   colour itself, already at the gamut's edge, is left as it is. In place
+   on a linear triple. */
+function vivify(c: V3, v: number) {
+  if (!(v > 0)) return;
+  const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const mn = Math.min(c[0], c[1], c[2]);
+  let k = 1 + 1.5 * v;
+  if (mn < y) k = Math.min(k, y / (y - mn));
+  c[0] = y + (c[0] - y) * k;
+  c[1] = y + (c[1] - y) * k;
+  c[2] = y + (c[2] - y) * k;
 }
 export interface Frame {
   L: V3; V: V3; H: V3; U: V3; W: V3; A: V3; B: V3;
@@ -576,6 +595,7 @@ const soft = (w: number, s: number, x: number) => 1 - smooth(w - s, w + s, x);
 /** Fill `out` (M × M × rgb, sRGB 0–255) with the lit sphere for body colour `c` (linear). */
 export function buildMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
   const { L, V, H, U, W, A, B } = f;
+  const vivid = p.vivid ?? 0, px: V3 = [0, 0, 0];
   const mx = Math.max(c[0], c[1], c[2], 0.05);
   const tint: V3 = [c[0] / mx, c[1] / mx, c[2] / mx];
   const amb = Math.max(0.03, 0.30 - 0.15 * p.shadow);
@@ -615,9 +635,14 @@ export function buildMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
       }
       const env = rimK * f3 * sky + winK * win;
       const k = (j * M + i) * 3;
-      out[k] = tone(c[0] * (ambT[0] + kd * dif) + spec * WARM[0] + env * ENV[0]);
-      out[k + 1] = tone(c[1] * (ambT[1] + kd * dif) + spec * WARM[1] + env * ENV[1]);
-      out[k + 2] = tone(c[2] * (ambT[2] + kd * dif) + spec * WARM[2] + env * ENV[2]);
+      /* the body's own light only: a clear coat's reflections stay white */
+      px[0] = c[0] * (ambT[0] + kd * dif);
+      px[1] = c[1] * (ambT[1] + kd * dif);
+      px[2] = c[2] * (ambT[2] + kd * dif);
+      vivify(px, vivid);
+      out[k] = tone(px[0] + spec * WARM[0] + env * ENV[0]);
+      out[k + 1] = tone(px[1] + spec * WARM[1] + env * ENV[1]);
+      out[k + 2] = tone(px[2] + spec * WARM[2] + env * ENV[2]);
     }
   }
 }
@@ -1503,6 +1528,7 @@ function furCut(fur: Fur): AnyCanvas | null {
     reflections — fur has no clear coat. */
 export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
   const { V, U, D } = f;
+  const vivid = p.vivid ?? 0, px: V3 = [0, 0, 0];
   /* the key comes in lower than plastic's, from further round the side, so
      the far side of the form falls into real shade */
   const EK = (34 * Math.PI) / 180;
@@ -1566,6 +1592,13 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
         if (ch === 0) r = v;
         else if (ch === 1) g = v;
         else b = v;
+      }
+      if (vivid > 0) {
+        px[0] = r;
+        px[1] = g;
+        px[2] = b;
+        vivify(px, vivid);
+        [r, g, b] = px;
       }
       /* bright parts roll off as a whole, not channel by channel: a lit
          yellow stays yellow instead of its red clipping first and the rest
@@ -1690,6 +1723,7 @@ interface State {
   highlight: number;
   spread: number;
   rim: number;
+  vivid: number;
   /** bumped on every matcap rebuild */
   version: number;
   /** the matcap the texels show: the last one cross-faded into the new
@@ -1756,7 +1790,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
     s = {
       N: 0, img: null, mc: new Float32Array(MM * 3),
       mcPrev: new Float32Array(MM * 3), mcMix: new Float32Array(MM * 3), mixVersion: 0, blendT: 1, blendFrames: 1, sinceBuild: 0,
-      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN,
+      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
       sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null,
@@ -2016,7 +2050,7 @@ export function drawPlasticCap(
   })();
   if (
     moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
-    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim
+    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid
   ) {
     /* the fade starts from what is showing now, so a rebuild during a
        fade does not jump */
@@ -2041,6 +2075,7 @@ export function drawPlasticCap(
     st.highlight = mat.highlight;
     st.spread = mat.spread;
     st.rim = mat.rim;
+    st.vivid = mat.vivid ?? 0;
     st.version++;
   }
   st.sinceBuild++;
@@ -2509,7 +2544,8 @@ export function drawPlasticCap(
     g.drawImage((gapFilm(film, pal.base) ?? film.dark) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     const lin = linearColor(pal.base);
     const lum = Math.pow(0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2], 1 / 2.2);
-    g.globalAlpha = 0.25 + 0.75 * lum;
+    /* past the palette's saturation (vivid) the tips keep the colour too */
+    g.globalAlpha = (0.25 + 0.75 * lum) * (1 - 0.6 * (mat.vivid ?? 0));
     g.drawImage(film.light as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'source-over';

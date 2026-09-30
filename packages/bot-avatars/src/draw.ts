@@ -34,6 +34,10 @@ export interface DrawConfig {
   roundness?: number;
   /** fabric: the pile's style — length, density, edge fuzz, tufts, curl */
   fur?: FurStyle;
+  /** plastic and fabric: 0–1, how much colour the light keeps past the
+      palette's full saturation — highlights, sheen and rim stay coloured
+      rather than paling toward white */
+  vivid?: number;
   /** identifies the outline for the material caches (the type name) */
   typeKey?: string;
   /** no animation loop follows this draw (reduced motion, paused): build
@@ -322,7 +326,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
         { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
-        { shadow, highlight, spread, rim: rimK }
+        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0 }
       );
     }
     const mode2: BotAvatarShading = (mode === 'plastic' || mode === 'fabric') && !plasticDone ? 'smooth' : mode;

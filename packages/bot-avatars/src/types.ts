@@ -87,7 +87,10 @@ export interface BotAvatarProps
   brightness?: number;
   /**
    * Saturation of the body colour: 1 as the palette has it, below 1
-   * duller, above 1 more vivid (0.5–1.5 is the useful range). Default `1.5`.
+   * duller, above 1 more vivid, 0.5–2.5. Past 1.5, where most of the
+   * palette is already fully saturated, `plastic` and `fabric` keep more of
+   * the colour in the light — highlights, sheen, rim and fur tips stay
+   * coloured rather than paling toward white. Default `1.5`.
    */
   saturation?: number;
   /** Multiplier on every animation's speed. Default `1`. */

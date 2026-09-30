@@ -308,7 +308,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
           <PgSlider label="Size" value={size} min={16} max={200} step={2} display={`${size}px`} onChange={setSize} />
           <PgSwatches label="Color" options={COLOR_OPTIONS} value={shownColor} onChange={setColor} allowCustom />
           <PgSlider label="Brightness" value={brightness} min={50} max={150} step={1} display={`${brightness}%`} onChange={setBrightness} />
-          <PgSlider label="Saturation" value={saturation} min={50} max={150} step={1} display={`${saturation}%`} onChange={setSaturation} />
+          <PgSlider label="Saturation" value={saturation} min={50} max={250} step={1} display={`${saturation}%`} onChange={setSaturation} />
           <PgSwatches label="Ink" options={INK_OPTIONS} value={shownInk} onChange={setInk} allowCustom />
           <PgTabs label="Shading" options={SHADING_OPTIONS} value={shading} onChange={chooseShading} />
           {shading !== "flat" && (
