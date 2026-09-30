@@ -229,6 +229,14 @@ function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: string, lx:
  * is `box * OVERSCAN` square with the body's centre `RISE * box` below
  * its middle, and the context already scaled for the device pixel ratio.
  */
+/** The light each material looks its best in where the config leaves it:
+    a plush pile wants a broad, low studio light that shows its lobes and
+    grain, a clear coat a brighter one for its gloss. */
+export const LIGHT_DEFAULTS = {
+  fabric: { shadow: 0.9, highlight: 0.9, light: 295, rim: 0.65, spread: 1.45 },
+  other: { shadow: 0.35, highlight: 1.3, light: 300, rim: 0.5, spread: 1.55 },
+};
+
 export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg: DrawConfig) {
   const full = box * OVERSCAN;
   ctx.clearRect(0, 0, full, full);
@@ -247,12 +255,14 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
     dpr = 1;
     base = [1, 0, 0, 1, 0, 0];
   }
-  const shadow = cfg.shadow ?? 0.35, highlight = cfg.highlight ?? 1.3;
+  const lit = LIGHT_DEFAULTS[cfg.shading === 'fabric' ? 'fabric' : 'other'];
+  const shadow = cfg.shadow ?? lit.shadow, highlight = cfg.highlight ?? lit.highlight;
   const halfDepth = HALF_DEPTH * (cfg.depth ?? 0.65);
-  const cap = 1 - (1 - CAP) * (cfg.rim ?? 0.5);
-  const spread = cfg.spread ?? 1.55;
+  const rimK = cfg.rim ?? lit.rim;
+  const cap = 1 - (1 - CAP) * rimK;
+  const spread = cfg.spread ?? lit.spread;
   /* the light's direction on screen: a unit vector toward the source */
-  const la = ((cfg.light ?? 300) * Math.PI) / 180;
+  const la = ((cfg.light ?? lit.light) * Math.PI) / 180;
   const lx = Math.sin(la), ly = -Math.cos(la);
   const pal = palette(cfg.color, shadow, highlight);
 
@@ -312,7 +322,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
         { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
-        { shadow, highlight, spread, rim: cfg.rim ?? 0.5 }
+        { shadow, highlight, spread, rim: rimK }
       );
     }
     const mode2: BotAvatarShading = (mode === 'plastic' || mode === 'fabric') && !plasticDone ? 'smooth' : mode;

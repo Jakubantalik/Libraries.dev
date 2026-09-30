@@ -42,6 +42,11 @@ const STATE_OPTIONS = [
   { value: "sleeping", label: "Sleeping" },
 ] as const;
 
+/* the library's default light per material, in slider units */
+const lightDefaults = (shading: BotAvatarShading) =>
+  shading === "fabric"
+    ? { shadow: 90, highlight: 90, light: 295, rim: 65, spread: 145 }
+    : { shadow: 35, highlight: 130, light: 300, rim: 50, spread: 155 };
 const SHADING_OPTIONS = [
   { value: "plastic", label: "Plastic" },
   { value: "fabric", label: "Fabric" },
@@ -100,6 +105,9 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [shading, setShading] = useState<BotAvatarShading>("plastic");
   const [shadow, setShadow] = useState(35);
   const [highlight, setHighlight] = useState(130);
+  /* fabric has its own default light: switching shading swaps the light
+     sliders to the new material's defaults, unless they were moved */
+  const lit = lightDefaults(shading);
   const [depth, setDepth] = useState(65);
   const [roundness, setRoundness] = useState(100);
   const [furLength, setFurLength] = useState(140);
@@ -111,6 +119,17 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [light, setLight] = useState(300);
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
+  const chooseShading = (next: BotAvatarShading) => {
+    const was = lightDefaults(shading), to = lightDefaults(next);
+    if (shadow === was.shadow && highlight === was.highlight && light === was.light && rim === was.rim && spread === was.spread) {
+      setShadow(to.shadow);
+      setHighlight(to.highlight);
+      setLight(to.light);
+      setRim(to.rim);
+      setSpread(to.spread);
+    }
+    setShading(next);
+  };
   const [interactive, setInteractive] = useState(true);
   const [turn, setTurn] = useState(100); // % of the idle side turn (35° either way)
   const [whirl, setWhirl] = useState(0);
@@ -170,11 +189,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (seed !== null) props.push(`seed={${num(seed)}}`);
   if (shading !== "plastic") props.push(`shading="${shading}"`);
   if (shading !== "flat") {
-    if (shadow !== 35) props.push(`shadow={${num(shadow / 100)}}`);
-    if (highlight !== 130) props.push(`highlight={${num(highlight / 100)}}`);
-    if (light !== 300) props.push(`light={${light}}`);
-    if (shading !== "smooth" && rim !== 50) props.push(`rim={${num(rim / 100)}}`);
-    if (shading !== "crisp" && spread !== 155) props.push(`spread={${num(spread / 100)}}`);
+    if (shadow !== lit.shadow) props.push(`shadow={${num(shadow / 100)}}`);
+    if (highlight !== lit.highlight) props.push(`highlight={${num(highlight / 100)}}`);
+    if (light !== lit.light) props.push(`light={${light}}`);
+    if (shading !== "smooth" && rim !== lit.rim) props.push(`rim={${num(rim / 100)}}`);
+    if (shading !== "crisp" && spread !== lit.spread) props.push(`spread={${num(spread / 100)}}`);
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if ((shading === "plastic" || shading === "fabric") && roundness !== 100) props.push(`roundness={${num(roundness / 100)}}`);
@@ -291,7 +310,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
           <PgSlider label="Brightness" value={brightness} min={50} max={150} step={1} display={`${brightness}%`} onChange={setBrightness} />
           <PgSlider label="Saturation" value={saturation} min={50} max={150} step={1} display={`${saturation}%`} onChange={setSaturation} />
           <PgSwatches label="Ink" options={INK_OPTIONS} value={shownInk} onChange={setInk} allowCustom />
-          <PgTabs label="Shading" options={SHADING_OPTIONS} value={shading} onChange={setShading} />
+          <PgTabs label="Shading" options={SHADING_OPTIONS} value={shading} onChange={chooseShading} />
           {shading !== "flat" && (
             <>
               <PgSlider label="Shadow" value={shadow} min={0} max={200} step={5} display={`${shadow}%`} onChange={setShadow} />

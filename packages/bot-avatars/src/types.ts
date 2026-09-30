@@ -37,9 +37,9 @@ export type BotAvatarSquashEase = 'sharp' | 'pulse' | 'soft' | 'bouncy';
  * How the body is lit. `plastic` (default): a real glossy material shaded
  * per pixel — a baked pillow form, a hot spot and a sheen, a Fresnel rim,
  * a window reflection, saturated shadows. `fabric`: the same form in a
- * short dense plush pile — soft wrapped light, a sheen toward the edge, a
- * fibre texture that lies down the form, and a fuzzy fringe of hairs round
- * the silhouette; the eyes turn into glossy beads. `crisp`: a lit rim with
+ * plush faux fur — soft scattered light, fine strands combed down the form
+ * and gathered into locks, the silhouette breaking into soft tufts with a
+ * haze of hairs; the eyes turn into glossy beads. `crisp`: a lit rim with
  * a clean edge round the front, vector-style. `smooth`: no edge, a soft
  * shadow and highlight across the whole form. `flat`: the depth alone, no
  * lighting.
@@ -113,9 +113,9 @@ export interface BotAvatarProps
   bowTie?: boolean;
   /** Colour of the hat, the headphones and the bow tie. Default a soft black. */
   accessoryColor?: string;
-  /** Strength of the shadow side, 0–2. Default `0.35`. */
+  /** Strength of the shadow side, 0–2. Default `0.35` (`0.9` for `fabric`). */
   shadow?: number;
-  /** Strength of the lit side, 0–2. Default `1.3`. */
+  /** Strength of the lit side, 0–2. Default `1.3` (`0.9` for `fabric`). */
   highlight?: number;
   /** Thickness of the body, 0.2–2: what shows when it turns or flips. Default `0.65`. */
   depth?: number;
@@ -142,11 +142,11 @@ export interface BotAvatarProps
    * rather than standing out evenly all round. Default `0.6`.
    */
   furGravity?: number;
-  /** Where the light comes from, in degrees clockwise from the top. Default `300` (from the upper left, like a studio key light). */
+  /** Where the light comes from, in degrees clockwise from the top. Default `300` (`295` for `fabric`): from the upper left, like a studio key light. */
   light?: number;
-  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, 0–2. Default `0.5`. */
+  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, of the backlit haze in `fabric`, 0–2. Default `0.5` (`0.65` for `fabric`). */
   rim?: number;
-  /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, 0.4–2.5. Default `1.55`. */
+  /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.45` for `fabric`). */
   spread?: number;
   /**
    * Pointer play: the eyes and head follow a pointer that comes near, and

@@ -4,7 +4,7 @@ import { botAvatarPresets, stateLabels } from './presets';
 import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, shade } from './color';
 import { Sim, restPose } from './engine';
-import { draw, OVERSCAN, RISE, type DrawConfig } from './draw';
+import { draw, LIGHT_DEFAULTS, OVERSCAN, RISE, type DrawConfig } from './draw';
 import { warmPlastic, type FurStyle } from './plastic';
 import { subscribe, pointer } from './ticker';
 
@@ -50,8 +50,8 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     headphones = false,
     bowTie = false,
     accessoryColor = '#27272b',
-    shadow = 0.35,
-    highlight = 1.3,
+    shadow,
+    highlight,
     depth = 0.65,
     roundness = 1,
     furLength = 1.4,
@@ -60,9 +60,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     furClumps = 0.35,
     furCurl = 0.3,
     furGravity = 0.6,
-    light = 300,
-    rim = 0.5,
-    spread = 1.55,
+    light,
+    rim,
+    spread,
     interactive = true,
     turn = 1,
     theme = 'auto',
@@ -108,6 +108,8 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const stateKey: BotAvatarState = state in stateLabels ? state : 'default';
   const frozen = paused || !(speed > 0);
   const shadingMode: BotAvatarShading = shading === true ? 'crisp' : shading === false ? 'flat' : shading;
+  /* the light a material looks its best in, where a prop leaves it */
+  const lit = LIGHT_DEFAULTS[shadingMode === 'fabric' ? 'fabric' : 'other'];
   /* the pile's style, rounded so a slider does not bake a pile per pixel */
   const q = (v: number, lo: number, hi: number) => Math.round(clamp(v, lo, hi) * 20) / 20;
   const fur: FurStyle = {
@@ -138,14 +140,14 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     color: body,
     ink: inkColor,
     shading: shadingMode,
-    shadow: clamp(shadow, 0, 2),
-    highlight: clamp(highlight, 0, 2),
+    shadow: clamp(shadow ?? lit.shadow, 0, 2),
+    highlight: clamp(highlight ?? lit.highlight, 0, 2),
     depth: clamp(depth, 0.2, 2),
     roundness: clamp(roundness, 0, 1),
     fur: fur,
-    light,
-    rim: clamp(rim, 0, 2),
-    spread: clamp(spread, 0.4, 2.5),
+    light: light ?? lit.light,
+    rim: clamp(rim ?? lit.rim, 0, 2),
+    spread: clamp(spread ?? lit.spread, 0.4, 2.5),
     typeKey: type,
     still: frozen || reducedMotion(),
     whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
@@ -227,13 +229,14 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const path = cfg.current.path;
     const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
-    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric', fur));
+    const lightAt = cfg.current.light ?? 295;
+    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric', fur, lightAt));
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shadingMode, type, size, depth, furId]);
+  }, [shadingMode, type, size, depth, furId, light]);
 
   /* the loop: only while visible, animated and not reduced */
   useEffect(() => {

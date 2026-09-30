@@ -71,7 +71,7 @@ Every state is a resting pose plus its own motion. The pose is a small rig — y
 <BotAvatar type="star" ink="#4D7CFF" />             {/* or pick the ink yourself */}
 <BotAvatar type="drop" brightness={1.25} />          {/* lighter body; below 1 darker */}
 <BotAvatar type="drop" saturation={0.7} />           {/* duller body; the default is 1.5, more vivid than the palette */}
-<BotAvatar type="clover" shading="fabric" />        {/* a soft plush pile with a fuzzy edge */}
+<BotAvatar type="clover" shading="fabric" />        {/* plush faux fur with a soft, tufted edge */}
 <BotAvatar type="square" shading="crisp" />         {/* a lit rim with a clean edge */}
 <BotAvatar type="square" shading="smooth" />        {/* soft shadow and highlight, no edge */}
 <BotAvatar type="square" shading="flat" />          {/* keep the depth, drop the lighting */}
@@ -81,7 +81,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
 
 ## Shading
 
-`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a short, dense plush fleece — a fine grain of fibre tips and the gaps between them, gathered into tiny tufts — under studio light: a soft key from the upper left that turns gradually into shade, a dim fill from the other side, a back light the fibres catch round the silhouette and the floor's shadow under the body, the shade deepening the colour (a yellow toward orange) rather than greying it. The pile itself is drawn, not blurred — thousands of short fibres and a few longer guard hairs combed away from the crown and down, the way a toy's fur lies, each with a paler tip and a deeper gap beside it, gathered into small clumps — and the edge is a smooth curve with a light haze of hairs standing just past it.
+`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a plush faux fur, like a toy's, under a soft studio light: a broad key from the upper left that turns gently into shade (a pile scatters light through itself, so the shade side stays lit and keeps the body's colour, deepened rather than greyed), a fill from the other side, a back light the hairs catch round the silhouette and the floor's shadow under the body. The fur is fine strands combed from a parting behind the top of the head and falling, gathered into locks that each catch the light on one side and lie over the next one's root; it covers the whole body as one continuous pile, round the sides and the back as it turns, and the silhouette breaks into soft tufts with a haze of fine hairs past it. Fabric has its own default light (`shadow` 0.9, `highlight` 0.9, `light` 295, `rim` 0.65, `spread` 1.45).
 
 Both are drawn on an inflated body: thickest in the middle and rounding off to nothing at the outline all round, like a cushion or a plush toy, so a turn shows a round side rather than the wall of an extruded shape, smooth all the way round to a side view. `roundness` (0–1, default 1) bends that profile toward a slab with soft edges. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
 
@@ -232,7 +232,7 @@ Each instance seeds its own blink timing from its React id, so a roster never bl
 - `role="img"` with a per-state `aria-label` ("Clover bot, working") out of the box.
 - `prefers-reduced-motion: reduce` keeps the pose and drops the motion.
 - One shared animation frame loop for every avatar on the page; each one pauses when scrolled offscreen or when the tab is hidden. Device-pixel-ratio capped at 2.
-- In `crisp`, `smooth` and `flat` the body is seventeen copies of its outline stacked through the depth with a pillow profile; in `plastic` and `fabric` it is the height field's level sets as a relief, the far half from sprites and the near half as fills of the lit texture — an inflated solid that turns and flips, in plain 2D canvas fills, about 0.2–0.4 ms of main thread a frame. Cheap enough for a whole roster at once.
+- In `crisp`, `smooth` and `flat` the body is seventeen copies of its outline stacked through the depth with a pillow profile; in `plastic` and `fabric` it is slices through an inflated height field, each in the side's own light, with the lit front laid over them — a rounded solid that turns and flips, in plain 2D canvas fills, about 1 ms of main thread a frame (fabric a little more: its fur is baked once per shape on idle time and laid over the whole body in one pass). Cheap enough for a whole roster at once.
 - Server rendering works: the canvas paints on the client, after mount.
 
 ## License
