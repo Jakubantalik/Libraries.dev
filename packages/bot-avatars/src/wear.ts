@@ -1,18 +1,51 @@
 /* wear.ts — things the bots can wear: a hat, glasses, headphones, a bow
-   tie. Each is a small 3D object placed on the body's own geometry — the
-   top of the head, the sides, the eyes, the front below the face — and
-   projected through the same rotation as the slice stack, so it turns,
-   tips and flips with the head instead of floating over it. They are drawn
-   in the same spirit as the body: soft felt, satin, dark plastic, gold,
-   each lit from the body's light, with its own small shadow where it sits
-   on the body.
+   tie. Each is a small 3D object built from lit surfaces (see mesh.ts) and
+   placed on the body's own geometry — the top of the head, the sides, the
+   eyes, the front below the face — then projected through the same
+   rotation as the slice stack, so it turns, tips and flips with the head
+   instead of floating over it. Materials follow the body's light: felt and
+   knit, paper and foil, gold with cut stones and pearls, leather and soft
+   plastic with brushed metal, satin, acetate and glass. Each casts a soft
+   shadow where it sits on the body.
 
-   Everything is canvas 2D paths and gradients, in body space (the
-   context carries the body's transform when these run). */
+   Everything is drawn in body space (the context carries the body's
+   transform when these run); the glasses in face space. */
 
 import type { BotAvatarGlasses, BotAvatarHat } from './types';
 import { rasterize, PAD, SPAN } from './plastic';
-import { shade } from './color';
+import { shade, parseColor } from './color';
+import {
+  makeMesh,
+  makeTube,
+  makeView,
+  projectMesh,
+  section,
+  paintLayers,
+  boundsOf,
+  hull,
+  norm,
+  cross,
+  sub,
+  segs,
+  felt,
+  velvet,
+  paper,
+  plastic,
+  satin,
+  gold,
+  silver,
+  metal,
+  sphereSprite,
+  cutGem,
+  scale,
+  type Layer,
+  type Mesh,
+  type Proj,
+  type RGB,
+  type View,
+  type V3,
+  type P2,
+} from './mesh';
 
 export interface Wear {
   hat: BotAvatarHat;
@@ -48,6 +81,8 @@ interface Marks {
   /** each row's width, top to bottom, at `step` design units a row */
   widths: Float32Array;
   step: number;
+  /** the outline's convex hull, for what rests on the head */
+  hull: P2[];
 }
 
 /* where a hat sits: the first row, from the top, where the head is at
@@ -87,9 +122,11 @@ function marksFor(path: Path2D): Marks | null {
     if (l >= 0 && r - l > best) { best = r - l; bl = l; br = r; by = y; }
   }
   const widths = new Float32Array(N);
+  const edge: P2[] = [];
   for (let y = 0; y < N; y++) {
     const [l, r] = row(y);
     widths[y] = l < 0 ? 0 : (r - l + 1) * u;
+    if (l >= 0) edge.push([toX(l) - 0.5 * u, toX(y)], [toX(r) + 0.5 * u, toX(y)]);
   }
   const m: Marks = {
     top: toX(top) - 0.5 * u,
@@ -101,6 +138,7 @@ function marksFor(path: Path2D): Marks | null {
     bottom: toX(bottom) + 0.5 * u,
     widths,
     step: u,
+    hull: hull(edge),
   };
   marks.set(path, m);
   return m;
@@ -108,52 +146,27 @@ function marksFor(path: Path2D): Marks | null {
 
 /* ── projection ─────────────────────────────────────────────────────── */
 
-type P3 = [number, number, number];
-type P2 = [number, number];
-
 /* the slices' orthographic turn: design (x, y) about the centre, z along
    the depth in design units (positive toward the front cap) */
-function project(r: WearRig, p: P3): P2 {
+function project(r: WearRig, p: V3): P2 {
   const X = p[0] - 50, Y = p[1] - 50;
   return [r.cy * X + r.sy * p[2], r.sy * r.sp * X + r.cp * Y - r.cy * r.sp * p[2]];
 }
 /* how far a point sits toward the viewer */
-function depthOf(r: WearRig, p: P3): number {
+function depthOf(r: WearRig, p: V3): number {
   return -r.sy * r.cp * (p[0] - 50) + r.sp * (p[1] - 50) + r.cy * r.cp * p[2];
-}
-/* a direction's facing: positive when it points at the viewer */
-function facingOf(r: WearRig, n: P3): number {
-  return -r.sy * r.cp * n[0] + r.sp * n[1] + r.cy * r.cp * n[2];
 }
 
 /* rotate a local offset by a tilt about the depth axis, then a lean about x */
-function tilt(v: P3, roll: number, lean: number): P3 {
+function tilt(v: V3, roll: number, lean: number): V3 {
   const cr = Math.cos(roll), sr = Math.sin(roll);
   const x = v[0] * cr - v[1] * sr, y = v[0] * sr + v[1] * cr;
   const cl = Math.cos(lean), sl = Math.sin(lean);
   return [x, y * cl - v[2] * sl, y * sl + v[2] * cl];
 }
-const add = (a: P3, b: P3): P3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const along = (a: V3, d: V3, k: number): V3 => [a[0] + d[0] * k, a[1] + d[1] * k, a[2] + d[2] * k];
 
-/* convex hull (monotone chain) of screen points */
-function hull(pts: P2[]): P2[] {
-  const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  if (p.length < 3) return p;
-  const cross = (o: P2, a: P2, b: P2) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const lo: P2[] = [], up: P2[] = [];
-  for (const q of p) {
-    while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop();
-    lo.push(q);
-  }
-  for (let i = p.length - 1; i >= 0; i--) {
-    const q = p[i];
-    while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop();
-    up.push(q);
-  }
-  lo.pop();
-  up.pop();
-  return lo.concat(up);
-}
 function polyPath(pts: P2[], close = true): Path2D {
   const p = new Path2D();
   pts.forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
@@ -179,15 +192,7 @@ const rnd = (i: number, k = 0) => {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 
-/* ── materials ──────────────────────────────────────────────────────── */
-
-/* a lit fill across a shape's bounds, from the light side to the far side */
-function litFill(ctx: CanvasRenderingContext2D, b: ReturnType<typeof bounds>, r: WearRig, stops: [number, string][]) {
-  const reach = Math.max(b.w, b.h) * 0.62;
-  const g = ctx.createLinearGradient(b.cx + r.lx * reach, b.cy + r.ly * reach, b.cx - r.lx * reach, b.cy - r.ly * reach);
-  for (const [t, c] of stops) g.addColorStop(t, c);
-  return g;
-}
+/* ── texture and small touches ──────────────────────────────────────── */
 
 /* felt's grain: a small tile of soft noise, multiplied over felt faintly */
 let grain: HTMLCanvasElement | OffscreenCanvas | null = null;
@@ -213,51 +218,34 @@ function grainTile(): HTMLCanvasElement | OffscreenCanvas | null {
   return c;
 }
 
-/* felt: soft and matte, lit from above and from the light's side, darker
-   toward its underside, a fine grain, and a fuzzy edge */
-function felt(ctx: CanvasRenderingContext2D, outline: P2[], r: WearRig, base: string, seed: number) {
-  const b = bounds(outline);
-  const path = polyPath(outline);
-  /* the light for a hat comes from above as much as from the side */
-  let ux = r.lx * 0.7, uy = r.ly * 0.7 - 0.75;
-  const ul = Math.hypot(ux, uy) || 1;
-  ux /= ul; uy /= ul;
-  const reach = Math.max(b.w, b.h) * 0.55;
-  const g = ctx.createLinearGradient(b.cx + ux * reach, b.cy + uy * reach, b.cx - ux * reach, b.cy - uy * reach);
-  g.addColorStop(0, shade(base, 0.2, -0.03));
-  g.addColorStop(0.5, shade(base, 0.05));
-  g.addColorStop(1, shade(base, -0.1, 0.02));
-  ctx.fillStyle = g;
-  ctx.fill(path);
-  ctx.save();
-  ctx.clip(path);
+/* the grain, laid over a painted outline; its pattern made once per
+   context and scale */
+const patterns = new WeakMap<CanvasRenderingContext2D, Map<number, CanvasPattern | null>>();
+function grainOver(ctx: CanvasRenderingContext2D, outline: P2[], alpha: number, scaleK = 0.18) {
   const tile = grainTile();
-  if (tile) {
-    const pat = ctx.createPattern(tile as HTMLCanvasElement, 'repeat');
-    if (pat) {
-      pat.setTransform?.(new DOMMatrix().scale(0.18));
-      ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = pat;
-      ctx.fillRect(b.x0 - 2, b.y0 - 2, b.w + 4, b.h + 4);
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = 1;
-    }
+  if (!tile || outline.length < 3) return;
+  let byScale = patterns.get(ctx);
+  if (!byScale) patterns.set(ctx, (byScale = new Map()));
+  let pat = byScale.get(scaleK);
+  if (pat === undefined) {
+    pat = ctx.createPattern(tile as HTMLCanvasElement, 'repeat');
+    pat?.setTransform?.(new DOMMatrix().scale(scaleK));
+    byScale.set(scaleK, pat);
   }
-  /* a soft occlusion toward the far and lower edge, so it reads as a volume */
-  const o = ctx.createRadialGradient(b.cx + ux * b.w * 0.18, b.cy + uy * b.h * 0.28, 0, b.cx, b.cy, Math.max(b.w, b.h) * 0.72);
-  o.addColorStop(0, 'rgba(0,0,0,0)');
-  o.addColorStop(0.6, 'rgba(0,0,0,0.04)');
-  o.addColorStop(1, 'rgba(0,0,0,0.32)');
-  ctx.fillStyle = o;
-  ctx.fillRect(b.x0 - 2, b.y0 - 2, b.w + 4, b.h + 4);
+  if (!pat) return;
+  const b = bounds(outline);
+  ctx.save();
+  ctx.clip(polyPath(outline));
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = pat;
+  ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
   ctx.restore();
-  fuzz(ctx, outline, base, seed, 0.55);
 }
 
 /* short hairs standing off an outline: a felt or pile edge. Two batched
    strokes, a lighter and a darker set, rather than one call a hair. */
-function fuzz(ctx: CanvasRenderingContext2D, outline: P2[], base: string, seed: number, len: number) {
+function fuzz(ctx: CanvasRenderingContext2D, outline: P2[], base: string, seed: number, len: number, px = 2.4) {
   const n = outline.length;
   if (n < 3) return;
   let total = 0;
@@ -268,7 +256,8 @@ function fuzz(ctx: CanvasRenderingContext2D, outline: P2[], base: string, seed: 
     seg.push(d);
     total += d;
   }
-  const count = Math.min(360, Math.max(24, Math.round(total * 2.4)));
+  /* about a hair every other device pixel along the edge */
+  const count = Math.min(360, Math.max(24, Math.round(total * Math.min(2.4, px * 0.5))));
   const b = bounds(outline);
   const lightP = new Path2D(), darkP = new Path2D();
   let si = 0, acc = 0;
@@ -301,24 +290,6 @@ function fuzz(ctx: CanvasRenderingContext2D, outline: P2[], base: string, seed: 
   ctx.restore();
 }
 
-/* a fuzzy ball: a pompom */
-function pompom(ctx: CanvasRenderingContext2D, c: P2, rad: number, r: WearRig, base: string, seed: number) {
-  const pts: P2[] = [];
-  for (let i = 0; i < 28; i++) {
-    const a = (i / 28) * Math.PI * 2;
-    pts.push([c[0] + Math.cos(a) * rad, c[1] + Math.sin(a) * rad]);
-  }
-  const g = ctx.createRadialGradient(c[0] + r.lx * rad * 0.45, c[1] + r.ly * rad * 0.45, rad * 0.1, c[0], c[1], rad * 1.1);
-  g.addColorStop(0, shade(base, 0.18, -0.02));
-  g.addColorStop(0.6, base);
-  g.addColorStop(1, shade(base, -0.18, 0.02));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(c[0], c[1], rad, 0, Math.PI * 2);
-  ctx.fill();
-  fuzz(ctx, pts, base, seed, rad * 0.32);
-}
-
 /* a soft contact shadow cast on the body under an object's lower edge */
 function contact(ctx: CanvasRenderingContext2D, clip: Path2D | null, cx: number, cy: number, rx: number, ry: number, a: number) {
   if (!(rx > 0) || !(ry > 0)) return;
@@ -328,6 +299,7 @@ function contact(ctx: CanvasRenderingContext2D, clip: Path2D | null, cx: number,
   ctx.scale(1, ry / rx);
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
   g.addColorStop(0, `rgba(0,0,0,${a})`);
+  g.addColorStop(0.55, `rgba(0,0,0,${a * 0.45})`);
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g;
   ctx.beginPath();
@@ -336,351 +308,731 @@ function contact(ctx: CanvasRenderingContext2D, clip: Path2D | null, cx: number,
   ctx.restore();
 }
 
+/* ── the view for the meshes ───────────────────────────────────────── */
+
+/* light elevation off the screen plane, as the body's material has it */
+const EL = (48 * Math.PI) / 180;
+function lightOf(lx: number, ly: number): { L: V3; H: V3 } {
+  const le = Math.cos(EL), lz = Math.sin(EL);
+  const L = norm([lx * le, ly * le, lz]);
+  return { L, H: norm([L[0], L[1], L[2] + 1]) };
+}
+/* device pixels per unit of the context's current space */
+function pxOf(ctx: CanvasRenderingContext2D): number {
+  const t = ctx.getTransform?.();
+  return t ? Math.sqrt(Math.abs(t.a * t.d - t.b * t.c)) || 1 : 2;
+}
+function viewOf(r: WearRig, px: number): View {
+  const { L, H } = lightOf(r.lx, r.ly);
+  /* the rows of project() and depthOf() */
+  return makeView([r.cy, 0, r.sy, r.sy * r.sp, r.cp, -r.cy * r.sp, -r.sy * r.cp, r.sp, r.cy * r.cp], [50, 50, 0], L, H, px);
+}
+
+/* The meshes, built once per shape, part and grid size and kept: a frame
+   only projects them. `owner` is what they belong to — the shape's marks,
+   or the glasses. */
+const kept = new WeakMap<object, Map<string, Mesh>>();
+let owner: object = kept;
+function keep(key: string, make: () => Mesh): Mesh {
+  let c = kept.get(owner);
+  if (!c) kept.set(owner, (c = new Map()));
+  let g = c.get(key);
+  if (!g) {
+    if (c.size > 240) c.clear();
+    g = make();
+    c.set(key, g);
+  }
+  return g;
+}
+function surface(
+  view: View,
+  key: string,
+  surf: (u: number, v: number) => V3,
+  nu: number,
+  nv: number,
+  inside: V3 | ((u: number, v: number) => V3),
+  smooth = true
+): Proj {
+  return projectMesh(view, keep(`${key}|${nu}x${nv}`, () => makeMesh(surf, nu, nv, inside, smooth)));
+}
+function tube(
+  view: View,
+  key: string,
+  path: (u: number) => V3,
+  up: V3,
+  prof: (u: number, ph: number) => [number, number],
+  nu: number,
+  nv: number,
+  closed = false
+): Proj {
+  return projectMesh(view, keep(`${key}|${nu}x${nv}`, () => makeTube(path, up, prof, nu, nv, closed)));
+}
+const rgbOf = (c: string, fallback: RGB = [40, 40, 44]): RGB => (parseColor(c) as RGB | null) ?? fallback;
+const TAU = Math.PI * 2;
+const smooth01 = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+/* a signed power, for superellipses */
+const spow = (c: number, e: number) => Math.sign(c) * Math.pow(Math.abs(c), e);
+
+/* a sphere, as a mesh: pompoms and the like */
+function sphereMesh(view: View, key: string, c: V3, rad: number, nu: number, nv: number): Proj {
+  return surface(
+    view,
+    key,
+    (u, v) => {
+      const th = u * TAU, ph = v * Math.PI;
+      return [c[0] + rad * Math.sin(ph) * Math.cos(th), c[1] - rad * Math.cos(ph), c[2] + rad * Math.sin(ph) * Math.sin(th)];
+    },
+    nu,
+    nv,
+    c
+  );
+}
+
+/* a ring round a centre line in a hat's own frame: a binding, a trim, a
+   rim — a tube round a circle, each normal turned away from the circle */
+function ringMesh(view: View, key: string, place: (p: V3) => V3, R: number, y: number, t: number, zScale: number, nu: number, nv: number): Proj {
+  return surface(
+    view,
+    key,
+    (u, v) => {
+      const th = u * TAU, ph = v * TAU;
+      const rr = R + t * Math.cos(ph);
+      return place([rr * Math.cos(th), y - t * Math.sin(ph), rr * zScale * Math.sin(th)]);
+    },
+    nu,
+    nv,
+    (u) => place([R * Math.cos(u * TAU), y, R * zScale * Math.sin(u * TAU)])
+  );
+}
+
+/* a path moved sideways off itself, in the plane across `up` */
+function offsetPath(path: (u: number) => V3, up: V3, off: (u: number) => number) {
+  return (u: number): V3 => {
+    const e = 1e-3;
+    const T = norm(sub(path(Math.min(1, u + e)), path(Math.max(0, u - e))));
+    const B = cross(T, up);
+    return along(path(u), B, off(u));
+  };
+}
+
+/* a yarn or tinsel pompom: a shaded ball under a mass of short strands,
+   lighter and darker, standing out all round */
+function yarnBall(ctx: CanvasRenderingContext2D, view: View, c: V3, rad: number, base: string, seed: number) {
+  const rgb = rgbOf(base);
+  const n = segs(view, TAU * rad, 12, 20);
+  const vis = paintLayers(ctx, [{ parts: [sphereMesh(view, `ball${seed}`, c, rad * 0.86, n, Math.max(6, n >> 1))], shade: felt(view, rgb, 0.92) }], view.px);
+  const centre = view.toScreen(c);
+  const b = bounds(vis);
+  const R = Math.max(b.w, b.h) / 2;
+  const count = Math.round(Math.min(340, 50 + R * view.px * 5));
+  const light = new Path2D(), dark = new Path2D();
+  for (let k = 0; k < count; k++) {
+    const a = rnd(k, seed) * TAU;
+    const r0 = R * (0.25 + 0.7 * Math.sqrt(rnd(k, seed + 1)));
+    const len = R * (0.25 + 0.35 * rnd(k, seed + 2));
+    const x0 = centre[0] + Math.cos(a) * r0, y0 = centre[1] + Math.sin(a) * r0;
+    const bend = (rnd(k, seed + 3) - 0.5) * 0.6;
+    const ex = Math.cos(a + bend), ey = Math.sin(a + bend);
+    const p = rnd(k, seed + 4) > 0.45 ? light : dark;
+    p.moveTo(x0, y0);
+    p.quadraticCurveTo(x0 + Math.cos(a) * len * 0.5, y0 + Math.sin(a) * len * 0.5, x0 + ex * len, y0 + ey * len);
+  }
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineWidth = Math.max(0.3, R * 0.06);
+  /* the strands take the ball's own light: lighter toward the light */
+  const L = view.L;
+  const g = ctx.createLinearGradient(centre[0] + L[0] * R, centre[1] + L[1] * R, centre[0] - L[0] * R, centre[1] - L[1] * R);
+  g.addColorStop(0, shade(base, 0.2, -0.03));
+  g.addColorStop(1, shade(base, -0.12, 0.02));
+  ctx.strokeStyle = g;
+  ctx.globalAlpha = 0.85;
+  ctx.stroke(light);
+  ctx.strokeStyle = shade(base, -0.18, 0.03);
+  ctx.globalAlpha = 0.6;
+  ctx.stroke(dark);
+  ctx.restore();
+}
+
 /* ── the hats ───────────────────────────────────────────────────────── */
 
-function drawBeret(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, base: string, bodyClip: Path2D | null) {
+/* The beret: a felt dome settled over the crown of the head, its widest
+   ring a little above the band and the underside tucking in to it, slid
+   and tipped over to one side the way a beret is worn. Soft pleats run
+   round it, so the light breaks along the brim; a narrow leather binding
+   sits where it meets the head; a short stalk stands on top. */
+function drawBeret(ctx: CanvasRenderingContext2D, view: View, m: Marks, base: string, bodyClip: Path2D | null) {
   const W = m.right - m.left;
-  const rad = 0.43 * W, dome = 0.27 * W;
-  /* a soft felt dome settled over the crown of the head — its band hugs
-     the head a little below the top and its puff rises above it — slid and
-     tipped over to one side, seen mostly from the side with a hint of its
-     top, the way a beret is worn */
-  const C: P3 = [50 - 0.07 * W, Math.max(m.top + 0.2 * W, seat(m, 0.5) + 0.08 * W), 0];
-  const roll = -0.22, lean = 0.1;
-  const pts: P3[] = [];
-  for (let ring = 0; ring <= 6; ring++) {
-    const f = ring / 6;
-    /* the profile: widest a little above the band, rounding in to a soft top */
-    const rr = rad * (ring === 0 ? 0.86 : Math.cos((f * Math.PI) / 2 - 0.12) * 1.04);
-    const hh = ring === 0 ? 0.02 * W : -dome * Math.sin((f * Math.PI) / 2);
-    for (let i = 0; i < 30; i++) {
-      const a = (i / 30) * Math.PI * 2;
-      pts.push(add(C, tilt([rr * Math.cos(a), hh, rr * 0.9 * Math.sin(a)], roll, lean)));
+  const R = 0.46 * W, Hh = 0.21 * W, Rb = 0.33 * W, lift = 0.05 * W;
+  const C: V3 = [50 - 0.07 * W, Math.max(m.top + 0.22 * W, seat(m, 0.5) + 0.1 * W), 0];
+  /* a negative lean tips the top toward the viewer, so the crown of the
+     beret shows and its underside stays hidden */
+  const roll = -0.24, lean = -0.2;
+  const place = (p: V3): V3 => add(C, tilt(p, roll, lean));
+  const nu = segs(view, TAU * R, 32, 56), nv = segs(view, 1.2 * R, 10, 32, 6);
+  const surf = (u: number, v: number): V3 => {
+    const th = u * TAU;
+    let rr: number, hh: number;
+    const E = 0.74; // where the widest ring is, along the profile
+    if (v <= E) {
+      const phi = (v / E) * (Math.PI / 2);
+      rr = R * Math.sin(phi);
+      /* a soft, slightly flattened top */
+      hh = -(lift + Hh * Math.pow(Math.cos(phi), 0.8));
+    } else {
+      const f = smooth01((v - E) / (1 - E));
+      rr = R + (Rb - R) * f;
+      hh = -lift * (1 - f);
     }
-  }
-  const outline = hull(pts.map((p) => project(r, p)));
-  const b = bounds(outline);
+    /* pleats: strongest round the widest ring, gone at the top */
+    const band = Math.sin(Math.min(1, v / E) * Math.PI * 0.9);
+    rr *= 1 + 0.035 * Math.sin(th * 7 + 0.4) * band;
+    return place([rr * Math.cos(th), hh, rr * 0.93 * Math.sin(th)]);
+  };
+  const dome = surface(view, 'beret:dome', surf, nu, nv, place([0, -lift - Hh * 0.4, 0]));
+  /* the underside inside the band, closed */
+  const under = surface(
+    view,
+    'beret:under',
+    (u, v) => {
+      const th = u * TAU, rr = Rb * (1 - v);
+      return place([rr * Math.cos(th), -0.004 * W * v, rr * 0.93 * Math.sin(th)]);
+    },
+    24,
+    2,
+    place([0, -lift - Hh * 0.4, 0])
+  );
+  const rgb = rgbOf(base);
   /* its shadow on the head, under the band */
-  const band = project(r, add(C, tilt([0, 0.03 * W, 0], roll, lean)));
-  contact(ctx, bodyClip, band[0] + 0.02 * W, band[1] + 0.05 * W, b.w * 0.46, 0.085 * W, 0.36);
-  felt(ctx, outline, r, base, 11);
-  /* the little stalk on top */
-  const tip = project(r, add(C, tilt([0.05 * W, -dome - 0.02 * W, 0], roll, lean)));
-  pompom(ctx, tip, 0.03 * W, r, base, 17);
+  const bandMid = view.toScreen(place([0, 0.02 * W, 0]));
+  contact(ctx, bodyClip, bandMid[0] + 0.02 * W, bandMid[1] + 0.045 * W, Rb * 1.25, 0.08 * W, 0.4);
+  const binding = ringMesh(view, 'beret:binding', place, Rb, -0.005 * W, 0.022 * W, 0.93, segs(view, TAU * Rb, 24, 48), 5);
+  const leather = rgbOf(shade(base, -0.06));
+  const vis = paintLayers(
+    ctx,
+    [
+      { parts: [under], shade: felt(view, rgb, 0.7) },
+      { parts: [binding], shade: plastic(view, leather, 0.45) },
+      { parts: [dome], shade: felt(view, rgb) },
+    ],
+    view.px
+  );
+  const outline = hull(vis);
+  grainOver(ctx, outline, 0.5, 0.14);
+  fuzz(ctx, outline, base, 11, 0.4, view.px);
+  /* the stalk: a short tail of felt on the crown, a little bent */
+  const x0 = 0.02 * W, y0 = -lift - Hh + 0.006 * W;
+  const stalk = tube(
+    view,
+    'beret:stalk',
+    (u) => place([x0 + 0.014 * W * u * u, y0 - 0.045 * W * u, 0]),
+    [0, 0, 1],
+    (u, ph) => [0.016 * W * (1 - 0.25 * u) * Math.cos(ph), 0.016 * W * (1 - 0.25 * u) * Math.sin(ph)],
+    8,
+    3
+  );
+  paintLayers(ctx, [{ parts: [stalk], shade: felt(view, rgb, 0.95) }], view.px);
+  sphereSprite(ctx, view, place([x0 + 0.014 * W, y0 - 0.047 * W, 0]), 0.019 * W, scale(rgb, 1.15));
 }
 
-function drawBeanie(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, base: string, bodyClip: Path2D | null) {
+/* The beanie: a knitted dome with a folded, ribbed cuff and a yarn pompom.
+   Every stitch is drawn — a V in each cell of the dome, pointing to the
+   brim, with the yarn's light edge beside its dark gap — and the cuff's
+   ribs rise and fall round it. */
+function drawBeanie(ctx: CanvasRenderingContext2D, view: View, m: Marks, base: string, bodyClip: Path2D | null) {
   const W = m.right - m.left;
   const headW = Math.max(0.5 * W, m.topR - m.topL);
-  const rad = 0.53 * headW + 0.08 * W, h = 0.3 * W, cuff = 0.085 * W;
-  const C: P3 = [50, seat(m, 0.72) + 0.06 * W, 0];
-  const roll = 0, lean = 0.12;
-  const pts: P3[] = [];
-  for (let ring = 0; ring <= 6; ring++) {
-    const f = ring / 6, rr = rad * Math.cos((f * Math.PI) / 2) * (1 - 0.06 * f), hh = -h * Math.sin((f * Math.PI) / 2);
-    for (let i = 0; i < 28; i++) {
-      const a = (i / 28) * Math.PI * 2;
-      pts.push(add(C, tilt([rr * Math.cos(a), hh, rr * 0.9 * Math.sin(a)], roll, lean)));
+  const Rd = 0.53 * headW + 0.08 * W, Hd = 0.32 * W, cuffH = 0.1 * W, Rc = Rd * 1.05;
+  const C: V3 = [50, seat(m, 0.72) + 0.06 * W, 0];
+  const roll = 0, lean = -0.14;
+  const place = (p: V3): V3 => add(C, tilt(p, roll, lean));
+  const domeSurf = (u: number, v: number): V3 => {
+    const th = u * TAU, phi = v * (Math.PI / 2);
+    const rr = Rd * Math.sin(phi) * (1 - 0.03 * (1 - v));
+    const hh = -(cuffH + Hd * Math.cos(phi));
+    return place([rr * Math.cos(th), hh, rr * 0.92 * Math.sin(th)]);
+  };
+  const inDome = place([0, -cuffH - Hd * 0.4, 0]);
+  const dome = surface(view, 'beanie:dome', domeSurf, segs(view, TAU * Rd, 28, 48), segs(view, 1.3 * Hd, 9, 24, 6), inDome);
+  const cuffSurf = (u: number, v: number): V3 => {
+    const th = u * TAU;
+    const e = 2 * v - 1;
+    const rr = Rc * (1 - 0.07 * e * e * e * e) * 1.01;
+    return place([rr * Math.cos(th), -cuffH * (1 - v), rr * 0.92 * Math.sin(th)]);
+  };
+  const cuff = surface(view, 'beanie:cuff', cuffSurf, segs(view, TAU * Rc, 28, 56), 4, place([0, -cuffH / 2, 0]));
+  const rgb = rgbOf(base), cuffRgb = rgbOf(shade(base, 0.03));
+  const bb = boundsOf([cuff]);
+  contact(ctx, bodyClip, bb.cx, bb.y1 - 0.01 * W, bb.w * 0.5, 0.06 * W, 0.34);
+  const visDome = paintLayers(ctx, [{ parts: [dome], shade: felt(view, rgb, 0.96) }], view.px);
+  /* the stitches: one V per cell of their own grid, dark gap then light
+     yarn, only on the side facing the viewer and only when big enough */
+  const NU = 40, NV = 11;
+  const cell = ((Rd * TAU) / NU) * view.px;
+  if (cell >= 2.2) {
+    const grid = surface(view, 'beanie:stitch', domeSurf, NU, NV, inDome, false);
+    const dark = new Path2D(), light = new Path2D();
+    const GW = NU + 1;
+    for (let c = 0; c < NU * NV; c++) {
+      if (grid.f[c * 3 + 2] < 0.12) continue;
+      const k = Math.floor(c / NU) * GW + (c % NU);
+      const A: P2 = [grid.x[k], grid.y[k]], B: P2 = [grid.x[k + 1], grid.y[k + 1]];
+      const Cq: P2 = [grid.x[k + GW + 1], grid.y[k + GW + 1]], D: P2 = [grid.x[k + GW], grid.y[k + GW]];
+      const at = (s: number, t: number): P2 => {
+        const top: P2 = [A[0] + (B[0] - A[0]) * s, A[1] + (B[1] - A[1]) * s];
+        const bot: P2 = [D[0] + (Cq[0] - D[0]) * s, D[1] + (Cq[1] - D[1]) * s];
+        return [top[0] + (bot[0] - top[0]) * t, top[1] + (bot[1] - top[1]) * t];
+      };
+      for (const [p, dx] of [[dark, 0], [light, -0.06]] as const) {
+        const a = at(0.14 + dx, 0.12), b = at(0.5 + dx, 0.88), c = at(0.86 + dx, 0.12);
+        p.moveTo(a[0], a[1]);
+        p.lineTo(b[0], b[1]);
+        p.lineTo(c[0], c[1]);
+      }
     }
+    const cw = (Rd * TAU) / NU;
+    ctx.save();
+    ctx.clip(polyPath(hull(visDome)));
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(0.35, cw * 0.2);
+    ctx.strokeStyle = shade(base, -0.22, 0.03);
+    ctx.globalAlpha = 0.5;
+    ctx.stroke(dark);
+    ctx.lineWidth = Math.max(0.3, cw * 0.12);
+    ctx.strokeStyle = shade(base, 0.2, -0.03);
+    ctx.globalAlpha = 0.35;
+    ctx.stroke(light);
+    ctx.restore();
   }
-  const cuffPts: P3[] = [];
-  for (let i = 0; i < 40; i++) {
-    const a = (i / 40) * Math.PI * 2;
-    cuffPts.push(add(C, tilt([rad * 1.03 * Math.cos(a), 0.01 * W, rad * 0.93 * Math.sin(a)], roll, lean)));
-    cuffPts.push(add(C, tilt([rad * 1.03 * Math.cos(a), cuff, rad * 0.93 * Math.sin(a)], roll, lean)));
-  }
-  const domeOut = hull(pts.map((p) => project(r, p)));
-  const cuffOut = hull(cuffPts.map((p) => project(r, p)));
-  const b = bounds(cuffOut);
-  contact(ctx, bodyClip, b.cx, b.y1, b.w * 0.5, 0.05 * W, 0.28);
-  felt(ctx, domeOut, r, base, 23);
-  /* the knit: ribs running up the dome, on its near side */
-  ctx.save();
-  ctx.clip(polyPath(domeOut));
-  ctx.strokeStyle = shade(base, -0.16, 0.02);
-  ctx.globalAlpha = 0.35;
-  ctx.lineWidth = 0.012 * W;
-  for (let i = 0; i < 18; i++) {
-    const a = (i / 18) * Math.PI * 2;
-    const n: P3 = [Math.cos(a), 0, Math.sin(a)];
-    if (facingOf(r, n) < -0.1) continue;
-    ctx.beginPath();
-    for (let k = 0; k <= 8; k++) {
-      const f = k / 8, rr = rad * Math.cos((f * Math.PI) / 2), hh = -h * Math.sin((f * Math.PI) / 2);
-      const q = project(r, add(C, tilt([rr * Math.cos(a), hh, rr * 0.9 * Math.sin(a)], roll, lean)));
-      if (k) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]);
+  /* the cuff over the dome's lower edge, and its ribs: a groove and a
+     ridge of yarn every twelfth of a turn, on the side toward the viewer */
+  const visCuff = paintLayers(ctx, [{ parts: [cuff], shade: felt(view, cuffRgb, 0.98) }], view.px);
+  const ribGap = (TAU * Rc) / 30;
+  if (ribGap * view.px >= 3) {
+    const groove = new Path2D(), ridge = new Path2D();
+    for (let k = 0; k < 60; k++) {
+      const u = k / 60;
+      const th = u * TAU;
+      if (view.dir(tilt([Math.cos(th), 0, 0.92 * Math.sin(th)], roll, lean))[2] < 0.08) continue;
+      const a = view.toScreen(cuffSurf(u, 0.1)), b = view.toScreen(cuffSurf(u, 0.9));
+      const p = k % 2 ? groove : ridge;
+      p.moveTo(a[0], a[1]);
+      p.lineTo(b[0], b[1]);
     }
-    ctx.stroke();
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineWidth = ribGap * 0.34;
+    ctx.strokeStyle = shade(base, -0.2, 0.03);
+    ctx.globalAlpha = 0.45;
+    ctx.stroke(groove);
+    ctx.lineWidth = ribGap * 0.22;
+    ctx.strokeStyle = shade(base, 0.16, -0.02);
+    ctx.globalAlpha = 0.4;
+    ctx.stroke(ridge);
+    ctx.restore();
   }
-  ctx.restore();
-  /* the folded cuff, a shade lighter, with its own ribs */
-  const cuffBase = shade(base, 0.05);
-  felt(ctx, cuffOut, r, cuffBase, 29);
-  ctx.save();
-  ctx.clip(polyPath(cuffOut));
-  ctx.strokeStyle = shade(base, -0.14, 0.02);
-  ctx.globalAlpha = 0.4;
-  ctx.lineWidth = 0.014 * W;
-  for (let i = 0; i < 30; i++) {
-    const a = (i / 30) * Math.PI * 2;
-    if (facingOf(r, [Math.cos(a), 0, Math.sin(a)]) < 0) continue;
-    const p0 = project(r, add(C, tilt([rad * 1.03 * Math.cos(a), 0.012 * W, rad * 0.93 * Math.sin(a)], roll, lean)));
-    const p1 = project(r, add(C, tilt([rad * 1.03 * Math.cos(a), cuff - 0.004 * W, rad * 0.93 * Math.sin(a)], roll, lean)));
-    ctx.beginPath();
-    ctx.moveTo(p0[0], p0[1]);
-    ctx.lineTo(p1[0], p1[1]);
-    ctx.stroke();
-  }
-  ctx.restore();
-  const tip = project(r, add(C, tilt([0, -h - 0.04 * W, 0], roll, lean)));
-  pompom(ctx, tip, 0.085 * W, r, shade(base, 0.08), 31);
+  const outline = hull(visDome.concat(visCuff));
+  fuzz(ctx, outline, base, 23, 0.35, view.px);
+  yarnBall(ctx, view, place([0, -cuffH - Hd - 0.055 * W, 0]), 0.085 * W, shade(base, 0.06), 31);
 }
 
-function drawParty(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, base: string, bodyClip: Path2D | null) {
+/* The party hat: a paper cone with stripes that wrap it, a foil trim at
+   the base and a tinsel pompom at the tip. */
+function drawParty(ctx: CanvasRenderingContext2D, view: View, m: Marks, base: string, bodyClip: Path2D | null) {
   const W = m.right - m.left;
-  const rad = 0.17 * W, h = 0.42 * W;
-  const C: P3 = [50 + 0.06 * W, seat(m, 0.3) + 0.04 * W, 0];
-  const roll = 0.18, lean = 0.1;
-  const baseRing: P3[] = [];
-  for (let i = 0; i < 32; i++) {
-    const a = (i / 32) * Math.PI * 2;
-    baseRing.push(add(C, tilt([rad * Math.cos(a), 0, rad * Math.sin(a)], roll, lean)));
+  const C: V3 = [50 + 0.06 * W, seat(m, 0.3) + 0.04 * W, 0];
+  /* as tall as the canvas has room for above the head */
+  const R = 0.18 * W, H = Math.max(0.3 * W, Math.min(0.46 * W, C[1] + 31 - 0.1 * W));
+  const roll = 0.18, lean = -0.12;
+  const place = (p: V3): V3 => add(C, tilt(p, roll, lean));
+  const coneAt = (u: number, v: number, grow = 1): V3 => {
+    const th = u * TAU;
+    const rr = R * (1 - v) * (1 + 0.04 * Math.sin(v * Math.PI)) * grow;
+    return place([rr * Math.cos(th), -H * v, rr * Math.sin(th)]);
+  };
+  const inCone = (_u: number, v: number) => place([0, -H * Math.min(0.97, v), 0]);
+  const nAround = segs(view, TAU * R, 20, 40), nUp = segs(view, H, 10, 24, 6);
+  const cone = surface(view, 'party:cone', (u, v) => coneAt(u, v), nAround, nUp, inCone);
+  const a = rgbOf(base), b: RGB = [252, 246, 234];
+  const bb = boundsOf([cone]);
+  contact(ctx, bodyClip, bb.cx, bb.y1, R * 1.15, 0.04 * W, 0.3);
+  const trim = ringMesh(view, 'party:trim', place, R * 1.02, 0.004 * W, 0.016 * W, 1, segs(view, TAU * R, 20, 40), 5);
+  /* the stripes: bands spiralling up the cone, each its own strip of the
+     cone's surface, so their edges run smooth rather than stepping */
+  const stripes: Proj[] = [];
+  const K = 6, twist = 3.2;
+  for (let k = 0; k < K; k += 1) {
+    stripes.push(surface(view, `party:stripe${k}`, (s, t) => coneAt((k + 0.5 * t - twist * s * 0.97) / K, s * 0.97, 1.004), nUp + 3, 1, inCone));
   }
-  const apex = add(C, tilt([0, -h, 0], roll, lean));
-  const outline = hull([...baseRing, apex].map((p) => project(r, p)));
-  const b = bounds(outline);
-  contact(ctx, bodyClip, b.cx, b.y1, rad * 1.1, 0.04 * W, 0.26);
-  const path = polyPath(outline);
-  ctx.fillStyle = litFill(ctx, b, r, [
-    [0, shade(base, 0.2, -0.03)],
-    [0.55, base],
-    [1, shade(base, -0.18, 0.03)],
-  ]);
-  ctx.fill(path);
-  /* stripes: bands spiralling up the cone, only where they face us */
-  ctx.save();
-  ctx.clip(path);
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 0.05 * W;
-  ctx.strokeStyle = 'rgba(255,255,255,0.78)';
-  for (let s = 0; s < 3; s++) {
-    ctx.beginPath();
-    let on = false;
-    for (let k = 0; k <= 40; k++) {
-      const t = k / 40;
-      const a = s * ((Math.PI * 2) / 3) + t * Math.PI * 2 * 1.1;
-      const rr = rad * (1 - t);
-      const n: P3 = [Math.cos(a), 0.35, Math.sin(a)];
-      const p = add(C, tilt([rr * Math.cos(a), -h * t, rr * Math.sin(a)], roll, lean));
-      const q = project(r, p);
-      if (facingOf(r, n) > -0.05) {
-        if (!on) { ctx.moveTo(q[0], q[1]); on = true; } else ctx.lineTo(q[0], q[1]);
-      } else on = false;
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
-  /* the paper's shading over the stripes */
-  ctx.save();
-  ctx.clip(path);
-  const sh = ctx.createLinearGradient(b.cx + r.lx * b.w, b.cy, b.cx - r.lx * b.w, b.cy);
-  sh.addColorStop(0, 'rgba(255,255,255,0.12)');
-  sh.addColorStop(0.5, 'rgba(0,0,0,0)');
-  sh.addColorStop(1, 'rgba(0,0,0,0.22)');
-  ctx.fillStyle = sh;
-  ctx.fill(path);
-  ctx.restore();
-  pompom(ctx, project(r, apex), 0.06 * W, r, '#f4efe6', 37);
+  const vis = paintLayers(
+    ctx,
+    [
+      { parts: [cone], shade: paper(view, b) },
+      { parts: [trim], shade: gold(view) },
+    ],
+    view.px
+  );
+  paintLayers(ctx, [{ parts: stripes, shade: paper(view, a) }], view.px);
+  grainOver(ctx, hull(vis), 0.18, 0.1);
+  yarnBall(ctx, view, place([0, -H - 0.035 * W, 0]), 0.06 * W, '#f4efe6', 37);
 }
 
-function drawCrown(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, bodyClip: Path2D | null) {
+/* The crown: a gold band between two rolled rims, five points with a
+   ridge up each and a pearl on its tip, small gold buds between them, a
+   cut stone in a gold setting under every point, a puffed velvet cap
+   filling it, and an orb and cross on top. */
+function drawCrown(ctx: CanvasRenderingContext2D, view: View, m: Marks, bodyClip: Path2D | null) {
   const W = m.right - m.left;
   const headW = Math.max(0.45 * W, m.topR - m.topL);
-  const rad = 0.42 * headW + 0.04 * W, band = 0.1 * W, spike = 0.11 * W;
-  const C: P3 = [50, seat(m, 0.42) + 0.05 * W, 0];
-  const roll = 0.05, lean = 0.14;
-  const gold = (t: number) => (t < 0.2 ? '#8a5a12' : t < 0.45 ? '#e2a93b' : t < 0.6 ? '#ffe39a' : t < 0.8 ? '#d19a2a' : '#7a4c0c');
-  const at = (a: number, y: number, k = 1): P3 => add(C, tilt([rad * k * Math.cos(a), y, rad * 0.9 * k * Math.sin(a)], roll, lean));
-  const Nseg = 40;
-  /* the band as quads, back half first (its inside, darker), then the front */
-  const quads: { p: P2[]; d: number; face: number; a: number }[] = [];
-  for (let i = 0; i < Nseg; i++) {
-    const a0 = (i / Nseg) * Math.PI * 2, a1 = ((i + 1) / Nseg) * Math.PI * 2, am = (a0 + a1) / 2;
-    const p = [at(a0, 0), at(a1, 0), at(a1, -band), at(a0, -band)].map((q) => project(r, q));
-    quads.push({ p, d: depthOf(r, at(am, -band / 2)), face: facingOf(r, [Math.cos(am), 0, Math.sin(am)]), a: am });
-  }
-  const b = bounds(quads.flatMap((q) => q.p));
-  contact(ctx, bodyClip, b.cx, b.y1, b.w * 0.5, 0.04 * W, 0.28);
-  quads.sort((x, y) => x.d - y.d);
-  for (const q of quads) {
-    const lit = Math.max(0, Math.min(1, 0.5 + 0.5 * (Math.cos(q.a) * r.lx * 0.8 + q.face * 0.4)));
-    ctx.fillStyle = q.face < 0 ? '#6b440d' : gold(lit);
-    ctx.beginPath();
-    q.p.forEach((pt, i) => (i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1])));
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = ctx.fillStyle;
-    ctx.lineWidth = 0.4;
-    ctx.stroke();
-  }
-  /* five points, each a lit triangle with a gem at its tip */
-  const spikes: { d: number; draw: () => void }[] = [];
+  const R = 0.44 * headW + 0.07 * W, bandH = 0.11 * W, pointH = 0.15 * W, ez = 0.9;
+  const C: V3 = [50, seat(m, 0.42) + 0.05 * W, 0];
+  const roll = 0.05, lean = -0.22;
+  const place = (p: V3): V3 => add(C, tilt(p, roll, lean));
+  const dirOf = (v: V3): V3 => norm(tilt(v, roll, lean));
+  const on = (th: number, rr: number, y: number): V3 => place([rr * Math.cos(th), y, rr * ez * Math.sin(th)]);
+  const axis = (y: number): V3 => place([0, y, 0]);
+  const nu = segs(view, TAU * R, 32, 64);
+  const band = surface(view, 'crown:band', (u, v) => on(u * TAU, R * (1 - 0.018 * Math.sin(v * Math.PI)), -bandH * (1 - v)), nu, 2, (_u, v) => axis(-bandH * (1 - v)));
+  const rimT = 0.017 * W;
+  const rimTop = ringMesh(view, 'crown:rimTop', place, R + 0.004 * W, -bandH, rimT, ez, nu, 5);
+  const rimBot = ringMesh(view, 'crown:rimBot', place, R + 0.004 * W, 0, rimT * 1.15, ez, nu, 5);
+  /* the velvet: puffed between the points, tall enough to cover the head */
+  const capBase = -bandH * 0.55;
+  const capH = Math.max(0.12 * W, C[1] - m.top + 0.04 * W + capBase);
+  const P0 = Math.PI / 2; // the front point
+  const cap = surface(
+    view,
+    'crown:cap',
+    (u, v) => {
+      const th = u * TAU, phi = v * (Math.PI / 2);
+      /* the puffs swell between the points, above the band, and tuck in
+         under it */
+      const puff = 0.08 * Math.sin(2 * phi) * (0.55 + 0.45 * Math.cos(5 * (th - P0 - Math.PI / 5)));
+      return on(th, R * (0.9 * Math.sin(phi) + puff), capBase - capH * Math.cos(phi));
+    },
+    segs(view, TAU * R, 24, 48),
+    segs(view, 1.4 * capH, 8, 20, 6),
+    axis(capBase - capH * 0.4)
+  );
+  /* the points: plates on the band's curve with a ridge up the middle,
+     their sides curving in to the tip, flaring out a little as they rise */
+  const points: Proj[] = [], buds: Proj[] = [];
+  const pearls: V3[] = [], budTops: V3[] = [];
+  const plate = (key: string, a0: number, w: number, h: number, ridge: number, flare: number, out: Proj[]) => {
+    out.push(
+      surface(
+        view,
+        key,
+        (u, v) => {
+          const s = u * 2 - 1;
+          const th = a0 + s * w * Math.pow(1 - v, 1.3);
+          const rr = R + 0.004 * W + ridge * (1 - Math.abs(s)) * (1 - 0.5 * v) + flare * v * v;
+          return on(th, rr, -bandH - h * v);
+        },
+        2,
+        segs(view, h, 3, 5),
+        (_u, v) => on(a0, R * 0.5, -bandH - h * v),
+        false
+      )
+    );
+  };
   for (let i = 0; i < 5; i++) {
-    const a = -Math.PI / 2 + (i / 5) * Math.PI * 2 + Math.PI / 5;
-    const w = (Math.PI * 2) / 10;
-    const l = at(a - w * 0.9, -band), rr = at(a + w * 0.9, -band), tip = at(a, -band - spike, 0.97);
-    const face = facingOf(r, [Math.cos(a), 0, Math.sin(a)]);
-    spikes.push({
-      d: depthOf(r, tip),
-      draw: () => {
-        const P = [l, tip, rr].map((q) => project(r, q));
-        const bb = bounds(P);
-        ctx.fillStyle = face < 0 ? '#6b440d' : litFill(ctx, bb, r, [[0, '#ffe7a3'], [0.45, '#e0a634'], [1, '#8a5a12']]);
-        ctx.beginPath();
-        ctx.moveTo(P[0][0], P[0][1]);
-        ctx.lineTo(P[1][0], P[1][1]);
-        ctx.lineTo(P[2][0], P[2][1]);
-        ctx.closePath();
-        ctx.fill();
-        if (face > -0.2) {
-          const g = project(r, tip);
-          const gr = 0.022 * W;
-          const gg = ctx.createRadialGradient(g[0] + r.lx * gr * 0.4, g[1] + r.ly * gr * 0.4, gr * 0.1, g[0], g[1], gr);
-          const hue = i % 2 ? ['#ffd1dc', '#e0245e', '#7a0f33'] : ['#d6ecff', '#2a7de1', '#0d2f6b'];
-          gg.addColorStop(0, hue[0]);
-          gg.addColorStop(0.5, hue[1]);
-          gg.addColorStop(1, hue[2]);
-          ctx.fillStyle = gg;
-          ctx.beginPath();
-          ctx.arc(g[0], g[1], gr, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      },
-    });
+    const a0 = P0 + (i / 5) * TAU;
+    plate(`crown:point${i}`, a0, (TAU / 5) * 0.34, pointH, 0.05 * W, 0.03 * W, points);
+    pearls.push(on(a0, R + 0.004 * W + 0.03 * W + 0.02 * W, -bandH - pointH - 0.018 * W));
+    const b0 = a0 + Math.PI / 5;
+    plate(`crown:bud${i}`, b0, (TAU / 5) * 0.12, pointH * 0.36, 0.02 * W, 0.01 * W, buds);
+    budTops.push(on(b0, R + 0.004 * W + 0.012 * W, -bandH - pointH * 0.36 - 0.012 * W));
   }
-  spikes.sort((x, y) => x.d - y.d).forEach((s) => s.draw());
-  /* a thin bright line along the band's top edge, the metal's highlight */
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,245,210,0.75)';
-  ctx.lineWidth = 0.012 * W;
-  ctx.beginPath();
-  let on = false;
-  for (let i = 0; i <= Nseg; i++) {
-    const a = (i / Nseg) * Math.PI * 2;
-    const q = project(r, at(a, -band * 0.08));
-    if (facingOf(r, [Math.cos(a), 0, Math.sin(a)]) > 0) {
-      if (!on) { ctx.moveTo(q[0], q[1]); on = true; } else ctx.lineTo(q[0], q[1]);
-    } else on = false;
+  const bb = boundsOf([band]);
+  contact(ctx, bodyClip, bb.cx, bb.y1, bb.w * 0.5, 0.045 * W, 0.34);
+  /* what sits behind the cap goes first, so the cap covers it */
+  const mid = view.depth(axis(capBase));
+  const g = gold(view);
+  /* the points' flat faces take a warmer, softer glint than the curves:
+     a whole facet flaring white reads as paper, not gold */
+  const facet = metal(view, [255, 196, 80], [92, 54, 10], [255, 222, 150]);
+  const goldBoth = (n: V3) => facet(n[2] < 0 ? [-n[0], -n[1], -n[2]] : n);
+  const pearlR = 0.024 * W, budR = 0.019 * W;
+  for (const p of pearls) if (view.depth(p) < mid) sphereSprite(ctx, view, p, pearlR, 'pearl');
+  for (const p of budTops) if (view.depth(p) < mid) sphereSprite(ctx, view, p, budR, 'gold');
+  paintLayers(
+    ctx,
+    [
+      { parts: [cap], shade: velvet(view, [150, 22, 44]) },
+      { parts: [band], shade: g, bias: 0.01 * W },
+      { parts: [rimTop], shade: g, bias: 0.012 * W },
+      { parts: [rimBot], shade: g, bias: 0.012 * W },
+      { parts: points, shade: goldBoth, cull: false, flat: true },
+      { parts: buds, shade: goldBoth, cull: false, flat: true },
+    ],
+    view.px
+  );
+  /* the stones in their settings, under each point, and gold studs between */
+  const stones: RGB[] = [[208, 20, 60], [30, 150, 92], [36, 90, 220], [36, 90, 220], [30, 150, 92]];
+  for (let i = 0; i < 5; i++) {
+    for (const [th, kind] of [[P0 + (i / 5) * TAU, 'stone'], [P0 + (i / 5) * TAU + Math.PI / 5, 'stud']] as const) {
+      const N = dirOf([Math.cos(th), 0, ez * Math.sin(th)]);
+      if (view.dir(N)[2] < 0.12) continue;
+      const c = on(th, R + 0.01 * W, -bandH * 0.5);
+      if (kind === 'stud') {
+        sphereSprite(ctx, view, c, 0.013 * W, 'gold');
+        continue;
+      }
+      const size = (i === 0 ? 0.034 : 0.027) * W;
+      sphereSprite(ctx, view, c, size * 1.3, 'gold');
+      const T = dirOf([-Math.sin(th), 0, ez * Math.cos(th)]);
+      cutGem(ctx, view, along(c, N, 0.006 * W), N, T, size, stones[i]);
+    }
   }
-  ctx.stroke();
-  ctx.restore();
+  for (const p of pearls) if (view.depth(p) >= mid) sphereSprite(ctx, view, p, pearlR, 'pearl');
+  for (const p of budTops) if (view.depth(p) >= mid) sphereSprite(ctx, view, p, budR, 'gold');
+  /* the orb and the cross on top of the cap */
+  const orbR = 0.034 * W;
+  const orb = axis(capBase - capH - orbR * 0.75);
+  const up = dirOf([0, -1, 0]);
+  const bar = (key: string, a: V3, b: V3) =>
+    tube(view, key, (u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u], dirOf([0, 0, 1]), section(0.009 * W, 0.009 * W, 0.5), 2, 6);
+  const c0 = along(orb, up, orbR * 0.8), c1 = along(orb, up, orbR * 0.8 + 0.075 * W);
+  const cm = along(orb, up, orbR * 0.8 + 0.05 * W), side = dirOf([1, 0, 0]);
+  sphereSprite(ctx, view, orb, orbR, 'gold');
+  paintLayers(
+    ctx,
+    [
+      { parts: [bar('crown:barV', c0, c1)], shade: g },
+      { parts: [bar('crown:barH', along(cm, side, -0.026 * W), along(cm, side, 0.026 * W))], shade: g },
+    ],
+    view.px
+  );
 }
 
 /* ── headphones ─────────────────────────────────────────────────────── */
 
-function drawCup(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, side: -1 | 1, base: string) {
+/* Over-ear headphones: at each side a cup — a plump creased leather
+   cushion against the head, a rounded shell, a brushed metal ring round a
+   glossy plate — held in a metal yoke that pivots at its front and back;
+   a slider rising from each yoke into the band; the band arched over the
+   head, a shell on top of a padded leather cushion stitched along its
+   face. The cups are turned a little toward the viewer, as they are drawn
+   in illustration, so their faces show from the front.
+
+   Everything is built once and painted in two passes split by depth:
+   what is behind the body's middle plane before the body (the far cup
+   once the head turns, the band's far end), the rest after it. */
+interface Phones {
+  layers: Layer[];
+  pivots: V3[];
+  pivotR: number;
+  /** the stitch line along the band's cushion, and where the cushions meet the head */
+  stitch: V3[];
+  seats: { c: V3; ry: number }[];
+}
+function phonesOf(view: View, m: Marks, base: string): Phones {
   const W = m.right - m.left;
-  const rc = 0.15 * W, tc = 0.11 * W, pad = 0.045 * W;
-  const x0 = side < 0 ? m.left + 0.03 * W : m.right - 0.03 * W;
-  const yc = m.mid - 0.1 * W;
-  /* a disc with rounded edges, its axis across the head: rings through
-     its thickness, each a little smaller toward the faces */
-  const disc = (xFrom: number, thick: number, radius: number, bevel: number): P3[] => {
-    const out: P3[] = [];
-    for (let s = 0; s <= 6; s++) {
-      const t = s / 6, e = 2 * t - 1;
-      const rr = radius * (1 - bevel * e * e * e * e);
-      const x = xFrom + side * thick * t;
-      for (let i = 0; i < 26; i++) {
-        const a = (i / 26) * Math.PI * 2;
-        out.push([x, yc + rr * Math.cos(a), rr * Math.sin(a)]);
-      }
-    }
-    return out;
-  };
-  /* the cushion against the head: soft, a little lighter */
-  const cushion = hull(disc(x0 - side * 0.01 * W, pad, rc * 0.96, 0.35).map((p) => project(r, p)));
-  const cb = bounds(cushion);
-  ctx.fillStyle = litFill(ctx, cb, r, [[0, shade(base, 0.2)], [0.5, shade(base, 0.08)], [1, shade(base, -0.06)]]);
-  ctx.fill(polyPath(cushion));
-  /* the cup: hard, a little glossy */
-  const cupPts = disc(x0 + side * pad * 0.8, tc, rc, 0.28);
-  const cup = hull(cupPts.map((p) => project(r, p)));
-  const b = bounds(cup);
-  ctx.fillStyle = litFill(ctx, b, r, [[0, shade(base, 0.16)], [0.45, base], [1, shade(base, -0.1)]]);
-  ctx.fill(polyPath(cup));
-  ctx.save();
-  ctx.clip(polyPath(cup));
-  /* round it across: brighter through the middle of its height, darker
-     top and bottom, as a thick disc seen edge-on is */
-  const v = ctx.createLinearGradient(b.cx, b.y0, b.cx, b.y1);
-  v.addColorStop(0, 'rgba(0,0,0,0.35)');
-  v.addColorStop(0.3, 'rgba(255,255,255,0.08)');
-  v.addColorStop(0.55, 'rgba(255,255,255,0.03)');
-  v.addColorStop(1, 'rgba(0,0,0,0.4)');
-  ctx.fillStyle = v;
-  ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
-  /* the outer face, when it turns toward us: a lighter disc */
-  const f = facingOf(r, [side, 0, 0]);
-  if (f > 0) {
-    const o: P2[] = [];
-    for (let i = 0; i < 28; i++) {
-      const a = (i / 28) * Math.PI * 2;
-      o.push(project(r, [x0 + side * (pad * 0.8 + tc), yc + rc * 0.74 * Math.cos(a), rc * 0.74 * Math.sin(a)]));
-    }
-    const ob = bounds(o);
-    ctx.globalAlpha = Math.min(1, f * 2.5);
-    const g = ctx.createRadialGradient(ob.cx + r.lx * ob.w * 0.25, ob.cy - ob.h * 0.2, 0, ob.cx, ob.cy, Math.max(ob.w, ob.h) * 0.65);
-    g.addColorStop(0, shade(base, 0.18));
-    g.addColorStop(1, shade(base, -0.02));
-    ctx.fillStyle = g;
-    ctx.fill(polyPath(o));
-    ctx.globalAlpha = 1;
+  const rc = 0.15 * W, oval = 1.1, pad = 0.05 * W, tc = 0.068 * W;
+  const yc = m.mid - 0.07 * W;
+  const tilt = 0.5;
+  const shellRgb = rgbOf(base), padRgb = rgbOf(shade(base, -0.12)), plateRgb = rgbOf(shade(base, 0.08));
+  const nu = segs(view, TAU * rc, 20, 40);
+  const layers: Layer[] = [];
+  const pivots: V3[] = [];
+  const tops: V3[] = [];
+  const seats: { c: V3; ry: number }[] = [];
+  const g = silver(view);
+  for (const s of [-1, 1] as const) {
+    /* the cup's axis, out from the head and a little toward the viewer,
+       and its face's two directions */
+    const A: V3 = [s * Math.cos(tilt), 0, Math.sin(tilt)];
+    const E1: V3 = [0, 1, 0];
+    const E2: V3 = [-Math.sin(tilt), 0, s * Math.cos(tilt)];
+    const O: V3 = [(s < 0 ? m.left : m.right) - s * 0.02 * W, yc, 0.01 * W];
+    const at = (t: number, rho: number, th: number): V3 => {
+      const c = Math.cos(th) * oval * rho, sn = Math.sin(th) * rho;
+      return [O[0] + A[0] * t + E1[0] * c + E2[0] * sn, O[1] + A[1] * t + E1[1] * c + E2[1] * sn, O[2] + A[2] * t + E1[2] * c + E2[2] * sn];
+    };
+    const axis = (t: number): V3 => along(O, A, t);
+    seats.push({ c: O, ry: rc * oval });
+    /* the cushion: a plump roll of leather, creased round when there is room */
+    const rho0 = rc * 0.9 - pad * 0.5;
+    const creases = nu >= 48 ? 1 : 0;
+    const cushion = surface(
+      view,
+      `phones:cushion${s}`,
+      (u, v) => {
+        const th = u * TAU, a = v * Math.PI;
+        const crease = 1 + 0.006 * creases * Math.sin(th * 24) * Math.sin(a);
+        return at(pad * 0.5 * (1 - Math.cos(a)), (rho0 + pad * 0.62 * Math.sin(a)) * crease, th);
+      },
+      nu,
+      5,
+      (_u, v) => axis(pad * 0.5 * (1 - Math.cos(v * Math.PI)))
+    );
+    /* the shell: a rounded puck, its side meeting its face in a soft shoulder */
+    const shell = surface(
+      view,
+      `phones:shell${s}`,
+      (u, v) => {
+        const a = v * (Math.PI / 2);
+        return at(pad + tc * Math.pow(Math.sin(a), 0.55), rc * (0.7 + 0.3 * Math.pow(Math.cos(a), 0.55)), u * TAU);
+      },
+      nu,
+      5,
+      axis(pad + tc * 0.5)
+    );
+    /* the ring round its face, and the plate inside it: a shallow gloss dome */
+    const ringR = 0.66 * rc, ringT = 0.017 * W;
+    const ring = surface(
+      view,
+      `phones:ring${s}`,
+      (u, v) => at(pad + tc + ringT * 0.45 * Math.sin(v * TAU), ringR + ringT * Math.cos(v * TAU), u * TAU),
+      nu,
+      5,
+      (u) => at(pad + tc, ringR, u * TAU)
+    );
+    const plateR = ringR - ringT * 0.5;
+    const plate = surface(view, `phones:plate${s}`, (u, v) => at(pad + tc + 0.013 * W * (1 - v * v), plateR * v, u * TAU), nu, 3, axis(pad + tc - 0.02 * W));
+    /* the yoke: an arm round the top of the cup, pivot to pivot */
+    const ty = pad + tc * 0.45, ry = rc * 1.04 + 0.022 * W;
+    const yokeAt = (u: number): V3 => {
+      const a = u * Math.PI;
+      const c = -Math.sin(a) * oval * ry, sn = Math.cos(a) * ry;
+      return [O[0] + A[0] * ty + E1[0] * c + E2[0] * sn, O[1] + A[1] * ty + E1[1] * c + E2[1] * sn, O[2] + A[2] * ty + E1[2] * c + E2[2] * sn];
+    };
+    const yoke = tube(view, `phones:yoke${s}`, yokeAt, A, section(0.013 * W, 0.008 * W, 0.6), segs(view, Math.PI * ry, 12, 24), 6);
+    pivots.push(yokeAt(0), yokeAt(1));
+    tops.push(yokeAt(0.5));
+    layers.push(
+      { parts: [cushion], shade: plastic(view, padRgb, 0.35) },
+      { parts: [shell], shade: plastic(view, shellRgb, 0.8) },
+      { parts: [ring], shade: g, bias: 0.02 * W },
+      { parts: [plate], shade: plastic(view, plateRgb, 1.3), bias: 0.01 * W },
+      { parts: [yoke], shade: g }
+    );
   }
-  /* a gloss line down the lit side */
-  const hx = b.cx + r.lx * b.w * 0.28;
-  const hl = ctx.createLinearGradient(hx, b.y0, hx, b.y1);
-  hl.addColorStop(0, 'rgba(255,255,255,0)');
-  hl.addColorStop(0.35, 'rgba(255,255,255,0.3)');
-  hl.addColorStop(0.65, 'rgba(255,255,255,0.12)');
-  hl.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.strokeStyle = hl;
-  ctx.lineWidth = Math.max(0.6, b.w * 0.12);
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(hx, b.y0 + b.h * 0.18);
-  ctx.lineTo(hx, b.y1 - b.h * 0.18);
-  ctx.stroke();
-  ctx.restore();
+  /* the band: a smooth arch from one yoke over the head to the other,
+     just high enough to clear the head everywhere — resting on it where
+     the head is highest, bridging any dip — with a metal slider at each
+     end running into the yoke */
+  const [PL, PR] = tops;
+  const zb = (PL[2] + PR[2]) / 2, cx = (PL[0] + PR[0]) / 2, ax = (PR[0] - PL[0]) / 2, yEnd = (PL[1] + PR[1]) / 2;
+  const padT = (u: number) => 0.005 * W + 0.022 * W * Math.pow(Math.sin(Math.PI * u), 0.35);
+  const e = 2 / 2.2;
+  /* the head's top edge over x, from its hull */
+  const topAt = (x: number) => {
+    let y = Infinity;
+    const h = m.hull;
+    for (let i = 0; i < h.length; i++) {
+      const p = h[i], q = h[(i + 1) % h.length];
+      if (p[0] === q[0] || x < Math.min(p[0], q[0]) || x > Math.max(p[0], q[0])) continue;
+      y = Math.min(y, p[1] + ((q[1] - p[1]) * (x - p[0])) / (q[0] - p[0]));
+    }
+    return y;
+  };
+  let lift = yEnd - m.top;
+  for (let i = 1; i < 64; i++) {
+    const t = Math.PI * (1 - i / 64);
+    const s = Math.pow(Math.abs(Math.sin(t)), e);
+    const yt = topAt(cx + ax * spow(Math.cos(t), e));
+    if (s > 0.05 && Number.isFinite(yt)) lift = Math.max(lift, (yEnd - yt + 2 * padT(i / 64) + 0.006 * W) / s);
+  }
+  const arch = (u: number): V3 => {
+    const t = Math.PI * (1 - u);
+    return [cx + ax * spow(Math.cos(t), e), yEnd - lift * Math.pow(Math.abs(Math.sin(t)), e), zb];
+  };
+  const part = (u0: number, u1: number) => (u: number) => arch(u0 + (u1 - u0) * u);
+  const Z: V3 = [0, 0, 1];
+  const span = ax * 2 + lift * 2;
+  const nb = segs(view, span, 24, 48);
+  const us = 0.09;
+  const shellOff = 0.016 * W;
+  const shellPath = offsetPath(part(us, 1 - us), Z, () => shellOff);
+  /* the shell narrows at its ends to the slider it holds */
+  const taper = (u: number) => smooth01(Math.min(u, 1 - u) / 0.07);
+  const bandShell = tube(
+    view,
+    'phones:bandShell',
+    shellPath,
+    Z,
+    (u, ph) => {
+      const k = taper(u);
+      return [(0.024 + 0.016 * k) * W * spow(Math.cos(ph), 0.4), (0.008 + 0.008 * k) * W * spow(Math.sin(ph), 0.4)];
+    },
+    nb,
+    6
+  );
+  const cushionPath = offsetPath(part(us + 0.02, 1 - us - 0.02), Z, (u) => -padT(us + 0.02 + (1 - 2 * us - 0.04) * u));
+  const bandPad = tube(
+    view,
+    'phones:bandPad',
+    cushionPath,
+    Z,
+    (u, ph) => [0.034 * W * spow(Math.cos(ph), 0.5), padT(us + 0.02 + (1 - 2 * us - 0.04) * u) * spow(Math.sin(ph), 0.7)],
+    nb,
+    6
+  );
+  const sliders = [part(0, us + 0.03), part(1 - us - 0.03, 1)].map((p, i) => tube(view, `phones:slider${i}`, p, Z, section(0.022 * W, 0.006 * W, 0.4), 4, 6));
+  layers.push(
+    { parts: [bandShell], shade: plastic(view, shellRgb, 0.9) },
+    { parts: [bandPad], shade: plastic(view, padRgb, 0.3) },
+    { parts: sliders, shade: g }
+  );
+  const stitch: V3[] = [];
+  for (let i = 0; i <= 48; i++) stitch.push(along(cushionPath(0.04 + (0.92 * i) / 48), Z, 0.034 * W + 0.001 * W));
+  return { layers, pivots, pivotR: 0.017 * W, stitch, seats };
 }
 
-function drawBand(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, base: string) {
+/* the behind and front passes of one frame share one projection */
+let lastPhones: { m: Marks; key: string; ph: Phones } | null = null;
+function drawPhones(ctx: CanvasRenderingContext2D, view: View, m: Marks, base: string, pass: 'behind' | 'front', bodyClip: Path2D | null) {
+  const key = `${view.m.join()}|${view.px}|${view.L.join()}|${base}`;
+  if (!lastPhones || lastPhones.m !== m || lastPhones.key !== key) lastPhones = { m, key, ph: phonesOf(view, m, base) };
+  const ph = lastPhones.ph;
   const W = m.right - m.left;
-  const yc = m.mid - 0.1 * W - 0.1 * W;
-  const ax = (m.right - m.left) / 2 + 0.05 * W, ay = yc - (m.top - 0.035 * W);
-  const pts: P2[] = [];
-  for (let i = 0; i <= 32; i++) {
-    const t = Math.PI + (i / 32) * Math.PI;
-    pts.push(project(r, [50 + ax * Math.cos(t), yc + ay * Math.sin(t), 0]));
+  const near = (d: number) => (pass === 'front' ? d >= 0 : d < 0);
+  if (pass === 'front') {
+    for (const s of ph.seats) {
+      if (view.depth(s.c) < 0) continue;
+      const c = view.toScreen(s.c);
+      contact(ctx, bodyClip, c[0], c[1] + 0.01 * W, 0.06 * W, s.ry * 1.05, 0.26);
+    }
   }
-  const b = bounds(pts);
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = litFill(ctx, b, r, [[0, shade(base, 0.12)], [0.5, base], [1, shade(base, -0.1)]]);
-  ctx.lineWidth = 0.075 * W;
-  ctx.stroke(polyPath(pts, false));
-  /* the padded underside and a highlight along the top */
-  ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-  ctx.lineWidth = 0.018 * W;
-  const top = pts.map(([x, y]) => [x, y - 0.022 * W] as P2);
-  ctx.stroke(polyPath(top, false));
-  ctx.restore();
+  paintLayers(
+    ctx,
+    ph.layers.map((l) => ({ ...l, keep: near })),
+    view.px
+  );
+  for (const p of ph.pivots) if (near(view.depth(p))) sphereSprite(ctx, view, p, ph.pivotR, 'silver');
+  /* the stitches along the band's cushion, on its face toward the viewer */
+  if (pass === 'front' && W * view.px > 120 && view.dir([0, 0, 1])[2] > 0.3) {
+    const pts = ph.stitch.map((p) => view.toScreen(p));
+    ctx.save();
+    ctx.setLineDash([0.022 * W, 0.014 * W]);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 0.0045 * W;
+    ctx.strokeStyle = shade(base, 0.12);
+    ctx.globalAlpha = 0.55;
+    ctx.stroke(polyPath(pts, false));
+    ctx.restore();
+  }
 }
 
 /* ── the bow tie ────────────────────────────────────────────────────── */
 
-function drawBowTie(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, base: string, zFront: number, bodyClip: Path2D | null, face: { y: number; scale: number }) {
+/* Two satin wings gathered into a knot: each wing narrow where the knot
+   pinches it and full at its end, puffed toward the viewer, with folds
+   that run out from the knot and fade toward the tip, and a shallow notch
+   in its end; the knot a small wrapped pillow over them. */
+function drawBowTie(
+  ctx: CanvasRenderingContext2D,
+  view: View,
+  r: WearRig,
+  m: Marks,
+  base: string,
+  zFront: number,
+  bodyClip: Path2D | null,
+  face: { y: number; scale: number }
+) {
   if (r.facing < 0.05) return;
   const W = m.right - m.left;
   /* under the face, clear of anything worn on it, and small enough to fit
@@ -690,71 +1042,61 @@ function drawBowTie(ctx: CanvasRenderingContext2D, r: WearRig, m: Marks, base: s
   const cyB = Math.max(clear, m.bottom - 0.15 * W);
   const room = Math.max(0, m.bottom - 3 - cyB);
   const k = Math.min(W, 100) * Math.max(0.5, Math.min(1, room / 15));
-  /* in the bow's own plane, in fractions of the body's width: x across,
-     y down; the projection is affine, so control points map exactly */
-  const P = (x: number, y: number): P2 => project(r, [50 + x * k, cyB + y * k, zFront]);
-  const wing = (dir: -1 | 1): Path2D => {
-    const q = (x: number, y: number) => P(dir * x, y);
-    const p = new Path2D();
-    const a = q(0.06, -0.05), b = q(0.33, -0.15), c = q(0.3, 0), d = q(0.33, 0.15), e = q(0.06, 0.05);
-    const c1 = q(0.17, -0.07), c2 = q(0.27, -0.17);
-    const c3 = q(0.36, -0.08), c4 = q(0.36, 0.08);
-    const c5 = q(0.27, 0.17), c6 = q(0.17, 0.07);
-    p.moveTo(a[0], a[1]);
-    p.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], b[0], b[1]);
-    p.quadraticCurveTo(c3[0], c3[1], c[0], c[1]);
-    p.quadraticCurveTo(c4[0], c4[1], d[0], d[1]);
-    p.bezierCurveTo(c5[0], c5[1], c6[0], c6[1], e[0], e[1]);
-    p.closePath();
-    return p;
-  };
-  const ends = [P(-0.36, -0.18), P(0.36, 0.18)];
-  const bb = bounds([...ends, P(-0.36, 0.18), P(0.36, -0.18)]);
-  if (bodyClip) {
-    const sh = P(0.01, 0.07);
-    contact(ctx, bodyClip, sh[0], sh[1], bb.w * 0.52, bb.h * 0.45, 0.24);
-  }
+  /* the bow's own frame, in fractions of the body's width: x across, y
+     down, z out of the body's front */
+  const Q = (x: number, y: number, z: number): V3 => [50 + x * k, cyB + y * k, zFront + z * k];
+  const rgb = rgbOf(base);
+  const corners = [Q(-0.36, -0.18, 0), Q(0.36, 0.18, 0), Q(-0.36, 0.18, 0), Q(0.36, -0.18, 0)].map((p) => view.toScreen(p));
+  const bb = bounds(corners);
+  const sh = view.toScreen(Q(0.01, 0.08, 0));
+  contact(ctx, bodyClip, sh[0], sh[1], bb.w * 0.52, bb.h * 0.5, 0.3);
+  const nu = segs(view, 0.32 * k, 8, 16), nv = segs(view, 0.3 * k, 8, 16, 6);
+  const at = `${zFront.toFixed(2)},${cyB.toFixed(2)},${k.toFixed(2)}`;
+  const wingShade = satin(view, rgb);
+  const layers: Layer[] = [];
   for (const dir of [-1, 1] as const) {
-    const w = wing(dir);
-    const wb = bounds([P(dir * 0.06, -0.15), P(dir * 0.36, 0.15)]);
-    ctx.fillStyle = litFill(ctx, wb, r, [[0, shade(base, 0.2)], [0.45, base], [1, shade(base, -0.12)]]);
-    ctx.fill(w);
-    ctx.save();
-    ctx.clip(w);
-    /* satin folds gathering toward the knot */
-    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-    ctx.lineWidth = 0.011 * W;
-    ctx.lineCap = 'round';
-    for (const fy of [-0.06, 0.06]) {
-      const a = P(dir * 0.08, fy * 0.4), c = P(dir * 0.2, fy * 1.25), d = P(dir * 0.3, fy * 1.6);
-      ctx.beginPath();
-      ctx.moveTo(a[0], a[1]);
-      ctx.quadraticCurveTo(c[0], c[1], d[0], d[1]);
-      ctx.stroke();
-    }
-    /* the sheen along the upper edge, and a darker lower edge */
-    ctx.strokeStyle = 'rgba(255,255,255,0.24)';
-    ctx.lineWidth = 0.022 * W;
-    const u0 = P(dir * 0.09, -0.07), u1 = P(dir * 0.2, -0.1), u2 = P(dir * 0.31, -0.13);
-    ctx.beginPath();
-    ctx.moveTo(u0[0], u0[1]);
-    ctx.quadraticCurveTo(u1[0], u1[1], u2[0], u2[1]);
-    ctx.stroke();
-    ctx.restore();
+    const wing = (u: number, v: number): V3 => {
+      const x = 0.058 + 0.3 * u - 0.035 * Math.pow(u, 4) * Math.sin(Math.PI * v);
+      const h = 0.05 + 0.12 * Math.pow(u, 0.8);
+      const y = -h * Math.cos(Math.PI * v) + 0.012 * u * u;
+      const bulge = 0.018 + 0.058 * Math.sin(Math.PI * (0.12 + 0.88 * u));
+      const fold = 0.016 * Math.sin(3 * Math.PI * v) * Math.pow(1 - u, 1.3);
+      return Q(dir * x, y, (bulge + fold) * Math.sin(Math.PI * v) + 0.004);
+    };
+    layers.push({ parts: [surface(view, `bow:wing${dir}@${at}`, wing, nu, nv, (u) => Q(dir * (0.058 + 0.3 * u), 0, -0.03))], shade: wingShade });
+    /* the wing's end, closed down to the body */
+    layers.push({
+      parts: [surface(
+        view,
+        `bow:end${dir}@${at}`,
+        (s, t) => {
+          const p = wing(1, t);
+          return [p[0], p[1], p[2] - (p[2] - zFront) * s];
+        },
+        1,
+        nv,
+        Q(dir * 0.2, 0, -0.03)
+      )],
+      shade: wingShade,
+    });
   }
-  /* the knot: a rounded quad, puffed, lit */
-  const kn = [P(-0.065, -0.07), P(0.065, -0.07), P(0.075, 0.07), P(-0.075, 0.07)];
-  const kb = bounds(kn);
-  ctx.fillStyle = litFill(ctx, kb, r, [[0, shade(base, 0.24)], [0.5, shade(base, 0.05)], [1, shade(base, -0.1)]]);
-  const rr = 0.025 * W;
-  ctx.beginPath();
-  ctx.moveTo((kn[0][0] + kn[1][0]) / 2, (kn[0][1] + kn[1][1]) / 2);
-  for (let i = 1; i <= 4; i++) {
-    const c = kn[i % 4], d = kn[(i + 1) % 4];
-    ctx.arcTo(c[0], c[1], d[0], d[1], rr);
-  }
-  ctx.closePath();
-  ctx.fill();
+  /* the knot: pinched at its waist, rounded all round */
+  const knot = surface(
+    view,
+    `bow:knot@${at}`,
+    (u, v) => {
+      const x = 0.068 * (2 * u - 1) * (1 - 0.12 * Math.sin(Math.PI * v));
+      const y = 0.075 * (2 * v - 1);
+      const zx = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(2 * u - 1), 3)), 0.5);
+      const zy = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(2 * v - 1), 5)), 0.4);
+      return Q(x, y, 0.012 + 0.075 * zx * zy);
+    },
+    6,
+    6,
+    Q(0, 0, -0.02)
+  );
+  layers.push({ parts: [knot], shade: satin(view, scale(rgb, 0.9)) });
+  paintLayers(ctx, layers, view.px);
 }
 
 /* ── glasses: in face space, on the eyes ────────────────────────────── */
@@ -765,129 +1107,163 @@ export interface EyeSpot {
   sx: number;
   sy: number;
   z: number;
+  /** the eye's design position on the face, and the face sphere's depth there */
+  ox: number;
+  oy: number;
+  fz: number;
 }
 
+/* the frames: each lens's half width and height, how square its corners
+   (a superellipse's exponent), the rim's half thickness across and its
+   half depth */
+const FRAMES: Record<Exclude<BotAvatarGlasses, 'none'>, { rx: number; ry: number; n: number; tr: number; td: number }> = {
+  round: { rx: 10.8, ry: 10.8, n: 2, tr: 1.15, td: 1.2 },
+  square: { rx: 12, ry: 9.6, n: 4.2, tr: 1.45, td: 1.4 },
+  shades: { rx: 12.6, ry: 10, n: 3.4, tr: 1.6, td: 1.5 },
+};
+
 /** Glasses over two eye spots (face space, already placed on the face's
-    sphere), `lens` the eye-lens radius in face units. Drawn after the face,
-    unclipped, with a soft shadow on the face laid first (clipped by the
-    caller's face clip through `shadow`). */
+    sphere), turned rigidly with the head: acetate rims with rounded
+    edges, a bridge, small metal rivets at the hinges, and lenses — clear
+    with a reflection, or dark. Drawn after the face, unclipped, with a
+    soft shadow on the face laid first (clipped by the caller's face clip
+    through `shadow`). */
 export function drawGlasses(
   ctx: CanvasRenderingContext2D,
   kind: BotAvatarGlasses,
   eyes: [EyeSpot, EyeSpot],
   light: { lx: number; ly: number },
-  pass: 'shadow' | 'frame'
+  pass: 'shadow' | 'frame',
+  turn: { yaw: number; pitch: number } = { yaw: 0, pitch: 0 }
 ) {
   if (kind === 'none') return;
-  const R = kind === 'square' ? 11.5 : 11;
-  const frame = '#161618';
-  const lens = (e: EyeSpot, path: (c: CanvasRenderingContext2D) => void) => {
-    ctx.save();
-    ctx.translate(e.x, e.y);
-    ctx.scale(Math.max(0.05, e.sx), Math.max(0.05, e.sy));
-    path(ctx);
-    ctx.restore();
+  owner = FRAMES;
+  const F = FRAMES[kind];
+  const cy = Math.cos(turn.yaw), sy = Math.sin(turn.yaw), cp = Math.cos(turn.pitch), sp = Math.sin(turn.pitch);
+  const { L: lightL, H: lightH } = lightOf(light.lx, light.ly);
+  /* the head's turn, rigidly: yaw about y, then pitch about x */
+  const view = makeView([cy, 0, sy, sp * sy, cp, -sp * cy, -cp * sy, sp, cp * cy], [0, 0, 0], lightL, lightH, pxOf(ctx));
+  /* the front of the frame: a plane just off the face, wrapping back a
+     little toward its outer edges */
+  const zPlane = Math.max(eyes[0].fz, eyes[1].fz) + 3.2;
+  const zAt = (x: number) => zPlane - 0.0045 * x * x;
+  const e2 = 2 / F.n;
+  const rimAt = (e: EyeSpot, grow: number) => (u: number): V3 => {
+    const t = u * TAU;
+    const x = e.ox + (F.rx + grow) * spow(Math.cos(t), e2), y = e.oy + (F.ry + grow) * spow(Math.sin(t), e2);
+    return [x, y, zAt(x)];
   };
-  const shape = (c: CanvasRenderingContext2D) => {
-    c.beginPath();
-    if (kind === 'round') c.arc(0, 0, R, 0, Math.PI * 2);
-    else {
-      const w = kind === 'shades' ? 12.5 : 12, h = kind === 'shades' ? 10 : 9.5, rr = kind === 'shades' ? 5 : 4;
-      c.roundRect(-w, -h, 2 * w, 2 * h, rr);
-    }
+  const ring = (e: EyeSpot, grow: number, n = 48): P2[] => {
+    const f = rimAt(e, grow);
+    const pts: P2[] = [];
+    for (let i = 0; i < n; i++) pts.push(view.toScreen(f(i / n)));
+    return pts;
   };
   const vis = eyes.map((e) => Math.max(0, Math.min(1, (e.z - 0.18) * 3.2)));
   if (pass === 'shadow') {
     for (let i = 0; i < 2; i++) {
       if (vis[i] <= 0) continue;
-      const e = eyes[i];
       ctx.save();
       ctx.globalAlpha = 0.22 * vis[i];
       ctx.translate(-light.lx * 1.6, -light.ly * 1.6 + 0.8);
-      lens(e, (c) => {
-        shape(c);
-        c.lineWidth = 3;
-        c.strokeStyle = '#000';
-        c.stroke();
-      });
+      ctx.lineWidth = F.tr * 2 + 0.6;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000';
+      ctx.stroke(polyPath(ring(eyes[i], 0)));
       ctx.restore();
     }
     return;
   }
-  /* the bridge between the two rims */
-  const a = eyes[0], b = eyes[1];
-  if (Math.min(vis[0], vis[1]) > 0) {
-    const ax = a.x + R * 0.95 * a.sx, bx = b.x - R * 0.95 * b.sx;
-    const yy = (a.y + b.y) / 2 - R * 0.35;
-    ctx.save();
-    ctx.globalAlpha = Math.min(vis[0], vis[1]);
-    ctx.strokeStyle = frame;
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(ax, yy + 1.2);
-    ctx.quadraticCurveTo((ax + bx) / 2, yy - 2.6, bx, yy + 1.2);
-    ctx.stroke();
-    ctx.restore();
-  }
+  const frame: RGB = [22, 22, 26];
+  const rimShade = plastic(view, frame, 1.1);
+  /* the lenses first, under the rims */
   for (let i = 0; i < 2; i++) {
     if (vis[i] <= 0) continue;
-    const e = eyes[i];
+    const lens = polyPath(ring(eyes[i], -F.tr * 0.5));
+    const b = bounds(ring(eyes[i], 0, 16));
     ctx.save();
     ctx.globalAlpha = vis[i];
-    /* the glass: clear with a faint tint and a diagonal glint, or dark for shades */
-    lens(e, (c) => {
-      shape(c);
-      if (kind === 'shades') {
-        const g = c.createLinearGradient(-R, -R, R, R);
-        g.addColorStop(0, 'rgba(40,40,48,0.96)');
-        g.addColorStop(1, 'rgba(8,8,12,0.98)');
-        c.fillStyle = g;
-      } else c.fillStyle = 'rgba(210,230,255,0.1)';
-      c.fill();
-      c.save();
-      c.clip();
-      c.globalAlpha = kind === 'shades' ? 0.5 : 0.35;
-      c.fillStyle = '#fff';
-      c.beginPath();
-      c.moveTo(-R * 0.9, -R * 0.2);
-      c.lineTo(-R * 0.2, -R * 0.95);
-      c.lineTo(R * 0.15, -R * 0.95);
-      c.lineTo(-R * 0.9, R * 0.3);
-      c.closePath();
-      c.fill();
-      c.restore();
-      /* the rim: dark, a rounded wire with a light edge toward the light */
-      shape(c);
-      c.lineWidth = kind === 'round' ? 2.3 : 2.6;
-      c.strokeStyle = frame;
-      c.stroke();
-      c.save();
-      c.translate(light.lx * 0.6, light.ly * 0.6);
-      shape(c);
-      c.lineWidth = 0.7;
-      c.strokeStyle = 'rgba(255,255,255,0.35)';
-      c.stroke();
-      c.restore();
-    });
+    if (kind === 'shades') {
+      const g = ctx.createLinearGradient(b.cx, b.y0, b.cx, b.y1);
+      g.addColorStop(0, 'rgba(58,60,78,0.97)');
+      g.addColorStop(0.55, 'rgba(18,18,26,0.98)');
+      g.addColorStop(1, 'rgba(30,26,44,0.98)');
+      ctx.fillStyle = g;
+    } else {
+      const g = ctx.createLinearGradient(b.cx, b.y0, b.cx, b.y1);
+      g.addColorStop(0, 'rgba(236,244,255,0.26)');
+      g.addColorStop(0.45, 'rgba(214,230,255,0.08)');
+      g.addColorStop(1, 'rgba(214,230,255,0.14)');
+      ctx.fillStyle = g;
+    }
+    ctx.fill(lens);
+    ctx.clip(lens);
+    /* the reflection: a broad soft band and a thin bright streak, slanting */
+    const w = b.w, h = b.h;
+    const streak = (x0: number, width: number, a: number) => {
+      ctx.globalAlpha = vis[i] * a;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.moveTo(b.x0 + w * x0, b.y1 + h * 0.1);
+      ctx.lineTo(b.x0 + w * (x0 + 0.55), b.y0 - h * 0.1);
+      ctx.lineTo(b.x0 + w * (x0 + 0.55 + width), b.y0 - h * 0.1);
+      ctx.lineTo(b.x0 + w * (x0 + width), b.y1 + h * 0.1);
+      ctx.closePath();
+      ctx.fill();
+    };
+    const k = kind === 'shades' ? 1.4 : 1;
+    streak(-0.28, 0.26, 0.16 * k);
+    streak(0.06, 0.07, 0.3 * k);
+    ctx.restore();
+  }
+  /* the rims, the bridge between them and the rivets at the hinges */
+  const nr = segs(view, TAU * F.rx * 1.1, 28, 56, 8);
+  const rim = (e: EyeSpot) => tube(view, `rim:${kind}:${e.ox},${e.oy},${e.fz.toFixed(2)}`, rimAt(e, 0), [0, 0, 1], section(F.td, F.tr, 0.55), nr, 6, true);
+  const [L, R] = eyes;
+  const bridgeAt = (u: number): V3 => {
+    const round = kind === 'round';
+    const a: V3 = [L.ox + F.rx * (round ? 0.9 : 0.98), L.oy - F.ry * (round ? 0.32 : 0.42), 0];
+    const b: V3 = [R.ox - F.rx * (round ? 0.9 : 0.98), R.oy - F.ry * (round ? 0.32 : 0.42), 0];
+    const c: V3 = [0, (L.oy + R.oy) / 2 - F.ry * (round ? 0.8 : 0.6), 0];
+    const m1 = 1 - u;
+    const x = m1 * m1 * a[0] + 2 * m1 * u * c[0] + u * u * b[0], y = m1 * m1 * a[1] + 2 * m1 * u * c[1] + u * u * b[1];
+    return [x, y, zAt(x) + 0.3];
+  };
+  const bridge = tube(view, `bridge:${kind}:${L.ox},${L.oy},${R.ox},${zPlane.toFixed(2)}`, bridgeAt, [0, 0, 1], section(F.td * 0.8, F.tr * 0.75, 0.7), 8, 6);
+  const parts = [
+    { part: rim(L), a: vis[0], d: view.depth([L.ox, L.oy, zPlane]) },
+    { part: rim(R), a: vis[1], d: view.depth([R.ox, R.oy, zPlane]) },
+    { part: bridge, a: Math.min(vis[0], vis[1]), d: view.depth([0, L.oy, zPlane]) },
+  ].sort((p, q) => p.d - q.d);
+  for (const p of parts) {
+    if (p.a <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = p.a;
+    paintLayers(ctx, [{ parts: [p.part], shade: rimShade }], view.px);
+    ctx.restore();
+  }
+  for (const [e, s, a] of [[L, -1, vis[0]], [R, 1, vis[1]]] as const) {
+    if (a <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = a;
+    const x = e.ox + s * F.rx * 0.93;
+    sphereSprite(ctx, view, [x, e.oy - F.ry * 0.5, zAt(x) + F.td], 0.75, 'silver');
     ctx.restore();
   }
 }
 
 /* ── the pass entry points ──────────────────────────────────────────── */
 
-/** Behind the body: the far headphone cup once the head turns it away. */
+/** Behind the body: what of the headphones is behind its middle plane. */
 export function drawWearBehind(ctx: CanvasRenderingContext2D, path: Path2D, r: WearRig, wear: Wear) {
   if (!wear.headphones) return;
   const m = marksFor(path);
   if (!m) return;
-  for (const side of [-1, 1] as const) {
-    const x = side < 0 ? m.left : m.right;
-    if (depthOf(r, [x, m.mid, 0]) < -2) drawCup(ctx, r, m, side, wear.color);
-  }
+  owner = m;
+  drawPhones(ctx, viewOf(r, pxOf(ctx)), m, wear.color, 'behind', null);
 }
 
-/** Over the body: the hat, the band and the near cups, the bow tie. The
+/** Over the body: the hat, the headphones' near part, the bow tie. The
     `bodyClip` is the body's front outline, for the shadows things cast on it. */
 export function drawWearFront(
   ctx: CanvasRenderingContext2D,
@@ -900,26 +1276,22 @@ export function drawWearFront(
 ) {
   const m = marksFor(path);
   if (!m) return;
-  if (wear.bowTie) drawBowTie(ctx, r, m, wear.color, zFront, bodyClip, face);
-  if (wear.headphones) {
-    drawBand(ctx, r, m, wear.color);
-    for (const side of [-1, 1] as const) {
-      const x = side < 0 ? m.left : m.right;
-      if (depthOf(r, [x, m.mid, 0]) >= -2) drawCup(ctx, r, m, side, wear.color);
-    }
-  }
+  owner = m;
+  const view = viewOf(r, pxOf(ctx));
+  if (wear.bowTie) drawBowTie(ctx, view, r, m, wear.color, zFront, bodyClip, face);
+  if (wear.headphones) drawPhones(ctx, view, m, wear.color, 'front', bodyClip);
   switch (wear.hat) {
     case 'beret':
-      drawBeret(ctx, r, m, wear.color, bodyClip);
+      drawBeret(ctx, view, m, wear.color, bodyClip);
       break;
     case 'beanie':
-      drawBeanie(ctx, r, m, wear.color, bodyClip);
+      drawBeanie(ctx, view, m, wear.color, bodyClip);
       break;
     case 'party':
-      drawParty(ctx, r, m, wear.color, bodyClip);
+      drawParty(ctx, view, m, wear.color, bodyClip);
       break;
     case 'crown':
-      drawCrown(ctx, r, m, bodyClip);
+      drawCrown(ctx, view, m, bodyClip);
       break;
   }
 }

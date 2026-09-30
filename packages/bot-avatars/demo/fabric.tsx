@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { BotAvatar, botAvatarTypes, type BotAvatarType, type BotAvatarHat, type BotAvatarGlasses } from '../src';
+import { BotAvatar, botAvatarTypes, type BotAvatarType, type BotAvatarHat, type BotAvatarGlasses, type BotAvatarState } from '../src';
 
 /* The fabric material and the wearables, staged like the dots reference:
    big plush bots on soft pastel grounds, each wearing something. */
@@ -18,6 +18,8 @@ function App() {
   const only = new URLSearchParams(location.search);
   const size = Number(only.get('size')) || 150;
   const paused = only.has('paused');
+  /* ?state=working to see the wear through hops and flips */
+  const state = (only.get('state') as BotAvatarState | null) ?? undefined;
   return (
     <>
       <div className="grid">
@@ -33,6 +35,7 @@ function App() {
               headphones={s.headphones}
               bowTie={s.bowTie}
               paused={paused}
+              state={state}
             />
             <span className="label">{s.label}</span>
           </div>

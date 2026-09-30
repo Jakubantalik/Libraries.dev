@@ -81,7 +81,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
 
 ## Shading
 
-`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a short, dense plush pile: soft wrapped light that still rounds every lobe, deeper shade in the creases, and a sheen at the silhouette where the fibres catch the light side-on. The pile itself is drawn, not blurred — thousands of short fibres combed away from the crown and down, the way a toy's fur lies, each with a lighter tip and a darker gap beside it, gathered into small clumps — and the edge is a smooth curve with a fine haze of hairs standing just past it. The eyes become glossy beads. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
+`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a short, dense plush pile: light that wraps far round, the way a pile scatters it, so the shadow side keeps the body's colour, a soft shade in the creases, and a sheen at the silhouette where the fibres catch the light side-on. The pile itself is drawn, not blurred — thousands of short fibres and a few longer guard hairs combed away from the crown and down, the way a toy's fur lies, each with a lighter tip and a darker gap beside it, gathered into small clumps — and multiplied over the colour, so it keeps its saturation; the edge is a smooth curve with a light haze of hairs standing just past it. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
 
 ```tsx
 <BotAvatar
@@ -96,7 +96,7 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
 
 ## Wear
 
-A hat, glasses, headphones and a bow tie, each a small 3D object placed on the body's own shape — the hat seated where the head is wide enough to hold it, the headphones on its widest row, the glasses over the eyes, the bow tie under the face — and turned with the head, so it tips, turns and flips with the body. They are lit from the body's light and cast a soft shadow where they sit.
+A hat, glasses, headphones and a bow tie, each a small 3D object built from lit surfaces and placed on the body's own shape — the hat seated where the head is wide enough to hold it, the headphones on its widest row with the band resting on the head, the glasses over the eyes, the bow tie under the face — and turned with the head, so it tips, turns and flips with the body. They are lit from the body's light and cast a soft shadow where they sit. Each surface is built once per shape and size and painted a strip at a time with the light carried along it, so a hat is a few dozen canvas fills — about 0.2–0.8 ms a frame at 120 px.
 
 ```tsx
 <BotAvatar type="clover" shading="fabric" hat="beret" />
@@ -104,7 +104,8 @@ A hat, glasses, headphones and a bow tie, each a small 3D object placed on the b
 <BotAvatar type="flower" headphones accessoryColor="#f4efe6" />
 ```
 
-- `hat`: `none` (default), `beret` (soft felt with a stalk), `beanie` (knit, with a cuff and a pompom), `party` (a striped paper cone) or `crown` (gold, with gems)
+- `hat`: `none` (default), `beret` (pleated felt with a leather binding and a stalk), `beanie` (knit stitch by stitch, with a ribbed cuff and a yarn pompom), `party` (a striped paper cone with a foil trim and tinsel) or `crown` (gold, with ridged points, pearls, cut stones, a velvet cap and an orb and cross)
+- the headphones are over-ear: leather cushions, brushed metal rings and yokes, a stitched padded band; the glasses are acetate with rounded rims and reflecting lenses; the bow tie is satin
 - `glasses`: `none` (default), `round`, `square` or `shades`
 - `headphones`, `bowTie`: booleans
 - `accessoryColor`: the hat's, the headphones' and the bow tie's colour, a soft black by default (the crown stays gold)

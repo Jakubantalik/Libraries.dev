@@ -423,13 +423,14 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
     /* glasses: their shadow falls on the face (inside its clip), the frames
        themselves may reach past the body's edge */
     const glasses = wear && wear.glasses !== 'none' ? wear.glasses : null;
-    if (glasses) drawGlasses(ctx, glasses, eyes, { lx, ly }, 'shadow');
+    const turn = { yaw: pose.yaw, pitch: pose.pitch };
+    if (glasses) drawGlasses(ctx, glasses, eyes, { lx, ly }, 'shadow', turn);
     ctx.restore();
     if (glasses) {
       ctx.save();
       ctx.translate(cfg.faceX - 50, cfg.faceY - 50);
       ctx.scale(cfg.faceScale, cfg.faceScale);
-      drawGlasses(ctx, glasses, eyes, { lx, ly }, 'frame');
+      drawGlasses(ctx, glasses, eyes, { lx, ly }, 'frame', turn);
       ctx.restore();
     }
   }
@@ -569,22 +570,6 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig): [
       ctx.strokeStyle = ink;
       ctx.lineWidth = w;
       ctx.stroke(eyePath(x0, y0, cy));
-      /* fabric's eyes are glossy beads sewn into the pile: a window of
-         light high on each open eye, and a faint bounce low on it */
-      const bead = cfg.shading === 'fabric' ? kOpen * e : 0;
-      if (bead > 0.05) {
-        /* one small, crisp window of light high on the bead, and the bead's
-           curve darkening a touch toward its lower edge */
-        const top = cy * 0.5 + y0 * 0.5 - w * 0.16;
-        ctx.fillStyle = `rgba(255,255,255,${(0.92 * bead).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.ellipse(-w * 0.16, top, w * 0.1, w * 0.13, -0.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = `rgba(255,255,255,${(0.35 * bead).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(w * 0.14, top + w * 0.1, w * 0.04, 0, Math.PI * 2);
-        ctx.fill();
-      }
     });
   }
 
@@ -618,7 +603,7 @@ function drawFace(ctx: CanvasRenderingContext2D, pose: Pose, cfg: DrawConfig): [
      design spots on the sphere, without the look's drift */
   const spot = (x: number): EyeSpot => {
     const q = onSphere(x, ey, yaw, pitch);
-    return { x: q.x, y: q.y, sx: q.sx, sy: q.sy, z: q.z };
+    return { x: q.x, y: q.y, sx: q.sx, sy: q.sy, z: q.z, ox: x, oy: ey, fz: Math.sqrt(Math.max(0, FACE_R * FACE_R - x * x - ey * ey)) };
   };
   return [spot(-half), spot(half)];
 }

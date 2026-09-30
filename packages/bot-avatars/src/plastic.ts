@@ -528,18 +528,29 @@ function sampleMatcap(mc: Float32Array, nx: number, ny: number, out: V3) {
    does the opposite — the fibres at the silhouette are seen side-on and
    catch the light — so fabric divides that darkening back out and adds a
    soft band of sheen just inside the outline */
-const lifts = new WeakMap<Form, Float32Array>();
-export function edgeLift(form: Form): Float32Array {
+export interface Lift {
+  /** the baked occlusion with the edge's darkening taken back out */
+  ao: Uint8Array;
+  /** the sheen band just inside the outline, a gain */
+  k: Float32Array;
+}
+const lifts = new WeakMap<Form, Lift>();
+export function edgeLift(form: Form): Lift {
   let l = lifts.get(form);
   if (l) return l;
-  const { N, sd } = form;
-  l = new Float32Array(N * N);
+  const { N, sd, ao } = form;
+  l = { ao: new Uint8Array(N * N), k: new Float32Array(N * N) };
   for (let i = 0; i < N * N; i++) {
+    if (ao[i] === 0) continue;
     const dd = Math.max(0, sd[i]);
     const e = 1 - Math.min(1, dd / 3);
     const edge = 1 - 0.2 * e * e;
+    /* undo the edge factor where it was baked: in the linear occlusion,
+       before the material's strength is applied */
+    const lin = Math.min(1, Math.pow(ao[i] / 255, 2.2) / edge);
+    l.ao[i] = Math.max(1, Math.round(255 * Math.pow(lin, 1 / 2.2)));
     const band = Math.max(0, 1 - dd / 2.6);
-    l[i] = (1 + 0.09 * band * band) / edge;
+    l.k[i] = 1 + 0.1 * band * band;
   }
   lifts.set(form, l);
   return l;
@@ -547,7 +558,7 @@ export function edgeLift(form: Form): Float32Array {
 
 /** Per frame: matcap lookup × baked AO into the texture's pixels; `lift`,
     fabric's edge sheen, multiplies in when given. */
-export function shadeTexels(form: Form, mc: Float32Array, px: Uint8ClampedArray, aoMul: Float32Array, lift?: Float32Array) {
+export function shadeTexels(form: Form, mc: Float32Array, px: Uint8ClampedArray, aoMul: Float32Array, lift?: Lift) {
   const { N, i00, wx, wy, ao } = form;
   const R = M * 3;
   for (let i = 0, k = 0; i < N * N; i++, k += 4) {
@@ -556,7 +567,7 @@ export function shadeTexels(form: Form, mc: Float32Array, px: Uint8ClampedArray,
       px[k + 3] = 0;
       continue;
     }
-    const m = lift ? aoMul[a] * lift[i] : aoMul[a];
+    const m = lift ? aoMul[lift.ao[i]] * lift.k[i] : aoMul[a];
     const b = i00[i] * 3, x = wx[i] * (1 / 255), y = wy[i] * (1 / 255);
     const w00 = (1 - x) * (1 - y) * m, w10 = x * (1 - y) * m, w01 = (1 - x) * y * m, w11 = x * y * m;
     px[k] = mc[b] * w00 + mc[b + 3] * w10 + mc[b + R] * w01 + mc[b + R + 3] * w11;
@@ -578,7 +589,7 @@ export interface Fur {
   /** the pile's own resolution: finer than the form, so the fibres stay
       thin on a large avatar */
   R: number;
-  /** the pile's fibres in grey about mid-grey, overlaid on the lit texels */
+  /** the pile's fibres in greys about FUR_MID, multiplied over the lit texels */
   fibre: AnyCanvas | null;
   /** the body plus a fringe of hairs past its edge, as alpha */
   mask: AnyCanvas | null;
@@ -594,6 +605,10 @@ const lightBin = (lx: number, ly: number) => Math.round(Math.atan2(ly, lx) / (Ma
 /* the pile's resolution for a cap drawn `capPx` device pixels across */
 const furTier = (capPx: number) => (capPx <= 200 ? 192 : capPx <= 360 ? 320 : 512);
 const furKey = (key: string, halfDepth: number, R: number, bin: number) => `${key}|${Math.round(halfDepth)}|${R}|${bin}`;
+
+/* the pile's mean grey: it is multiplied over the lit texels, the tips
+   lighter than this and the gaps between them darker */
+const FUR_MID = 226;
 
 /* a stable white noise, so every avatar of a type wears the same pile */
 function hash2(x: number, y: number): number {
@@ -665,9 +680,9 @@ function valueNoise(scale: number, seed: number) {
  * lean together and catch the light on the side that faces it. The fibres
  * are combed in one flow — away from a crown near the top of the head and
  * down, turning outward at the edge. So the pile is drawn stroke by stroke
- * into a grey layer centred on mid-grey and laid over the lit texels with an
- * overlay blend (mid-grey leaves them alone, lighter fibres lift them,
- * darker ones sink them). The silhouette stays a smooth curve with a haze
+ * into a light grey layer and multiplied over the lit texels, which are
+ * lifted by as much beforehand: the tips come out lighter than the colour,
+ * the gaps darker, and the colour keeps its saturation throughout. The silhouette stays a smooth curve with a haze
  * of fine hairs standing past it.
  */
 export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0): Fur {
@@ -737,7 +752,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
   };
 
   const steps: (() => void)[] = [];
-  /* 1. the base: mid-grey, with a slow drift in the pile's tone */
+  /* 1. the base: the pile's mean grey, with a slow drift in its tone */
   steps.push(() => {
   /* the tone drifts over twenty units: a quarter of the resolution,
      scaled up, is the same picture for a sixteenth of the work */
@@ -747,7 +762,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     const base = new ImageData(Rq, Rq);
     for (let y = 0; y < Rq; y++) {
       for (let x = 0; x < Rq; x++) {
-        const v = Math.round(128 + (tone(x / pq - PAD, y / pq - PAD) - 0.5) * 18);
+        const v = Math.round(FUR_MID + (tone(x / pq - PAD, y / pq - PAD) - 0.5) * 14);
         const k = (y * Rq + x) * 4;
         base.data[k] = base.data[k + 1] = base.data[k + 2] = v;
         base.data[k + 3] = 255;
@@ -758,7 +773,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     fg.imageSmoothingQuality = 'high';
     fg.drawImage(tc as HTMLCanvasElement, 0, 0, R, R);
   } else {
-    fg.fillStyle = 'rgb(128,128,128)';
+    fg.fillStyle = `rgb(${FUR_MID},${FUR_MID},${FUR_MID})`;
     fg.fillRect(0, 0, R, R);
   }
   fg.lineCap = 'round';
@@ -770,12 +785,14 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
   const SHADES = 16;
   const area = SPAN * SPAN;
   const layers = [
-    /* undercoat: dense, fine, short, quiet */
-    { count: 3.4, len: [0.5, 0.8], width: 0.12, spread: 70, alpha: 0.42, split: false, lift: 0 },
-    /* the main fibres: root darker than tip */
-    { count: 2.1, len: [1.6, 2.5], width: 0.18, spread: 80, alpha: 0.55, split: true, lift: 0.05 },
-    /* guard hairs: few, long, thin, bright-tipped */
-    { count: 0.36, len: [3.0, 2.4], width: 0.11, spread: 95, alpha: 0.7, split: true, lift: 0.3 },
+    /* undercoat: dense, fine, short, quiet — most of what the eye reads as
+       the velvet */
+    { count: 4.2, len: [0.5, 0.7], width: 0.11, spread: 34, alpha: 0.5, split: false, lift: 0 },
+    /* the pile: short fibres, root a little darker than tip */
+    { count: 2.4, len: [1.2, 1.7], width: 0.14, spread: 42, alpha: 0.55, split: true, lift: 0.04 },
+    /* guard hairs: a sparse few, longer, standing over the pile with their
+       tips in the light — what makes it read as fur rather than felt */
+    { count: 0.32, len: [2.2, 1.8], width: 0.12, spread: 38, alpha: 0.42, split: true, lift: 0.18 },
   ];
   const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
   for (const L of layers) for (let half = 0; half < 2; half++) steps.push(() => {
@@ -793,9 +810,11 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
       /* the fibre's own shade: its tuft's light and height, and whether it
          is one catching the light or one in a gap */
       const r0 = rand();
-      let v = (clump(X, Y) - 0.5) * 0.7 + tuftLit(X, Y) * 0.45;
-      if (r0 < 0.34) v += 0.3 + 0.3 * rand();
-      else if (r0 < 0.78) v -= 0.25 + 0.3 * rand();
+      let v = (clump(X, Y) - 0.5) * 0.6 + tuftLit(X, Y) * 0.4;
+      /* seen from above, a pile is mostly tips: more fibres catch the
+         light than fall into the gaps between them */
+      if (r0 < 0.46) v += 0.2 + 0.28 * rand();
+      else if (r0 < 0.8) v -= 0.2 + 0.28 * rand();
       v += L.lift;
       const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
       const bend = (rand() - 0.5) * 0.28 * len;
@@ -803,7 +822,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
       const x1 = x0 + ux * len, y1 = y0 + uy * len;
       if (L.split) {
         /* root in shade, tip in the light */
-        const rb = buckets[shadeOf(v - 0.28)], tb = buckets[shadeOf(v + 0.22)];
+        const rb = buckets[shadeOf(v - 0.2)], tb = buckets[shadeOf(v + 0.12)];
         rb.moveTo(x0, y0);
         rb.lineTo(mx, my);
         tb.moveTo(mx, my);
@@ -817,7 +836,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     fg.lineWidth = Math.max(0.45, L.width * px);
     fg.globalAlpha = L.alpha;
     for (let i = 0; i < SHADES; i++) {
-      const g = Math.round(128 + ((i / (SHADES - 1)) * 2 - 1) * L.spread);
+      const g = Math.min(255, Math.round(FUR_MID + ((i / (SHADES - 1)) * 2 - 1) * L.spread));
       fg.strokeStyle = `rgb(${g},${g},${g})`;
       fg.stroke(buckets[i]);
     }
@@ -829,26 +848,26 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
      with the flow, so the edge is a soft haze rather than a comb */
   steps.push(() => {
   const fringe = new Path2D();
-  const edgeTries = Math.round(area * 8);
+  const edgeTries = Math.round(area * 12);
   for (let n = 0; n < edgeTries; n++) {
     const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
     const d = sdAt(X, Y);
-    if (d < -0.2 || d > 1.5) continue;
+    if (d < -0.2 || d > 1.0) continue;
     const [fx, fy] = flow(X, Y);
     const ang = (rand() - 0.5) * 0.8;
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
     const r1 = rand();
-    const fl = (0.6 + 3.4 * r1 * r1) * px;
+    const fl = (0.35 + 1.9 * r1 * r1 * r1) * px;
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-    const bend = (rand() - 0.5) * 0.45 * fl;
+    const bend = (rand() - 0.5) * 0.35 * fl;
     fringe.moveTo(x0, y0);
     fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl);
   }
   /* the edge hairs are seen side-on against the light: a touch lighter */
-  fg.lineWidth = Math.max(0.35, 0.1 * px);
-  fg.globalAlpha = 0.45;
-  fg.strokeStyle = 'rgb(168,168,168)';
+  fg.lineWidth = Math.max(0.35, 0.08 * px);
+  fg.globalAlpha = 0.5;
+  fg.strokeStyle = 'rgb(255,255,255)';
   fg.stroke(fringe);
   fg.globalAlpha = 1;
 
@@ -862,7 +881,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
   for (let y = 0; y < Rh; y++) {
     for (let x = 0; x < Rh; x++) {
       const d = sdAt((x + 0.5) / ph - PAD, (y + 0.5) / ph - PAD);
-      const a = d >= 0.4 ? 1 : d <= -1.1 ? 0 : (d + 1.1) / 1.5;
+      const a = d >= 0.45 ? 1 : d <= -1.3 ? 0 : (d + 1.3) / 1.75;
       const k = (y * Rh + x) * 4;
       mi.data[k] = mi.data[k + 1] = mi.data[k + 2] = 255;
       mi.data[k + 3] = Math.round(255 * a * a * (3 - 2 * a));
@@ -875,8 +894,8 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     mg.drawImage(hc as HTMLCanvasElement, 0, 0, R, R);
   }
   mg.lineCap = 'round';
-  mg.lineWidth = Math.max(0.35, 0.1 * px);
-  mg.strokeStyle = 'rgba(255,255,255,0.32)';
+  mg.lineWidth = Math.max(0.35, 0.08 * px);
+  mg.strokeStyle = 'rgba(255,255,255,0.24)';
   mg.stroke(fringe);
 
   fur.fibre = fc;
@@ -892,12 +911,19 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     reflections — fur has no clear coat. */
 export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
   const { L, V } = f;
-  const amb = Math.max(0.05, 0.3 - 0.12 * p.shadow);
-  const wrap = Math.min(0.8, 0.26 + 0.14 * p.spread);
-  const kd = 0.92;
+  /* plush scatters light deep into the pile: a high floor of light, a
+     wide wrap, and a gentle turn from light into shade — its shadow side
+     stays the body's colour, only a little deeper */
+  const amb = Math.max(0.2, 0.5 - 0.2 * p.shadow);
+  const wrap = Math.min(1.1, 0.5 + 0.2 * p.spread);
+  const kd = 0.74;
+  /* the pile is multiplied over this, darkening it by its mean: lift the
+     sphere by as much so the colour comes out as given */
+  const gain = 255 / FUR_MID;
   const sheenK = 0.3 * p.highlight, edgeK = 0.2 * p.rim;
-  /* the sheen is the body colour lifted toward white, not a white glare */
-  const tint: V3 = [0.6 * c[0] + 0.4, 0.6 * c[1] + 0.4, 0.6 * c[2] + 0.4];
+  /* the sheen is the body colour itself, a little lifted: plush keeps its
+     colour where it catches the light, it does not go white */
+  const tint: V3 = [0.78 * c[0] + 0.22, 0.78 * c[1] + 0.22, 0.78 * c[2] + 0.22];
   for (let j = 0; j < M; j++) {
     for (let i = 0; i < M; i++) {
       let nx = (i / (M - 1)) * 2 - 1, ny = (j / (M - 1)) * 2 - 1;
@@ -910,15 +936,19 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
       const nz = Math.sqrt(1 - r2);
       const nl = nx * L[0] + ny * L[1] + nz * L[2];
       const nv = Math.max(0, nx * V[0] + ny * V[1] + nz * V[2]);
-      let dif = Math.min(1, Math.max(0, (nl + wrap) / (1 + wrap)));
-      dif = Math.pow(dif, 1.1);
+      /* fur scatters light through its tips: toward the silhouette the
+         light wraps much further round, so the edge never sinks into a dark
+         rim, while the face of the form keeps a firm light-to-shade turn */
+      const w = wrap + (1.6 - wrap) * (1 - nz) * (1 - nz);
+      let dif = Math.min(1, Math.max(0, (nl + w) / (1 + w)));
+      dif = Math.pow(dif, 1.15);
       const q = 1 - nv, graze = q * q;
       const lit = 0.25 + 0.75 * Math.min(1, Math.max(0, (nl + 0.35) / 1.35));
       const sheen = sheenK * graze * lit + edgeK * graze * q;
       const k = (j * M + i) * 3;
-      out[k] = tone(c[0] * (amb + kd * dif) + sheen * tint[0]);
-      out[k + 1] = tone(c[1] * (amb + kd * dif) + sheen * tint[1]);
-      out[k + 2] = tone(c[2] * (amb + kd * dif) + sheen * tint[2]);
+      out[k] = tone((c[0] * (amb + kd * dif) + sheen * tint[0]) * gain);
+      out[k + 1] = tone((c[1] * (amb + kd * dif) + sheen * tint[1]) * gain);
+      out[k + 2] = tone((c[2] * (amb + kd * dif) + sheen * tint[2]) * gain);
     }
   }
 }
@@ -1175,7 +1205,7 @@ export function drawPlasticCap(
   }
   /* the occlusion strength follows `shadow`; a pile sinks deeper into its
      creases than a clear coat does, which is what keeps fur's lobes apart */
-  const aoK = fur ? Math.min(1.6, 0.45 + 1.4 * mat.shadow) : Math.min(1.3, 1.2 * mat.shadow);
+  const aoK = fur ? Math.min(1.4, 0.3 + 1.1 * mat.shadow) : Math.min(1.3, 1.2 * mat.shadow);
   if (aoK !== st.aoK) {
     for (let a = 0; a < 256; a++) st.aoMul[a] = Math.max(0, 1 - aoK * (1 - a / 255));
     st.aoK = aoK;
@@ -1234,8 +1264,8 @@ export function drawPlasticCap(
         fc.g.imageSmoothingEnabled = true;
         fc.g.imageSmoothingQuality = 'high';
         fc.g.drawImage(sc.c as HTMLCanvasElement, 0, 0, R, R);
-        fc.g.globalCompositeOperation = 'overlay';
-        fc.g.globalAlpha = 0.72;
+        fc.g.globalCompositeOperation = 'multiply';
+        fc.g.globalAlpha = 1;
         fc.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0);
         fc.g.globalAlpha = 1;
         fc.g.globalCompositeOperation = 'destination-in';
@@ -1277,7 +1307,7 @@ export function drawPlasticCap(
         spr.g.setTransform(1, 0, 0, 1, 0, 0);
         spr.g.clearRect(0, 0, px, px);
         spr.g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
-        spr.g.fillStyle = sideGradient(spr.g, st.mc, SIDE_KINDS[i][0], SIDE_KINDS[i][1](mat), lxy);
+        spr.g.fillStyle = sideGradient(spr.g, st.mc, SIDE_KINDS[i][0], SIDE_KINDS[i][1](mat) * (fur ? 0.4 : 1), lxy);
         if (fur && fur.fibre && fur.mask) {
           /* the whole square in the side colour, the pile's streaks
              multiplied in, then cut to the body plus its fringe */
@@ -1285,8 +1315,8 @@ export function drawPlasticCap(
           spr.g.setTransform(1, 0, 0, 1, 0, 0);
           spr.g.imageSmoothingEnabled = true;
           spr.g.imageSmoothingQuality = 'high';
-          spr.g.globalCompositeOperation = 'overlay';
-          spr.g.globalAlpha = 0.72;
+          spr.g.globalCompositeOperation = 'multiply';
+          spr.g.globalAlpha = 1;
           spr.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0, px, px);
           spr.g.globalAlpha = 1;
           spr.g.globalCompositeOperation = 'destination-in';
