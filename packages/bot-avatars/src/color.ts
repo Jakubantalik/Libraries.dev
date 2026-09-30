@@ -82,16 +82,27 @@ export function shade(color: string, dl: number, ds = 0): string {
   return hslToCss([h, clamp01(s + ds + (dl < 0 ? -dl * 0.25 : 0)), clamp01(l + dl)]);
 }
 
-/** A richer version of a colour, `t` 0–1: past full saturation a colour can
-    only look more saturated by deepening — each channel's share of the
-    strongest raised to a power, so the weaker channels fall away faster
-    and the strongest stays — the way a dye deepens. */
+/** A purer version of a colour, `t` 0–1: pulled away from grey at the
+    same luminance (in linear light), as far as the screen can show it — no
+    channel below black or above full. A colour already at that edge (most
+    of the palette) keeps its brightness and stays as it is; a paler one
+    gains colour without darkening. */
 export function richer(color: string, t: number): string {
   const c = parseColor(color);
   if (!c || !(t > 0)) return color;
-  const mx = Math.max(c[0], c[1], c[2], 1);
-  const e = 1 + 1.6 * t;
-  const k = 1 - 0.18 * t;
-  const ch = (v: number) => Math.round(mx * k * Math.pow(v / mx, e));
-  return `rgb(${ch(c[0])} ${ch(c[1])} ${ch(c[2])})`;
+  const lin = c.map((v) => {
+    const u = v / 255;
+    return u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+  });
+  const y = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  let k = 1 + 1.6 * t;
+  for (const v of lin) {
+    if (v < y) k = Math.min(k, y / (y - v));
+    else if (v > y) k = Math.min(k, (1 - y) / (v - y));
+  }
+  const out = lin.map((v) => {
+    const u = Math.min(1, Math.max(0, y + (v - y) * k));
+    return Math.round(255 * (u <= 0.0031308 ? 12.92 * u : 1.055 * Math.pow(u, 1 / 2.4) - 0.055));
+  });
+  return `rgb(${out[0]} ${out[1]} ${out[2]})`;
 }

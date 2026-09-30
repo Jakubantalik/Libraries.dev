@@ -568,12 +568,13 @@ export interface Material {
    zero), so a lit aqua stays aqua rather than paling toward white. The
    colour itself, already at the gamut's edge, is left as it is. In place
    on a linear triple. */
-function vivify(c: V3, v: number) {
+function vivify(c: V3, v: number, cap = Infinity) {
   if (!(v > 0)) return;
   const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-  const mn = Math.min(c[0], c[1], c[2]);
-  let k = 1 + 0.9 * v;
+  const mn = Math.min(c[0], c[1], c[2]), mx = Math.max(c[0], c[1], c[2]);
+  let k = 1 + 1.6 * v;
   if (mn < y) k = Math.min(k, y / (y - mn));
+  if (mx > y) k = Math.min(k, Math.max(1, (cap - y) / (mx - y)));
   c[0] = y + (c[0] - y) * k;
   c[1] = y + (c[1] - y) * k;
   c[2] = y + (c[2] - y) * k;
@@ -1593,13 +1594,6 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
         else if (ch === 1) g = v;
         else b = v;
       }
-      if (vivid > 0) {
-        px[0] = r;
-        px[1] = g;
-        px[2] = b;
-        vivify(px, vivid);
-        [r, g, b] = px;
-      }
       /* bright parts roll off as a whole, not channel by channel: a lit
          yellow stays yellow instead of its red clipping first and the rest
          running on toward green */
@@ -1609,6 +1603,15 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
         r *= kk;
         g *= kk;
         b *= kk;
+      }
+      /* past the palette's saturation, more colour at the same luminance,
+         under full: a brighter channel would only be rolled off again */
+      if (vivid > 0) {
+        px[0] = r;
+        px[1] = g;
+        px[2] = b;
+        vivify(px, vivid, 1);
+        [r, g, b] = px;
       }
       out[k] = srgb(r);
       out[k + 1] = srgb(g);
@@ -1646,6 +1649,36 @@ function gapFilm(fur: Fur, color: string): AnyCanvas | null {
   }
   if (byColor.size >= 4) byColor.clear();
   byColor.set(color, c && g ? c : null);
+  return c && g ? c : null;
+}
+
+/* Past the palette's saturation (vivid) the fibres' tips keep their
+   colour: the film's light part laid in the colour at full brightness, as
+   much of the way from white as `vivid` says, instead of white — one copy
+   per pile, colour and step of it. */
+const tipFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
+function tipFilm(fur: Fur, color: string, vivid: number): AnyCanvas | null {
+  const src = fur.light;
+  if (!src || !(vivid > 0)) return null;
+  const v = Math.round(vivid * 10) / 10;
+  const key = `${color}|${v}`;
+  let byKey = tipFilms.get(fur);
+  if (!byKey) tipFilms.set(fur, (byKey = new Map()));
+  const hit = byKey.get(key);
+  if (hit !== undefined) return hit;
+  const c = makeCanvas(src.width), g = c && ctx2d(c, false);
+  if (c && g) {
+    g.drawImage(src as HTMLCanvasElement, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    const lin = linearColor(color);
+    const e: V3 = [srgb(lin[0]), srgb(lin[1]), srgb(lin[2])];
+    const mx = Math.max(e[0], e[1], e[2], 1);
+    const ch = (u: number) => Math.round(255 + ((255 * u) / mx - 255) * Math.min(1, v));
+    g.fillStyle = `rgb(${ch(e[0])} ${ch(e[1])} ${ch(e[2])})`;
+    g.fillRect(0, 0, src.width, src.height);
+  }
+  if (byKey.size >= 6) byKey.clear();
+  byKey.set(key, c && g ? c : null);
   return c && g ? c : null;
 }
 
@@ -2544,9 +2577,8 @@ export function drawPlasticCap(
     g.drawImage((gapFilm(film, pal.base) ?? film.dark) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     const lin = linearColor(pal.base);
     const lum = Math.pow(0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2], 1 / 2.2);
-    /* past the palette's saturation (vivid) the tips keep the colour too */
-    g.globalAlpha = (0.25 + 0.75 * lum) * (1 - 0.6 * (mat.vivid ?? 0));
-    g.drawImage(film.light as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+    g.globalAlpha = 0.25 + 0.75 * lum;
+    g.drawImage((tipFilm(film, pal.base, mat.vivid ?? 0) ?? film.light) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'source-over';
     ctx.save();
