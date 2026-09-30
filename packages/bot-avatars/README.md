@@ -81,18 +81,36 @@ The palette is exported as `botAvatarPalette` (type → colour), with `botAvatar
 
 ## Shading
 
-`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a short, dense plush pile: light that wraps far round, the way a pile scatters it, so the shadow side keeps the body's colour, a soft shade in the creases, and a sheen at the silhouette where the fibres catch the light side-on. The pile itself is drawn, not blurred — thousands of short fibres and a few longer guard hairs combed away from the crown and down, the way a toy's fur lies, each with a lighter tip and a darker gap beside it, gathered into small clumps — and multiplied over the colour, so it keeps its saturation; the edge is a smooth curve with a light haze of hairs standing just past it. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
+`plastic` (the default) is a real material, shaded per pixel: the outline is baked once into a pillow height field (lobes become domes, rays become tubes, the cusps between them fall into shadow), and every frame a lit sphere is evaluated for the head's pose — wrap-around diffuse, a tight hot spot and a broad sheen, a Fresnel rim under a sky, a window reflection, saturated shadows — and mapped onto it. `fabric` dresses the same form in a short, dense plush pile under studio light: a soft key from the upper left that turns gradually into shade, a dim fill from the other side, a back light the fibres catch round the silhouette and the floor's shadow under the body, the shade deepening the colour (a yellow toward orange) rather than greying it. The pile itself is drawn, not blurred — thousands of short fibres and a few longer guard hairs combed away from the crown and down, the way a toy's fur lies, each with a paler tip and a deeper gap beside it, gathered into small clumps — and the edge is a smooth curve with a light haze of hairs standing just past it.
+
+Both are drawn on an inflated body: thickest in the middle and rounding off to nothing at the outline all round, like a cushion or a plush toy, so a turn shows a round side rather than the wall of an extruded shape. The body is its height field's level sets stacked through the depth, each the lit surface shifted by its own height, so the front bulges round a turn. `roundness` (0–1, default 1) bends that profile toward a slab with soft edges. `crisp` lights a rim round the front with a clean edge, `smooth` lays a soft shadow and highlight over the whole form, `flat` keeps only the depth. The light itself is adjustable:
 
 ```tsx
 <BotAvatar
   shadow={1.4}      // 0–2, strength of the shadow side (default 0.35)
   highlight={0.6}   // 0–2, strength of the lit side (default 1.3)
-  light={315}       // degrees clockwise from the top (default 265, from the left)
+  light={265}       // degrees clockwise from the top (default 300, the upper left)
   depth={1.5}       // 0.2–2, thickness shown when the head turns (default 0.65)
+  roundness={0.5}   // 0–1, plastic and fabric: a cushion at 1, toward a slab at 0 (default 1)
   rim={1.5}         // 0–2, Fresnel strength in plastic, rim width in crisp (default 0.5)
   spread={0.7}      // 0.4–2.5, width of the highlight in plastic, reach of the soft shading in smooth (default 1.55)
 />
 ```
+
+The plush pile has a style of its own:
+
+```tsx
+<BotAvatar
+  shading="fabric"
+  furLength={1.6}   // 0.3–2.5, length of the pile (default 1)
+  furDensity={1.4}  // 0.3–2, how many fibres (default 1)
+  furFuzz={0.8}     // 0–1, the haze of hairs at the silhouette (default 0.5)
+  furClumps={0.7}   // 0–1, how much the fibres gather into tufts (default 0.5)
+  furCurl={0.5}     // 0–1, straight to wavy (default 0.3)
+/>
+```
+
+Each style is baked once per shape on idle time and shared by every avatar that wears it.
 
 ## Wear
 
@@ -213,7 +231,7 @@ Each instance seeds its own blink timing from its React id, so a roster never bl
 - `role="img"` with a per-state `aria-label` ("Clover bot, working") out of the box.
 - `prefers-reduced-motion: reduce` keeps the pose and drops the motion.
 - One shared animation frame loop for every avatar on the page; each one pauses when scrolled offscreen or when the tab is hidden. Device-pixel-ratio capped at 2.
-- The body is thirteen copies of its outline stacked through the depth with a pillow profile, projected with the head's yaw and pitch and lit from the upper left — a rounded solid that turns and flips, in plain 2D canvas fills. Cheap enough for a whole roster at once.
+- In `crisp`, `smooth` and `flat` the body is seventeen copies of its outline stacked through the depth with a pillow profile; in `plastic` and `fabric` it is the height field's level sets as a relief, the far half from sprites and the near half as fills of the lit texture — an inflated solid that turns and flips, in plain 2D canvas fills, about 0.2–0.4 ms of main thread a frame. Cheap enough for a whole roster at once.
 - Server rendering works: the canvas paints on the client, after mount.
 
 ## License

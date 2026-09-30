@@ -8,7 +8,7 @@
 import type { Pose } from './engine';
 import type { BotAvatarFace, BotAvatarShading } from './types';
 import { shade } from './color';
-import { drawPlasticCap, mulAffine } from './plastic';
+import { drawPlasticCap, mulAffine, surfaceAt, type FurStyle } from './plastic';
 import { drawGlasses, drawWearBehind, drawWearFront, type EyeSpot, type Wear, type WearRig } from './wear';
 
 export interface DrawConfig {
@@ -28,6 +28,12 @@ export interface DrawConfig {
   light?: number;
   rim?: number;
   spread?: number;
+  /** plastic and fabric: the profile through the depth — 1 (the default) a
+      cushion, thickest in the middle and rounding off to nothing at the
+      outline all round; toward 0 a slab with softened edges */
+  roundness?: number;
+  /** fabric: the pile's style — length, density, edge fuzz, tufts, curl */
+  fur?: FurStyle;
   /** identifies the outline for the material caches (the type name) */
   typeKey?: string;
   /** no animation loop follows this draw (reduced motion, paused): build
@@ -246,7 +252,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const cap = 1 - (1 - CAP) * (cfg.rim ?? 0.5);
   const spread = cfg.spread ?? 1.55;
   /* the light's direction on screen: a unit vector toward the source */
-  const la = ((cfg.light ?? 265) * Math.PI) / 180;
+  const la = ((cfg.light ?? 300) * Math.PI) / 180;
   const lx = Math.sin(la), ly = -Math.cos(la);
   const pal = palette(cfg.color, shadow, highlight);
 
@@ -294,16 +300,16 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
       capFill = pal.grad.cap;
     }
 
-    /* plastic: the material module draws the whole body — side copies from
-       its matcap and the front cap as a lit texture. While a form is still
-       baking on idle time it declines, and the stock slices with the smooth
-       overlay stand in for that frame. */
+    /* plastic and fabric: the material module draws the whole body, an
+       inflated relief of the lit texture. While a form is still baking on
+       idle time it declines, and the stock slices with the smooth overlay
+       stand in for that frame. */
     let plasticDone = false;
     if (mode === 'plastic' || mode === 'fabric') {
       plasticDone = drawPlasticCap(
         ctx,
         { ...cfg, path, typeKey: key },
-        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * dpr, ctm: body, still: cfg.still },
+        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
         { shadow, highlight, spread, rim: cfg.rim ?? 0.5 }
@@ -389,13 +395,20 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   /* the face: each feature sits on a sphere behind the front cap, so a
      turn slides it round the head — the eye moving toward the edge
      narrows, the other comes to the front, and past the side they go */
-  /* the front slice's outline in body space: the face's clip, and where
-     worn things cast their shadows */
+  /* the front's outline in body space: the face's clip, and where worn
+     things cast their shadows. The extruded modes have a front cap; the
+     cushion of plastic and fabric has none, so its outline is taken a
+     little over halfway up the face's own height */
   const zf = facing >= 0 ? 1 : -1;
-  const sf = profile(zf, cap);
+  const round = cfg.roundness ?? 1;
+  const cushion = plasticDone;
+  const key = cfg.typeKey ?? 'custom';
+  const sf = cushion ? 1 : profile(zf, cap);
+  const surface = (x: number, y: number) => (cushion ? surfaceAt(key, halfDepth, x, y, round) ?? 0.8 * halfDepth : halfDepth * sf);
+  const zFace = cushion ? 0.55 * surface(cfg.faceX, cfg.faceY) : halfDepth;
   const fm0 = cy * sf, fm1 = sy * sp * sf, fm3 = cp * sf;
-  const fe = zf * sy * halfDepth - 50 * fm0;
-  const ffo = -zf * cy * sp * halfDepth - 50 * fm1 - 50 * fm3;
+  const fe = zf * sy * zFace - 50 * fm0;
+  const ffo = -zf * cy * sp * zFace - 50 * fm1 - 50 * fm3;
   let frontClip: Path2D | null = null;
   if (worn && typeof Path2D === 'function') {
     frontClip = new Path2D();
@@ -434,7 +447,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
       ctx.restore();
     }
   }
-  if (worn) drawWearFront(ctx, cfg.path, wr, wear!, frontClip, halfDepth * sf, { y: cfg.faceY, scale: cfg.faceScale });
+  if (worn) drawWearFront(ctx, cfg.path, wr, wear!, frontClip, surface, { y: cfg.faceY, scale: cfg.faceScale });
   /* the near half of the whirl passes in front of the face */
   drawWhirl(ctx, pose, cfg.color, lx, ly, true, cfg.whirl);
   ctx.restore();

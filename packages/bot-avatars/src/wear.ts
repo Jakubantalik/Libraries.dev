@@ -1029,7 +1029,7 @@ function drawBowTie(
   r: WearRig,
   m: Marks,
   base: string,
-  zFront: number,
+  bodyZ: (x: number, y: number) => number,
   bodyClip: Path2D | null,
   face: { y: number; scale: number }
 ) {
@@ -1042,6 +1042,8 @@ function drawBowTie(
   const cyB = Math.max(clear, m.bottom - 0.15 * W);
   const room = Math.max(0, m.bottom - 3 - cyB);
   const k = Math.min(W, 100) * Math.max(0.5, Math.min(1, room / 15));
+  /* on the body's front surface where the bow sits */
+  const zFront = bodyZ(50, cyB);
   /* the bow's own frame, in fractions of the body's width: x across, y
      down, z out of the body's front */
   const Q = (x: number, y: number, z: number): V3 => [50 + x * k, cyB + y * k, zFront + z * k];
@@ -1264,21 +1266,22 @@ export function drawWearBehind(ctx: CanvasRenderingContext2D, path: Path2D, r: W
 }
 
 /** Over the body: the hat, the headphones' near part, the bow tie. The
-    `bodyClip` is the body's front outline, for the shadows things cast on it. */
+    `bodyClip` is the body's front outline, for the shadows things cast on
+    it; `bodyZ` how far the body's front surface stands at a design point. */
 export function drawWearFront(
   ctx: CanvasRenderingContext2D,
   path: Path2D,
   r: WearRig,
   wear: Wear,
   bodyClip: Path2D | null,
-  zFront: number,
+  bodyZ: (x: number, y: number) => number,
   face: { y: number; scale: number }
 ) {
   const m = marksFor(path);
   if (!m) return;
   owner = m;
   const view = viewOf(r, pxOf(ctx));
-  if (wear.bowTie) drawBowTie(ctx, view, r, m, wear.color, zFront, bodyClip, face);
+  if (wear.bowTie) drawBowTie(ctx, view, r, m, wear.color, bodyZ, bodyClip, face);
   if (wear.headphones) drawPhones(ctx, view, m, wear.color, 'front', bodyClip);
   switch (wear.hat) {
     case 'beret':

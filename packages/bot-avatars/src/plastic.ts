@@ -1,16 +1,17 @@
-/* plastic.ts — the 'plastic' shading: a glossy toy-plastic material for
-   the front cap, lit per texel.
+/* plastic.ts — the per-texel materials, 'plastic' (a glossy toy plastic)
+   and 'fabric' (a plush pile), and the inflated body they are drawn on.
 
    Once per outline (× texture size × depth) the outline is rasterised into
    a small grid and turned into a FORM: a signed distance, a pillow height
    field (the torsion function of the outline, so lobes are domes, rays
    are tubes and there is no crease), its normals, and baked ambient
-   occlusion. Per frame the light and the view are rotated into the cap's
+   occlusion. Per frame the light and the view are rotated into the body's
    own frame; a small MATCAP (a lit sphere: one colour per normal) is
    evaluated with the full material — only when the light or the view has
-   moved — and the cap's texels are a bilinear lookup into it, composited
-   through the cap's affine under a vector clip. The side copies take
-   conic gradients sampled from the same matcap, so sides and cap agree.
+   moved — and the texels are a bilinear lookup into it. The body is that
+   lit texture drawn as a relief: the height field's level sets stacked
+   back to front, each shifted by its own depth, so the body is inflated —
+   round from the side as well as from the front — rather than extruded.
 
    Everything is canvas 2D: Path2D fills, gradients, ImageData, one small
    scratch canvas per texture size. No ctx.filter, no WebGL. */
@@ -34,8 +35,6 @@ const INF = 1e12;
 /** Light elevation off the screen plane. */
 const EL = (48 * Math.PI) / 180;
 const E_XY = Math.cos(EL), E_Z = Math.sin(EL);
-const SLICES = 17;
-const profile = (z: number, cap: number) => cap + (1 - cap) * Math.sqrt(Math.max(0, 1 - z * z));
 
 type V3 = [number, number, number];
 
@@ -221,7 +220,9 @@ export function buildForm(cov: Uint8Array | Uint8ClampedArray, N: number, halfDe
   let phiMax = 0;
   for (let i = 0; i < NN; i++) if (phi[i] > phiMax) phiMax = phi[i];
   const rIn = 2 * Math.sqrt(phiMax);
-  const hMax = Math.min(0.9 * halfDepth + 0.12 * rIn, 1.2 * rIn);
+  /* a toy is puffed up well past its own thickness: the height grows with
+     the depth asked for and with how wide the shape is inside */
+  const hMax = Math.min(1.5 * halfDepth + 0.32 * rIn, 1.4 * rIn);
   const kh = phiMax > 0 ? hMax / Math.sqrt(phiMax) : 0;
   const h = new Float32Array(NN);
   for (let i = 0; i < NN; i++) h[i] = phi[i] > 0 ? kh * Math.sqrt(phi[i]) : 0;
@@ -381,18 +382,194 @@ function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: 
   return null;
 }
 /** Build a form ahead of time (call from an idle callback at mount). */
-export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65, fabric = false) {
+export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65, fabric = false, style: FurStyle = FUR_STOCK) {
   const form = formFor(key, path, tierFor(devicePx), 15 * depth, true);
   if (fabric && form) {
-    /* the stock light, 265°: toward the source on screen. The pile is
+    /* the stock light, 300°: toward the source on screen. The pile is
        queued as idle steps rather than baked here in one long task. */
-    const a = (265 * Math.PI) / 180;
-    furReady(form, key, 15 * depth, Math.ceil((SPAN * devicePx) / 100), false, Math.sin(a), -Math.cos(a));
+    const a = (300 * Math.PI) / 180;
+    furReady(form, key, 15 * depth, Math.ceil((SPAN * devicePx) / 100), false, Math.sin(a), -Math.cos(a), style);
   }
 }
 /** Texture size for an avatar `devicePx` wide (CSS px × device pixel ratio). */
 export function tierFor(devicePx: number): number {
   return devicePx <= 100 ? 64 : devicePx <= 224 ? 96 : 128;
+}
+
+/* ── the relief: an inflated body, not an extruded one ─────────────── */
+
+/* A toy is an inflated shape: thickest in the middle and rounding off to
+   nothing at its outline all round, like a cushion — not an outline
+   pushed back into a slab with a wall for a side. So the body is drawn as
+   a stack of its height field's level sets, back to front, each the lit
+   texture cut to where the surface stands at least that high. Head-on the
+   stack is just the texture; turned, every point of it moves by its own
+   height, so the front bulges round the turn, and the side silhouette is
+   the cushion's own round profile. `round` bends the profile from that
+   cushion (1) toward a slab with softened edges (0).
+
+   The levels are contours of the height field, found by marching squares
+   on the form's grid once per form, count and roundness, and kept. */
+export interface Relief {
+  /** the surface's highest point, in design units from the centre plane */
+  top: number;
+  /** each level's depth from the centre plane, in design units; level 0
+      is the outline itself, at the centre */
+  z: Float32Array;
+  /** where the surface stands at least that high, in design units, for an
+      even-odd fill; null for level 0 (the caller's outline) */
+  paths: (Path2D | null)[];
+  /** each level's region as the outline scaled about its centre: the
+      scale (by area) and the centre it moves to — the far half is drawn so,
+      from sprites of the outline */
+  scale: Float32Array;
+  cx: Float32Array;
+  cy: Float32Array;
+  /** the exponent the levels were cut with: a point of height h stands at
+      depth top·(h/top)^q */
+  q: number;
+}
+const reliefs = new WeakMap<Form, Map<string, Relief>>();
+
+/* the contour of a grid of values at `tau`, as closed loops in design
+   units: marching squares with the saddles resolved by the cell's mean */
+function levelPath(h: Float32Array, N: number, tau: number): Path2D {
+  const u = SPAN / N;
+  const at = (i: number) => (i + 0.5) * u - PAD;
+  /* edge ids: 2k for the edge from sample k to its right, 2k+1 to its below */
+  const links = new Map<number, number[]>();
+  const link = (a: number, b: number) => {
+    let la = links.get(a);
+    if (!la) links.set(a, (la = []));
+    la.push(b);
+    let lb = links.get(b);
+    if (!lb) links.set(b, (lb = []));
+    lb.push(a);
+  };
+  for (let j = 0; j < N - 1; j++) {
+    for (let i = 0; i < N - 1; i++) {
+      const k = j * N + i;
+      const a = h[k], b = h[k + 1], c = h[k + N + 1], d = h[k + N];
+      const cs = (a >= tau ? 1 : 0) | (b >= tau ? 2 : 0) | (c >= tau ? 4 : 0) | (d >= tau ? 8 : 0);
+      if (cs === 0 || cs === 15) continue;
+      const T = 2 * k, Rt = 2 * (k + 1) + 1, B = 2 * (k + N), L = 2 * k + 1;
+      switch (cs) {
+        case 1: case 14: link(L, T); break;
+        case 2: case 13: link(T, Rt); break;
+        case 3: case 12: link(L, Rt); break;
+        case 4: case 11: link(Rt, B); break;
+        case 6: case 9: link(T, B); break;
+        case 7: case 8: link(L, B); break;
+        case 5:
+          if ((a + b + c + d) / 4 >= tau) { link(T, Rt); link(L, B); } else { link(L, T); link(Rt, B); }
+          break;
+        case 10:
+          if ((a + b + c + d) / 4 >= tau) { link(L, T); link(Rt, B); } else { link(T, Rt); link(L, B); }
+          break;
+      }
+    }
+  }
+  const point = (id: number): [number, number] => {
+    const k = id >> 1, i = k % N, j = (k - i) / N;
+    if (id & 1) {
+      const a = h[k], b = h[k + N], t = (tau - a) / (b - a || 1e-9);
+      return [at(i), at(j) + t * u];
+    }
+    const a = h[k], b = h[k + 1], t = (tau - a) / (b - a || 1e-9);
+    return [at(i) + t * u, at(j)];
+  };
+  const path = new Path2D();
+  const seen = new Set<number>();
+  /* a point is kept once it has moved a fifth of a cell off the line from
+     the last kept one: a contour of a few dozen points instead of hundreds */
+  const tol = 0.2 * u;
+  for (const start of links.keys()) {
+    if (seen.has(start)) continue;
+    let prev = -1, cur = start;
+    const loop: [number, number][] = [point(start)];
+    for (let guard = 0; guard < 1e6; guard++) {
+      seen.add(cur);
+      const ns = links.get(cur)!;
+      const next = ns[0] !== prev ? ns[0] : ns[1];
+      if (next === undefined || next === start || seen.has(next)) break;
+      loop.push(point(next));
+      prev = cur;
+      cur = next;
+    }
+    if (loop.length < 3) continue;
+    let a = loop[0];
+    path.moveTo(a[0], a[1]);
+    for (let i = 1; i < loop.length; i++) {
+      const b = loop[i], c = loop[(i + 1) % loop.length];
+      /* distance of b from the chord a → c */
+      const dx = c[0] - a[0], dy = c[1] - a[1], dl = Math.hypot(dx, dy) || 1;
+      if (Math.abs((b[0] - a[0]) * dy - (b[1] - a[1]) * dx) / dl < tol && i < loop.length - 1) continue;
+      path.lineTo(b[0], b[1]);
+      a = b;
+    }
+    path.closePath();
+  }
+  return path;
+}
+
+export function reliefFor(form: Form, K: number, round: number): Relief {
+  const q = Math.max(0.05, Math.min(1, round));
+  const key = `${K}|${q.toFixed(2)}`;
+  let byKey = reliefs.get(form);
+  if (!byKey) reliefs.set(form, (byKey = new Map()));
+  const hit = byKey.get(key);
+  if (hit) return hit;
+  const { N, h, sd } = form;
+  let top = 0;
+  for (let i = 0; i < N * N; i++) if (h[i] > top) top = h[i];
+  const u = SPAN / N;
+  const z = new Float32Array(K), paths: (Path2D | null)[] = [null];
+  const scale = new Float32Array(K), cx = new Float32Array(K), cy = new Float32Array(K);
+  /* a level's area and centre, in texels */
+  const measure = (inside: (i: number) => boolean): [number, number, number] => {
+    let n = 0, sx = 0, sy = 0;
+    for (let j = 0, i = 0; j < N; j++) for (let x = 0; x < N; x++, i++) if (inside(i)) (n += 1), (sx += x), (sy += j);
+    return n ? [n, ((sx / n + 0.5) * u) - PAD, ((sy / n + 0.5) * u) - PAD] : [0, 50, 50];
+  };
+  const [a0, x0, y0] = measure((i) => sd[i] >= 0);
+  scale[0] = 1;
+  cx[0] = x0;
+  cy[0] = y0;
+  for (let k = 1; k < K; k++) {
+    const s = k / K;
+    z[k] = top * s;
+    /* level k holds every point that stands at depth top·s or more */
+    const tau = top * Math.pow(s, 1 / q);
+    paths.push(levelPath(h, N, tau));
+    const [ak, xk, yk] = measure((i) => h[i] >= tau);
+    scale[k] = a0 ? Math.sqrt(ak / a0) : 1;
+    cx[k] = xk;
+    cy[k] = yk;
+  }
+  const r: Relief = { top, z, paths, q, scale, cx, cy };
+  if (byKey.size > 6) byKey.clear();
+  byKey.set(key, r);
+  return r;
+}
+
+/** How high the surface stands at a design point: its depth from the
+    centre plane, in design units, on whichever form of the outline is
+    kept (null before one is built). */
+export function surfaceAt(key: string, halfDepth: number, x: number, y: number, round = 1): number | null {
+  const prefix = `${key}|`, suffix = `|${Math.round(halfDepth)}`;
+  let form: Form | null = null;
+  for (const [id, f] of forms) if (id.startsWith(prefix) && id.endsWith(suffix)) form = f;
+  if (!form) return null;
+  const { N, h } = form;
+  const u = SPAN / N;
+  const fx = Math.min(N - 1, Math.max(0, (x + PAD) / u - 0.5)), fy = Math.min(N - 1, Math.max(0, (y + PAD) / u - 0.5));
+  const x0 = Math.min(N - 2, fx | 0), y0 = Math.min(N - 2, fy | 0), tx = fx - x0, ty = fy - y0, i = y0 * N + x0;
+  const v = (h[i] * (1 - tx) + h[i + 1] * tx) * (1 - ty) + (h[i + N] * (1 - tx) + h[i + N + 1] * tx) * ty;
+  let top = 0;
+  for (let k = 0; k < N * N; k++) if (h[k] > top) top = h[k];
+  if (top <= 0) return 0;
+  const q = Math.max(0.05, Math.min(1, round));
+  return top * Math.pow(Math.max(0, v) / top, q);
 }
 
 /* ── colour ────────────────────────────────────────────────────────── */
@@ -455,6 +632,8 @@ export interface Material {
 }
 export interface Frame {
   L: V3; V: V3; H: V3; U: V3; W: V3; A: V3; B: V3;
+  /** down on screen, in the cap's frame: toward the floor */
+  D: V3;
 }
 const ENV: V3 = [0.92, 0.96, 1.0];
 const WARM: V3 = [1, 0.98, 0.95];
@@ -589,7 +768,7 @@ export interface Fur {
   /** the pile's own resolution: finer than the form, so the fibres stay
       thin on a large avatar */
   R: number;
-  /** the pile's fibres in greys about FUR_MID, multiplied over the lit texels */
+  /** the pile's fibres in greys about FUR_MID, soft-lit over the lit texels */
   fibre: AnyCanvas | null;
   /** the body plus a fringe of hairs past its edge, as alpha */
   mask: AnyCanvas | null;
@@ -604,11 +783,28 @@ const furPending = new Set<string>();
 const lightBin = (lx: number, ly: number) => Math.round(Math.atan2(ly, lx) / (Math.PI / 12));
 /* the pile's resolution for a cap drawn `capPx` device pixels across */
 const furTier = (capPx: number) => (capPx <= 200 ? 192 : capPx <= 360 ? 320 : 512);
-const furKey = (key: string, halfDepth: number, R: number, bin: number) => `${key}|${Math.round(halfDepth)}|${R}|${bin}`;
+/** The pile's style: `length` and `density` multiply the stock fibres',
+    `fuzz` (0–1) is how soft the silhouette is, `clumps` (0–1) how much the
+    fibres gather into tufts, `curl` (0–1) how wavy they are. */
+export interface FurStyle {
+  length: number;
+  density: number;
+  fuzz: number;
+  clumps: number;
+  curl: number;
+}
+export const FUR_STOCK: FurStyle = { length: 1, density: 1, fuzz: 0.5, clumps: 0.5, curl: 0.3 };
+const styleId = (s: FurStyle) => `${s.length.toFixed(2)},${s.density.toFixed(2)},${s.fuzz.toFixed(2)},${s.clumps.toFixed(2)},${s.curl.toFixed(2)}`;
+const furKey = (key: string, halfDepth: number, R: number, bin: number, style: FurStyle) => `${key}|${Math.round(halfDepth)}|${R}|${bin}|${styleId(style)}`;
+/* a slider dragged through styles queues a bake per stop: past the two
+   newest for a shape, the older ones are dropped before they run */
+const queuedFor = new Map<string, string[]>();
+const dropped = new Set<string>();
 
-/* the pile's mean grey: it is multiplied over the lit texels, the tips
-   lighter than this and the gaps between them darker */
-const FUR_MID = 226;
+/* the pile's mean grey: laid over the lit texels with a soft-light blend,
+   which leaves mid-grey alone, deepens the colour in the gaps (a yellow
+   toward orange, not toward olive) and lifts the tips paler */
+const FUR_MID = 128;
 
 /* a stable white noise, so every avatar of a type wears the same pile */
 function hash2(x: number, y: number): number {
@@ -628,16 +824,26 @@ function bilerp(f: Float32Array, N: number, x: number, y: number): number {
 
 /* the pile takes 30–50 ms to make: on idle time, in small steps, unless
    no animation will follow (then now) */
-function furReady(form: Form, key: string, halfDepth: number, capPx: number, sync: boolean, lx: number, ly: number): Fur | null {
+function furReady(form: Form, key: string, halfDepth: number, capPx: number, sync: boolean, lx: number, ly: number, style: FurStyle = FUR_STOCK): Fur | null {
   const R = furTier(capPx), bin = lightBin(lx, ly);
-  const id = furKey(key, halfDepth, R, bin);
+  const id = furKey(key, halfDepth, R, bin, style);
   const hit = furs.get(id);
   if (hit) return hit;
-  if (sync) return furFor(form, key, halfDepth, capPx, lx, ly);
+  if (sync) return furFor(form, key, halfDepth, capPx, lx, ly, style);
   if (!furPending.has(id)) {
     furPending.add(id);
-    const job = furJob(form, id, R, lx, ly);
-    if (job) for (const step of job.steps) idle(step);
+    dropped.delete(id);
+    const shape = `${key}|${Math.round(halfDepth)}|${R}|${bin}`;
+    const line = queuedFor.get(shape) ?? [];
+    line.push(id);
+    while (line.length > 2) {
+      const old = line.shift()!;
+      dropped.add(old);
+      furPending.delete(old);
+    }
+    queuedFor.set(shape, line);
+    const job = furJob(form, id, R, lx, ly, style);
+    if (job) for (const step of job.steps) idle(() => (dropped.has(id) ? undefined : step()));
   }
   /* while it bakes, the same shape's pile at another tier or light will
      do — close enough for the few frames until this one lands */
@@ -680,24 +886,25 @@ function valueNoise(scale: number, seed: number) {
  * lean together and catch the light on the side that faces it. The fibres
  * are combed in one flow — away from a crown near the top of the head and
  * down, turning outward at the edge. So the pile is drawn stroke by stroke
- * into a light grey layer and multiplied over the lit texels, which are
- * lifted by as much beforehand: the tips come out lighter than the colour,
- * the gaps darker, and the colour keeps its saturation throughout. The silhouette stays a smooth curve with a haze
+ * into a grey layer about mid-grey and laid over the lit texels with a
+ * soft-light blend: the tips come out paler than the colour, the gaps
+ * deeper — a yellow going toward orange rather than olive — and the colour
+ * keeps its saturation throughout. The silhouette stays a smooth curve with a haze
  * of fine hairs standing past it.
  */
-export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0): Fur {
+export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0, style: FurStyle = FUR_STOCK): Fur {
   const R = furTier(capPx);
-  const id = furKey(key, halfDepth, R, lightBin(lx, ly));
+  const id = furKey(key, halfDepth, R, lightBin(lx, ly), style);
   const hit = furs.get(id);
   if (hit) return hit;
-  const job = furJob(form, id, R, lx, ly);
+  const job = furJob(form, id, R, lx, ly, style);
   if (job) for (const step of job.steps) step();
   return furs.get(id) ?? { R: 0, fibre: null, mask: null };
 }
 
 /* the bake as a list of steps sharing one closure; the last one files the
    finished pile in the cache */
-function furJob(form: Form, id: string, R: number, lx: number, ly: number): { steps: (() => void)[] } | null {
+function furJob(form: Form, id: string, R: number, lx: number, ly: number, style: FurStyle = FUR_STOCK): { steps: (() => void)[] } | null {
   if (furs.has(id)) return null;
   /* files the finished pile, keeping the cache to a couple of dozen */
   const file = (f: Fur) => {
@@ -718,6 +925,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
   }
   const rand = rng(N * 7919 + 17);
   const clump = valueNoise(2.6, 3), lean = valueNoise(3.4, 21), tone = valueNoise(22, 9);
+  /* the style: longer or shorter fibres, more or fewer, gathered into
+     tufts more or less, straighter or wavier, and a softer or crisper edge */
+  const { length: kLen, density: kDen, fuzz, clumps, curl } = style;
   const ll = Math.hypot(lx, ly) || 1;
   const Lx = lx / ll, Ly = ly / ll;
   /* a tuft is a small mound: lit on the side toward the light, in shade on
@@ -787,37 +997,37 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
   const layers = [
     /* undercoat: dense, fine, short, quiet — most of what the eye reads as
        the velvet */
-    { count: 4.2, len: [0.5, 0.7], width: 0.11, spread: 34, alpha: 0.5, split: false, lift: 0 },
+    { count: 4.2, len: [0.5, 0.7], width: 0.11, spread: 60, alpha: 0.5, split: false, lift: 0 },
     /* the pile: short fibres, root a little darker than tip */
-    { count: 2.4, len: [1.2, 1.7], width: 0.14, spread: 42, alpha: 0.55, split: true, lift: 0.04 },
+    { count: 2.4, len: [1.2, 1.7], width: 0.14, spread: 72, alpha: 0.55, split: true, lift: 0.04 },
     /* guard hairs: a sparse few, longer, standing over the pile with their
        tips in the light — what makes it read as fur rather than felt */
-    { count: 0.32, len: [2.2, 1.8], width: 0.12, spread: 38, alpha: 0.42, split: true, lift: 0.18 },
+    { count: 0.32, len: [2.2, 1.8], width: 0.12, spread: 66, alpha: 0.42, split: true, lift: 0.18 },
   ];
   const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
   for (const L of layers) for (let half = 0; half < 2; half++) steps.push(() => {
     const buckets: Path2D[] = [];
     for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
-    const count = Math.round((area * L.count) / 2);
+    const count = Math.round((area * L.count * kDen) / 2);
     for (let n = 0; n < count; n++) {
       const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
       if (sdAt(X, Y) < -0.3) continue;
       const [fx, fy] = flow(X, Y);
-      const ang = (rand() - 0.5) * 0.35;
+      const ang = (rand() - 0.5) * (0.2 + 0.5 * curl);
       const ca = Math.cos(ang), sa = Math.sin(ang);
       const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
-      const len = (L.len[0] + L.len[1] * rand()) * px;
+      const len = (L.len[0] + L.len[1] * rand()) * px * kLen;
       /* the fibre's own shade: its tuft's light and height, and whether it
          is one catching the light or one in a gap */
       const r0 = rand();
-      let v = (clump(X, Y) - 0.5) * 0.6 + tuftLit(X, Y) * 0.4;
+      let v = (clump(X, Y) - 0.5) * 1.2 * clumps + tuftLit(X, Y) * 0.8 * clumps;
       /* seen from above, a pile is mostly tips: more fibres catch the
          light than fall into the gaps between them */
       if (r0 < 0.46) v += 0.2 + 0.28 * rand();
       else if (r0 < 0.8) v -= 0.2 + 0.28 * rand();
       v += L.lift;
       const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-      const bend = (rand() - 0.5) * 0.28 * len;
+      const bend = (rand() - 0.5) * 0.93 * curl * len;
       const mx = x0 + ux * len * 0.45 - uy * bend, my = y0 + uy * len * 0.45 + ux * bend;
       const x1 = x0 + ux * len, y1 = y0 + uy * len;
       if (L.split) {
@@ -848,7 +1058,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
      with the flow, so the edge is a soft haze rather than a comb */
   steps.push(() => {
   const fringe = new Path2D();
-  const edgeTries = Math.round(area * 12);
+  const edgeTries = Math.round(area * 12 * (0.3 + 1.4 * fuzz) * Math.sqrt(kDen));
   for (let n = 0; n < edgeTries; n++) {
     const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
     const d = sdAt(X, Y);
@@ -858,16 +1068,16 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
     const r1 = rand();
-    const fl = (0.35 + 1.9 * r1 * r1 * r1) * px;
+    const fl = (0.35 + 1.9 * r1 * r1 * r1) * px * kLen * (0.5 + fuzz);
     const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-    const bend = (rand() - 0.5) * 0.35 * fl;
+    const bend = (rand() - 0.5) * 1.17 * curl * fl;
     fringe.moveTo(x0, y0);
     fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl);
   }
   /* the edge hairs are seen side-on against the light: a touch lighter */
   fg.lineWidth = Math.max(0.35, 0.08 * px);
   fg.globalAlpha = 0.5;
-  fg.strokeStyle = 'rgb(255,255,255)';
+  fg.strokeStyle = 'rgb(200,200,200)';
   fg.stroke(fringe);
   fg.globalAlpha = 1;
 
@@ -881,7 +1091,8 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
   for (let y = 0; y < Rh; y++) {
     for (let x = 0; x < Rh; x++) {
       const d = sdAt((x + 0.5) / ph - PAD, (y + 0.5) / ph - PAD);
-      const a = d >= 0.45 ? 1 : d <= -1.3 ? 0 : (d + 1.3) / 1.75;
+      const fIn = 0.2 + 0.5 * fuzz, fOut = 0.4 + 1.8 * fuzz;
+      const a = d >= fIn ? 1 : d <= -fOut ? 0 : (d + fOut) / (fIn + fOut);
       const k = (y * Rh + x) * 4;
       mi.data[k] = mi.data[k + 1] = mi.data[k + 2] = 255;
       mi.data[k + 3] = Math.round(255 * a * a * (3 - 2 * a));
@@ -910,20 +1121,30 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number): { st
     the fibres catch the light side-on. No specular lobe and no
     reflections — fur has no clear coat. */
 export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
-  const { L, V } = f;
-  /* plush scatters light deep into the pile: a high floor of light, a
-     wide wrap, and a gentle turn from light into shade — its shadow side
-     stays the body's colour, only a little deeper */
-  const amb = Math.max(0.2, 0.5 - 0.2 * p.shadow);
-  const wrap = Math.min(1.1, 0.5 + 0.2 * p.spread);
-  const kd = 0.74;
-  /* the pile is multiplied over this, darkening it by its mean: lift the
-     sphere by as much so the colour comes out as given */
-  const gain = 255 / FUR_MID;
-  const sheenK = 0.3 * p.highlight, edgeK = 0.2 * p.rim;
-  /* the sheen is the body colour itself, a little lifted: plush keeps its
-     colour where it catches the light, it does not go white */
-  const tint: V3 = [0.78 * c[0] + 0.22, 0.78 * c[1] + 0.22, 0.78 * c[2] + 0.22];
+  const { V, U, D } = f;
+  /* the key comes in lower than plastic's, from further round the side, so
+     the far side of the form falls into real shade */
+  const EK = (30 * Math.PI) / 180;
+  const L = norm3([U[0] * Math.cos(EK) + V[0] * Math.sin(EK), U[1] * Math.cos(EK) + V[1] * Math.sin(EK), U[2] * Math.cos(EK) + V[2] * Math.sin(EK)]);
+  /* A plush toy under studio light: a large soft key high on the light's
+     side, turning into shade gradually — the pile scatters it, so the
+     terminator is wide and the shade keeps the body's colour, deepened
+     rather than greyed; a dim fill from the other side and the front, so
+     no side goes flat; a thin back light the fibres at the silhouette catch
+     all round; and the floor's occlusion under the body. */
+  const amb = Math.max(0.05, 0.17 - 0.12 * p.shadow);
+  const wrap = Math.min(0.9, 0.2 + 0.16 * p.spread);
+  const kd = 1.32;
+  const fillK = 0.16, floorK = 0.3 * Math.min(1.5, p.shadow / 0.35);
+  /* the fill: from the other side of the screen, a little low, mostly from
+     the front */
+  const Fl = norm3([-0.55 * U[0] + 0.85 * V[0] + 0.15 * D[0], -0.55 * U[1] + 0.85 * V[1] + 0.15 * D[1], -0.55 * U[2] + 0.85 * V[2] + 0.15 * D[2]]);
+  const sheenK = 0.26 * p.highlight, rimK = 0.3 * p.rim;
+  /* the sheen and the back light are the body colour itself, lifted:
+     plush keeps its colour where it catches the light, it does not go white */
+  const tint: V3 = [0.72 * c[0] + 0.28, 0.72 * c[1] + 0.28, 0.72 * c[2] + 0.28];
+  /* the shade is the colour deepened: a little more saturated, not grey */
+  const deep: V3 = [c[0] * c[0] * 0.9 + c[0] * 0.1, c[1] * c[1] * 0.9 + c[1] * 0.1, c[2] * c[2] * 0.9 + c[2] * 0.1];
   for (let j = 0; j < M; j++) {
     for (let i = 0; i < M; i++) {
       let nx = (i / (M - 1)) * 2 - 1, ny = (j / (M - 1)) * 2 - 1;
@@ -936,19 +1157,28 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
       const nz = Math.sqrt(1 - r2);
       const nl = nx * L[0] + ny * L[1] + nz * L[2];
       const nv = Math.max(0, nx * V[0] + ny * V[1] + nz * V[2]);
-      /* fur scatters light through its tips: toward the silhouette the
-         light wraps much further round, so the edge never sinks into a dark
-         rim, while the face of the form keeps a firm light-to-shade turn */
-      const w = wrap + (1.6 - wrap) * (1 - nz) * (1 - nz);
+      /* the key, wrapped, with a gamma on it so the light falls off toward
+         the shade like a round form's, and a little more wrap toward the
+         silhouette where the fibres scatter it */
+      const w = wrap + (1.2 - wrap) * (1 - nz) * (1 - nz);
       let dif = Math.min(1, Math.max(0, (nl + w) / (1 + w)));
-      dif = Math.pow(dif, 1.15);
+      dif = Math.pow(dif, 1.3);
+      const fill = fillK * Math.max(0, nx * Fl[0] + ny * Fl[1] + nz * Fl[2]);
+      const floor = 1 - floorK * Math.max(0, nx * D[0] + ny * D[1] + nz * D[2]) * (0.6 + 0.4 * (1 - nv));
       const q = 1 - nv, graze = q * q;
-      const lit = 0.25 + 0.75 * Math.min(1, Math.max(0, (nl + 0.35) / 1.35));
-      const sheen = sheenK * graze * lit + edgeK * graze * q;
+      const lit = Math.min(1, Math.max(0, (nl + 0.3) / 1.3));
+      /* the sheen on the lit side where the fibres lie side-on, and the back
+         light round the whole silhouette, strongest away from the key */
+      const away = 0.45 + 0.55 * Math.max(0, -(nx * U[0] + ny * U[1] + nz * U[2]));
+      const sheen = sheenK * graze * lit + rimK * graze * graze * away;
+      const light = (amb + kd * dif + fill) * floor;
+      /* toward the shade the colour deepens rather than greys */
+      const t = Math.min(1, Math.max(0, (1.1 - light) / 1.1));
       const k = (j * M + i) * 3;
-      out[k] = tone((c[0] * (amb + kd * dif) + sheen * tint[0]) * gain);
-      out[k + 1] = tone((c[1] * (amb + kd * dif) + sheen * tint[1]) * gain);
-      out[k + 2] = tone((c[2] * (amb + kd * dif) + sheen * tint[2]) * gain);
+      for (let ch = 0; ch < 3; ch++) {
+        const base = c[ch] + (deep[ch] - c[ch]) * t * 0.85;
+        out[k + ch] = tone(base * light + sheen * tint[ch]);
+      }
     }
   }
 }
@@ -972,6 +1202,9 @@ export interface Rig {
   ctm: readonly number[];
   /** no animation loop will follow: build the form now rather than on idle time */
   still?: boolean;
+  /** the profile through the depth: 1 a cushion, rounding off to nothing at
+      the outline all round; toward 0 a slab with softened edges */
+  round?: number;
 }
 
 const norm3 = (v: V3): V3 => {
@@ -1002,7 +1235,9 @@ export function capFrame(r: Rig): Frame {
   const As = norm3([Ws[1], -Ws[0], 0]);
   const Bs: V3 = [Ws[1] * As[2] - Ws[2] * As[1], Ws[2] * As[0] - Ws[0] * As[2], Ws[0] * As[1] - Ws[1] * As[0]];
   const W = local(Ws[0], Ws[1], Ws[2], mirror), A = local(As[0], As[1], As[2], mirror), B = local(Bs[0], Bs[1], Bs[2], mirror);
-  return { L, V, H, U, W, A, B };
+  /* screen down, un-rolled the same way as the light */
+  const D = local(sr, cr, 0, mirror);
+  return { L, V, H, U, W, A, B, D };
 }
 
 /* ── per-instance state, hung on the canvas ────────────────────────── */
@@ -1038,10 +1273,6 @@ interface State {
   imgForm: Form | null;
   aoK: number;
   aoMul: Float32Array;
-  /** side gradients sampled from the matcap: the near shoulder, the rim, the far shoulder */
-  near: CanvasGradient | null;
-  rimG: CanvasGradient | null;
-  far: CanvasGradient | null;
   /** the texels as a canvas, two in turn: Safari reads a drawImage source
       when the frame flushes, so one that is redrawn right after drawing
       shows the later texels (a shared one showed another avatar's) */
@@ -1049,11 +1280,17 @@ interface State {
   scratchIdx: number;
   scratchN: number;
   scratchStale: boolean;
-  /** WebKit: the outline filled with each side gradient (near shoulder,
-      rim, far shoulder), blitted per slice instead of filled */
+  /** the lit texture as a fill pattern in design units, and the canvas it
+      was made from */
+  pattern: CanvasPattern | null;
+  patternFrom: AnyCanvas | null;
+  /** the far half's sprites: the outline in the side's light — its rim and
+      its shaded back — with the pile and its fringe for fabric; redrawn
+      with the matcap */
   sprites: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
   spriteVersion: number;
   spritePx: number;
+  spriteFur: Fur | null;
   /** fabric: the lit texels at the pile's resolution with its streaks and
       fringe applied, two in turn for the same reason as the scratch */
   furCap: ({ c: AnyCanvas; g: CanvasRenderingContext2D } | null)[];
@@ -1062,8 +1299,6 @@ interface State {
   furCapR: number;
   /** the pile the composite was made with: a new light bakes a new one */
   furCapFur: Fur | null;
-  /** the pile the side sprites were made with */
-  spriteFur: Fur | null;
 }
 const states = new WeakMap<object, Map<string, State>>();
 function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
@@ -1080,10 +1315,10 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
       mcPrev: new Float32Array(MM * 3), mcMix: new Float32Array(MM * 3), mixVersion: 0, blendT: 1, blendFrames: 1, sinceBuild: 0,
       L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
-      near: null, rimG: null, far: null,
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
-      sprites: [null, null, null], spriteVersion: -1, spritePx: 0,
-      furCap: [null, null], furCapIdx: 0, furCapFrom: null, furCapR: 0, furCapFur: null, spriteFur: null,
+      pattern: null, patternFrom: null,
+      sprites: [null, null], spriteVersion: -1, spritePx: 0, spriteFur: null,
+      furCap: [null, null], furCapIdx: 0, furCapFrom: null, furCapR: 0, furCapFur: null,
     };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
@@ -1103,9 +1338,9 @@ export function mulAffine(A: readonly number[], B: readonly number[]): number[] 
     A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5],
   ];
 }
-function sideGradient(ctx: CanvasRenderingContext2D, mc: Float32Array, nz: number, dark: number, lxy: [number, number]): CanvasGradient {
+function sideGradient(ctx: CanvasRenderingContext2D, mc: Float32Array, nz: number, dark: number, lxy: [number, number], linear = false): CanvasGradient {
   const rr = Math.sqrt(1 - nz * nz), c: V3 = [0, 0, 0], k = 1 - dark;
-  if (typeof ctx.createConicGradient === 'function') {
+  if (!linear && typeof ctx.createConicGradient === 'function') {
     const g = ctx.createConicGradient(0, 50, 50);
     for (let s = 0; s <= CONIC_STOPS; s++) {
       const phi = (s / CONIC_STOPS) * Math.PI * 2;
@@ -1127,21 +1362,16 @@ function sideGradient(ctx: CanvasRenderingContext2D, mc: Float32Array, nz: numbe
 }
 
 /**
- * Draw the plastic body: the side copies (far → near) with gradients from
- * the matcap, then the front cap as a lit texture under a vector clip.
+ * Draw the plastic or fabric body as a relief: the far half's levels from
+ * sprites, the outline, then the near half's levels as the lit texture.
  * Call inside the body transform (translate / roll / squash applied),
  * instead of the slice loop. Returns false when the form is not built
  * yet (it is being built on idle time): draw the stock slices that frame.
  */
 /* WebKit rasterises a conic-gradient fill slowly — about 60 µs each where
-   a flat fill is 2 µs — and the side stack is sixteen of them a frame.
-   There the three side gradients are rendered into sprites of the outline
-   once per matcap rebuild and each slice is a blit of one; Chromium and
-   Firefox fill the slices as vectors. */
+   a flat fill is 2 µs — so there the side sprite takes a linear ramp. */
 const WEBKIT =
   typeof navigator !== 'undefined' && /AppleWebKit\//.test(navigator.userAgent) && !/Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
-/** each side sprite: the matcap tilt it samples and its darkening */
-const SIDE_KINDS: [number, (m: Material) => number][] = [[0.55, () => 0], [0, () => 0], [0, (m) => Math.min(0.6, 0.25 * m.shadow)]];
 
 export function drawPlasticCap(
   ctx: CanvasRenderingContext2D,
@@ -1157,7 +1387,7 @@ export function drawPlasticCap(
   /* fabric wears the same form in a pile instead of a clear coat */
   const fabric = cfg.shading === 'fabric';
   const capPx = Math.ceil((SPAN * rig.dev) / 100);
-  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still, rig.lx, rig.ly) : null;
+  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still, rig.lx, rig.ly, cfg.fur ?? FUR_STOCK) : null;
   if (fabric && !fur) return false;
   const st = stateFor(ctx, (cfg.typeKey ?? pathId(cfg.path)) + (fabric ? '|fabric' : ''));
   const f = capFrame(rig);
@@ -1193,7 +1423,6 @@ export function drawPlasticCap(
     st.spread = mat.spread;
     st.rim = mat.rim;
     st.version++;
-    st.near = st.rimG = st.far = null;
   }
   st.sinceBuild++;
   if (st.blendT < 1) {
@@ -1264,7 +1493,7 @@ export function drawPlasticCap(
         fc.g.imageSmoothingEnabled = true;
         fc.g.imageSmoothingQuality = 'high';
         fc.g.drawImage(sc.c as HTMLCanvasElement, 0, 0, R, R);
-        fc.g.globalCompositeOperation = 'multiply';
+        fc.g.globalCompositeOperation = 'soft-light';
         fc.g.globalAlpha = 1;
         fc.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0);
         fc.g.globalAlpha = 1;
@@ -1279,125 +1508,112 @@ export function drawPlasticCap(
     if (fc) capSrc = fc.c;
   }
 
-  /* WebKit: the side sprites, at the avatar's device resolution, redrawn
-     with the matcap */
-  /* fabric always blits: its side copies are sprites of the pile with the
-     fringe's coverage, so a turned body's edge is as soft as the front's */
-  let fast = !!(fur && fur.mask && fur.fibre) || cfg.sides === 'sprite' || (cfg.sides !== 'vector' && WEBKIT);
-  if (fast) {
-    const px = Math.ceil((SPAN * rig.dev) / 100);
-    if (st.spritePx !== px) {
-      st.sprites = [null, null, null];
-      st.spritePx = px;
-      st.spriteVersion = -1;
-    }
-    if (st.spriteVersion !== st.version || st.spriteFur !== fur) {
-      const k = px / SPAN;
-      for (let i = 0; i < 3 && fast; i++) {
-        let spr = st.sprites[i];
-        if (!spr) {
-          const c = makeCanvas(px);
-          const g = c && ctx2d(c, false);
-          if (!c || !g) {
-            fast = false;
-            break;
-          }
-          spr = st.sprites[i] = { c, g };
+  /* the lit texture as a pattern laid over design units, so a level is one
+     fill of its contour */
+  if (st.patternFrom !== capSrc) {
+    const T = (capSrc as HTMLCanvasElement).width;
+    st.pattern = ctx.createPattern(capSrc as HTMLCanvasElement, 'no-repeat');
+    st.pattern?.setTransform?.(new DOMMatrix([SPAN / T, 0, 0, SPAN / T, -PAD, -PAD]));
+    st.patternFrom = capSrc;
+  }
+  const pattern = st.pattern;
+  if (!pattern) return false;
+
+  /* the relief, back to front: the far half's levels from the deepest in,
+     the outline at the centre plane, then the near half's out to the top.
+     Each level is the texture shifted by its own depth — turned, the body
+     bulges round the turn and its side is the cushion's round profile.
+     The outline level of fabric carries the pile's fringe, so it is the
+     texture itself rather than a fill of the outline. */
+  const K = rig.dev <= 100 ? 10 : rig.dev <= 224 ? 16 : rig.dev <= 420 ? 24 : 32;
+  const rel = reliefFor(form, K, rig.round ?? 1);
+  /* the far half's two sprites — its rim, and its back in shade — at the
+     avatar's device size */
+  const spx = Math.ceil((SPAN * rig.dev) / 100);
+  if (st.spritePx !== spx) {
+    st.sprites = [null, null];
+    st.spritePx = spx;
+    st.spriteVersion = -1;
+  }
+  if (st.spriteVersion !== st.version || st.spriteFur !== fur) {
+    const k = spx / SPAN;
+    for (let i = 0; i < 2; i++) {
+      let spr = st.sprites[i];
+      if (!spr) {
+        const c = makeCanvas(spx);
+        const g = c && ctx2d(c, false);
+        if (!c || !g) return false;
+        spr = st.sprites[i] = { c, g };
+      }
+      const g = spr.g;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalCompositeOperation = 'source-over';
+      g.clearRect(0, 0, spx, spx);
+      g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
+      /* the first in the side's light, the second a black silhouette laid
+         over the deeper levels, more the deeper they are */
+      g.fillStyle = i === 0 ? sideGradient(g, st.mc, 0, 0, lxy, WEBKIT) : '#000';
+      if (fur && fur.fibre && fur.mask) {
+        /* the square in the side's light, the pile multiplied in, then cut
+           to the body and its fringe */
+        g.fillRect(-PAD, -PAD, SPAN, SPAN);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.imageSmoothingEnabled = true;
+        g.imageSmoothingQuality = 'high';
+        if (i === 0) {
+          g.globalCompositeOperation = 'soft-light';
+          g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0, spx, spx);
         }
-        spr.g.setTransform(1, 0, 0, 1, 0, 0);
-        spr.g.clearRect(0, 0, px, px);
-        spr.g.setTransform(k, 0, 0, k, PAD * k, PAD * k);
-        spr.g.fillStyle = sideGradient(spr.g, st.mc, SIDE_KINDS[i][0], SIDE_KINDS[i][1](mat) * (fur ? 0.4 : 1), lxy);
-        if (fur && fur.fibre && fur.mask) {
-          /* the whole square in the side colour, the pile's streaks
-             multiplied in, then cut to the body plus its fringe */
-          spr.g.fillRect(-PAD, -PAD, SPAN, SPAN);
-          spr.g.setTransform(1, 0, 0, 1, 0, 0);
-          spr.g.imageSmoothingEnabled = true;
-          spr.g.imageSmoothingQuality = 'high';
-          spr.g.globalCompositeOperation = 'multiply';
-          spr.g.globalAlpha = 1;
-          spr.g.drawImage(fur.fibre as HTMLCanvasElement, 0, 0, px, px);
-          spr.g.globalAlpha = 1;
-          spr.g.globalCompositeOperation = 'destination-in';
-          spr.g.drawImage(fur.mask as HTMLCanvasElement, 0, 0, px, px);
-          spr.g.globalCompositeOperation = 'source-over';
-        } else spr.g.fill(cfg.path);
-      }
-      if (fast) {
-        st.spriteVersion = st.version;
-        st.spriteFur = fur;
-      }
+        g.globalCompositeOperation = 'destination-in';
+        g.drawImage(fur.mask as HTMLCanvasElement, 0, 0, spx, spx);
+        g.globalCompositeOperation = 'source-over';
+      } else g.fill(cfg.path);
     }
+    st.spriteVersion = st.version;
+    st.spriteFur = fur;
   }
-  if (!fast && !st.near) {
-    st.near = sideGradient(ctx, st.mc, 0.55, 0, lxy);
-    st.rimG = sideGradient(ctx, st.mc, 0, 0, lxy);
-    st.far = sideGradient(ctx, st.mc, 0, Math.min(0.6, 0.25 * mat.shadow), lxy);
-  }
-
-  /* 1. the side copies, far → near, without the nearest (the texture is
-     the whole front); the shoulder nearest the cap reads the matcap at a
-     57° tilt, the equator its rim, the far half its rim in shade. Each
-     slice sets its transform outright from the body's: no save/restore */
-  const { cy, sy, cp, sp, halfDepth, cap } = rig;
-  const order = rig.facing >= 0 ? 1 : -1;
+  const { cy, sy, cp, sp } = rig;
   const [ca, cb, cc, cd, ce, cf] = rig.ctm;
-  let fill: CanvasGradient | null = null;
-  if (fast) {
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-  }
-  /* each slice's affine is applied relative to the previous slice's: one
-     transform() per slice, no save/restore (a setTransform costs four
-     times as much in Safari) */
-  let pa = 1, pb = 0, pc = 0, pd = 1, pe = 0, pf = 0;
-  for (let j = 0; j < SLICES - 1; j++) {
-    const k = order > 0 ? j : SLICES - 1 - j;
-    const z = -1 + (2 * k) / (SLICES - 1);
-    const s = profile(z, cap);
-    const zn = z * order; // toward the viewer
-    /* yaw about Y then pitch about X, orthographic: an affine per slice,
-       then the path's own origin at its centre */
-    const m0 = cy * s, m1 = sy * sp * s, m3 = cp * s;
-    const e = z * sy * halfDepth - 50 * m0, fo = -z * cy * sp * halfDepth - 50 * m1 - 50 * m3;
-    const det = pa * pd - pb * pc;
-    const ia = pd / det, ib = -pb / det, ic = -pc / det, id = pa / det, ie = (pc * pf - pd * pe) / det, jf = (pb * pe - pa * pf) / det;
-    ctx.transform(ia * m0 + ic * m1, ib * m0 + id * m1, ic * m3, id * m3, ia * e + ic * fo + ie, ib * e + id * fo + jf);
-    pa = m0; pb = m1; pc = 0; pd = m3; pe = e; pf = fo;
-    const kind = zn > 0.4 ? 0 : zn >= 0 ? 1 : 2;
-    if (fast) {
-      ctx.drawImage(st.sprites[kind]!.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
-    } else {
-      const g = (kind === 0 ? st.near : kind === 1 ? st.rimG : st.far) as CanvasGradient;
-      if (g !== fill) ctx.fillStyle = fill = g;
-      ctx.fill(cfg.path);
-    }
-  }
-  ctx.setTransform(ca, cb, cc, cd, ce, cf);
-
-  /* 2. the cap. The texture is the front surface seen head-on: its outer
-     units are the rounded shoulder. Turned, the front's projection runs
-     from the equator on the trailing side to the shoulder's silhouette on
-     the leading side, so the texture is stretched along the turn to span
-     exactly that (no stretch head-on). */
-  const inv = 1 / (cy * cp);
-  const dx = sy * halfDepth / cy, dy = -sp * halfDepth * inv; // the depth axis, in the equator's own units
-  const dl = Math.hypot(dx, dy);
-  const ex = dl > 1e-6 ? (order * dx) / dl : 1, ey = dl > 1e-6 ? (order * dy) / dl : 0;
-  const lead = 50 * cap + Math.hypot(50 * (1 - cap), dl);
-  const stretch = (lead + 50) / 100, shift = (lead - 50) / 2;
-  const a = 1 + (stretch - 1) * ex * ex, b = (stretch - 1) * ex * ey, d = 1 + (stretch - 1) * ey * ey;
-  const capM = mulAffine(mulAffine(rig.ctm, [cy, sy * sp, 0, cp, 0, 0]), [a, b, b, d, shift * ex - 50 * a - 50 * b, shift * ey - 50 * b - 50 * d]);
-  ctx.save();
-  ctx.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4], capM[5]);
-  /* plastic is cut by its outline; fabric's texels carry their own soft
-     edge — the fringe — so they go down unclipped */
-  if (!fur) ctx.clip(cfg.path);
+  const m1 = sy * sp;
+  const ta = ca * cy + cc * m1, tb = cb * cy + cd * m1, tc = cc * cp, td = cd * cp;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(capSrc as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
-  ctx.restore();
+  ctx.fillStyle = pattern;
+  /* at depth z: yaw about Y then pitch about X, orthographic */
+  const at = (z: number) => {
+    const e = z * sy - 50 * cy, fo = -z * cy * sp - 50 * m1 - 50 * cp;
+    ctx.setTransform(ta, tb, tc, td, ca * e + cc * fo + ce, cb * e + cd * fo + cf);
+  };
+  /* the far half: its levels as the outline's sprite scaled to each one's
+     size about its centre — shaded as the side, soft-edged for fabric —
+     from the deepest in; only its rim ever shows, round the silhouette */
+  const near = rig.facing >= 0 ? 1 : -1;
+  /* each deeper level a little further into shade: the far half turns
+     from the light at its rim to shade at its back, smoothly */
+  const backShade = Math.min(0.7, 0.55 * Math.min(1.6, mat.shadow / 0.35));
+  for (let k = K - 1; k >= 1; k--) {
+    at(-near * rel.z[k]);
+    const sk = rel.scale[k];
+    ctx.transform(sk, 0, 0, sk, rel.cx[k] - sk * rel.cx[0], rel.cy[k] - sk * rel.cy[0]);
+    ctx.drawImage(st.sprites[0]!.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+    const dk = backShade * (1 - Math.exp(-2.4 * (k / K)));
+    if (dk > 0.01) {
+      ctx.globalAlpha = dk;
+      ctx.drawImage(st.sprites[1]!.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+      ctx.globalAlpha = 1;
+    }
+  }
+  /* the outline at the centre plane, then the near half's levels out to
+     the top, each the lit texture cut to its contour */
+  at(0);
+  if (fur) ctx.drawImage(capSrc as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+  else ctx.fill(cfg.path);
+  for (let k = 1; k < K; k++) {
+    at(near * rel.z[k]);
+    ctx.fill(rel.paths[k]!, 'evenodd');
+  }
+  ctx.setTransform(ca, cb, cc, cd, ce, cf);
+  const capM = mulAffine(rig.ctm, [cy, m1, 0, cp, -50 * cy, -50 * m1 - 50 * cp]);
 
   /* 3. large avatars: the texture is upscaled 2–3×, so a crisp hairline of
      the environment along the lit side of the silhouette */

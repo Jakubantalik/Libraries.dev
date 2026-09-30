@@ -5,7 +5,7 @@ import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, shade } from './color';
 import { Sim, restPose } from './engine';
 import { draw, OVERSCAN, RISE, type DrawConfig } from './draw';
-import { warmPlastic } from './plastic';
+import { warmPlastic, type FurStyle } from './plastic';
 import { subscribe, pointer } from './ticker';
 
 /* A 0–1 seed from the React id, so two avatars side by side never blink
@@ -53,7 +53,13 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     shadow = 0.35,
     highlight = 1.3,
     depth = 0.65,
-    light = 265,
+    roundness = 1,
+    furLength = 1,
+    furDensity = 1,
+    furFuzz = 0.5,
+    furClumps = 0.5,
+    furCurl = 0.3,
+    light = 300,
     rim = 0.5,
     spread = 1.55,
     interactive = true,
@@ -101,6 +107,10 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const stateKey: BotAvatarState = state in stateLabels ? state : 'default';
   const frozen = paused || !(speed > 0);
   const shadingMode: BotAvatarShading = shading === true ? 'crisp' : shading === false ? 'flat' : shading;
+  /* the pile's style, rounded so a slider does not bake a pile per pixel */
+  const q = (v: number, lo: number, hi: number) => Math.round(clamp(v, lo, hi) * 20) / 20;
+  const fur: FurStyle = { length: q(furLength, 0.3, 2.5), density: q(furDensity, 0.3, 2), fuzz: q(furFuzz, 0, 1), clumps: q(furClumps, 0, 1), curl: q(furCurl, 0, 1) };
+  const furId = `${fur.length},${fur.density},${fur.fuzz},${fur.clumps},${fur.curl}`;
 
   /* the sim lives across renders; props reach it through refs */
   const sim = useRef<Sim | null>(null);
@@ -123,6 +133,8 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     shadow: clamp(shadow, 0, 2),
     highlight: clamp(highlight, 0, 2),
     depth: clamp(depth, 0.2, 2),
+    roundness: clamp(roundness, 0, 1),
+    fur: fur,
     light,
     rim: clamp(rim, 0, 2),
     spread: clamp(spread, 0.4, 2.5),
@@ -207,12 +219,13 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const path = cfg.current.path;
     const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
-    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric'));
+    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric', fur));
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);
     };
-  }, [shadingMode, type, size, depth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shadingMode, type, size, depth, furId]);
 
   /* the loop: only while visible, animated and not reduced */
   useEffect(() => {

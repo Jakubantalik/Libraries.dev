@@ -101,7 +101,13 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [shadow, setShadow] = useState(35);
   const [highlight, setHighlight] = useState(130);
   const [depth, setDepth] = useState(65);
-  const [light, setLight] = useState(265);
+  const [roundness, setRoundness] = useState(100);
+  const [furLength, setFurLength] = useState(100);
+  const [furDensity, setFurDensity] = useState(100);
+  const [furFuzz, setFurFuzz] = useState(50);
+  const [furClumps, setFurClumps] = useState(50);
+  const [furCurl, setFurCurl] = useState(30);
+  const [light, setLight] = useState(300);
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
   const [interactive, setInteractive] = useState(true);
@@ -165,11 +171,19 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (shading !== "flat") {
     if (shadow !== 35) props.push(`shadow={${num(shadow / 100)}}`);
     if (highlight !== 130) props.push(`highlight={${num(highlight / 100)}}`);
-    if (light !== 265) props.push(`light={${light}}`);
+    if (light !== 300) props.push(`light={${light}}`);
     if (shading !== "smooth" && rim !== 50) props.push(`rim={${num(rim / 100)}}`);
     if (shading !== "crisp" && spread !== 155) props.push(`spread={${num(spread / 100)}}`);
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
+  if ((shading === "plastic" || shading === "fabric") && roundness !== 100) props.push(`roundness={${num(roundness / 100)}}`);
+  if (shading === "fabric") {
+    if (furLength !== 100) props.push(`furLength={${num(furLength / 100)}}`);
+    if (furDensity !== 100) props.push(`furDensity={${num(furDensity / 100)}}`);
+    if (furFuzz !== 50) props.push(`furFuzz={${num(furFuzz / 100)}}`);
+    if (furClumps !== 50) props.push(`furClumps={${num(furClumps / 100)}}`);
+    if (furCurl !== 30) props.push(`furCurl={${num(furCurl / 100)}}`);
+  }
   if (!interactive) props.push("interactive={false}");
   if (turn !== 100) props.push(`turn={${num(turn / 100)}}`);
   if (whirl !== 0) props.push(`whirl={${num(whirl / 100)}}`);
@@ -217,6 +231,12 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             shadow={shadow / 100}
             highlight={highlight / 100}
             depth={depth / 100}
+            roundness={roundness / 100}
+            furLength={furLength / 100}
+            furDensity={furDensity / 100}
+            furFuzz={furFuzz / 100}
+            furClumps={furClumps / 100}
+            furCurl={furCurl / 100}
             light={light}
             rim={rim / 100}
             spread={spread / 100}
@@ -284,7 +304,23 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
           )}
           {/* the thickness shows whenever the head turns */}
           <PgSlider label="Depth" value={depth} min={20} max={200} step={5} display={`${depth}%`} onChange={setDepth} />
+          {(shading === "plastic" || shading === "fabric") && (
+            <PgSlider label="Roundness" value={roundness} min={0} max={100} step={5} display={`${roundness}%`} onChange={setRoundness} />
+          )}
         </PgGroup>
+        {/* the plush pile's own style, for fabric */}
+        {shading === "fabric" && (
+          <>
+            <PanelSep />
+            <PgGroup label="Fur">
+              <PgSlider label="Length" value={furLength} min={30} max={250} step={5} display={`${furLength}%`} onChange={setFurLength} />
+              <PgSlider label="Density" value={furDensity} min={30} max={200} step={5} display={`${furDensity}%`} onChange={setFurDensity} />
+              <PgSlider label="Edge fuzz" value={furFuzz} min={0} max={100} step={5} display={`${furFuzz}%`} onChange={setFurFuzz} />
+              <PgSlider label="Clumps" value={furClumps} min={0} max={100} step={5} display={`${furClumps}%`} onChange={setFurClumps} />
+              <PgSlider label="Curl" value={furCurl} min={0} max={100} step={5} display={`${furCurl}%`} onChange={setFurCurl} />
+            </PgGroup>
+          </>
+        )}
         <PanelSep />
         {/* things to wear, each sitting on the body's own shape and
             turning with the head */}
