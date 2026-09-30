@@ -58,7 +58,7 @@ public struct BotAvatarPreset: Sendable {
 /// The eighteen types: each body has its own colour and says where on it
 /// the face sits. Every type wears the eyes alone by default.
 public let botAvatarPresets: [BotAvatarType: BotAvatarPreset] = [
-    .clover: .init(label: "Clover", color: BotColor("#35B8FF")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 1),
+    .clover: .init(label: "Clover", color: BotColor("#00E5F9")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 1),
     .flower: .init(label: "Flower", color: BotColor("#FF7AB8")!, face: .eyes, faceX: 50, faceY: 51, faceScale: 0.95),
     .triangle: .init(label: "Triangle", color: BotColor("#DC48FF")!, face: .eyes, faceX: 50, faceY: 61, faceScale: 0.9),
     .square: .init(label: "Square", color: BotColor("#35B8FF")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 1),

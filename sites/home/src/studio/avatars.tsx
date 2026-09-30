@@ -45,7 +45,7 @@ const STATE_OPTIONS = [
 /* the library's default light per material, in slider units */
 const lightDefaults = (shading: BotAvatarShading) =>
   shading === "fabric"
-    ? { shadow: 90, highlight: 90, light: 295, rim: 65, spread: 145 }
+    ? { shadow: 90, highlight: 140, light: 295, rim: 85, spread: 160 }
     : { shadow: 35, highlight: 130, light: 300, rim: 50, spread: 155 };
 const SHADING_OPTIONS = [
   { value: "plastic", label: "Plastic" },
@@ -110,12 +110,12 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const lit = lightDefaults(shading);
   const [depth, setDepth] = useState(65);
   const [roundness, setRoundness] = useState(100);
-  const [furLength, setFurLength] = useState(140);
+  const [furLength, setFurLength] = useState(100);
   const [furDensity, setFurDensity] = useState(160);
   const [furFuzz, setFurFuzz] = useState(90);
   const [furClumps, setFurClumps] = useState(35);
-  const [furCurl, setFurCurl] = useState(30);
-  const [furGravity, setFurGravity] = useState(60);
+  const [furCurl, setFurCurl] = useState(35);
+  const [furGravity, setFurGravity] = useState(90);
   const [light, setLight] = useState(300);
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
@@ -198,12 +198,12 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if ((shading === "plastic" || shading === "fabric") && roundness !== 100) props.push(`roundness={${num(roundness / 100)}}`);
   if (shading === "fabric") {
-    if (furLength !== 140) props.push(`furLength={${num(furLength / 100)}}`);
+    if (furLength !== 100) props.push(`furLength={${num(furLength / 100)}}`);
     if (furDensity !== 160) props.push(`furDensity={${num(furDensity / 100)}}`);
     if (furFuzz !== 90) props.push(`furFuzz={${num(furFuzz / 100)}}`);
     if (furClumps !== 35) props.push(`furClumps={${num(furClumps / 100)}}`);
-    if (furCurl !== 30) props.push(`furCurl={${num(furCurl / 100)}}`);
-    if (furGravity !== 60) props.push(`furGravity={${num(furGravity / 100)}}`);
+    if (furCurl !== 35) props.push(`furCurl={${num(furCurl / 100)}}`);
+    if (furGravity !== 90) props.push(`furGravity={${num(furGravity / 100)}}`);
   }
   if (!interactive) props.push("interactive={false}");
   if (turn !== 100) props.push(`turn={${num(turn / 100)}}`);

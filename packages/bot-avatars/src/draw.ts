@@ -233,7 +233,7 @@ function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: string, lx:
     a plush pile wants a broad, low studio light that shows its lobes and
     grain, a clear coat a brighter one for its gloss. */
 export const LIGHT_DEFAULTS = {
-  fabric: { shadow: 0.9, highlight: 0.9, light: 295, rim: 0.65, spread: 1.45 },
+  fabric: { shadow: 0.9, highlight: 1.4, light: 295, rim: 0.85, spread: 1.6 },
   other: { shadow: 0.35, highlight: 1.3, light: 300, rim: 0.5, spread: 1.55 },
 };
 

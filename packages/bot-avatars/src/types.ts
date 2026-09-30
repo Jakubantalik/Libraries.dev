@@ -115,7 +115,7 @@ export interface BotAvatarProps
   accessoryColor?: string;
   /** Strength of the shadow side, 0–2. Default `0.35` (`0.9` for `fabric`). */
   shadow?: number;
-  /** Strength of the lit side, 0–2. Default `1.3` (`0.9` for `fabric`). */
+  /** Strength of the lit side, 0–2. Default `1.3` (`1.4` for `fabric`). */
   highlight?: number;
   /** Thickness of the body, 0.2–2: what shows when it turns or flips. Default `0.65`. */
   depth?: number;
@@ -126,7 +126,7 @@ export interface BotAvatarProps
    * turn shows a round side; toward `0` it becomes a slab with soft edges.
    */
   roundness?: number;
-  /** `fabric`: length of the pile, 0.3–2.5. Default `1.4`. */
+  /** `fabric`: length of the pile, 0.3–2.5. Default `1`. */
   furLength?: number;
   /** `fabric`: how many fibres, 0.3–2. Default `1.6`. */
   furDensity?: number;
@@ -134,19 +134,19 @@ export interface BotAvatarProps
   furFuzz?: number;
   /** `fabric`: how much the fibres gather into tufts, 0–1. Default `0.35`. */
   furClumps?: number;
-  /** `fabric`: how wavy the fibres are, 0 (straight) – 1. Default `0.3`. */
+  /** `fabric`: how wavy the fibres are, 0 (straight) – 1. Default `0.35`. */
   furCurl?: number;
   /**
    * `fabric`: how much the pile hangs, 0–1 — combed down from a parting at
    * the top, lying over the top edge and hanging off the sides and bottom,
-   * rather than standing out evenly all round. Default `0.6`.
+   * rather than standing out evenly all round. Default `0.9`.
    */
   furGravity?: number;
   /** Where the light comes from, in degrees clockwise from the top. Default `300` (`295` for `fabric`): from the upper left, like a studio key light. */
   light?: number;
-  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, of the backlit haze in `fabric`, 0–2. Default `0.5` (`0.65` for `fabric`). */
+  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, of the backlit haze in `fabric`, 0–2. Default `0.5` (`0.85` for `fabric`). */
   rim?: number;
-  /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.45` for `fabric`). */
+  /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.6` for `fabric`). */
   spread?: number;
   /**
    * Pointer play: the eyes and head follow a pointer that comes near, and
