@@ -57,7 +57,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     furLength = 1,
     furDensity = 1.6,
     furFuzz = 0.9,
-    furClumps = 0.6,
+    furClumps = 0.4,
     furCurl = 0.7,
     furGravity = 0.9,
     light,

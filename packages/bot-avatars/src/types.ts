@@ -144,7 +144,7 @@ export interface BotAvatarProps
   furDensity?: number;
   /** `fabric`: softness of the silhouette — the haze of fine hairs standing past it, 0–1. Default `0.9`. */
   furFuzz?: number;
-  /** `fabric`: how much the fibres gather into tufts, 0–1. Default `0.6`. */
+  /** `fabric`: how much the fibres gather into tufts, 0–1. Default `0.4`. */
   furClumps?: number;
   /** `fabric`: how wavy the fibres are, 0 (straight) – 1. Default `0.7`. */
   furCurl?: number;

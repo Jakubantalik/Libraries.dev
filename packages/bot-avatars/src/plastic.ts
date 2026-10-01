@@ -858,7 +858,7 @@ export interface FurStyle {
       top rather than standing out evenly all round */
   gravity: number;
 }
-export const FUR_STOCK: FurStyle = { length: 1, density: 1.6, fuzz: 0.9, clumps: 0.6, curl: 0.7, gravity: 0.9 };
+export const FUR_STOCK: FurStyle = { length: 1, density: 1.6, fuzz: 0.9, clumps: 0.4, curl: 0.7, gravity: 0.9 };
 const styleId = (s: FurStyle) =>
   `${s.length.toFixed(2)},${s.density.toFixed(2)},${s.fuzz.toFixed(2)},${s.clumps.toFixed(2)},${s.curl.toFixed(2)},${(s.gravity ?? FUR_STOCK.gravity).toFixed(2)}`;
 const furKey = (key: string, halfDepth: number, R: number, bin: number, style: FurStyle, lights: FurLights) => `${key}|${Math.round(halfDepth)}|${R}|${bin}|${styleId(style)}|${lightsId(lights)}`;
