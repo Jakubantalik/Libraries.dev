@@ -21,7 +21,7 @@ export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
   cat: { label: 'Cat', color: '#EAA06F', face: 'eyes', faceX: 50, faceY: 58, faceScale: 1 },
   cloud: { label: 'Cloud', color: '#CFD5E4', face: 'eyes', faceX: 50, faceY: 58, faceScale: 0.95 },
   pill: { label: 'Pill', color: '#ACAAF3', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.9 },
-  pebble: { label: 'Pebble', color: '#2FCB7A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
+  pebble: { label: 'Pebble', color: '#ABC793', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
   puddle: { label: 'Puddle', color: '#FF2A2A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
 };
 
