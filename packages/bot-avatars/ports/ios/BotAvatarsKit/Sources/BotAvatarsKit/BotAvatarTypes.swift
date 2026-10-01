@@ -72,7 +72,7 @@ public let botAvatarPresets: [BotAvatarType: BotAvatarPreset] = [
     .alien: .init(label: "Alien", color: BotColor("#9CD66A")!, face: .eyes, faceX: 50, faceY: 45, faceScale: 1.05),
     .hexagon: .init(label: "Hexagon", color: BotColor("#FF8C42")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 0.95),
     .cat: .init(label: "Cat", color: BotColor("#F4D28B")!, face: .eyes, faceX: 50, faceY: 58, faceScale: 1),
-    .cloud: .init(label: "Cloud", color: BotColor("#CFE6FF")!, face: .eyes, faceX: 50, faceY: 58, faceScale: 0.95),
+    .cloud: .init(label: "Cloud", color: BotColor("#CFD5E4")!, face: .eyes, faceX: 50, faceY: 58, faceScale: 0.95),
     .pill: .init(label: "Pill", color: BotColor("#7B77F0")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 0.9),
     .pebble: .init(label: "Pebble", color: BotColor("#FFB27A")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 0.95),
     .puddle: .init(label: "Puddle", color: BotColor("#FF7F6E")!, face: .eyes, faceX: 50, faceY: 50, faceScale: 0.95),
