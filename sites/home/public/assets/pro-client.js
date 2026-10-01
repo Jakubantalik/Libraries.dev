@@ -131,6 +131,7 @@
         state.authenticated = !!me.authenticated;
         state.email = me.email || null;
         state.pro = !!(me.entitlements && me.entitlements.pro);
+        state.business = !!me.business;
         state.lifetime = !!me.lifetime;
         state.subscription = me.subscription || null;
         state.billing = !!me.billing;
@@ -266,11 +267,21 @@
     if (footerLink) {
       footerLink.textContent = state.authenticated ? "Account" : "Sign in";
     }
-    // CTA reflects entitlement: entitled users manage their plan instead of buying.
-    var cta = document.getElementById("pro-price-cta");
-    if (cta && state.pro) {
-      cta.textContent = "Manage subscription";
-      cta.setAttribute("data-action", "portal");
+    // CTAs reflect entitlement: entitled users manage their plan instead of
+    // buying. A Business seat sees Pro as included; a Pro subscriber is
+    // offered the upgrade to Business.
+    if (state.pro) {
+      var soloCta = document.querySelector('.pro-price-cta[data-plan="solo"]');
+      var teamCta = document.querySelector('.pro-price-cta[data-plan="team"]');
+      if (state.business) {
+        if (teamCta) { teamCta.textContent = "Manage subscription"; teamCta.setAttribute("data-action", "portal"); }
+        if (soloCta) { soloCta.textContent = "Included in Business"; soloCta.setAttribute("data-action", "portal"); }
+      } else {
+        if (soloCta) { soloCta.textContent = "Manage subscription"; soloCta.setAttribute("data-action", "portal"); }
+        // Checkout reuses their Stripe customer and the webhook retires the
+        // Pro subscription, prorated, so they never pay for both.
+        if (teamCta) { teamCta.textContent = "Upgrade to Business"; teamCta.removeAttribute("data-action"); }
+      }
     }
   }
 
@@ -280,9 +291,6 @@
   }
   function selectedPlan() {
     return selectedBilling() === "annual" ? "yearly" : "monthly";
-  }
-  function teamSelected() {
-    return !!document.querySelector('.pro-price-tab[data-plan="team"][data-active="true"]');
   }
 
   function setBusy(el, busy) {
@@ -300,20 +308,21 @@
     } catch (e) { return null; }
   }
 
-  function startCheckout() {
-    // Team → per-seat subscription (buyer adjusts seat count on Stripe Checkout).
-    // The billing toggle carries monthly / annual / lifetime; lifetime is a
-    // one-time payment plan on both Solo and Team.
+  function startCheckout(plan, ctaEl) {
+    // Business ("team") → per-seat subscription (buyer adjusts the seat count
+    // on Stripe Checkout), monthly or annual only. Pro follows the billing
+    // toggle: monthly, annual or lifetime (one-time).
     var billingKind = selectedBilling();
     var payload;
-    if (billingKind === "lifetime") {
-      payload = { plan: teamSelected() ? "team-lifetime" : "lifetime" };
-    } else if (teamSelected()) {
+    if (plan === "team") {
+      if (billingKind === "lifetime") return;
       payload = { plan: "team", interval: billingKind === "annual" ? "year" : "month" };
+    } else if (billingKind === "lifetime") {
+      payload = { plan: "lifetime" };
     } else {
       payload = { plan: selectedPlan() };
     }
-    var cta = document.getElementById("pro-price-cta");
+    var cta = ctaEl || document.querySelector('.pro-price-cta[data-plan="' + (plan || "solo") + '"]');
     setBusy(cta, true);
     var promo = urlPromoCode();
     if (promo) payload.code = promo;
@@ -731,14 +740,15 @@
   }
 
   function wire() {
-    var cta = document.getElementById("pro-price-cta");
-    if (cta) {
+    document.querySelectorAll(".pro-price-cta[data-plan]").forEach(function (cta) {
       cta.addEventListener("click", function (e) {
         e.preventDefault();
-        if (cta.getAttribute("data-action") === "portal") startPortal();
-        else startCheckout();
+        if (cta.getAttribute("aria-disabled") === "true") return;
+        var action = cta.getAttribute("data-action");
+        if (action === "portal") startPortal();
+        else startCheckout(cta.getAttribute("data-plan"), cta);
       });
-    }
+    });
     var signin = document.getElementById("pm-signin");
     if (signin) {
       signin.addEventListener("click", function (e) {

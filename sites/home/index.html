@@ -410,10 +410,6 @@
     }
     .lib-ico { flex: none; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden; }
     .lib-ico img { width: 46px; height: 46px; display: block; }
-    /* The image-generation export carries its drop shadow in the bitmap
-       (52px canvas for a 46px tile) — render at natural size, recentered. */
-    .lib-ico img.lib-ico-img--pad { width: 52px; height: 52px; max-width: none; margin: -3px; }
-    .lib-ico:has(.lib-ico-img--pad) { overflow: visible; }
     .lib-meta-text { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
     .lib-name { font-size: 14px; font-weight: 500; line-height: 13px; color: #ededed; }
     .lib-desc {
@@ -741,6 +737,7 @@
             <a class="nav-pill" href="/beam.html">Libraries</a>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
             <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -1038,7 +1035,7 @@
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIBBv/EAB0QAQEBAAAHAAAAAAAAAAAAAAABAgMRITFhgfD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5rMlnlU4c+qc2TPts1ARelvIL3AAAAAf/9k=&quot;)"><video class="lib-video" src="/assets/videos/image-main-card.mp4" poster="/assets/videos/posters/image-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
         </div>
         <div class="lib-meta">
-          <span class="lib-ico"><img class="lib-ico-img--pad" src="/assets/icons/tile-image.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-ico"><img src="/assets/icons/tile-image.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
           <span class="lib-meta-text">
             <span class="lib-name">Image generation</span>
             <span class="lib-desc">A loader that becomes the image</span>

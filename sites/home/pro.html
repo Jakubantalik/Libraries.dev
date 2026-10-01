@@ -30,7 +30,7 @@
   <meta name="color-scheme" content="dark" />
 
   <title>Libraries Pro: Unlock the Studio for every library</title>
-  <meta name="description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), with a built-in agent, plus Pro variants and every future update." />
+  <meta name="description" content="Libraries Pro unlocks all seven UI effect libraries: the Studio with a built-in agent for deep customization, the Pro skill for your coding agent, plus Pro variants and every future update." />
   <meta name="keywords" content="Libraries Pro, Studio, UI effect libraries, React effects, WebGL, Beam, Orb, Gooey, Metal, Image" />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -53,7 +53,7 @@
   <meta property="og:url" content="https://libraries.dev/pro.html" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Libraries Pro: Unlock the Studio for every library" />
-  <meta property="og:description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), with a built-in agent, plus Pro variants and every future update." />
+  <meta property="og:description" content="Libraries Pro unlocks all seven UI effect libraries: the Studio with a built-in agent for deep customization, the Pro skill for your coding agent, plus Pro variants and every future update." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
@@ -61,7 +61,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta name="twitter:title" content="Libraries Pro: Unlock the Studio for every library" />
-  <meta name="twitter:description" content="Libraries Pro unlocks the Studio: deep customization of all five UI effect libraries (Beam, Orb, Gooey, Metal and Image), with a built-in agent, plus Pro variants and every future update." />
+  <meta name="twitter:description" content="Libraries Pro unlocks all seven UI effect libraries: the Studio with a built-in agent for deep customization, the Pro skill for your coding agent, plus Pro variants and every future update." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -4249,19 +4249,35 @@
         inset 0 0 0 1px rgba(196, 196, 196, 0.1);
       padding: 20px;
     }
-    .pro-price-tabs { display: flex; gap: 24px; }
-    .pro-price-tab {
-      border: 0;
-      background: none;
-      padding: 0;
+    /* Pro and Business side by side (as on transitions.dev/pro); they
+       stack on narrow viewports. Cards stretch to the taller one and the
+       CTAs pin to the bottom so both buttons sit on one line. */
+    .pro-price-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 325px));
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+    }
+    .pro-price-grid .pro-price-card { width: auto; }
+    .pro-price-grid .pro-price-cta { margin-top: auto; }
+    .pro-price-plan-name {
       font-family: var(--font-sans);
       font-size: 18px;
       font-weight: 500;
-      color: var(--text-faint);
-      cursor: pointer;
-      transition: color 150ms var(--ease-smooth-out);
+      color: var(--text);
     }
-    .pro-price-tab[data-active="true"] { color: var(--text); }
+    /* Business has no lifetime: under the Lifetime toggle its card dims and
+       the CTA goes inert instead of quietly selling the monthly plan. */
+    .pro-price-card { transition: opacity 200ms var(--ease-smooth-out); }
+    .pro-price-card[data-disabled="true"] { opacity: 0.4; }
+    .pro-price-card[data-disabled="true"] .pro-price-cta { pointer-events: none; cursor: default; }
+    @media (max-width: 720px) {
+      .pro-price-grid { grid-template-columns: minmax(0, 325px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pro-price-card { transition: none; }
+    }
     .pro-price-head { display: flex; flex-direction: column; gap: 4px; }
     .pro-price-amount {
       display: flex;
@@ -4319,17 +4335,29 @@
       );
     }
     .pro-feature-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-    .pro-feature { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; color: var(--text); }
+    /* Balanced wrapping: two-line features break at even widths instead of
+       leaving a one-word orphan on the second line. */
+    .pro-feature { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; color: var(--text); text-wrap: balance; }
+    /* Same check as transitions.dev pricing: a faint tinted disc with a 5%
+       hairline and a 10px check. */
     .pro-feature-check {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       flex: none;
-      color: var(--text);
+      border-radius: 20px;
+      background: rgba(210, 210, 210, 0.2);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+      color: #242424;
     }
     .pro-feature-check svg { width: 10px; height: 10px; display: block; }
+    html[data-theme="dark"] .pro-feature-check {
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      color: #ededed;
+    }
     .pro-price-cta {
       display: flex;
       align-items: center;
@@ -5051,6 +5079,7 @@
          it, instead of sitting as a 325px island. */
       .pro-price-wrap { padding: 0 16px; }
       .pro-price-card { width: 100%; }
+      .pro-price-grid { grid-template-columns: minmax(0, 1fr); }
       .cmdk-overlay { padding: 8vh 12px 12px; }
       /* Parity bar: let the sentence wrap to two centred lines instead
          of clipping off the right edge. */
@@ -5085,6 +5114,10 @@
       .nav-get-pro,
       #nav-signin-btn { padding: 0 10px; font-size: 13px; }
     }
+    /* Pricing pill steps aside below 900px; Get Pro already leads here. */
+    @media (max-width: 900px) {
+      .nav-pill--pricing { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -5106,6 +5139,7 @@
             <a class="nav-pill" href="/beam.html">Libraries</a>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
             <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing nav-pill--active" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -5198,9 +5232,9 @@
     <header class="header">
       <h1 class="title">Libraries <span class="title-pro">Pro</span></h1>
       <p class="subtitle">
-        Unlock the Studio: deep customization of all five libraries<br />
-        (Beam, Orb, Gooey, Metal and Image) with a built-in agent,<br />
-        plus Pro variants and every future update, in your browser.
+        Unlock all seven libraries: the Studio with a built-in agent<br />
+        for deep customization, the Pro skill for your coding agent,<br />
+        plus Pro variants and every future update.
       </p>
     </header>
 
@@ -5259,28 +5293,49 @@
     </div>
 
 
-    <!-- ─── Pricing card (Solo / Team) ─────────────────────────── -->
+    <!-- ─── Pricing cards (Pro / Business), both at once ─────────── -->
     <div class="pro-price-wrap">
-      <div class="pro-price-card" id="pro-price-card">
-        <div class="pro-price-tabs" role="tablist" aria-label="Plan">
-          <button type="button" class="pro-price-tab" data-plan="solo" data-active="true" role="tab" aria-selected="true">Solo</button>
-          <button type="button" class="pro-price-tab" data-plan="team" data-active="false" role="tab" aria-selected="false">Team</button>
-        </div>
-        <div class="pro-price-head">
-          <div class="pro-price-amount">
-            <span class="pro-price-value p9-number" id="pro-price-value" aria-live="polite"><span class="p9-static">$</span><span class="p9-digits"><span class="p9-char">9</span></span></span>
-            <span class="pro-price-per p6-text" id="pro-price-per">/mo</span>
+      <div class="pro-price-grid">
+        <div class="pro-price-card" data-plan-card="solo">
+          <div class="pro-price-plan-name">Pro</div>
+          <div class="pro-price-head">
+            <div class="pro-price-amount">
+              <span class="pro-price-value p9-number" data-price-value aria-live="polite"><span class="p9-static">$</span><span class="p9-digits"><span class="p9-char">9</span></span></span>
+              <span class="pro-price-per p6-text" data-price-per>/mo</span>
+            </div>
+            <div class="pro-price-seat" data-price-seat>Billed monthly</div>
           </div>
-          <div class="pro-price-seat" id="pro-price-seat">Single seat</div>
+          <ul class="pro-feature-list">
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for solo builders and freelancers</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Studio access: deep customization of all seven libraries, with an AI coding agent</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro presets and variants</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Every future library and update, free</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Commercial license, unlimited projects</li>
+          </ul>
+          <a class="pro-price-cta" href="mailto:jakubja@gmail.com?subject=Libraries%20Pro%20access" data-plan="solo">Get Pro</a>
         </div>
-        <ul class="pro-feature-list">
-          <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2 4-4.4" /></svg></span>Studio access: deep customization of all five libraries, with an AI coding agent</li>
-          <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2 4-4.4" /></svg></span>Pro presets and variants</li>
-          <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2 4-4.4" /></svg></span>Priority support</li>
-          <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2 4-4.4" /></svg></span>Every future library and update, free</li>
-          <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2 4-4.4" /></svg></span>Commercial license, unlimited projects</li>
-        </ul>
-        <a class="pro-price-cta" href="mailto:jakubja@gmail.com?subject=Libraries%20Pro%20access" id="pro-price-cta">Get access</a>
+
+        <div class="pro-price-card" data-plan-card="team">
+          <div class="pro-price-plan-name">Business</div>
+          <div class="pro-price-head">
+            <div class="pro-price-amount">
+              <span class="pro-price-value p9-number" data-price-value aria-live="polite"><span class="p9-static">$</span><span class="p9-digits"><span class="p9-char">5</span><span class="p9-char">9</span></span></span>
+              <span class="pro-price-per p6-text" data-price-per>/mo</span>
+            </div>
+            <div class="pro-price-seat" data-price-seat>Billed monthly</div>
+          </div>
+          <ul class="pro-feature-list">
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for companies and teams, 5 seats included</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Everything in Pro, for every seat</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Priority support</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Extra Studio AI credit: $10 per seat each month (Pro has $3)</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Invite, remove and manage seats from your account</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Commercial license for your company, unlimited projects</li>
+          </ul>
+          <a class="pro-price-cta" href="mailto:jakubja@gmail.com?subject=Libraries%20Business" data-plan="team">Get Business</a>
+        </div>
       </div>
       <!-- Purchasing-power-parity bar (Figma 2361:84298) — sits below the card,
            filled by pro-client.js when the visitor's country qualifies. -->
@@ -5430,11 +5485,11 @@
 
         <div class="t-acc" data-open="false">
           <button class="t-acc-head" type="button" aria-expanded="false">
-            <span>What does a seat cover, and what is Team?</span>
+            <span>What does a seat cover, and what is Business?</span>
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p><strong>Solo</strong> is a single seat for one person across all of their projects. <strong>Team</strong> is $39/mo and includes 5 seats for people in the same organization; each seat beyond 5 is an extra $9/mo. Prefer to pay once? <strong>Lifetime</strong> is a one-time purchase ($149 for Solo, $499 for a 5-seat Team) with every future update included, forever. Switch the plan tab above to see team pricing.</p>
+            <p><strong>Pro</strong> is for solo builders and freelancers: one seat for one person across all of their projects. <strong>Business</strong> is for companies and teams: $59/mo (or $590/yr) with 5 seats for people in the same organization, each seat beyond 5 an extra $9/mo, plus priority support and more Studio AI credit per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro with every future update included, forever; Business is monthly or annual only.</p>
           </div></div>
         </div>
 
@@ -5531,17 +5586,19 @@
         });
       });
 
-      /* ── Pricing: billing (Monthly/Annual) × plan (Solo/Team) ── */
+      /* ── Pricing: billing (Monthly/Annual/Lifetime) × plan (Pro/Business) ── */
       var PRICES = {
         solo: {
-          monthly: { v: "$9", per: "/mo", seat: "Single seat" },
-          annual:  { v: "$90", per: "/yr", seat: "Single seat · billed yearly" },
-          lifetime: { v: "$149", per: "once", seat: "Single seat · pay once, yours forever" }
+          monthly: { v: "$9", per: "/mo", seat: "Billed monthly" },
+          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free" },
+          lifetime: { v: "$149", per: "once", seat: "Pay once, yours forever" }
         },
         team: {
-          monthly: { v: "$39", per: "/mo", seat: "5 seats · +$9/seat after" },
-          annual:  { v: "$390", per: "/yr", seat: "5 seats · +$90/seat after · billed yearly" },
-          lifetime: { v: "$499", per: "once", seat: "5 seats · pay once, yours forever" }
+          monthly: { v: "$59", per: "/mo", seat: "Billed monthly" },
+          annual:  { v: "$590", per: "/yr", seat: "Billed yearly, two months free" },
+          // No lifetime for Business: the card keeps showing the monthly
+          // price and goes inert (see renderPrice).
+          lifetime: { v: "$59", per: "/mo", seat: "Monthly or annual only" }
         }
       };
       var billing = document.getElementById("pro-billing");
@@ -5560,13 +5617,9 @@
         billingIndicator.style.width = active.offsetWidth + "px";
         billingIndicator.style.transform = "translateX(" + active.offsetLeft + "px)";
       }
-      var planTabs = document.querySelectorAll(".pro-price-tab");
-      var priceValue = document.getElementById("pro-price-value");
-      var pricePer = document.getElementById("pro-price-per");
-      var priceSeat = document.getElementById("pro-price-seat");
-      var curBilling = "monthly", curPlan = "solo";
+      var priceCards = document.querySelectorAll("[data-plan-card]");
+      var curBilling = "monthly";
       var priceReady = false;
-      var lastPer = "/mo";
 
       // Number pop-in (skills/transitions-dev/02-number-pop-in.md): old
       // chars snapshot into a .p9-ghost that pops out while fresh .p9-char
@@ -5678,25 +5731,32 @@
       }
 
       function renderPrice() {
-        var p = PRICES[curPlan][curBilling];
-        var shrinking = false;
-        if (priceValue) shrinking = setPriceNumber(priceValue, p.v, priceReady);
-        // Only swap "/mo" ↔ "/yr" when it actually changes — Solo↔Team
-        // both keep "/mo", so re-running the swap there just read as a jump.
-        // The digits' width-glide (see setPriceNumber) also carries "/mo"
-        // along horizontally, since it's a flex sibling. When the number
-        // shrinks ($90 → $9), "/mo" is gliding left at the same time its
-        // own cross-blur would start — a delay lets the glide land first
-        // so the blur doesn't clash with that leftward motion. Growing
-        // ($9 → $90) pushes "/mo" further from the digits as it moves, so
-        // the two don't visually compete and no delay is needed.
-        if (pricePer && p.per !== lastPer) {
-          var perStag = shrinking ? 200 : 0;
-          swapText(pricePer, p.per, priceReady, perStag);
-        }
-        lastPer = p.per;
+        priceCards.forEach(function (card) {
+          var plan = card.getAttribute("data-plan-card");
+          var p = PRICES[plan][curBilling];
+          var valueEl = card.querySelector("[data-price-value]");
+          var perEl = card.querySelector("[data-price-per]");
+          var seatEl = card.querySelector("[data-price-seat]");
+          var shrinking = false;
+          if (valueEl) shrinking = setPriceNumber(valueEl, p.v, priceReady);
+          // Only swap "/mo" ↔ "/yr" when it actually changes. The digits'
+          // width-glide (see setPriceNumber) also carries "/mo" along, since
+          // it's a flex sibling; when the number shrinks ($90 → $9) a delay
+          // lets the glide land before the cross-blur.
+          var lastPer = card.getAttribute("data-last-per") || "/mo";
+          if (perEl && p.per !== lastPer) swapText(perEl, p.per, priceReady, shrinking ? 200 : 0);
+          card.setAttribute("data-last-per", p.per);
+          if (seatEl) seatEl.textContent = p.seat;
+          // Business goes inert under Lifetime (no lifetime plan to sell).
+          var disabled = plan === "team" && curBilling === "lifetime";
+          card.setAttribute("data-disabled", disabled ? "true" : "false");
+          var cardCta = card.querySelector(".pro-price-cta");
+          if (cardCta) {
+            cardCta.setAttribute("aria-disabled", disabled ? "true" : "false");
+            cardCta.setAttribute("tabindex", disabled ? "-1" : "0");
+          }
+        });
         priceReady = true;
-        if (priceSeat) priceSeat.textContent = p.seat;
         if (billing) billing.setAttribute("data-billing", curBilling);
         billingOpts.forEach(function (o) {
           var on = o.getAttribute("data-billing-opt") === curBilling;
@@ -5704,18 +5764,10 @@
           o.setAttribute("aria-selected", on ? "true" : "false");
         });
         positionBillingIndicator();
-        planTabs.forEach(function (t) {
-          var on = t.getAttribute("data-plan") === curPlan;
-          t.setAttribute("data-active", on ? "true" : "false");
-          t.setAttribute("aria-selected", on ? "true" : "false");
-        });
       }
       function setBilling(b) { curBilling = b; renderPrice(); }
       billingOpts.forEach(function (o) {
         o.addEventListener("click", function () { setBilling(o.getAttribute("data-billing-opt")); });
-      });
-      planTabs.forEach(function (t) {
-        t.addEventListener("click", function () { curPlan = t.getAttribute("data-plan"); renderPrice(); });
       });
       renderPrice();
       // Re-measure the pill once fonts settle and on resize so it stays
