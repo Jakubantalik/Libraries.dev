@@ -107,8 +107,8 @@ The plush pile has a style of its own:
   furLength={2}     // 0.3–2.5, length of the pile (default 1)
   furDensity={1}    // 0.3–2, how many fibres (default 1.6)
   furFuzz={0.5}     // 0–1, the haze of hairs at the silhouette (default 0.9)
-  furClumps={0.7}   // 0–1, how much the fibres gather into tufts (default 0.35)
-  furCurl={0.5}     // 0–1, straight to wavy (default 0.35)
+  furClumps={0.7}   // 0–1, how much the fibres gather into tufts (default 0.6)
+  furCurl={0.5}     // 0–1, straight to wavy (default 0.7)
   furGravity={0.4}  // 0–1, how much it hangs: combed down from the top, hanging off the sides (default 0.9)
 />
 ```

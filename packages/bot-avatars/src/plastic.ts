@@ -858,7 +858,7 @@ export interface FurStyle {
       top rather than standing out evenly all round */
   gravity: number;
 }
-export const FUR_STOCK: FurStyle = { length: 1, density: 1.6, fuzz: 0.9, clumps: 0.35, curl: 0.35, gravity: 0.9 };
+export const FUR_STOCK: FurStyle = { length: 1, density: 1.6, fuzz: 0.9, clumps: 0.6, curl: 0.7, gravity: 0.9 };
 const styleId = (s: FurStyle) =>
   `${s.length.toFixed(2)},${s.density.toFixed(2)},${s.fuzz.toFixed(2)},${s.clumps.toFixed(2)},${s.curl.toFixed(2)},${(s.gravity ?? FUR_STOCK.gravity).toFixed(2)}`;
 const furKey = (key: string, halfDepth: number, R: number, bin: number, style: FurStyle, lights: FurLights) => `${key}|${Math.round(halfDepth)}|${R}|${bin}|${styleId(style)}|${lightsId(lights)}`;
@@ -871,7 +871,7 @@ const dropped = new Set<string>();
    lightens it, as a hard-light blend of the grey would */
 const FUR_MID = 128;
 /* how far past the body's square the pile's film reaches, and its span */
-const FILM_M = 12;
+const FILM_M = 20;
 const FILM_SPAN = SPAN + 2 * FILM_M;
 /* the halo: how dense its haze is at the outline, how much its hairs
    streak it, and how far each is drawn out along the flow, in design
@@ -1451,6 +1451,12 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
             strand * strandA * (0.75 + 0.1 * lk);
           v = v < 0 ? 0 : v > 255 ? 255 : v;
           const k = i * 4;
+          /* toward the film's own edge the pile thins out to nothing, so
+             where a body turned far round reaches past it the fur gives
+             way softly instead of ending at a straight line */
+          const edgeD = Math.min(X + O, FILM_SPAN - O - X, Y + O, FILM_SPAN - O - Y);
+          const fadeE = edgeD >= 8 ? 1 : edgeD <= 0 ? 0 : (edgeD / 8) * (edgeD / 8) * (3 - (2 * edgeD) / 8);
+          v = FUR_MID + (v - FUR_MID) * fadeE;
           /* below mid-grey the film darkens, above it lightens */
           if (v < FUR_MID) dd[k + 3] = Math.round(255 * (1 - v / FUR_MID));
           else {
@@ -2762,10 +2768,15 @@ export function drawPlasticCap(
      it, from the outline's far edge out to the stack's, as deep as the
      slices' shade would be at that depth */
   if (fur && dl1 > 1e-3) {
-    const hn = reach(rimOf(form), -ex, -ey), span = rel.top * dl1;
+    const hn = reach(rimOf(form), -ex, -ey), span = 1.3 * rel.top * dl1;
     at(0);
     const ramp = g.createLinearGradient(-ex * hn, -ey * hn, -ex * (hn + span), -ey * (hn + span));
-    for (let s = 0; s <= 4; s++) ramp.addColorStop(s / 4, `rgba(0,0,0,${(backShade * (1 - Math.exp(-2.4 * (s / 4)))).toFixed(3)})`);
+    /* easing in from nothing at the far edge: seen side-on the ramp spans
+       only a few pixels, where a steep start reads as a hard line */
+    for (let s = 0; s <= 8; s++) {
+      const t = s / 8;
+      ramp.addColorStop(t, `rgba(0,0,0,${(backShade * (1 - Math.exp(-2.4 * t)) * t * t * (3 - 2 * t)).toFixed(3)})`);
+    }
     g.globalCompositeOperation = 'source-atop';
     g.fillStyle = ramp;
     g.fillRect(-PAD - 60, -PAD - 60, SPAN + 120, SPAN + 120);
@@ -2936,25 +2947,38 @@ export function drawPlasticCap(
        filtering looks the same, where the high-quality filter costs
        milliseconds on a large avatar */
     g.imageSmoothingQuality = 'low';
-    g.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4] - ox, capM[5] - oy);
-    g.drawImage((gapFilm(film, pal.base, mat.vivid ?? 0) ?? film.dark) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     const lin = linearColor(pal.base);
     const lum = Math.pow(0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2], 1 / 2.2);
-    g.globalAlpha = 0.25 + 0.75 * lum;
-    g.drawImage((tipFilm(film, pal.base, mat.vivid ?? 0) ?? film.light) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
-    g.globalAlpha = 1;
-    /* and the fibres' own light over it all: the key's highlights along
-       them and the back light they carry, the halo's hairs included */
-    /* baked for the front seen head-on — its rim is the front's outline —
-       it gives way as the body turns, to the matcap's own rim; and on a
-       small avatar single fibres are finer than its pixels, so the
-       matcap's rim and the halo carry the light there */
+    const dark = gapFilm(film, pal.base, mat.vivid ?? 0) ?? film.dark, tips = tipFilm(film, pal.base, mat.vivid ?? 0) ?? film.light;
+    /* the fibres' own light over it all: the key's highlights along them
+       and the back light they carry, the halo's hairs included — baked for
+       the front seen head-on, so it gives way as the body turns, to the
+       matcap's own rim; and on a small avatar single fibres are finer than
+       its pixels, so the matcap's rim and the halo carry the light there */
     const sheenA = rig.dev < 160 ? 0 : face >= 0.88 ? 1 : face <= 0.55 ? 0 : (face - 0.55) / 0.33;
     const sheen = sheenA > 0.01 ? sheenFilm(film, pal.base, mat) : null;
-    if (sheen) {
-      g.globalAlpha = sheenA;
-      g.drawImage(sheen as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+    const lay = (M: number[], a: number, withSheen: boolean) => {
+      g.setTransform(M[0], M[1], M[2], M[3], M[4] - ox, M[5] - oy);
+      g.globalAlpha = a;
+      g.drawImage(dark as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+      g.globalAlpha = a * (0.25 + 0.75 * lum);
+      g.drawImage(tips as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+      if (withSheen && sheen) {
+        g.globalAlpha = a * sheenA;
+        g.drawImage(sheen as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+      }
       g.globalAlpha = 1;
+    };
+    /* The film follows the front (capM), which turned far round is seen so
+       obliquely that it squeezes into a strip and no longer covers the
+       back half showing past it: from there on the pile is laid square to
+       the view instead, over the whole turned body, at its own size — the
+       front is gone by then, so nothing needs it to line up */
+    const sideU = face >= 0.62 ? 0 : face <= 0.36 ? 1 : (0.62 - face) / 0.26;
+    if (sideU < 1) lay(capM, 1 - sideU, true);
+    if (sideU > 0) {
+      const k = rig.dev / 100, cxs = ox + bw / 2, cys = oy + bh / 2;
+      lay([k, 0, 0, k, cxs - 50 * k, cys - 50 * k], sideU, false);
     }
     g.globalCompositeOperation = 'source-over';
     ctx.save();

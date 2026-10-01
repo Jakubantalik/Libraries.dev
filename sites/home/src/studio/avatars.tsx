@@ -120,8 +120,8 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [furLength, setFurLength] = useState(100);
   const [furDensity, setFurDensity] = useState(160);
   const [furFuzz, setFurFuzz] = useState(90);
-  const [furClumps, setFurClumps] = useState(35);
-  const [furCurl, setFurCurl] = useState(35);
+  const [furClumps, setFurClumps] = useState(60);
+  const [furCurl, setFurCurl] = useState(70);
   const [furGravity, setFurGravity] = useState(90);
   const [light, setLight] = useState(300);
   const [rim, setRim] = useState(50);
@@ -257,8 +257,8 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
     if (furLength !== 100) props.push(`furLength={${num(furLength / 100)}}`);
     if (furDensity !== 160) props.push(`furDensity={${num(furDensity / 100)}}`);
     if (furFuzz !== 90) props.push(`furFuzz={${num(furFuzz / 100)}}`);
-    if (furClumps !== 35) props.push(`furClumps={${num(furClumps / 100)}}`);
-    if (furCurl !== 35) props.push(`furCurl={${num(furCurl / 100)}}`);
+    if (furClumps !== 60) props.push(`furClumps={${num(furClumps / 100)}}`);
+    if (furCurl !== 70) props.push(`furCurl={${num(furCurl / 100)}}`);
     if (furGravity !== 90) props.push(`furGravity={${num(furGravity / 100)}}`);
   }
   if (!interactive) props.push("interactive={false}");
