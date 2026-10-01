@@ -5,7 +5,7 @@ import type { BotAvatarFace, BotAvatarPreset, BotAvatarState, BotAvatarType } fr
  * face sits. Every type wears the eyes alone by default.
  */
 export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
-  clover: { label: 'Clover', color: '#35B8FF', face: 'eyes', faceX: 50, faceY: 50, faceScale: 1 },
+  clover: { label: 'Clover', color: '#41C4FF', face: 'eyes', faceX: 50, faceY: 50, faceScale: 1, brightness: 1.2, saturation: 1.59 },
   flower: { label: 'Flower', color: '#2FCB7A', face: 'eyes', faceX: 50, faceY: 51, faceScale: 0.95 },
   triangle: { label: 'Triangle', color: '#DC48FF', face: 'eyes', faceX: 50, faceY: 61, faceScale: 0.9 },
   square: { label: 'Square', color: '#35B8FF', face: 'eyes', faceX: 50, faceY: 50, faceScale: 1 },
