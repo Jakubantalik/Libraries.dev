@@ -104,8 +104,13 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [size, setSize] = useState(96);
   const [color, setColor] = useState<string | null>(null);
   const [ink, setInk] = useState<string | null>(null);
-  const [brightness, setBrightness] = useState(100);
-  const [saturation, setSaturation] = useState(150);
+  /* the type's own brightness and saturation (most use 100% and 150%) */
+  const ownLook = (t: BotAvatarType) => ({
+    brightness: Math.round((botAvatarPresets[t].brightness ?? 1) * 100),
+    saturation: Math.round((botAvatarPresets[t].saturation ?? 1.5) * 100),
+  });
+  const [brightness, setBrightness] = useState(() => ownLook("clover").brightness);
+  const [saturation, setSaturation] = useState(() => ownLook("clover").saturation);
   const [speed, setSpeed] = useState(100);
   const [seed, setSeed] = useState<number | null>(null);
   /* the library's own defaults */
@@ -209,7 +214,8 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const shownFace = face ?? preset.face;
   const shownColor = color ?? preset.color;
   /* what the library will paint, for the auto ink */
-  const litColor = brightness === 100 && saturation === 150 ? shownColor : shade(shownColor, (brightness / 100 - 1) * 0.35, (saturation / 100 - 1) * 0.5);
+  const own = ownLook(type);
+  const litColor = brightness === 100 && saturation === 100 ? shownColor : shade(shownColor, (brightness / 100 - 1) * 0.35, (Math.min(150, saturation) / 100 - 1) * 0.5);
   const shownInk = ink ?? autoInk(litColor);
 
   /* What was picked for each type is kept while the bench lives, so
@@ -220,6 +226,10 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
     perType.current[type] = { face, color, ink };
     const saved = perType.current[next];
     setType(next);
+    /* the sliders follow the type's own look unless they were moved */
+    const was = ownLook(type), to = ownLook(next);
+    if (brightness === was.brightness) setBrightness(to.brightness);
+    if (saturation === was.saturation) setSaturation(to.saturation);
     setFace(saved?.face ?? null);
     setColor(saved?.color ?? null);
     setInk(saved?.ink ?? null);
@@ -232,8 +242,8 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (size !== 64) props.push(`size={${size}}`);
   if (color && color !== preset.color) props.push(`color="${color}"`);
   if (ink && ink !== autoInk(litColor)) props.push(`ink="${ink}"`);
-  if (brightness !== 100) props.push(`brightness={${num(brightness / 100)}}`);
-  if (saturation !== 150) props.push(`saturation={${num(saturation / 100)}}`);
+  if (brightness !== own.brightness) props.push(`brightness={${num(brightness / 100)}}`);
+  if (saturation !== own.saturation) props.push(`saturation={${num(saturation / 100)}}`);
   if (speed !== 100) props.push(`speed={${num(speed / 100)}}`);
   if (seed !== null) props.push(`seed={${num(seed)}}`);
   if (shading !== "plastic") props.push(`shading="${shading}"`);

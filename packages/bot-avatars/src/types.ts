@@ -64,6 +64,10 @@ export interface BotAvatarPreset {
   faceY: number;
   /** Face scale: shapes with a small middle wear a smaller face. */
   faceScale: number;
+  /** The type's own `brightness` and `saturation`, where the props leave
+      them out (otherwise 1 and 1.5). */
+  brightness?: number;
+  saturation?: number;
 }
 
 export interface BotAvatarProps
@@ -82,7 +86,8 @@ export interface BotAvatarProps
   ink?: string;
   /**
    * Lightness of the body colour: 1 as the palette has it, below 1 darker,
-   * above 1 lighter (0.5–1.5 is the useful range). Default `1`.
+   * above 1 lighter (0.5–1.5 is the useful range). Default `1`, or the
+   * type's own (the star's is `1.1`).
    */
   brightness?: number;
   /**
@@ -93,7 +98,8 @@ export interface BotAvatarProps
    * most 15% where the screen cannot show it brighter), the shade side
    * grows richer, and `plastic` and `fabric` keep
    * more of it in the light — highlights, sheen, rim and fur tips stay
-   * coloured rather than paling toward white. Default `1.5`.
+   * coloured rather than paling toward white. Default `1.5`, or the
+   * type's own (the star's is `1.84`).
    */
   saturation?: number;
   /** Multiplier on every animation's speed. Default `1`. */

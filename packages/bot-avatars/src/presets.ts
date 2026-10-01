@@ -13,7 +13,7 @@ export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
   ghost: { label: 'Ghost', color: '#F4F2FA', face: 'eyes', faceX: 50, faceY: 48, faceScale: 0.95 },
   circle: { label: 'Circle', color: '#9A62FF', face: 'eyes', faceX: 50, faceY: 50, faceScale: 1 },
   drop: { label: 'Drop', color: '#1ED3C6', face: 'eyes', faceX: 50, faceY: 62, faceScale: 0.9 },
-  star: { label: 'Star', color: '#EFDB8E', face: 'eyes', faceX: 50, faceY: 52, faceScale: 0.82 },
+  star: { label: 'Star', color: '#EFDB8E', face: 'eyes', faceX: 50, faceY: 52, faceScale: 0.82, brightness: 1.1, saturation: 1.84 },
   droid: { label: 'Droid', color: '#D5DBEA', face: 'eyes', faceX: 50, faceY: 60, faceScale: 0.95 },
   mech: { label: 'Mech', color: '#95A6C4', face: 'eyes', faceX: 50, faceY: 59, faceScale: 1 },
   alien: { label: 'Alien', color: '#9CD66A', face: 'eyes', faceX: 50, faceY: 45, faceScale: 1.05 },

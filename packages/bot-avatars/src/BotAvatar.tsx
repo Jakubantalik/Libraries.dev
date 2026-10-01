@@ -39,8 +39,8 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     size = 64,
     color,
     ink,
-    brightness = 1,
-    saturation = 1.5,
+    brightness: brightnessProp,
+    saturation: saturationProp,
     speed = 1,
     paused = false,
     seed,
@@ -105,6 +105,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const preset = botAvatarPresets[type] ?? botAvatarPresets.clover;
   const faceKind = face ?? preset.face;
   const picked = color ?? preset.color;
+  /* the type's own brightness and saturation where the props leave them out */
+  const brightness = brightnessProp ?? preset.brightness ?? 1;
+  const saturation = saturationProp ?? preset.saturation ?? 1.5;
   /* past 1.5 the colour itself is as saturated as it goes for most of the
      palette: the rest deepens it and makes the light keep more of it */
   const vivid = clamp(saturation, 1.5, 2.5) - 1.5;
