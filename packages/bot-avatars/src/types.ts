@@ -119,9 +119,9 @@ export interface BotAvatarProps
   bowTie?: boolean;
   /** Colour of the hat, the headphones and the bow tie. Default a soft black. */
   accessoryColor?: string;
-  /** Strength of the shadow side, 0–2. Default `0.35` (`0.9` for `fabric`). */
+  /** Strength of the shadow side, 0–2. Default `0.35` (`0.85` for `fabric`). */
   shadow?: number;
-  /** Strength of the lit side, 0–2. Default `1.3` (`1.4` for `fabric`). */
+  /** Strength of the lit side, 0–2. Default `1.3` (`1.9` for `fabric`). */
   highlight?: number;
   /** Thickness of the body, 0.2–2: what shows when it turns or flips. Default `0.65`. */
   depth?: number;
@@ -156,11 +156,11 @@ export interface BotAvatarProps
   backLight?: number;
   /** `fabric`: how far round to the front the key light sits, in degrees — `0` grazes the toy from the side (dramatic), `85` lights it nearly from the camera (flat). Default `32`. */
   lightFront?: number;
-  /** `fabric`: strength of the highlights along single fibres where the key grazes the pile, 0–2. Default `1`. */
+  /** `fabric`: strength of the highlights along single fibres where the key grazes the pile, 0–2. Default `0` (off: a soft, matte pile). */
   shine?: number;
   /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `0.15`. */
   sheen?: number;
-  /** `fabric`: how soft the back light is, 0–1 — `0` a small source caught on single fibres as crisp bright hairs, `1` a large one, an even glow reaching further in from the edge and fading out gently. Default `0.6`. */
+  /** `fabric`: how soft the back light is, 0–1 — `0` a small source caught on single fibres as crisp bright hairs, `1` a large one, an even glow reaching further in from the edge and fading out gently. Default `1`. */
   backSoftness?: number;
   /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.6` for `fabric`). */
   spread?: number;

@@ -915,7 +915,7 @@ const HALO_EASE = 0.1;
    viewer as a bright rim. */
 const KEY_EL = (32 * Math.PI) / 180;
 /* how soft the back light is by default (see Material.backSoft) */
-const BACK_SOFT = 0.6;
+const BACK_SOFT = 1;
 function fabricKey(U: V3, V: V3, front = KEY_EL): V3 {
   const c = Math.cos(front), s = Math.sin(front);
   return norm3([U[0] * c + V[0] * s, U[1] * c + V[1] * s, U[2] * c + V[2] * s]);
@@ -1976,7 +1976,7 @@ const sheenFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
 function sheenFilm(fur: Fur, color: string, p: Material): AnyCanvas | null {
   const gl = fur.glint, bk = fur.back;
   if (!gl || !bk) return null;
-  const hk = Math.min(1, 0.45 * p.highlight * (p.shine ?? 1)), rk = Math.min(1, 1.1 * p.rim);
+  const hk = Math.min(1, 0.45 * p.highlight * (p.shine ?? 0)), rk = Math.min(1, 1.1 * p.rim);
   if (hk <= 0.01 && rk <= 0.01) return null;
   const vivid = Math.min(1, p.vivid ?? 0);
   /* a softer back light: its even glow in place of the light on single
