@@ -12,7 +12,6 @@ interface Bot {
 }
 
 const ROSTER: Bot[] = [
-  { type: "clover", name: "Chief", state: "working", status: "Booking the venue…" },
   { type: "star", name: "Inbox manager", state: "default", status: "Inbox at zero, 5 drafts parked" },
   { type: "flower", name: "Talent scout", state: "default", status: "3 intros drafted in your voice" },
   { type: "ghost", name: "Night shift", state: "sleeping", status: "Back at 9:00" },
@@ -118,7 +117,7 @@ export function BotChat({ paused = false }: { paused?: boolean }) {
     <div className="mock-thread" aria-label="Chat">
       <div className="mock-thread-user">Can you summarise the thread with Acme?</div>
       <div className="mock-thread-bot">
-        <BotAvatar type="clover" state={state} size={32} paused={paused} />
+        <BotAvatar type="flower" state={state} size={32} paused={paused} />
         {/* The answer's own box, always: a hidden copy holds the height
             while the bot thinks, so neither the avatar nor the bubble
             above it moves when the reply arrives. */}

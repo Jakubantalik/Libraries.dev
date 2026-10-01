@@ -80,9 +80,9 @@ type Size = (typeof SIZE_OPTIONS)[number]["value"];
    shown but locked under a fade. */
 const TEAM: BotAvatarType[] = ["clover", "flower", "star", "ghost", "mech", "circle", "hexagon", "square"];
 
-/* The team row at the top: five of them, large, idle, and pleased to be
+/* The team row at the top: four of them, large, idle, and pleased to be
    hovered. */
-const ROW: BotAvatarType[] = ["clover", "flower", "star", "ghost", "square"];
+const ROW: BotAvatarType[] = ["clover", "flower", "ghost", "square"];
 /* the square wears the palette's pink here, so the row has one blue */
 const ROW_COLOR: Partial<Record<BotAvatarType, string>> = { square: botAvatarPresets.puddle.color };
 

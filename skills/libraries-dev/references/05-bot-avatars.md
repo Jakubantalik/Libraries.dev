@@ -154,7 +154,7 @@ Wake on hover. Use for a team row or agent picker where the hovered bot comes al
 import { useState } from 'react';
 import { BotAvatar, type BotAvatarType } from 'bot-avatars';
 
-const TEAM: BotAvatarType[] = ['clover', 'flower', 'star', 'ghost', 'square'];
+const TEAM: BotAvatarType[] = ['clover', 'flower', 'ghost', 'square'];
 
 function Team() {
   const [hot, setHot] = useState<BotAvatarType | null>(null);

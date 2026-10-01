@@ -1373,7 +1373,7 @@ html :is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone {
 }
 
 /* ── Bot avatars ── */
-/* The team row: five large seats, wrapping on a narrow card. */
+/* The team row: four large seats, wrapping on a narrow card. */
 .example-row-full--team { height: auto; min-height: 280px; padding: 40px 32px; }
 .ex-avatars-team {
   display: flex;
