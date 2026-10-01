@@ -566,6 +566,9 @@ export interface Material {
   front?: number;
   /** fabric: the strength of the light along single fibres, 1 as it comes */
   shine?: number;
+  /** fabric: 0–1, how soft the back light is — 0 a small source caught on
+      single fibres, 1 a large one, an even glow reaching further in */
+  backSoft?: number;
   /** fabric: the smooth, satin light over the body's edge — the key's
       sheen and the back light's band, as even gradients rather than on
       single fibres; 0.15 by default */
@@ -581,7 +584,7 @@ function vivify(c: V3, v: number, cap = Infinity) {
   if (!(v > 0)) return;
   const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   const mn = Math.min(c[0], c[1], c[2]), mx = Math.max(c[0], c[1], c[2]);
-  let k = 1 + 1.6 * v;
+  let k = 1 + 3 * v;
   if (mn < y) k = Math.min(k, y / (y - mn));
   if (mx > y) k = Math.min(k, Math.max(1, (cap - y) / (mx - y)));
   c[0] = y + (c[0] - y) * k;
@@ -826,6 +829,10 @@ export interface Fur {
       own mix of the colour and at its slider's strength (see sheenFilm) */
   glint: AnyCanvas | null;
   back: AnyCanvas | null;
+  /** the same back light without single fibres: an even glow that reaches
+      further in from the silhouette and fades out gently — what a softer,
+      larger back light gives (see sheenFilm, `backSoft`) */
+  backSoft: AnyCanvas | null;
 }
 /* The pile is a property of the shape, not of one avatar or one texture
    size: it is kept per outline and depth, per resolution tier (matched to
@@ -907,6 +914,8 @@ const HALO_EASE = 0.1;
    only toward the silhouette, and there the fibres carry it through to the
    viewer as a bright rim. */
 const KEY_EL = (32 * Math.PI) / 180;
+/* how soft the back light is by default (see Material.backSoft) */
+const BACK_SOFT = 0.6;
 function fabricKey(U: V3, V: V3, front = KEY_EL): V3 {
   const c = Math.cos(front), s = Math.sin(front);
   return norm3([U[0] * c + V[0] * s, U[1] * c + V[1] * s, U[2] * c + V[2] * s]);
@@ -1059,7 +1068,7 @@ export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320
   if (hit) return hit;
   const job = furJob(form, id, R, lx, ly, style, lights);
   if (job) for (const step of job.steps) step();
-  return furs.get(id) ?? { R: 0, mask: null, haze: null, cut: null, core: null, dark: null, light: null, glint: null, back: null };
+  return furs.get(id) ?? { R: 0, mask: null, haze: null, cut: null, core: null, dark: null, light: null, glint: null, back: null, backSoft: null };
 }
 
 /* the bake as a list of steps sharing one closure; the last one files the
@@ -1080,11 +1089,11 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      units past it all round, so the film laid over a turned body still
      covers the back half showing past the front's outline */
   const O = PAD + FILM_M, Rb = Math.round((R * FILM_SPAN) / SPAN);
-  const fur: Fur = { R, mask: null, haze: null, cut: null, core: null, dark: null, light: null, glint: null, back: null };
-  const dc = makeCanvas(Rb), lc = makeCanvas(Rb), mc = makeCanvas(R), gc = makeCanvas(Rb), bc = makeCanvas(Rb);
+  const fur: Fur = { R, mask: null, haze: null, cut: null, core: null, dark: null, light: null, glint: null, back: null, backSoft: null };
+  const dc = makeCanvas(Rb), lc = makeCanvas(Rb), mc = makeCanvas(R), gc = makeCanvas(Rb), bc = makeCanvas(Rb), sc2 = makeCanvas(Rb);
   const dg = dc && ctx2d(dc, false), lg = lc && ctx2d(lc, false), mg = mc && ctx2d(mc, false);
-  const gg = gc && ctx2d(gc, false), bg = bc && ctx2d(bc, false);
-  if (!dc || !lc || !mc || !gc || !bc || !dg || !lg || !mg || !gg || !bg) {
+  const gg = gc && ctx2d(gc, false), bg = bc && ctx2d(bc, false), sg2 = sc2 && ctx2d(sc2, false);
+  if (!dc || !lc || !mc || !gc || !bc || !sc2 || !dg || !lg || !mg || !gg || !bg || !sg2) {
     file(fur);
     return null;
   }
@@ -1328,13 +1337,13 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      between locks and strands deepen the colour whatever its lightness,
      as occlusion does), above it white. */
   const darkImg = new ImageData(Rb, Rb), lightImg = new ImageData(Rb, Rb);
-  const glintImg = new ImageData(Rb, Rb), backImg = new ImageData(Rb, Rb);
+  const glintImg = new ImageData(Rb, Rb), backImg = new ImageData(Rb, Rb), softImg = new ImageData(Rb, Rb);
   const white = new Float32Array(Rb * Rb);
   /* The light on single fibres at a design point, for a fibre lying along
      (ux, uy) on screen and standing `stand` radians out of the surface:
      into `fib` the key's highlight along it, the back light it carries,
      and how far the point faces the key at all. */
-  const fib = new Float32Array(3);
+  const fib = new Float32Array(4);
   const fibreLight = (X: number, Y: number, ux: number, uy: number, stand: number) => {
     /* past the halo, under a turned body's side, the tips keep most of
        their light and there is no light on single fibres */
@@ -1346,7 +1355,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     const read = (f: Float32Array) => f[j] * w00 + f[j + 1] * w10 + f[j + G] * w01 + f[j + G + 1] * w11;
     const on = read(onG);
     if (on <= 0) {
-      fib[0] = fib[1] = 0;
+      fib[0] = fib[1] = fib[3] = 0;
       fib[2] = 0.7;
       return;
     }
@@ -1391,6 +1400,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
        underside, over the floor, gets little */
     const side = Math.sqrt(Math.max(0, 1 - tz * tz));
     fib[1] = smooth(-0.3, 0.6, nx * B3[0] + ny * B3[1] + nz * B3[2]) * Math.pow(1 - nz, 1.6) * (0.4 + 0.6 * side) * (1 - 0.6 * Math.max(0, ny)) * on;
+    /* and as a large soft source gives it: facing it more widely, reaching
+       further in from the silhouette, the same on every fibre */
+    fib[3] = smooth(-0.5, 0.75, nx * B3[0] + ny * B3[1] + nz * B3[2]) * Math.pow(1 - nz, 0.85) * (1 - 0.6 * Math.max(0, ny)) * on;
     fib[2] = key * on + 0.7 * (1 - on);
   };
   steps.push(() => {
@@ -1454,6 +1466,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
           gd[k] = gd[k + 1] = gd[k + 2] = bd[k] = bd[k + 1] = bd[k + 2] = 255;
           gd[k + 3] = Math.round(255 * Math.min(1, fib[0] * tipK));
           bd[k + 3] = Math.round(255 * Math.min(1, fib[1] * Math.max(0, Math.min(1.6, 0.5 + 0.4 * strand))));
+          const sd2 = softImg.data;
+          sd2[k] = sd2[k + 1] = sd2[k + 2] = 255;
+          sd2[k + 3] = Math.round(255 * Math.min(1, 0.85 * fib[3]));
         }
       }
     });
@@ -1464,6 +1479,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     dg.putImageData(darkImg, 0, 0);
     lg.putImageData(lightImg, 0, 0);
     gg.putImageData(glintImg, 0, 0);
+    sg2.putImageData(softImg, 0, 0);
     bg.putImageData(backImg, 0, 0);
     for (const g of [dg, lg, gg, bg]) {
       g.setTransform(1, 0, 0, 1, FILM_M * px, FILM_M * px);
@@ -1727,6 +1743,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   fur.light = lc;
   fur.glint = gc;
   fur.back = bc;
+  fur.backSoft = sc2;
   fur.mask = mc;
   file(fur);
   });
@@ -1779,7 +1796,8 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
      band laid as one even gradient over the body's edge, a satin look —
      not the light the fibres themselves carry (the pile's film, the halo) */
   const satin = p.sheen ?? 0.15;
-  const sheenK = 0.16 * p.highlight * satin, rimK = 1.15 * p.rim * satin, sssK = 0.2;
+  const backSoft = Math.min(1, Math.max(0, p.backSoft ?? BACK_SOFT));
+  const sheenK = 0.16 * p.highlight * satin, rimK = 1.15 * p.rim * satin, sssK = 0.2 + 0.25 * vivid;
   /* the colour at full brightness, and the key's sheen: mostly the colour,
      a quarter of the light's own white */
   const mx = Math.max(c[0], c[1], c[2], 0.02);
@@ -1788,13 +1806,18 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
      comes out in their colour at full brightness — only the outermost
      hairs, thin and seen against it, pass some of its white */
   const rimIn: V3 = [cb[0], cb[1], cb[2]];
-  const rimOut: V3 = [0.45 + 0.55 * cb[0], 0.45 + 0.55 * cb[1], 0.45 + 0.55 * cb[2]];
-  const sheenC: V3 = [0.25 + 0.75 * cb[0], 0.25 + 0.75 * cb[1], 0.25 + 0.75 * cb[2]];
+  /* past the palette's saturation (vivid) the light's white gives way to
+     the colour itself */
+  const wR = 0.45 * (1 - vivid), wS = 0.25 * (1 - vivid);
+  const rimOut: V3 = [wR + (1 - wR) * cb[0], wR + (1 - wR) * cb[1], wR + (1 - wR) * cb[2]];
+  const sheenC: V3 = [wS + (1 - wS) * cb[0], wS + (1 - wS) * cb[1], wS + (1 - wS) * cb[2]];
   /* the shade's colour: the body's twice filtered through its own dye —
      deeper in hue, as a dyed pile is in its shade — brought back to the
      body's luminance, so how dark the shade is stays the light's to say */
   const yOf = (v: V3) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
-  const d0: V3 = [Math.pow(c[0], 1.8), Math.pow(c[1], 1.8), Math.pow(c[2], 1.8)];
+  /* past the palette's saturation (vivid) the shade is richer still */
+  const de = 1.8 + 2.2 * vivid;
+  const d0: V3 = [Math.pow(c[0], de), Math.pow(c[1], de), Math.pow(c[2], de)];
   const dk = yOf(c) / Math.max(1e-4, yOf(d0));
   const deep: V3 = [d0[0] * dk, d0[1] * dk, d0[2] * dk];
   /* and the band at the terminator: light that has passed through the
@@ -1832,9 +1855,9 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
          it a little round), seen through the most pile toward the
          silhouette; the underside, facing the floor, catches little */
       const bl = smooth(-0.3, 0.6, nb);
-      const rq = smooth(0.18, 0.62, q);
+      const rq = smooth(0.18 - 0.12 * backSoft, 0.62 + 0.18 * backSoft, q);
       const rim = rimK * rq * Math.sqrt(rq) * (0.3 + 0.7 * bl) * (1 - 0.7 * Math.max(0, nd));
-      const hot = rq * rq * Math.sqrt(rq);
+      const hot = rq * rq * Math.sqrt(rq) * (1 - 0.5 * backSoft);
       const k = (j * M + i) * 3;
       let r = 0, g = 0, b = 0;
       for (let ch = 0; ch < 3; ch++) {
@@ -1876,12 +1899,14 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
    than black: one copy per pile and colour, made on first use. Laid at
    twice the film's alpha, it deepens the gaps about as far as black did. */
 const gapFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
-function gapFilm(fur: Fur, color: string): AnyCanvas | null {
+function gapFilm(fur: Fur, color: string, vivid = 0): AnyCanvas | null {
   const src = fur.dark;
   if (!src) return null;
   let byColor = gapFilms.get(fur);
   if (!byColor) gapFilms.set(fur, (byColor = new Map()));
-  const hit = byColor.get(color);
+  const vq = Math.round(Math.min(1, vivid) * 10) / 10;
+  const key = `${color}|${vq}`;
+  const hit = byColor.get(key);
   if (hit !== undefined) return hit;
   const c = makeCanvas(src.width), g = c && ctx2d(c, false);
   if (c && g) {
@@ -1893,12 +1918,13 @@ function gapFilm(fur: Fur, color: string): AnyCanvas | null {
     const lin = linearColor(color);
     const e: V3 = [srgb(lin[0]) / 255, srgb(lin[1]) / 255, srgb(lin[2]) / 255];
     const mx = Math.max(e[0], e[1], e[2], 1e-3);
-    const ch = (v: number) => Math.round(255 * 0.5 * v * (v / mx) * (v / mx));
+    /* and past the palette's saturation (vivid) richer still */
+    const ch = (v: number) => Math.round(255 * 0.5 * v * Math.pow(v / mx, 2 + 3 * vq));
     g.fillStyle = `rgb(${ch(e[0])} ${ch(e[1])} ${ch(e[2])})`;
     g.fillRect(0, 0, src.width, src.height);
   }
   if (byColor.size >= 4) byColor.clear();
-  byColor.set(color, c && g ? c : null);
+  byColor.set(key, c && g ? c : null);
   return c && g ? c : null;
 }
 
@@ -1947,7 +1973,10 @@ function sheenFilm(fur: Fur, color: string, p: Material): AnyCanvas | null {
   const hk = Math.min(1, 0.45 * p.highlight * (p.shine ?? 1)), rk = Math.min(1, 1.1 * p.rim);
   if (hk <= 0.01 && rk <= 0.01) return null;
   const vivid = Math.min(1, p.vivid ?? 0);
-  const key = `${color}|${hk.toFixed(2)}|${rk.toFixed(2)}|${vivid.toFixed(1)}`;
+  /* a softer back light: its even glow in place of the light on single
+     fibres, as far as `backSoft` says */
+  const soft = Math.min(1, Math.max(0, Math.round((p.backSoft ?? BACK_SOFT) * 20) / 20));
+  const key = `${color}|${hk.toFixed(2)}|${rk.toFixed(2)}|${vivid.toFixed(1)}|${soft}`;
   let byKey = sheenFilms.get(fur);
   if (!byKey) sheenFilms.set(fur, (byKey = new Map()));
   const hit = byKey.get(key);
@@ -1960,7 +1989,13 @@ function sheenFilm(fur: Fur, color: string, p: Material): AnyCanvas | null {
     const e: V3 = [srgb(lin[0]), srgb(lin[1]), srgb(lin[2])];
     const mx = Math.max(e[0], e[1], e[2], 1);
     const mix = (k: number) => `rgb(${[0, 1, 2].map((i) => Math.round(255 + ((255 * e[i]) / mx - 255) * k)).join(' ')})`;
-    for (const [src, fill, a] of [[bk, mix(0.65 + 0.3 * vivid), rk], [gl, mix(0.45 + 0.4 * vivid), hk]] as [AnyCanvas, string, number][]) {
+    const layers: [AnyCanvas | null, string, number][] = [
+      [bk, mix(0.65 + 0.35 * vivid), rk * (1 - 0.85 * soft)],
+      [fur.backSoft, mix(0.7 + 0.3 * vivid), rk * soft],
+      [gl, mix(0.45 + 0.55 * vivid), hk],
+    ];
+    for (const [src, fill, a] of layers) {
+      if (!src) continue;
       if (a <= 0.01) continue;
       tg.globalCompositeOperation = 'copy';
       tg.drawImage(src as HTMLCanvasElement, 0, 0);
@@ -2059,6 +2094,7 @@ interface State {
   vivid: number;
   front: number;
   sheen: number;
+  backSoft: number;
   K: V3 | null;
   /** bumped on every matcap rebuild */
   version: number;
@@ -2126,7 +2162,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
     s = {
       N: 0, img: null, mc: new Float32Array(MM * 3),
       mcPrev: new Float32Array(MM * 3), mcMix: new Float32Array(MM * 3), mixVersion: 0, blendT: 1, blendFrames: 1, sinceBuild: 0,
-      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, sheen: NaN, K: null,
+      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, sheen: NaN, backSoft: NaN, K: null,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
       sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null,
@@ -2212,14 +2248,16 @@ function sliceGradient(ctx: CanvasRenderingContext2D, rays: Rays, inset: number 
    light's own through the dyed fibres — the colour at full brightness,
    paled halfway to white — as far as `rim` says: seen against the back
    light a pile's outermost hairs glow */
-function hazeColor(rays: Rays, base: string, rim: number): string {
+function hazeColor(rays: Rays, base: string, rim: number, vivid = 0): string {
   const m = /rgb\((\d+) (\d+) (\d+)\)/.exec(brightest(rays));
   const b = m ? [+m[1], +m[2], +m[3]] : [255, 255, 255];
   const lin = linearColor(base);
   const e = [srgb(lin[0]), srgb(lin[1]), srgb(lin[2])];
   const mx = Math.max(e[0], e[1], e[2], 1);
   const k = Math.min(0.85, 0.75 * rim);
-  const q = (i: number) => Math.round(b[i] + (255 + ((255 * e[i]) / mx - 255) * 0.45 - b[i]) * k);
+  /* paled toward white, less so past the palette's saturation (vivid) */
+  const pale = 0.45 + 0.55 * Math.min(1, vivid);
+  const q = (i: number) => Math.round(b[i] + (255 + ((255 * e[i]) / mx - 255) * pale - b[i]) * k);
   return `rgb(${q(0)} ${q(1)} ${q(2)})`;
 }
 /* the front's brightest colour, where it faces the light */
@@ -2404,7 +2442,7 @@ export function drawPlasticCap(
   })();
   if (
     moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
-    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (mat.sheen ?? 0.15) !== st.sheen || (fabric && moved(f.K, st.K))
+    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (mat.sheen ?? 0.15) !== st.sheen || (mat.backSoft ?? BACK_SOFT) !== st.backSoft || (fabric && moved(f.K, st.K))
   ) {
     /* the fade starts from what is showing now, so a rebuild during a
        fade does not jump */
@@ -2432,6 +2470,7 @@ export function drawPlasticCap(
     st.vivid = mat.vivid ?? 0;
     st.front = mat.front ?? KEY_EL;
     st.sheen = mat.sheen ?? 0.15;
+    st.backSoft = mat.backSoft ?? BACK_SOFT;
     st.K = f.K;
     st.version++;
   }
@@ -2564,7 +2603,7 @@ export function drawPlasticCap(
         g.drawImage(halo.haze as HTMLCanvasElement, 0, 0, spx, spx);
         g.imageSmoothingQuality = 'high';
         g.globalCompositeOperation = 'source-in';
-        g.fillStyle = hazeColor(rays, pal.base, mat.rim);
+        g.fillStyle = hazeColor(rays, pal.base, mat.rim, mat.vivid ?? 0);
         g.fillRect(0, 0, spx, spx);
         g.globalCompositeOperation = 'destination-over';
       }
@@ -2898,7 +2937,7 @@ export function drawPlasticCap(
        milliseconds on a large avatar */
     g.imageSmoothingQuality = 'low';
     g.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4] - ox, capM[5] - oy);
-    g.drawImage((gapFilm(film, pal.base) ?? film.dark) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+    g.drawImage((gapFilm(film, pal.base, mat.vivid ?? 0) ?? film.dark) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     const lin = linearColor(pal.base);
     const lum = Math.pow(0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2], 1 / 2.2);
     g.globalAlpha = 0.25 + 0.75 * lum;

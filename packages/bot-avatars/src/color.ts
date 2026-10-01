@@ -82,27 +82,55 @@ export function shade(color: string, dl: number, ds = 0): string {
   return hslToCss([h, clamp01(s + ds + (dl < 0 ? -dl * 0.25 : 0)), clamp01(l + dl)]);
 }
 
-/** A purer version of a colour, `t` 0–1: pulled away from grey at the
-    same luminance (in linear light), as far as the screen can show it — no
-    channel below black or above full. A colour already at that edge (most
-    of the palette) keeps its brightness and stays as it is; a paler one
-    gains colour without darkening. */
+/* OKLab, for moving a colour along its own hue (Björn Ottosson's) */
+const toLinear = (u: number) => (u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4));
+const toSrgb = (u: number) => (u <= 0.0031308 ? 12.92 * u : 1.055 * Math.pow(u, 1 / 2.4) - 0.055);
+function oklab(r: number, g: number, b: number): [number, number, number] {
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+}
+function fromOklab(L: number, a: number, b: number): [number, number, number] {
+  const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3);
+  const m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3);
+  const s = Math.pow(L - 0.0894841775 * a - 1.291485548 * b, 3);
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+}
+const inGamut = (c: [number, number, number]) => c.every((v) => v >= -1e-4 && v <= 1 + 1e-4);
+
+/** A more vivid version of a colour, `t` 0–1: its chroma raised along its
+    own hue (in OKLab) by up to half again. Where the screen cannot show that
+    at the same lightness, the colour deepens a little — by at most 15% of
+    its lightness — toward the hue's most vivid shade (a sky blue toward a
+    royal one), and the chroma stops at whatever the screen can show. */
 export function richer(color: string, t: number): string {
   const c = parseColor(color);
   if (!c || !(t > 0)) return color;
-  const lin = c.map((v) => {
-    const u = v / 255;
-    return u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
-  });
-  const y = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-  let k = 1 + 1.6 * t;
-  for (const v of lin) {
-    if (v < y) k = Math.min(k, y / (y - v));
-    else if (v > y) k = Math.min(k, (1 - y) / (v - y));
+  const [L, a, b] = oklab(toLinear(c[0] / 255), toLinear(c[1] / 255), toLinear(c[2] / 255));
+  const C = Math.hypot(a, b);
+  if (C < 1e-4) return color;
+  const ua = a / C, ub = b / C;
+  const want = C * (1 + 0.5 * t);
+  let best: [number, number, number] | null = null, bestC = C;
+  /* the lightness from the colour's own down to 15% deeper, in steps; at
+     each, the most chroma the screen shows up to `want` */
+  for (let k = 0; k <= 6; k++) {
+    const Lk = L * (1 - (0.15 * t * k) / 6);
+    let lo = 0, hi = want;
+    for (let it = 0; it < 18; it++) {
+      const mid = (lo + hi) / 2;
+      if (inGamut(fromOklab(Lk, ua * mid, ub * mid))) lo = mid;
+      else hi = mid;
+    }
+    /* deeper only for what it gains: each step must buy real chroma */
+    if (lo > bestC + 0.004 * k) {
+      bestC = lo;
+      best = fromOklab(Lk, ua * lo, ub * lo);
+    }
+    if (lo >= want - 1e-4) break;
   }
-  const out = lin.map((v) => {
-    const u = Math.min(1, Math.max(0, y + (v - y) * k));
-    return Math.round(255 * (u <= 0.0031308 ? 12.92 * u : 1.055 * Math.pow(u, 1 / 2.4) - 0.055));
-  });
+  if (!best) return color;
+  const out = best.map((v) => Math.round(255 * toSrgb(Math.min(1, Math.max(0, v)))));
   return `rgb(${out[0]} ${out[1]} ${out[2]})`;
 }

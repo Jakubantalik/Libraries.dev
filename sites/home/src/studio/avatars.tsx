@@ -132,6 +132,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [lightFront, setLightFront] = useState(32);
   const [shine, setShine] = useState(100);
   const [sheen, setSheen] = useState(15);
+  const [backSoft, setBackSoft] = useState(60);
   const chooseShading = (next: BotAvatarShading) => {
     const was = lightDefaults(shading), to = lightDefaults(next);
     if (shadow === was.shadow && highlight === was.highlight && light === was.light && rim === was.rim && spread === was.spread) {
@@ -211,6 +212,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
       if (backLight !== null) props.push(`backLight={${backLight}}`);
       if (lightFront !== 32) props.push(`lightFront={${lightFront}}`);
       if (shine !== 100) props.push(`shine={${num(shine / 100)}}`);
+      if (backSoft !== 60) props.push(`backSoftness={${num(backSoft / 100)}}`);
       if (sheen !== 15) props.push(`sheen={${num(sheen / 100)}}`);
     }
   }
@@ -283,6 +285,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             lightFront={lightFront}
             shine={shine / 100}
             sheen={sheen / 100}
+            backSoftness={backSoft / 100}
             rim={rim / 100}
             spread={spread / 100}
             interactive={interactive}
@@ -344,6 +347,9 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
               )}
               {shading !== "smooth" && (
                 <PgSlider label={shading === "fabric" ? "Back light" : "Rim"} value={rim} min={0} max={200} step={5} display={`${rim}%`} onChange={setRim} />
+              )}
+              {shading === "fabric" && (
+                <PgSlider label="Back light softness" value={backSoft} min={0} max={100} step={5} display={`${backSoft}%`} onChange={setBackSoft} />
               )}
               {shading === "fabric" && (
                 <PgSlider

@@ -88,8 +88,10 @@ export interface BotAvatarProps
   /**
    * Saturation of the body colour: 1 as the palette has it, below 1
    * duller, above 1 more vivid, 0.5–2.5. Past 1.5, where most of the
-   * palette is already as saturated as a screen shows it, a paler colour
-   * gains colour at the same brightness, and `plastic` and `fabric` keep
+   * palette is already as saturated as a screen shows it, the colour is
+   * pushed along its own hue toward its most vivid shade (deepening by at
+   * most 15% where the screen cannot show it brighter), the shade side
+   * grows richer, and `plastic` and `fabric` keep
    * more of it in the light — highlights, sheen, rim and fur tips stay
    * coloured rather than paling toward white. Default `1.5`.
    */
@@ -158,6 +160,8 @@ export interface BotAvatarProps
   shine?: number;
   /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `0.15`. */
   sheen?: number;
+  /** `fabric`: how soft the back light is, 0–1 — `0` a small source caught on single fibres as crisp bright hairs, `1` a large one, an even glow reaching further in from the edge and fading out gently. Default `0.6`. */
+  backSoftness?: number;
   /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.6` for `fabric`). */
   spread?: number;
   /**

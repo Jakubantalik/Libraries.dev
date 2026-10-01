@@ -46,6 +46,9 @@ export interface DrawConfig {
   lightFront?: number;
   /** fabric: the strength of the highlights along single fibres (default 1) */
   shine?: number;
+  /** fabric: 0–1, how soft the back light is — 0 a small source caught on
+      single fibres, 1 a large one, an even glow (default 0.6) */
+  backSoftness?: number;
   /** fabric: the smooth, satin sheen over the body's edge — the key's
       sheen and the back light's band as even gradients (default 0.15) */
   sheen?: number;
@@ -344,7 +347,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
         { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, ...backOf(cfg.backLight), dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
-        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0, front: (Math.min(85, Math.max(0, cfg.lightFront ?? 32)) * Math.PI) / 180, shine: cfg.shine ?? 1, sheen: cfg.sheen ?? 0.15 }
+        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0, front: (Math.min(85, Math.max(0, cfg.lightFront ?? 32)) * Math.PI) / 180, shine: cfg.shine ?? 1, sheen: cfg.sheen ?? 0.15, backSoft: cfg.backSoftness ?? 0.6 }
       );
     }
     const mode2: BotAvatarShading = (mode === 'plastic' || mode === 'fabric') && !plasticDone ? 'smooth' : mode;
