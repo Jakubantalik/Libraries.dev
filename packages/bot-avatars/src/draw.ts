@@ -47,7 +47,7 @@ export interface DrawConfig {
   /** fabric: the strength of the highlights along single fibres (default 1) */
   shine?: number;
   /** fabric: the smooth, satin sheen over the body's edge — the key's
-      sheen and the back light's band as even gradients (default 1) */
+      sheen and the back light's band as even gradients (default 0.15) */
   sheen?: number;
   /** identifies the outline for the material caches (the type name) */
   typeKey?: string;
@@ -255,7 +255,7 @@ const backOf = (deg: number | undefined): { bx?: number; by?: number } => {
     a plush pile wants a broad, low studio light that shows its lobes and
     grain, a clear coat a brighter one for its gloss. */
 export const LIGHT_DEFAULTS = {
-  fabric: { shadow: 0.9, highlight: 1.4, light: 295, rim: 0.85, spread: 1.6 },
+  fabric: { shadow: 0.9, highlight: 1.4, light: 295, rim: 0.6, spread: 1.6 },
   other: { shadow: 0.35, highlight: 1.3, light: 300, rim: 0.5, spread: 1.55 },
 };
 
@@ -344,7 +344,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
         { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, ...backOf(cfg.backLight), dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
-        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0, front: (Math.min(85, Math.max(0, cfg.lightFront ?? 32)) * Math.PI) / 180, shine: cfg.shine ?? 1, sheen: cfg.sheen ?? 1 }
+        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0, front: (Math.min(85, Math.max(0, cfg.lightFront ?? 32)) * Math.PI) / 180, shine: cfg.shine ?? 1, sheen: cfg.sheen ?? 0.15 }
       );
     }
     const mode2: BotAvatarShading = (mode === 'plastic' || mode === 'fabric') && !plasticDone ? 'smooth' : mode;

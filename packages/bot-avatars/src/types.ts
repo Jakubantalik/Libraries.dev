@@ -148,7 +148,7 @@ export interface BotAvatarProps
   furGravity?: number;
   /** Where the light comes from, in degrees clockwise from the top. Default `300` (`295` for `fabric`): from the upper left, like a studio key light. */
   light?: number;
-  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, of the back light in `fabric` — the bright rim it wraps round the top and sides, and the glow of the edge's hairs — 0–2. Default `0.5` (`0.85` for `fabric`). */
+  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, of the back light in `fabric` — the bright rim it wraps round the top and sides, and the glow of the edge's hairs — 0–2. Default `0.5` (`0.6` for `fabric`). */
   rim?: number;
   /** `fabric`: where the back light comes from, in degrees clockwise from the top. Default: above the toy, toward the side away from `light`. */
   backLight?: number;
@@ -156,7 +156,7 @@ export interface BotAvatarProps
   lightFront?: number;
   /** `fabric`: strength of the highlights along single fibres where the key grazes the pile, 0–2. Default `1`. */
   shine?: number;
-  /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `1`. */
+  /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `0.15`. */
   sheen?: number;
   /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.6` for `fabric`). */
   spread?: number;

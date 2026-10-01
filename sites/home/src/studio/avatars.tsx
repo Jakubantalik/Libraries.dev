@@ -45,7 +45,7 @@ const STATE_OPTIONS = [
 /* the library's default light per material, in slider units */
 const lightDefaults = (shading: BotAvatarShading) =>
   shading === "fabric"
-    ? { shadow: 90, highlight: 140, light: 295, rim: 85, spread: 160 }
+    ? { shadow: 90, highlight: 140, light: 295, rim: 60, spread: 160 }
     : { shadow: 35, highlight: 130, light: 300, rim: 50, spread: 155 };
 /* where the library puts the back light when none is given: above the
    toy, toward the side away from the key (degrees clockwise from the top) */
@@ -131,7 +131,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [backLight, setBackLight] = useState<number | null>(null);
   const [lightFront, setLightFront] = useState(32);
   const [shine, setShine] = useState(100);
-  const [sheen, setSheen] = useState(100);
+  const [sheen, setSheen] = useState(15);
   const chooseShading = (next: BotAvatarShading) => {
     const was = lightDefaults(shading), to = lightDefaults(next);
     if (shadow === was.shadow && highlight === was.highlight && light === was.light && rim === was.rim && spread === was.spread) {
@@ -211,7 +211,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
       if (backLight !== null) props.push(`backLight={${backLight}}`);
       if (lightFront !== 32) props.push(`lightFront={${lightFront}}`);
       if (shine !== 100) props.push(`shine={${num(shine / 100)}}`);
-      if (sheen !== 100) props.push(`sheen={${num(sheen / 100)}}`);
+      if (sheen !== 15) props.push(`sheen={${num(sheen / 100)}}`);
     }
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
