@@ -58,7 +58,6 @@ const GLASSES_OPTIONS = [
   { value: "none", label: "None" },
   { value: "round", label: "Round", locked: PRO_NOTE },
   { value: "square", label: "Square", locked: PRO_NOTE },
-  { value: "shades", label: "Shades", locked: PRO_NOTE },
 ] as const;
 /* None is already picked, so a click on it has nothing to change. */
 const keepNone = () => {};
