@@ -103,7 +103,7 @@ import { BotAvatar } from 'bot-avatars';
 | `shading` | `"fabric"`, `"plastic"` | `"fabric"` | The body's material. `fabric` is a plush faux fur, like a toy's, under a studio light: a soft pile, a bright rim from a light behind, a fuzzy silhouette and glossy bead eyes. `plastic` is a glossy material shaded per pixel, with a hot spot, a sheen and a rim (the default before 0.2.0). |
 | `paused` | `true` / `false` | `false` | Freezes the animation on its current frame. |
 
-Tuner to props: the Type, State, Size and Shading tabs set `type`, `state`, `size` and `shading`. The State tab label "Idle" is the value `"default"`. Fabric is the default, so the snippet drops it; Plastic writes `shading="plastic"`. Crisp, Smooth and Flat are shown on the Shading tab but locked. The Hat, Glasses and Extras (headphones, bow tie) rows show every choice locked except None, so they change nothing. The Play / Pause button on the stage toggles `paused`; the playground loads paused, so its snippet carries `paused` until you press Play. The playground starts at 96 px; the snippet drops `size` at 64 because 64 is the package default, and drops `state` at `"default"`.
+Tuner to props: the Type, State, Size and Shading tabs set `type`, `state`, `size` and `shading`. The State tab label "Idle" is the value `"default"`. Fabric is the default, so the snippet drops it; Plastic writes `shading="plastic"`. Crisp, Smooth and Flat are shown on the Shading tab but locked. The Hat and Glasses rows show every choice locked except None, so they change nothing. The Play / Pause button on the stage toggles `paused`; the playground loads paused, so its snippet carries `paused` until you press Play. The playground starts at 96 px; the snippet drops `size` at 64 because 64 is the package default, and drops `state` at `"default"`.
 
 State changes are cross-animated: the rig eases from the old pose to the new one, so toggling `state` on every token or tool call is safe.
 
@@ -154,7 +154,7 @@ Wake on hover. Use for a team row or agent picker where the hovered bot comes al
 import { useState } from 'react';
 import { BotAvatar, type BotAvatarType } from 'bot-avatars';
 
-const TEAM: BotAvatarType[] = ['clover', 'flower', 'star', 'ghost', 'mech', 'circle', 'hexagon', 'square'];
+const TEAM: BotAvatarType[] = ['clover', 'flower', 'star', 'ghost', 'square'];
 
 function Team() {
   const [hot, setHot] = useState<BotAvatarType | null>(null);
@@ -162,7 +162,7 @@ function Team() {
     <div className="team">
       {TEAM.map((t) => (
         <button key={t} onPointerEnter={() => setHot(t)} onPointerLeave={() => setHot(null)}>
-          <BotAvatar type={t} state={hot === t ? 'working' : 'default'} size={64} />
+          <BotAvatar type={t} state={hot === t ? 'working' : 'default'} size={96} />
         </button>
       ))}
     </div>

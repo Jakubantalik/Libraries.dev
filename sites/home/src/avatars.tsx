@@ -19,8 +19,8 @@ import { useDemoFlag, useDemoReset } from "./examples/demoFlags";
    playground (stage + controls) and the live-updating snippet below it.
    Controls are the Studio's first knobs — type, state — plus the size and
    the shading, fabric (the default) or plastic with the other three shown
-   but locked, then its wear rows, every hat, pair of glasses and extra
-   shown in the row but locked. The face, colour, ink, light, fur and
+   but locked, then its wear rows, every hat and pair of glasses shown in
+   the row but locked. The face, colour, ink, light, fur and
    motion live in the Studio. */
 
 /* What a locked choice says on hover: the note PgTabs gives the choices
@@ -46,8 +46,7 @@ const SHADING_OPTIONS = [
 
 /* Things to wear are the Studio's too: every choice shows in its row,
    locked, and None is the only one open — so the rows always read None
-   and change nothing on the stage. Headphones and the bow tie share one
-   row, as they do in the Studio. */
+   and change nothing on the stage. */
 const HAT_OPTIONS = [
   { value: "none", label: "None" },
   { value: "beret", label: "Beret", locked: PRO_NOTE },
@@ -60,11 +59,6 @@ const GLASSES_OPTIONS = [
   { value: "round", label: "Round", locked: PRO_NOTE },
   { value: "square", label: "Square", locked: PRO_NOTE },
   { value: "shades", label: "Shades", locked: PRO_NOTE },
-] as const;
-const EXTRAS_OPTIONS = [
-  { value: "none", label: "None" },
-  { value: "headphones", label: "Headphones", locked: PRO_NOTE },
-  { value: "bowTie", label: "Bow tie", locked: PRO_NOTE },
 ] as const;
 /* None is already picked, so a click on it has nothing to change. */
 const keepNone = () => {};
@@ -83,12 +77,16 @@ const SIZE_OPTIONS = [
 ] as const;
 type Size = (typeof SIZE_OPTIONS)[number]["value"];
 
-/* The team: eight of the eighteen — one of each kind of shape and colour,
-   idle, and pleased to be hovered. */
+/* The eight the playground opens; the other ten sit behind the paywall,
+   shown but locked under a fade. */
 const TEAM: BotAvatarType[] = ["clover", "flower", "star", "ghost", "mech", "circle", "hexagon", "square"];
 
-/* The playground offers the same eight the page shows above; the other
-   ten sit behind the paywall, shown but locked under a fade. */
+/* The team row at the top: five of them, large, idle, and pleased to be
+   hovered. */
+const ROW: BotAvatarType[] = ["clover", "flower", "star", "ghost", "square"];
+/* the square wears the palette's pink here, so the row has one blue */
+const ROW_COLOR: Partial<Record<BotAvatarType, string>> = { square: botAvatarPresets.puddle.color };
+
 const TYPE_OPTIONS = [...TEAM, ...botAvatarTypes.filter((t) => !TEAM.includes(t))].map((t) => ({
   value: t,
   label: botAvatarPresets[t].label,
@@ -113,7 +111,7 @@ function Team() {
 
   return (
     <div className="ex-avatars-team" data-arrange={arrange ? "true" : undefined}>
-      {TEAM.map((t) => {
+      {ROW.map((t) => {
         const at = moved[t] ?? { x: 0, y: 0 };
         return (
           <span
@@ -146,8 +144,9 @@ function Team() {
           >
             <BotAvatar
               type={t}
+              color={ROW_COLOR[t]}
               state={hot === t ? "working" : "default"}
-              size={64}
+              size={96}
               interactive={!arrange}
             />
             <span className="ex-avatars-name">{botAvatarPresets[t].label}</span>
@@ -215,7 +214,6 @@ function AvatarsPlayground() {
           <PgTabs label="Shading" options={SHADING_OPTIONS} value={shading} onChange={setShading} />
           <PgTabs label="Hat" options={HAT_OPTIONS} value="none" onChange={keepNone} />
           <PgTabs label="Glasses" options={GLASSES_OPTIONS} value="none" onChange={keepNone} />
-          <PgTabs label="Extras" options={EXTRAS_OPTIONS} value="none" onChange={keepNone} />
           {/* The Studio's other knobs at clover's and fabric's defaults, as
               the Studio shows them: values and fills in its own units and
               ranges. */}

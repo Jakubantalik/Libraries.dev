@@ -1373,21 +1373,21 @@ html :is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone {
 }
 
 /* ── Bot avatars ── */
-/* The team row: ten seats, wrapping on a narrow card. */
+/* The team row: five large seats, wrapping on a narrow card. */
 .example-row-full--team { height: auto; min-height: 280px; padding: 40px 32px; }
 .ex-avatars-team {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px 12px;
+  gap: 30px 18px;
   width: 100%;
 }
 .ex-avatars-seat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 84px;
+  gap: 15px;
+  width: 126px;
   cursor: default;
 }
 .ex-avatars-name { font-size: 12px; line-height: 14px; color: #767676; }
