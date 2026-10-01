@@ -4,11 +4,19 @@ An animated glow that rides the border of a card, button or input. It is a React
 
 ## When to use
 
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Loading that lasts longer than 3 seconds**: wrap the element doing the work (the prompt input, the result card) and set `active` from the real loading flag. Shorter waits get no beam.
+- **Highlighting a component**, such as a prompt input or a CTA button, uses a Pulse type:
+  - a **button**: `size="pulse-inner"` (the glow breathes inside the button);
+  - an **input**: `size="pulse-outside"` (the glow blooms outside the field).
+- **An input that loads after the user submits text** (search, ask, command bar): `size="line"`, active from submit until results arrive.
+
+More situations it fits:
+
 - An AI chat input or composer while the model is streaming or an agent is working: `size="md"` with `active={isStreaming}`.
-- A search bar while results load: `size="line"` puts a travelling glow on the bottom edge only.
-- A small icon button or pill that starts an AI action ("Generate", sparkle button): `size="sm"`.
-- A card that needs attention without motion around the edge (a pending approval, the selected plan): `size="pulse-inner"` breathes inside the border.
-- A hero or pricing card that should glow outward: `size="pulse-outside"` blooms a halo beyond the element.
 
 The two families:
 
@@ -215,10 +223,11 @@ function usePrefersReducedMotion() {
 
 | Signal to grep for | Suggest |
 | --- | --- |
-| Chat composers: `<textarea` next to `onSubmit`, `ChatInput`, `Composer`, `PromptInput`, `useChat`, `isStreaming`, `isLoading`, `status === 'streaming'` | `md` beam around the composer with `active={isStreaming}` |
+| Chat composers where the reply takes more than 3 s (streamed model replies, agent runs): `<textarea` next to `onSubmit`, `ChatInput`, `Composer`, `PromptInput`, `useChat`, `isStreaming`, `isLoading`, `status === 'streaming'` | `md` beam around the composer with `active={isStreaming}` |
 | Copy like `Thinking…`, `Generating`, `Working…`, `Agent is running`, `aria-busy` on a card | `md` or `pulse-inner` on that card while the state holds |
 | Search inputs: `type="search"`, `SearchBar`, `CommandMenu`, `cmdk`, `isSearching`, `isFetching` | `line` beam with `active={isSearching}` |
-| AI action buttons: `Sparkles`, `Wand`, `MagicWand` icons, "Generate", "Ask AI", "Enhance" labels | `sm` beam around the button |
+| CTA or AI action buttons to highlight: `Sparkles`, `Wand` icons, "Generate", "Ask AI", "Get started" labels | `pulse-inner` around the button |
+| A prompt input to highlight while idle (the main field on an empty state or landing) | `pulse-outside` around the input |
 | Featured cards: `featured`, `recommended`, `popular`, `highlight` classes on pricing or plan cards | `pulse-outside` on the featured card |
 | Pending or selected states: `needsApproval`, `pendingReview`, `isSelected` on a card | `pulse-inner`, `colorVariant="mono"` for restraint |
 | Hand-rolled beams: `conic-gradient` with `@keyframes` rotate, `animate-border`, `border-beam`, `shine-border`, `magic-border` | Replace with `<BorderBeam>` |

@@ -74,6 +74,13 @@ export interface BotAvatarProps
   extends Omit<CanvasHTMLAttributes<HTMLCanvasElement>, 'color' | 'ref'> {
   /** Body shape. Default `clover`. */
   type?: BotAvatarType;
+  /**
+   * A custom body outline: SVG path data in the 100×100 body box, centred
+   * on (50, 50), replacing the type's own (and its antennae). The type
+   * still sets the face's place, the default colour and the label, so keep
+   * the outline solid round the face. Default: the type's outline.
+   */
+  path?: string;
   /** Face kind. Defaults to the type's own. */
   face?: BotAvatarFace;
   /** What the bot is doing: `default` (idle), `working` (hopping, spinning) or `sleeping`. */

@@ -28,6 +28,7 @@ export type {
   BotAvatarFace,
   BotAvatarState,
   BotAvatarShading,
+  BotAvatarSquashEase,
   BotAvatarPreset,
   BotAvatarHat,
   BotAvatarGlasses,

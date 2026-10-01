@@ -34,6 +34,7 @@ const reducedMotion = () =>
 export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function BotAvatar(
   {
     type = 'clover',
+    path,
     face,
     state = 'default',
     size = 64,
@@ -122,6 +123,11 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const stateKey: BotAvatarState = state in stateLabels ? state : 'default';
   const frozen = paused || !(speed > 0);
   const shadingMode: BotAvatarShading = shading === true ? 'crisp' : shading === false ? 'flat' : shading;
+  /* A custom outline replaces the type's (and its thin parts); the material
+     caches are keyed by the outline itself, so two avatars with the same
+     path share one bake and a changed path never reuses the old one. */
+  const customPath = typeof path === 'string' && path.trim() ? path.trim() : null;
+  const outlineKey = customPath ? `path:${hashSeed(customPath)}:${customPath.length}` : type;
   /* the light a material looks its best in, where a prop leaves it */
   const lit = LIGHT_DEFAULTS[shadingMode === 'fabric' ? 'fabric' : 'other'];
   /* the pile's style, rounded so a slider does not bake a pile per pixel */
@@ -148,7 +154,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   heldRef.current = heldPose;
 
   cfg.current = {
-    path: typeof Path2D === 'undefined' ? (null as unknown as Path2D) : bodyPath(SHAPE_PATHS[type] ?? SHAPE_PATHS.clover),
+    path: typeof Path2D === 'undefined' ? (null as unknown as Path2D) : bodyPath(customPath ?? SHAPE_PATHS[type] ?? SHAPE_PATHS.clover),
     face: faceKind,
     faceX: preset.faceX,
     faceY: preset.faceY,
@@ -170,10 +176,10 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     light: light ?? lit.light,
     rim: clamp(rim ?? lit.rim, 0, 2),
     spread: clamp(spread ?? lit.spread, 0.4, 2.5),
-    typeKey: type,
+    typeKey: outlineKey,
     still: frozen || reducedMotion(),
     whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
-    parts: typeof Path2D !== 'undefined' && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
+    parts: typeof Path2D !== 'undefined' && !customPath && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
     wear: { hat, glasses, headphones, bowTie, color: accessoryColor, fabric: shadingMode === 'fabric' },
   };
 
@@ -260,13 +266,13 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const lights = stockLights(Math.sin(a), -Math.cos(a));
     if (backLight !== undefined) [lights.bx, lights.by] = [Math.sin(b), -Math.cos(b)];
     if (lightFront !== undefined) lights.front = (Math.min(85, Math.max(0, lightFront)) * Math.PI) / 180;
-    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric', fur, lightAt, lights));
+    const id = ric(() => warmPlastic(outlineKey, path, dev, depth, shadingMode === 'fabric', fur, lightAt, lights));
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shadingMode, type, size, depth, furId, light, backLight, lightFront]);
+  }, [shadingMode, outlineKey, size, depth, furId, light, backLight, lightFront]);
 
   /* the loop: only while visible, animated and not reduced */
   useEffect(() => {

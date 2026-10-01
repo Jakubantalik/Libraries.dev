@@ -97,7 +97,7 @@ function recordPrompt(env: Env, o: PromptOutcome): void {
 /** Supplied by the host Worker: resolves the .libraries.dev session cookie to
     a Pro user, or null. Kept as a parameter so this file has no dependency on
     the platform's session internals. */
-export type ResolvePro = (request: Request) => Promise<{ userId: string; pro: boolean } | null>;
+export type ResolvePro = (request: Request) => Promise<{ userId: string; pro: boolean; business?: boolean } | null>;
 
 /* A tuning session is 10-15 turns. 150/month is far past any honest workload
    and caps a single user's worst case at a few dollars rather than the whole
@@ -123,6 +123,12 @@ const MONTHLY_BUDGET_USD = 100;
    month of honest tuning and a hard stop for a script. Enforced like the
    feature budget, from a KV counter, so it can overshoot by one turn. */
 const USER_MONTHLY_BUDGET_USD = 3;
+
+/* Business seats get more Studio credit: teams iterate on brand presets and
+   core rebuilds (the expensive turns), so the per-person ceiling and the turn
+   cap are higher. Still per person, so one seat can't drain the team. */
+const BUSINESS_MONTHLY_BUDGET_USD = 10;
+const BUSINESS_MONTHLY_TURN_CAP = 500;
 
 /* claude-opus-5, USD per million tokens. Cache writes cost 1.25x input and
    reads 0.1x; the system prompt is the only cached block, so a read-heavy
@@ -258,6 +264,8 @@ export async function handleStudioChat(
   const session = await resolvePro(request);
   if (!session) return json({ error: "not_authenticated" }, 401);
   if (!session.pro) return json({ error: "pro_required" }, 403);
+  const turnCap = session.business ? BUSINESS_MONTHLY_TURN_CAP : MONTHLY_TURN_CAP;
+  const userBudget = session.business ? BUSINESS_MONTHLY_BUDGET_USD : USER_MONTHLY_BUDGET_USD;
 
   let body: {
     library?: string;
@@ -301,8 +309,8 @@ export async function handleStudioChat(
   const userSpent = Number(userSpentRaw ?? 0);
   const spent = Number(spentRaw ?? 0);
 
-  if (used >= MONTHLY_TURN_CAP) return json({ error: "turn_cap_reached" }, 429);
-  if (userSpent >= USER_MONTHLY_BUDGET_USD) return json({ error: "user_budget_exhausted" }, 429);
+  if (used >= turnCap) return json({ error: "turn_cap_reached" }, 429);
+  if (userSpent >= userBudget) return json({ error: "user_budget_exhausted" }, 429);
   if (spent >= MONTHLY_BUDGET_USD) return json({ error: "budget_exhausted" }, 429);
 
   const params = body.params ?? {};
@@ -488,8 +496,8 @@ export async function handleStudioChat(
         sse({
           type: "done",
           usage: { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, costUsd: cost },
-          turnsRemaining: Math.max(0, MONTHLY_TURN_CAP - used - 1),
-          budgetRemainingUsd: Math.max(0, USER_MONTHLY_BUDGET_USD - userSpent - cost),
+          turnsRemaining: Math.max(0, turnCap - used - 1),
+          budgetRemainingUsd: Math.max(0, userBudget - userSpent - cost),
         })
       );
     } catch (err) {

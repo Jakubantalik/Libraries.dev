@@ -4,6 +4,14 @@ A sound-reactive glow for React (`voice-glow`, component `VoiceBeam`): a colorfu
 
 ## When to use
 
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Anything voice or recording related**: mic buttons, dictation, voice mode, recording chips, call UIs, and the processing step right after speech.
+
+More situations it fits:
+
 - Voice mode in an AI chat composer: the input glows while the user speaks into the mic.
 - The bottom of a full-screen voice assistant on a phone (`type="mobile"`).
 - "Transcribing…" or "Thinking…" right after the user stops talking: `processing` sweeps a beam side to side.

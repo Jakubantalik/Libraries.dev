@@ -4,6 +4,15 @@ Animated 3D bot avatars for AI agents: a glossy body with a living face that loo
 
 ## When to use
 
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Anything avatar related for a bot or agent**: assistant avatars in a thread, agent lists and sidebars, agent pickers, job headers and empty-state mascots.
+- The state follows the agent's real status (see the status mapping under Common mistakes).
+
+More situations it fits:
+
 - The avatar next to an assistant's reply in a chat thread: `working` while the model streams, idle once the answer lands.
 - A roster or sidebar of agents, one body shape per agent, each showing whether it is busy.
 - A status chip or header for a background job or agent run ("Booking the venue…").
@@ -176,6 +185,7 @@ Job header. Use for the header of a long-running agent task.
 ## Accessibility & performance
 
 - The canvas has `role="img"` and a per-state `aria-label` by default: "Clover bot, idle", "Clover bot, working". Pass your own `aria-label` (for example the agent's name and status) and it replaces the default.
+- Every other prop is passed straight to the `<canvas>`: `className`, `style`, `data-*`, `aria-*`, event handlers. When the agent's name and status are already shown as text beside the avatar, make it decorative with `aria-hidden` so screen readers do not read them twice.
 - `prefers-reduced-motion: reduce`: no animation loop runs; the still pose of the current state is drawn. The media query is checked when the component renders, not watched live.
 - `paused` stops the loop entirely (no per-frame cost).
 - One shared `requestAnimationFrame` loop serves every avatar on the page. Each avatar leaves it when scrolled offscreen (IntersectionObserver), and the loop stops while the tab is hidden.
@@ -189,7 +199,15 @@ Job header. Use for the header of a long-running agent task.
 - Clipping the hop. The canvas is drawn 1.5x the `size` box and pulls itself back with negative margins, so the layout stays exactly `size` square while a hop or flip goes outside it. A tight parent with `overflow: hidden` crops the jump. Leave room above the avatar.
 - Sizing with CSS. Set `size`, not `width`/`height`/`margin` in `style` or a class. Those override the overscan box and the negative margins, and the avatar shifts or crops.
 - Importing it into a React Server Component. The component uses hooks; put it behind a `"use client"` file.
-- Passing an unknown `state` string. It falls back to `"default"` silently. Map your app's statuses (`running`, `streaming`, `pending`) to `"working"` yourself.
+- Passing an unknown `state` string. It falls back to `"default"` silently. Map your app's statuses yourself:
+
+  | App status | Free props |
+  | --- | --- |
+  | `running`, `streaming`, `pending`, `busy` | `state="working"` |
+  | `idle`, `ready`, `online` | `state="default"` |
+  | `offline`, `away`, `disabled` | `state="default"` with `paused` (a still bot) |
+
+  A dedicated `sleeping` state for offline agents exists in the Pro options.
 - Putting the avatar inside a clickable row and being surprised by the hop. A click on the avatar itself triggers it; clicks on the row around it do not.
 - Expecting a state to hold a loop: `working` shows while the prop says so. Drive it from your real status (streaming flag, job status), not from a timer.
 

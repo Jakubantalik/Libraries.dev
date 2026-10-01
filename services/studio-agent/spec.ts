@@ -39,7 +39,7 @@ export type ParamSpec =
       next turn. */
   | { kind: "code"; lang: CodeLang; describe: string; contract: string; when?: string };
 
-export type CodeLang = "js" | "css" | "glsl" | "svg";
+export type CodeLang = "js" | "css" | "glsl" | "svg" | "path";
 
 export interface LibrarySpec {
   /** Display name, used in the system prompt. */
@@ -1451,6 +1451,118 @@ export const VOICE_SPEC: LibrarySpec = {
   },
 };
 
+export const AVATARS_SPEC: LibrarySpec = {
+  label: "Bot avatars",
+  about:
+    "BotAvatar draws a small glossy 3D bot: a soft extruded body shape with a living face (two dot eyes, " +
+    "optionally a mouth) that blinks, glances, turns side to side, follows the pointer and now and then " +
+    "hops and flips. The type picks the body shape and its palette colour; the state is what the bot is " +
+    "doing (idle, working — hopping and spinning — or sleeping). Perceived character comes from the " +
+    "shape and colour; perceived energy from speed, the side turn and the jump (how high, how often, how " +
+    "much it squashes and stretches); perceived material from the shading — plastic is glossy and " +
+    "physical, crisp a vector-style lit rim, smooth a soft airbrush, flat no lighting at all. A shape the " +
+    "library does not ship — a heart, a robot head, a letter — is a core rebuild: a new body outline.",
+  params: {
+    type: {
+      kind: "enum",
+      values: [
+        "clover", "flower", "triangle", "square", "blob", "ghost", "circle", "drop", "star",
+        "droid", "mech", "alien", "hexagon", "cat", "cloud", "pill", "pebble", "puddle",
+      ],
+      describe:
+        "The body shape, which also brings its own palette colour and face placement. droid and mech are " +
+        "robot heads with antennae; ghost, cat, alien and cloud are characters; the rest are soft geometric " +
+        "or organic blobs. Changing it drops a custom outline (core). Send color in the same call if the " +
+        "user wants to keep a colour they chose.",
+    },
+    face: {
+      kind: "enum",
+      values: ["eyes", "mouth"],
+      describe: "eyes is the two dot eyes alone; mouth adds a small mouth that changes with the state.",
+    },
+    state: {
+      kind: "enum",
+      values: ["default", "working", "sleeping"],
+      describe: "default is idle (blinks, glances, the odd hop); working hops and spins busily; sleeping closes the eyes and breathes slowly.",
+    },
+    size: { kind: "number", min: 16, max: 200, step: 2, describe: "Rendered size in px." },
+    color: {
+      kind: "color",
+      describe:
+        "Body colour. The palette: #35B8FF sky, #2FCB7A green, #DC48FF magenta, #9A62FF violet, #1ED3C6 teal, " +
+        "#FFD32B yellow, #FF8C42 orange, #FF2A2A red, #7B77F0 indigo, #F4F2FA white, #D5DBEA silver — but any hex works.",
+    },
+    ink: {
+      kind: "color",
+      describe: "Face ink (eyes and mouth). #1F1B2E dark and #F6F4F0 light are the stock inks; pick whichever reads on the body.",
+    },
+    brightness: { kind: "number", min: 50, max: 150, step: 1, describe: "Lightness of the body colour, in %. 100 is the colour as picked." },
+    saturation: { kind: "number", min: 50, max: 150, step: 1, describe: "Saturation of the body colour, in %. 150 is the library's default; lower is duller and more muted." },
+    shading: {
+      kind: "enum",
+      values: ["plastic", "crisp", "smooth", "flat"],
+      describe: "How the body is lit: plastic (glossy per-pixel material, the default), crisp (lit rim, vector look), smooth (soft shadow and highlight, no edge), flat (no lighting).",
+    },
+    shadow: { kind: "number", min: 0, max: 200, step: 5, describe: "Strength of the shadow side, in %.", when: "shading is not flat" },
+    highlight: { kind: "number", min: 0, max: 200, step: 5, describe: "Strength of the lit side, in %.", when: "shading is not flat" },
+    light: { kind: "number", min: 0, max: 360, step: 5, describe: "Where the light comes from, degrees clockwise from the top. 265 is from the left.", when: "shading is not flat" },
+    rim: { kind: "number", min: 0, max: 200, step: 5, describe: "Width of the lit rim (crisp) or strength of the Fresnel rim (plastic), in %.", when: "shading is plastic or crisp" },
+    spread: { kind: "number", min: 40, max: 250, step: 5, describe: "Width of the highlight (plastic) or reach of the soft shading (smooth), in %.", when: "shading is plastic or smooth" },
+    depth: { kind: "number", min: 20, max: 200, step: 5, describe: "Thickness of the body, in %: what shows when it turns or flips. Low reads like a flat sticker, high like a chunky toy." },
+    speed: { kind: "number", min: 25, max: 300, step: 5, describe: "Animation speed, in % of normal." },
+    turn: { kind: "number", min: 0, max: 200, step: 5, describe: "How far the head turns side to side while idle, in %. 0 keeps it facing forward." },
+    interactive: { kind: "boolean", describe: "Eyes and head follow a nearby pointer, and a click makes it hop and flip." },
+    whirl: { kind: "boolean", describe: "Draw a motion ring round the bot while it spins." },
+    jumpEvery: { kind: "number", min: 0, max: 20, step: 1, describe: "Seconds between idle jumps (give or take 40%); 0 for none." },
+    jumpHeight: { kind: "number", min: 0, max: 50, step: 1, describe: "How high a jump goes, in body units (the body is 100 tall)." },
+    jumpTime: { kind: "number", min: 40, max: 140, step: 2, describe: "Air time of a jump, in hundredths of a second. Longer reads floatier." },
+    jumpStretch: { kind: "number", min: 0, max: 200, step: 5, describe: "How much the body stretches in the air, in %." },
+    jumpSpin: { kind: "enum", values: ["0", "1", "2"], describe: "Whole turns made in the air." },
+    jumpLean: { kind: "number", min: 0, max: 15, step: 1, describe: "Degrees of lean into a jump." },
+    jumpSquash: { kind: "number", min: 0, max: 200, step: 5, describe: "How much the body squashes on the ground before take-off and on landing, in %. The cartoon weight of the jump." },
+    jumpSquashTime: { kind: "number", min: 100, max: 600, step: 10, describe: "Milliseconds the landing squash takes." },
+    jumpSquashEase: { kind: "enum", values: ["sharp", "pulse", "soft", "bouncy"], describe: "Shape of the landing squash: sharp, pulse (default), soft, or bouncy (overshoots and settles)." },
+    jumpGroundTime: { kind: "number", min: 0, max: 600, step: 10, describe: "Milliseconds the deepest squash is held on the ground. 0 for none." },
+    jumpGroundEase: { kind: "enum", values: ["sharp", "pulse", "soft", "bouncy"], describe: "How the weight settles through that hold.", when: "jumpGroundTime is above 0" },
+    jumpRiseTime: { kind: "number", min: 80, max: 800, step: 10, describe: "Milliseconds to rise from the deepest squash back to shape." },
+    jumpRiseEase: { kind: "enum", values: ["sharp", "pulse", "soft", "bouncy"], describe: "How it rises back to shape." },
+    jumpClickSquashTime: { kind: "number", min: 100, max: 1000, step: 10, describe: "Milliseconds a click's landing squash takes." },
+    jumpLand: { kind: "number", min: -200, max: 150, step: 10, describe: "When the landing squash begins, in ms round touch-down: negative braces early, positive lands late." },
+    paused: { kind: "boolean", describe: "Freeze the animation. Set true only if the user asks to pause or stop it." },
+    core: {
+      kind: "code",
+      lang: "path",
+      describe:
+        "The body outline, redrawn. Use it when the request is for a shape none of the types has — a heart, " +
+        "a letter, a robot head of a particular kind, a mascot silhouette — while keeping the bot's face, " +
+        "material and motion. The library extrudes, lights and animates whatever outline it is given.",
+      contract:
+        "Write SVG path data (the d attribute only — no <path> tag, no quotes) for a closed outline in a " +
+        "100×100 box centred on (50, 50), y pointing down. Keep it roughly 70–90 units across so it sits like " +
+        "the stock shapes, and keep it inside 2..98 on both axes. Use absolute commands (M L H V C S Q T A Z); " +
+        "close every subpath with Z. Several subpaths are allowed (ears, antennae, limbs) and are filled " +
+        "non-zero, so wind them the same way and let them overlap the body. The face is drawn at the " +
+        "selected type's face point (given with the stock outline you are shown), about 30 units wide — keep " +
+        "the outline solid round that point. Prefer smooth rounded curves over sharp corners: the plastic " +
+        "material reads best on soft forms. Keep it under ~3000 characters.",
+    },
+  },
+  relevant(params) {
+    const shading = String(params.shading ?? "plastic");
+    const keys = [
+      "type", "face", "state", "size", "color", "ink", "brightness", "saturation", "shading", "depth",
+      "speed", "turn", "interactive", "whirl", "jumpEvery", "jumpHeight", "jumpTime", "jumpStretch",
+      "jumpSpin", "jumpLean", "jumpSquash", "jumpSquashTime", "jumpSquashEase", "jumpGroundTime",
+      "jumpRiseTime", "jumpRiseEase", "jumpClickSquashTime", "jumpLand", "paused", "core",
+    ];
+    if (shading !== "flat") keys.push("shadow", "highlight", "light");
+    if (shading === "plastic" || shading === "crisp") keys.push("rim");
+    if (shading === "plastic" || shading === "smooth") keys.push("spread");
+    if (Number(params.jumpGroundTime) > 0) keys.push("jumpGroundEase");
+    return keys;
+  },
+};
+
 export const SPECS: Record<string, LibrarySpec> = {
   beam: BEAM_SPEC,
   orb: ORB_SPEC,
@@ -1458,6 +1570,7 @@ export const SPECS: Record<string, LibrarySpec> = {
   metal: METAL_SPEC,
   image: IMAGE_SPEC,
   voice: VOICE_SPEC,
+  avatars: AVATARS_SPEC,
 };
 
 /* JSON Schema for the set_params tool.
@@ -1505,6 +1618,7 @@ export const CODE_LABEL: Record<CodeLang, string> = {
   css: "stylesheet",
   glsl: "fragment shader",
   svg: "SVG filter primitives",
+  path: "SVG path data",
 };
 
 /* Static hygiene only — the browser is where the code is compiled and run,
@@ -1517,6 +1631,7 @@ const CODE_FORBIDDEN: Record<CodeLang, RegExp> = {
   js: /\b(import|require|fetch|XMLHttpRequest|WebSocket|document|window|globalThis|self|eval|Function|localStorage|sessionStorage|indexedDB|navigator|postMessage|setTimeout|setInterval|Promise|async|await)\b|<\s*\/?\s*script/i,
   css: /url\s*\(|@import|expression\s*\(|behavior\s*:|-moz-binding|<\s*\/?\s*script/i,
   glsl: /<\s*\/?\s*script/i,
+  path: /[^MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]/,
   svg: /<\s*script|<\s*\/?\s*(?!fe[A-Z])[a-zA-Z]+[\s>\/]|\son[a-z]+\s*=|href\s*=|xlink:/,
 };
 
@@ -1525,6 +1640,7 @@ export function checkCode(lang: CodeLang, code: string): string | null {
   const hit = code.match(CODE_FORBIDDEN[lang]);
   if (hit) return `must not contain ${JSON.stringify(hit[0].trim())}`;
   if (lang === "js" && !/\breturn\b/.test(code)) return "must return a frame";
+  if (lang === "path" && !/^\s*M/i.test(code)) return "must start with a moveto (M)";
   return null;
 }
 
