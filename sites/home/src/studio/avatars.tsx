@@ -131,6 +131,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [backLight, setBackLight] = useState<number | null>(null);
   const [lightFront, setLightFront] = useState(32);
   const [shine, setShine] = useState(100);
+  const [sheen, setSheen] = useState(100);
   const chooseShading = (next: BotAvatarShading) => {
     const was = lightDefaults(shading), to = lightDefaults(next);
     if (shadow === was.shadow && highlight === was.highlight && light === was.light && rim === was.rim && spread === was.spread) {
@@ -210,6 +211,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
       if (backLight !== null) props.push(`backLight={${backLight}}`);
       if (lightFront !== 32) props.push(`lightFront={${lightFront}}`);
       if (shine !== 100) props.push(`shine={${num(shine / 100)}}`);
+      if (sheen !== 100) props.push(`sheen={${num(sheen / 100)}}`);
     }
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
@@ -280,6 +282,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             backLight={shading === "fabric" && backLight !== null ? backLight : undefined}
             lightFront={lightFront}
             shine={shine / 100}
+            sheen={sheen / 100}
             rim={rim / 100}
             spread={spread / 100}
             interactive={interactive}
@@ -355,6 +358,9 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
               )}
               {shading === "fabric" && (
                 <PgSlider label="Fibre shine" value={shine} min={0} max={200} step={5} display={`${shine}%`} onChange={setShine} />
+              )}
+              {shading === "fabric" && (
+                <PgSlider label="Sheen" value={sheen} min={0} max={200} step={5} display={`${sheen}%`} onChange={setSheen} />
               )}
               {shading !== "crisp" && (
                 <PgSlider label="Spread" value={spread} min={40} max={250} step={5} display={`${spread}%`} onChange={setSpread} />

@@ -566,6 +566,10 @@ export interface Material {
   front?: number;
   /** fabric: the strength of the light along single fibres, 1 as it comes */
   shine?: number;
+  /** fabric: the smooth, satin light over the body's edge — the key's
+      sheen and the back light's band, as even gradients rather than on
+      single fibres; 1 as it comes */
+  sheen?: number;
 }
 /* More colour than a fully saturated palette colour has: the light's own
    mixes — a highlight, a sheen, a rim, a fill — pulled away from grey
@@ -1771,7 +1775,11 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
   const kd = 1.3;
   const floorK = 0.34 * Math.min(1.6, p.shadow / 0.35);
   const Fl = norm3([-0.55 * U[0] + 0.85 * V[0] + 0.15 * D[0], -0.55 * U[1] + 0.85 * V[1] + 0.15 * D[1], -0.55 * U[2] + 0.85 * V[2] + 0.15 * D[2]]);
-  const sheenK = 0.16 * p.highlight, rimK = 1.15 * p.rim, sssK = 0.2;
+  /* `sheen` scales the smooth light — the key's sheen and the back light's
+     band laid as one even gradient over the body's edge, a satin look —
+     not the light the fibres themselves carry (the pile's film, the halo) */
+  const satin = p.sheen ?? 1;
+  const sheenK = 0.16 * p.highlight * satin, rimK = 1.15 * p.rim * satin, sssK = 0.2;
   /* the colour at full brightness, and the key's sheen: mostly the colour,
      a quarter of the light's own white */
   const mx = Math.max(c[0], c[1], c[2], 0.02);
@@ -2050,6 +2058,7 @@ interface State {
   rim: number;
   vivid: number;
   front: number;
+  sheen: number;
   K: V3 | null;
   /** bumped on every matcap rebuild */
   version: number;
@@ -2117,7 +2126,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
     s = {
       N: 0, img: null, mc: new Float32Array(MM * 3),
       mcPrev: new Float32Array(MM * 3), mcMix: new Float32Array(MM * 3), mixVersion: 0, blendT: 1, blendFrames: 1, sinceBuild: 0,
-      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, K: null,
+      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, sheen: NaN, K: null,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
       sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null,
@@ -2395,7 +2404,7 @@ export function drawPlasticCap(
   })();
   if (
     moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
-    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (fabric && moved(f.K, st.K))
+    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (mat.sheen ?? 1) !== st.sheen || (fabric && moved(f.K, st.K))
   ) {
     /* the fade starts from what is showing now, so a rebuild during a
        fade does not jump */
@@ -2422,6 +2431,7 @@ export function drawPlasticCap(
     st.rim = mat.rim;
     st.vivid = mat.vivid ?? 0;
     st.front = mat.front ?? KEY_EL;
+    st.sheen = mat.sheen ?? 1;
     st.K = f.K;
     st.version++;
   }
