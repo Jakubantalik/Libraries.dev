@@ -2856,6 +2856,9 @@ interface State {
   fade: [number, number] | null;
   lay: number;
   layTmp: { c: AnyCanvas; g: CanvasRenderingContext2D } | null;
+  /** WebKit: the layer the halo is laid on before it is composited (see
+      the halo pass) */
+  haloTmp: { c: AnyCanvas; g: CanvasRenderingContext2D } | null;
 }
 const states = new WeakMap<object, Map<string, State>>();
 function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
@@ -2873,7 +2876,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
       L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, sheen: NaN, backSoft: NaN, K: null,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
-      sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null,
+      sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null, haloTmp: null,
     };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
@@ -3586,8 +3589,43 @@ export function drawPlasticCap(
        edge's own shade, a light contour on a dark page */
     const veil = HALO_VEIL * Math.min(1, dl1 / 0.2);
     const laid = (d: CanvasRenderingContext2D) => {
-      d.globalCompositeOperation = 'destination-atop';
-      d.drawImage(fringed.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+      if (WEBKIT) {
+        /* WebKit clears outside the halo for destination-atop by a box it
+           rounds to whole pixels — under a scaled transform that box jumps
+           a pixel as the avatar drifts by a fraction of one, and the whole
+           silhouette shakes. The halo is laid on a layer first, then
+           composited at whole pixels over the whole buffer, which is exact */
+        let t = st.haloTmp;
+        if (!t || t.c.width < bw || t.c.height < bh) {
+          const n = Math.ceil(Math.max(bw, bh) / 64) * 64;
+          let c: AnyCanvas | null = null;
+          if (typeof document !== 'undefined') {
+            c = document.createElement('canvas');
+            c.width = c.height = n;
+          } else c = makeCanvas(n);
+          const cg = c && ctx2d(c, false);
+          t = st.haloTmp = c && cg ? { c, g: cg } : null;
+        }
+        if (t) {
+          const tg = t.g;
+          tg.setTransform(1, 0, 0, 1, 0, 0);
+          tg.globalCompositeOperation = 'source-over';
+          tg.globalAlpha = 1;
+          tg.clearRect(0, 0, bw, bh);
+          tg.imageSmoothingEnabled = true;
+          tg.imageSmoothingQuality = 'low';
+          tg.setTransform(d.getTransform());
+          tg.drawImage(fringed.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+          d.save();
+          d.setTransform(1, 0, 0, 1, 0, 0);
+          d.globalCompositeOperation = 'destination-atop';
+          d.drawImage(t.c as HTMLCanvasElement, 0, 0, bw, bh, 0, 0, bw, bh);
+          d.restore();
+        }
+      } else {
+        d.globalCompositeOperation = 'destination-atop';
+        d.drawImage(fringed.c as HTMLCanvasElement, -PAD, -PAD, SPAN, SPAN);
+      }
       /* and over the body's own edge, in part, the halo's colour: the
          stack's outermost slices, reaching a little past the outline,
          would otherwise show there as a dark line inside the halo */
