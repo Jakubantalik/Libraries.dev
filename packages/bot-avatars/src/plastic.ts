@@ -571,7 +571,7 @@ export interface Material {
   backSoft?: number;
   /** fabric: the smooth, satin light over the body's edge — the key's
       sheen and the back light's band, as even gradients rather than on
-      single fibres; 0.15 by default */
+      single fibres; 0 by default (matte) */
   sheen?: number;
 }
 /* More colour than a fully saturated palette colour has: the light's own
@@ -2479,7 +2479,7 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
   /* `sheen` scales the smooth light — the key's sheen and the back light's
      band laid as one even gradient over the body's edge, a satin look —
      not the light the fibres themselves carry (the pile's film, the halo) */
-  const satin = p.sheen ?? 0.15;
+  const satin = p.sheen ?? 0;
   const backSoft = Math.min(1, Math.max(0, p.backSoft ?? BACK_SOFT));
   const sheenK = 0.16 * p.highlight * satin, rimK = 1.15 * p.rim * satin, sssK = 0.2 + 0.25 * vivid;
   /* the colour at full brightness, and the key's sheen: mostly the colour,
@@ -3153,7 +3153,7 @@ export function drawPlasticCap(
   })();
   if (
     moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
-    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (mat.sheen ?? 0.15) !== st.sheen || (mat.backSoft ?? BACK_SOFT) !== st.backSoft || (fabric && moved(f.K, st.K))
+    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (mat.sheen ?? 0) !== st.sheen || (mat.backSoft ?? BACK_SOFT) !== st.backSoft || (fabric && moved(f.K, st.K))
   ) {
     /* the fade starts from what is showing now, so a rebuild during a
        fade does not jump */
@@ -3180,7 +3180,7 @@ export function drawPlasticCap(
     st.rim = mat.rim;
     st.vivid = mat.vivid ?? 0;
     st.front = mat.front ?? KEY_EL;
-    st.sheen = mat.sheen ?? 0.15;
+    st.sheen = mat.sheen ?? 0;
     st.backSoft = mat.backSoft ?? BACK_SOFT;
     st.K = f.K;
     st.version++;

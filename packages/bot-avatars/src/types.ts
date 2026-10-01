@@ -164,7 +164,7 @@ export interface BotAvatarProps
   lightFront?: number;
   /** `fabric`: strength of the highlights along single fibres where the key grazes the pile, 0–2. Default `0` (off: a soft, matte pile). */
   shine?: number;
-  /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `0.15`. */
+  /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `0`. */
   sheen?: number;
   /** `fabric`: how soft the back light is, 0–1 — `0` a small source caught on single fibres as crisp bright hairs, `1` a large one, an even glow reaching further in from the edge and fading out gently. Default `1`. */
   backSoftness?: number;

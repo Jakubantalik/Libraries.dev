@@ -136,7 +136,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [backLight, setBackLight] = useState<number | null>(null);
   const [lightFront, setLightFront] = useState(32);
   const [shine, setShine] = useState(0);
-  const [sheen, setSheen] = useState(15);
+  const [sheen, setSheen] = useState(0);
   const [backSoft, setBackSoft] = useState(100);
   const chooseShading = (next: BotAvatarShading) => {
     const was = lightDefaults(shading), to = lightDefaults(next);
@@ -258,7 +258,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
       if (lightFront !== 32) props.push(`lightFront={${lightFront}}`);
       if (shine !== 0) props.push(`shine={${num(shine / 100)}}`);
       if (backSoft !== 100) props.push(`backSoftness={${num(backSoft / 100)}}`);
-      if (sheen !== 15) props.push(`sheen={${num(sheen / 100)}}`);
+      if (sheen !== 0) props.push(`sheen={${num(sheen / 100)}}`);
     }
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
