@@ -44,7 +44,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     speed = 1,
     paused = false,
     seed,
-    shading = 'plastic',
+    shading = 'fabric',
     hat = 'none',
     glasses = 'none',
     headphones = false,

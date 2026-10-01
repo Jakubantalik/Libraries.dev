@@ -55,8 +55,8 @@ const autoBack = (light: number) => {
   return Math.round(((((Math.atan2(x, -y) * 180) / Math.PI) % 360) + 360) % 360 / 5) * 5;
 };
 const SHADING_OPTIONS = [
-  { value: "plastic", label: "Plastic" },
   { value: "fabric", label: "Fabric" },
+  { value: "plastic", label: "Plastic" },
   { value: "crisp", label: "Crisp" },
   { value: "smooth", label: "Smooth" },
   { value: "flat", label: "Flat" },
@@ -101,7 +101,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
      ink likewise follow the palette until touched. */
   const [face, setFace] = useState<BotAvatarFace | null>(null);
   const [state, setState] = useState<BotAvatarState>("default");
-  const [size, setSize] = useState(96);
+  const [size, setSize] = useState(124);
   const [color, setColor] = useState<string | null>(null);
   const [ink, setInk] = useState<string | null>(null);
   /* the type's own brightness and saturation (most use 100% and 150%) */
@@ -114,9 +114,9 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [speed, setSpeed] = useState(100);
   const [seed, setSeed] = useState<number | null>(null);
   /* the library's own defaults */
-  const [shading, setShading] = useState<BotAvatarShading>("plastic");
-  const [shadow, setShadow] = useState(35);
-  const [highlight, setHighlight] = useState(130);
+  const [shading, setShading] = useState<BotAvatarShading>("fabric");
+  const [shadow, setShadow] = useState(() => lightDefaults("fabric").shadow);
+  const [highlight, setHighlight] = useState(() => lightDefaults("fabric").highlight);
   /* fabric has its own default light: switching shading swaps the light
      sliders to the new material's defaults, unless they were moved */
   const lit = lightDefaults(shading);
@@ -128,9 +128,9 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [furClumps, setFurClumps] = useState(40);
   const [furCurl, setFurCurl] = useState(70);
   const [furGravity, setFurGravity] = useState(90);
-  const [light, setLight] = useState(300);
-  const [rim, setRim] = useState(50);
-  const [spread, setSpread] = useState(155);
+  const [light, setLight] = useState(() => lightDefaults("fabric").light);
+  const [rim, setRim] = useState(() => lightDefaults("fabric").rim);
+  const [spread, setSpread] = useState(() => lightDefaults("fabric").spread);
   /* fabric's light rig: where the back light comes from (null follows the
      key), how far round to the front the key sits, and the fibres' shine */
   const [backLight, setBackLight] = useState<number | null>(null);
@@ -246,7 +246,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   if (saturation !== own.saturation) props.push(`saturation={${num(saturation / 100)}}`);
   if (speed !== 100) props.push(`speed={${num(speed / 100)}}`);
   if (seed !== null) props.push(`seed={${num(seed)}}`);
-  if (shading !== "plastic") props.push(`shading="${shading}"`);
+  if (shading !== "fabric") props.push(`shading="${shading}"`);
   if (shading !== "flat") {
     if (shadow !== lit.shadow) props.push(`shadow={${num(shadow / 100)}}`);
     if (highlight !== lit.highlight) props.push(`highlight={${num(highlight / 100)}}`);

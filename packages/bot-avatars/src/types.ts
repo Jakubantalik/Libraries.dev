@@ -34,12 +34,12 @@ export type BotAvatarState = 'default' | 'working' | 'sleeping';
 export type BotAvatarSquashEase = 'sharp' | 'pulse' | 'soft' | 'bouncy';
 
 /**
- * How the body is lit. `plastic` (default): a real glossy material shaded
- * per pixel — a baked pillow form, a hot spot and a sheen, a Fresnel rim,
- * a window reflection, saturated shadows. `fabric`: the same form in a
- * plush faux fur — soft scattered light, fine strands combed down the form
- * and gathered into locks, the silhouette breaking into soft tufts with a
- * haze of hairs; the eyes turn into glossy beads. `crisp`: a lit rim with
+ * How the body is lit. `fabric` (default): a plush faux fur — a baked
+ * pillow form under a studio light, fine strands combed down the form and
+ * gathered into lit locks, the silhouette breaking into soft tufts with a
+ * haze of hairs; the eyes turn into glossy beads. `plastic`: the same form
+ * as a real glossy material shaded per pixel — a hot spot and a sheen, a
+ * Fresnel rim, a window reflection, saturated shadows. `crisp`: a lit rim with
  * a clean edge round the front, vector-style. `smooth`: no edge, a soft
  * shadow and highlight across the whole form. `flat`: the depth alone, no
  * lighting.
@@ -111,7 +111,7 @@ export interface BotAvatarProps
    * blink in unison. Defaults to a value derived from the instance id.
    */
   seed?: number;
-  /** How the body is lit: `plastic` (default), `fabric`, `crisp`, `smooth`
+  /** How the body is lit: `fabric` (default), `plastic`, `crisp`, `smooth`
    * or `flat`. `true` and `false` mean crisp and flat. */
   shading?: BotAvatarShading | boolean;
   /** A hat, sitting on the top of the head and turning with it: `beret`,
