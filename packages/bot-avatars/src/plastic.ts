@@ -870,6 +870,77 @@ const dropped = new Set<string>();
 /* the pile's neutral grey: below it the film darkens the colour, above it
    lightens it, as a hard-light blend of the grey would */
 const FUR_MID = 128;
+/* the locks: how many overlap each point of the pile on average, how
+   many more are seeded than a surface seen face-on needs (those over
+   foreshortened surface are kept), and how a lock tapers — its width
+   sqrt(s)·(1 − s) brought to 1 at its widest, a third of the way from its
+   root to its tip */
+const LOCK_COVER = 3.2;
+const LOCK_DENSE = 1 / 2.56;
+const LOCK_TAPER = 1 / ((2 / 3) * Math.sqrt(1 / 3));
+/* how much sparser the locks grow between the tufts they gather into (at
+   full clumps): the pile parts there and the view reaches its deep floor */
+const LOCK_PART = 0.6;
+/* the light in the pile, relative to the key's full strength: what the
+   room gives every side, what the fill (from the front, on the side away
+   from the key) adds where the pile faces it — so on the shade side the
+   locks are still modelled, lit from the other side and dimly — and how
+   far the key wraps past the terminator through the fibres, as the
+   matcap's */
+const PILE_AMB = 0.07;
+const PILE_FILL = 0.14;
+const PILE_WRAP = 0.3;
+/* how much of the key a lock's shadow takes from the pile below it, how
+   dark the hollows between locks are, how much a lock's root is shaded by
+   the tip lying over it, and how much less of the key a fibre lying along
+   it catches than one lying across it */
+const PILE_SHADOW = 0.6;
+const PILE_AO = 0.35;
+const PILE_ROOT = 0.3;
+const PILE_KK = 0.3;
+/* the pile's light against the smooth body's, brought back to about one
+   on average — the shadows and hollows only take light away — and how
+   far the film's light part lifts the colour per unit of it */
+const PILE_GAIN = 1.26;
+const PILE_LIFT = 1.6;
+/* Rolled off at its lit tops (matte) and sunk at its hollows, the pile on
+   average takes a little light from the body beneath it, and more the
+   deeper its relief: given back as an even lift of the film, so the
+   body keeps its tone and only gains texture */
+const PILE_BIAS = 0.045;
+/* how far a plush's fibres stand out of the surface (about 29°): seen
+   straight down the slope at the silhouette a fibre shows only this much
+   of its length (the sine), seen square to the surface the rest (cosine) */
+const PILE_STAND = 0.5;
+const PILE_COS = Math.cos(PILE_STAND), PILE_SIN = Math.sin(PILE_STAND);
+/* how much of the light the pile loses at the deepest of a crease between
+   lobes or under the body: its roots there are out of the room's light */
+const PILE_CREASE = 0.22;
+/* how high the pile's tops stand over its hollows, in design units per
+   unit of its length: how far the two move apart as the body turns */
+const PILE_H = 0.5;
+/* the shade the film's dark part is encoded for: laid in the gaps' colour
+   (see gapFilm) at full alpha it takes the colour down to about this */
+const GAP_REF = 0.36;
+/* the smooth body's light (room, fill and key, as the pile's light below
+   reckons it) where the key is full on it, and the light the film's light
+   part lifts the colour toward, against the colour fully lit: the tips'
+   colour at full brightness (see tipFilm) */
+const PILE_LIT = 1.1;
+const TIP_TOP = 1.625;
+/* the fine strands: each grows one way from its root, down the flow,
+   thinning toward its tip by this much of its weight; its root lies under
+   the tips of the strands before it, in their shade, and its tip lies on
+   top, up in the light — how much lighter a strand's tip is than its root,
+   against its own contrast */
+const STRAND_TAPER = 0.5;
+const STRAND_RISE = 0.9;
+/* the shortest strand, against the longest at a point */
+const STRAND_SHORT = 0.7;
+/* how high a strand stands over the pile beside it, in design units, and
+   how dark the shadow it casts there, against the strands' own contrast */
+const STRAND_CAST_H = 0.15;
+const STRAND_CAST = 1.3;
 /* how far past the body's square the pile's film reaches, and its span */
 const FILM_M = 20;
 const FILM_SPAN = SPAN + 2 * FILM_M;
@@ -1052,14 +1123,23 @@ function valueNoise3(scale: number, seed: number) {
  *
  * A faux fur like a plush toy's: fine strands lying in one flow — combed
  * from a parting behind the top of the head and falling — gathered into
- * locks, each a low mound lit on the side toward the light, its tip over
- * the root of the next and shading it, with a few longer guard hairs over
- * them. The strands are a sparse bright noise drawn out along the flow
- * (a line-integral blur), the locks a coarse noise drawn out the same way.
+ * locks, and the locks into tufts. Each lock is a tapering mound laid on
+ * the body's curved surface and seen as that surface is, foreshortened
+ * toward the silhouette; together they make a height field, lit by the
+ * same key and fill as the body: a lock is lit on its side toward the key
+ * and shaded on the other, its tip lies over the root of the next and
+ * casts a shadow on it, the hollows between locks and the creases between
+ * the body's lobes sink into shade, and the pile parts between tufts down
+ * to its deep floor. Over that, strands — a sparse bright noise drawn out
+ * one way along each lock (a line-integral blur), spreading from its root
+ * and gathering to its tip, each strand's root under the tips of those
+ * before it and in their shade, its tip up in the light, and each casting
+ * a thin shadow beside it away from the key — and single hairs, each
+ * running from a shaded root to a lit tip, with a few longer guard hairs.
  * It is kept as a film in two parts, black where it deepens the colour and
  * white where it lightens it, over a square wider than the body's, so one
- * film covers the whole turned body. The silhouette breaks into tufts —
- * the locks standing past it — with a haze of fine hairs.
+ * film covers the whole turned body. The silhouette breaks into tufts of
+ * hairs standing past it, with a haze of fine hairs between them.
  */
 export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0, style: FurStyle = FUR_STOCK, lights: FurLights = stockLights(lx, ly)): Fur {
   const R = furTier(capPx);
@@ -1109,11 +1189,12 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   const gravity = style.gravity ?? FUR_STOCK.gravity;
   const ll = Math.hypot(lx, ly) || 1;
   const Lx = lx / ll, Ly = ly / ll;
-  /* the matcap's key and back light as the front sees them head-on, and
-     the key's half vector: the fibres' own highlights are baked for them */
+  /* the matcap's key, back light and fill as the front sees them
+     head-on, and the key's half vector: the fibres' own highlights and the
+     locks' light are baked for them */
   const Uf: V3 = [Lx, Ly, 0], Vf: V3 = [0, 0, 1], Df: V3 = [0, 1, 0];
-  void Df;
   const K3 = fabricKey(Uf, Vf, lights.front), B3 = fabricBack([lights.bx, lights.by, 0], Vf), H3 = norm3([K3[0], K3[1], K3[2] + 1]);
+  const F3 = norm3([-0.55 * Uf[0] + 0.85 * Vf[0] + 0.15 * Df[0], -0.55 * Uf[1] + 0.85 * Vf[1] + 0.15 * Df[1], -0.55 * Uf[2] + 0.85 * Vf[2] + 0.15 * Df[2]]);
 
   /* the parting: at the top of the head over its middle */
   /* the parting: over the top of the head, behind it — seen from the
@@ -1191,6 +1272,25 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      the body and its halo, none past them (where a turned body's side
      lies under the film) */
   const onG = new Float32Array(G * G);
+  /* The pile lies on the curved body, so what the viewer sees of it is
+     its projection: a fibre combed down the slope near the outline runs
+     away from the viewer and shows short, one combed along the outline
+     keeps its length — so the strands bend round the form and shorten
+     toward the silhouette, as a texture on a sphere does at its limb.
+     `pfX`/`pfY` is that projected direction and `foreG` how much of a
+     fibre's length shows (1 seen side-on); the plain flow is kept for what
+     works out its own projection (the locks) and for the halo's hairs,
+     which stand free of the body past its edge. */
+  const pfX = new Float32Array(G * G), pfY = new Float32Array(G * G), foreG = new Float32Array(G * G);
+  /* and the body's height there, and how deep in a crease or under the
+     body the pile lies: a valley between lobes, where the body around
+     stands higher than the point (the height above a wide average of it),
+     and the underside, which faces the floor — both hide the room's light
+     from the roots */
+  const hG = new Float32Array(G * G), creaseG = new Float32Array(G * G);
+  /* and the slow drift in the pile's tone, smooth enough to be read off
+     the grid */
+  const toneG = new Float32Array(G * G);
   rows(G, 28, (j0, j1) => {
     for (let j = j0, i = j0 * G; j < j1; j++) {
       for (let x = 0; x < G; x++, i++) {
@@ -1203,8 +1303,10 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         fx = fx * (1 - w) + dx * w;
         fy = fy * (1 - w) + (dy + 0.35 * gravity) * w;
         const fl = Math.hypot(fx, fy) || 1;
-        flowX[i] = fx / fl;
-        flowY[i] = fy / fl;
+        fx /= fl;
+        fy /= fl;
+        flowX[i] = fx;
+        flowY[i] = fy;
         tiltG[i] = tiltS;
         let nx = dx * tiltS, ny = dy * tiltS, nz = Math.sqrt(Math.max(0, 1 - tiltS * tiltS));
         const d0 = sdAt(X, Y);
@@ -1223,22 +1325,80 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         nYg[i] = ny;
         nZg[i] = nz;
         onG[i] = smooth(-3.5, -1.5, d0);
+        toneG[i] = tone(X, Y);
+        hG[i] = d0 > 0 ? hAt(X, Y) : 0;
+        /* the flow as a direction on the surface, its part down the slope
+           (along the normal's lean ĝ) seen foreshortened by the surface's
+           cosine, then raised out of the surface at the pile's angle */
+        const s = Math.sqrt(nx * nx + ny * ny), gx = s > 1e-4 ? nx / s : 0, gy = s > 1e-4 ? ny / s : 0;
+        const a = fx * gx + fy * gy, k = (1 - Math.max(0, nz)) * a;
+        let qx = PILE_COS * (fx - k * gx) + PILE_SIN * s * gx, qy = PILE_COS * (fy - k * gy) + PILE_SIN * s * gy;
+        /* past the outline the halo's hairs stand free, seen whole */
+        const att = smooth(-0.5, 1.5, d0);
+        qx = fx + (qx - fx) * att;
+        qy = fy + (qy - fy) * att;
+        const ql = Math.sqrt(qx * qx + qy * qy) || 1;
+        pfX[i] = qx / ql;
+        pfY[i] = qy / ql;
+        foreG[i] = 1 + (Math.min(1, ql) - 1) * att;
       }
     }
   });
+  steps.push(() => {
+    /* the crease: the body's height under a wide average of it (a valley
+       between lobes is lower than its surroundings, a dome higher), and
+       the underside, by how far the surface faces the floor */
+    const tmp = new Float32Array(G * G), avg = Float32Array.from(hG);
+    for (let pass = 0; pass < 3; pass++) {
+      for (let y = 0, i = 0; y < G; y++) for (let x = 0; x < G; x++, i++) {
+        let acc = 0;
+        for (let t = -2; t <= 2; t++) acc += avg[y * G + Math.min(G - 1, Math.max(0, x + t))];
+        tmp[i] = acc / 5;
+      }
+      for (let y = 0, i = 0; y < G; y++) for (let x = 0; x < G; x++, i++) {
+        let acc = 0;
+        for (let t = -2; t <= 2; t++) acc += tmp[Math.min(G - 1, Math.max(0, y + t)) * G + x];
+        avg[i] = acc / 5;
+      }
+    }
+    for (let j = 0, i = 0; j < G; j++) for (let x = 0; x < G; x++, i++) {
+      /* only on the body: past the outline the average takes its height
+         and every edge would read as a valley */
+      const inside = smooth(0.2, 2, sdAt((x + 0.5) * gu - O, (j + 0.5) * gu - O));
+      const valley = smooth(0.3, 3.5, avg[i] - hG[i]) * inside;
+      const under = smooth(0.15, 0.85, nYg[i]) * (1 - nZg[i]);
+      creaseG[i] = Math.min(1, valley + 0.45 * under) * onG[i];
+    }
+  });
   const gridAt = (f: Float32Array, X: number, Y: number) => bilerp(f, G, (X + O) / gu - 0.5, (Y + O) / gu - 0.5);
-  /* the flow's unit direction at a design point */
+  /* the projected flow's unit direction at a design point: how the strands
+     are seen lying on the body */
   const dirAt = (X: number, Y: number): [number, number] => {
+    const ux = gridAt(pfX, X, Y), uy = gridAt(pfY, X, Y);
+    const ul = Math.sqrt(ux * ux + uy * uy);
+    return ul > 1e-4 ? [ux / ul, uy / ul] : [0, 1];
+  };
+  /* and the plain flow's, for the locks (laid on the surface by their own
+     reckoning) and the hairs standing free past the edge */
+  const freeDirAt = (X: number, Y: number): [number, number] => {
     const ux = gridAt(flowX, X, Y), uy = gridAt(flowY, X, Y);
-    const ul = Math.hypot(ux, uy);
+    const ul = Math.sqrt(ux * ux + uy * uy);
     return ul > 1e-4 ? [ux / ul, uy / ul] : [0, 1];
   };
 
-  /* 2. the locks: a plush's fibres gather into small locks lying along the
-     flow, each a low mound lit on the side toward the light, its tip lying
-     over the root of the next one down and shading it. Blobs of a coarse
-     noise drawn out along the flow, at half the pile's resolution. */
+  /* 2. the locks: a plush's fibres gather into small locks — each a
+     tapering bundle rooted in the backing, standing a little out of it and
+     lying along the flow, rounded across like a brush stroke and drawn to
+     a point at its tip, which lies over the root of the next lock down.
+     Each is laid as its own mound on the body's curved surface and seen as
+     that surface is: one lying toward the silhouette foreshortened, one
+     lying along it seen edge-on. The mounds are kept as one height field
+     over the film at its own resolution — at each point the highest lock
+     is the one seen — with the index of the lock seen there. */
   const Rl = Rb >> 1, pl = Rl / FILM_SPAN;
+  /* the same at half the resolution, for the strokes and the silhouette's
+     tufts: how high the pile stands there (`lock`, normalised) and how it
+     is lit (`lockLit`) */
   const lock = new Float32Array(Rl * Rl), lockLit = new Float32Array(Rl * Rl);
   const lockAt = (f: Float32Array, X: number, Y: number) => bilerp(f, Rl, (X + O) * pl - 0.5, (Y + O) * pl - 0.5);
   /* the silhouette is not a clean curve: the locks along it stand a little
@@ -1252,125 +1412,241 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     return tuftK * Math.max(-1, Math.min(1, v));
   };
   const lockW = 0.8 + 0.45 * kLen;
-  const n1 = valueNoise(lockW, 41), n2 = valueNoise(lockW * 0.45, 43);
-  const base = new Float32Array(Rl * Rl), lux = new Float32Array(Rl * Rl), luy = new Float32Array(Rl * Rl);
-  rows(Rl, 64, (y0, y1) => {
-    for (let y = y0, i = y0 * Rl; y < y1; y++) {
-      const Y = (y + 0.5) / pl - O;
-      for (let x = 0; x < Rl; x++, i++) {
-        const X = (x + 0.5) / pl - O;
-        const t = (n1(X, Y) * 0.72 + n2(X, Y) * 0.28 - 0.4) / 0.32;
-        base[i] = t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
-        const [dx, dy] = dirAt(X, Y);
-        lux[i] = dx;
-        luy[i] = dy;
+  /* a lock's size on the surface, in design units — as wide as the clumps
+     gather it, about three times as long as wide — and how high it stands over
+     the pile between locks: with no clumps the pile is nearly even */
+  const lockWd = lockW * (0.65 + 0.4 * clumps), lockLd = 1.5 + 1.6 * kLen;
+  const hMax = 0.32 * lockWd * (0.15 + 0.85 * clumps);
+  const pileH = new Float32Array(Rb * Rb).fill(-0.25 * hMax), own = new Int32Array(Rb * Rb).fill(-1);
+  /* per lock: its root and unit axis on the film's screen (in pixels), its
+     length and half-width there, how high it sits, how it bends, its axis
+     and its across direction on the surface, and its size on it */
+  const LP = 16;
+  /* the locks are seeded on a jittered grid at LOCK_DENSE times the
+     density a surface seen face-on needs, and kept as far as the surface
+     is foreshortened there */
+  const cell = Math.sqrt((0.6 * lockWd * lockLd) / LOCK_COVER / LOCK_DENSE);
+  const gn = Math.ceil(FILM_SPAN / cell);
+  const locks = new Float32Array(gn * gn * LP);
+  let nLocks = 0;
+  /* a hanging pile lies flatter */
+  const stand0 = 0.45 - 0.2 * gravity;
+  /* a scale above the locks: neighbouring locks gather into tufts, a few
+     locks across, that stand together over the pile around them — so a
+     tuft is a soft lit mound of its own, its locks lying over the next
+     tuft's — and the locks run a little larger in some places than in
+     others. The tufts are a solid noise read on the body's surface, so
+     toward the outline, where it turns away, they crowd together as the
+     locks do. */
+  const tuftN = valueNoise3(1.6 * lockLd, 79), sizeN = valueNoise(9, 73);
+  const tuftH = 1.5 * hMax * (0.25 + clumps);
+  steps.push(() => {
+    for (let gy = 0; gy < gn; gy++) for (let gx = 0; gx < gn; gx++) {
+      const X = (gx + rand()) * cell - O, Y = (gy + rand()) * cell - O;
+      const r1 = rand(), r2 = rand(), r3 = rand(), r4 = rand(), r5 = rand(), r6 = rand(), r7 = rand();
+      let nx = gridAt(nXg, X, Y), ny = gridAt(nYg, X, Y), nz = gridAt(nZg, X, Y);
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      nx /= nl;
+      ny /= nl;
+      nz /= nl;
+      const [fx, fy] = freeDirAt(X, Y);
+      const ja = (r1 - 0.5) * (0.2 + 0.45 * curl), cj = Math.cos(ja), sj = Math.sin(ja);
+      const ux = fx * cj - fy * sj, uy = fx * sj + fy * cj;
+      /* the flow laid onto the surface; where it runs straight out over
+         the silhouette the lock runs on round the side, away from view */
+      const a = ux * nx + uy * ny;
+      let tx = ux - a * nx, ty = uy - a * ny, tz = -a * nz;
+      let tl = Math.hypot(tx, ty, tz);
+      if (tl < 0.05) {
+        tx = nz * nx;
+        ty = nz * ny;
+        tz = nz * nz - 1;
+        tl = Math.hypot(tx, ty, tz) || 1;
+      }
+      tx /= tl;
+      ty /= tl;
+      tz /= tl;
+      /* across it, on the surface */
+      let bx = ny * tz - nz * ty, by = nz * tx - nx * tz, bz = nx * ty - ny * tx;
+      /* the lock stands a little out of the surface from its root */
+      const st = stand0 + 0.2 * r2, cs = Math.cos(st), sn = Math.sin(st);
+      const grow = 0.8 + 0.45 * sizeN(X, Y);
+      const Wd = lockWd * grow * (0.8 + 0.4 * r3), Ld = lockLd * grow * (0.75 + 0.5 * r4);
+      let ax = (tx * cs + nx * sn) * Ld * px, ay = (ty * cs + ny * sn) * Ld * px;
+      let La = Math.hypot(ax, ay);
+      if (La < 1.5) {
+        ax = ux;
+        ay = uy;
+        La = 1.5;
+      } else {
+        ax /= La;
+        ay /= La;
+      }
+      /* its width on screen, across its axis there */
+      let across = -bx * ay + by * ax;
+      if (across < 0) {
+        bx = -bx;
+        by = -by;
+        bz = -bz;
+        across = -across;
+      }
+      const Wa = Math.max(0.6, 0.5 * Wd * px * Math.max(0.15, across));
+      /* as many locks on each piece of the surface wherever it is: more on
+         the screen where it turns away and they are foreshortened */
+      const seen = (La / (Ld * px)) * (Wa / (0.5 * Wd * px));
+      /* and fewer between the tufts than in them: the locks gather, and
+         where they part the pile's floor shows */
+      const tn = tuftN(X, Y, hAt(X, Y));
+      if (r5 > (LOCK_DENSE / Math.max(LOCK_DENSE, seen)) * (1 - LOCK_PART * clumps * (1 - smooth(0.25, 0.65, tn)))) continue;
+      const b = nLocks++ * LP;
+      locks[b] = (X + O) * px;
+      locks[b + 1] = (Y + O) * px;
+      locks[b + 2] = ax;
+      locks[b + 3] = ay;
+      locks[b + 4] = La;
+      locks[b + 5] = Wa;
+      locks[b + 6] = 0.1 * hMax * r6 + tuftH * tn;
+      locks[b + 7] = (r7 - 0.5) * 1.2 * curl;
+      locks[b + 8] = tx;
+      locks[b + 9] = ty;
+      locks[b + 10] = tz;
+      locks[b + 11] = bx;
+      locks[b + 12] = by;
+      locks[b + 13] = bz;
+      locks[b + 14] = Ld;
+      locks[b + 15] = Wd;
+    }
+  });
+  /* each lock into the height field: along it (s, root 0 to tip 1) it
+     rises from its root over the first quarter and sinks to half its
+     height at the tip; across it (q, −1 to 1 within its width there) it is
+     rounded, a parabola; its width sqrt(s)·(1 − s), round at the root and
+     drawn to a point at the tip, and it bends a little as the pile curls */
+  const lockAlong = (s: number) => (s < 0.25 ? 4 * s : 1) * (1 - 0.5 * s);
+  const SPLAT_PARTS = 6;
+  for (let part = 0; part < SPLAT_PARTS; part++) steps.push(() => {
+    const k0 = Math.floor((nLocks * part) / SPLAT_PARTS), k1 = Math.floor((nLocks * (part + 1)) / SPLAT_PARTS);
+    for (let k = k0; k < k1; k++) {
+      const b = k * LP;
+      const ox = locks[b], oy = locks[b + 1], ax = locks[b + 2], ay = locks[b + 3], La = locks[b + 4], Wa = locks[b + 5], z0 = locks[b + 6], bend = locks[b + 7];
+      const ext = Wa * (1 + Math.abs(bend)) + 1, ex = ox + ax * La, ey = oy + ay * La;
+      const xa = Math.max(0, Math.floor(Math.min(ox, ex) - ext)), xb = Math.min(Rb - 1, Math.ceil(Math.max(ox, ex) + ext));
+      const ya = Math.max(0, Math.floor(Math.min(oy, ey) - ext)), yb = Math.min(Rb - 1, Math.ceil(Math.max(oy, ey) + ext));
+      const iLa = 1 / La, iWa = 1 / Wa;
+      for (let y = ya; y <= yb; y++) {
+        const dy = y + 0.5 - oy;
+        for (let x = xa, i = y * Rb + xa; x <= xb; x++, i++) {
+          const dx = x + 0.5 - ox;
+          const s = (dx * ax + dy * ay) * iLa;
+          if (s <= 0 || s >= 1) continue;
+          const w = LOCK_TAPER * Math.sqrt(s) * (1 - s);
+          const v = (dy * ax - dx * ay) * iWa - bend * s * s;
+          if (v >= w || v <= -w) continue;
+          const q = v / w;
+          const h = z0 + hMax * lockAlong(s) * (1 - q * q);
+          if (h > pileH[i]) {
+            pileH[i] = h;
+            own[i] = k;
+          }
+        }
       }
     }
   });
-  const half = Math.max(1, Math.round((0.6 + 0.9 * kLen) * pl));
-  let sum = 0, sum2 = 0;
-  rows(Rl, 48, (y0, y1) => {
-    for (let y = y0, i = y0 * Rl; y < y1; y++) {
-      for (let x = 0; x < Rl; x++, i++) {
-        const dx = lux[i], dy = luy[i];
-        let acc = 0, ws = 0;
-        for (let t = -half; t <= half; t++) {
-          const sx = Math.round(x + dx * t), sy = Math.round(y + dy * t);
-          if (sx < 0 || sy < 0 || sx >= Rl || sy >= Rl) continue;
-          const w = 1 - Math.abs(t) / (half + 1);
-          acc += base[sy * Rl + sx] * w;
-          ws += w;
-        }
-        const v = ws ? acc / ws : 0;
-        lock[i] = v;
-        sum += v;
-        sum2 += v * v;
-      }
+  /* the pile's height averaged over about a lock's width: what lies below
+     it is a hollow — between locks, at their roots, under a tip lying over
+     the next — and the fibres there are in each other's shade. Two passes
+     of a box each way, so a lone lock's hollow is round, not square. */
+  const pileB = new Float32Array(Rb * Rb);
+  const rB = Math.max(1, Math.round(0.3 * lockWd * px));
+  /* a box of half-width r along rows (stride 1) or columns (stride Rb),
+     from src into dst through one line's copy */
+  const line = new Float32Array(Rb);
+  const box = (src: Float32Array, dst: Float32Array, r: number, k: number, stride: number) => {
+    const step = stride === 1 ? Rb : 1, inv = 1 / (2 * r + 1);
+    const at = (t: number) => line[t < 0 ? 0 : t >= Rb ? Rb - 1 : t];
+    const o = k * step;
+    for (let t = 0; t < Rb; t++) line[t] = src[o + t * stride];
+    let acc = 0;
+    for (let t = -r; t <= r; t++) acc += at(t);
+    for (let t = 0; t < Rb; t++) {
+      dst[o + t * stride] = acc * inv;
+      acc += at(t + r + 1) - at(t - r);
     }
+  };
+  steps.push(() => {
+    for (let y = 0; y < Rb; y++) box(pileH, pileB, rB, y, 1);
+    for (let y = 0; y < Rb; y++) box(pileB, pileB, rB, y, 1);
   });
   steps.push(() => {
-    const n = Rl * Rl, mean = sum / n, sdv = Math.sqrt(Math.max(1e-6, sum2 / n - mean * mean));
-    for (let i = 0; i < n; i++) lock[i] = Math.max(-2.5, Math.min(2.5, (lock[i] - mean) / sdv));
+    for (let x = 0; x < Rb; x++) box(pileB, pileB, rB, x, Rb);
+    for (let x = 0; x < Rb; x++) box(pileB, pileB, rB, x, Rb);
   });
-  /* lit where the mound faces the light (its slope falls toward it), in
-     shade just past a lock's tip, where the one above lies over it */
-  const scaleG = lockW * pl * 0.5, back = Math.max(1, Math.round(0.8 * pl));
-  rows(Rl, 96, (y0, y1) => {
-    for (let y = y0, i = y0 * Rl; y < y1; y++) {
-      for (let x = 0; x < Rl; x++, i++) {
-        const l = x > 0 ? lock[i - 1] : lock[i], r = x < Rl - 1 ? lock[i + 1] : lock[i];
-        const u = y > 0 ? lock[i - Rl] : lock[i], d = y < Rl - 1 ? lock[i + Rl] : lock[i];
-        const lit = -((r - l) * Lx + (d - u) * Ly) * 0.5 * scaleG;
-        const sx = Math.round(x - lux[i] * back), sy = Math.round(y - luy[i] * back);
-        const up = sx >= 0 && sy >= 0 && sx < Rl && sy < Rl ? lock[sy * Rl + sx] : lock[i];
-        const shade = Math.max(0, up - lock[i]);
-        lockLit[i] = Math.max(-2, Math.min(2, 0.6 * lit - 0.65 * shade));
-      }
-    }
-  });
-  /* the shade a lock casts is soft — the fibres at its tip thin out, and
-     the light scatters through them — so its light is blurred a little:
-     the gaps read as soft warm hollows rather than drawn lines */
+  /* and the pile itself softened by a pixel: fibres of neighbouring locks
+     cross where they meet, so a lock's edge is not cut */
   steps.push(() => {
-    const tmp = new Float32Array(Rl * Rl);
-    for (let pass = 0; pass < 2; pass++) {
-      for (let y = 0, i = 0; y < Rl; y++) {
-        for (let x = 0; x < Rl; x++, i++) {
-          const l = x > 0 ? lockLit[i - 1] : lockLit[i], r = x < Rl - 1 ? lockLit[i + 1] : lockLit[i];
-          tmp[i] = (l + 2 * lockLit[i] + r) / 4;
-        }
-      }
-      for (let y = 0, i = 0; y < Rl; y++) {
-        for (let x = 0; x < Rl; x++, i++) {
-          const u = y > 0 ? tmp[i - Rl] : tmp[i], d = y < Rl - 1 ? tmp[i + Rl] : tmp[i];
-          lockLit[i] = (u + 2 * tmp[i] + d) / 4;
-        }
-      }
-    }
+    for (let y = 0; y < Rb; y++) box(pileH, pileH, 1, y, 1);
+    for (let x = 0; x < Rb; x++) box(pileH, pileH, 1, x, Rb);
   });
 
-  /* 3. the fleece: every pixel's fibres — a sparse bright noise drawn out
-     along the flow, so it reads as fine strands lying in the direction the
-     pile is combed, longer where the surface turns away and they are seen
-     side-on — over the locks and a slow drift in the pile's tone. Grey
-     about FUR_MID, kept as the film's two parts: below mid black (the gaps
-     between locks and strands deepen the colour whatever its lightness,
-     as occlusion does), above it white. */
+  /* 3. the fleece: every pixel's fibres, lit. The lock seen there gives
+     the pile's own surface — its normal tilted by the mound's slope, so a
+     lock is lit on the side toward the key and shaded on the other — and
+     its strands, spreading from the root and gathering to the tip. The key
+     on that surface, against the key on the smooth body (which the matcap
+     already shades), is how much lighter or darker the pile is there: the
+     relief shows most where the key grazes the body, least where it faces
+     it, and the shade side keeps only its hollows. A lock's tip shades the
+     pile beyond it toward the light, and the hollows are in shade
+     whatever the light. Then fine strands — a sparse bright noise drawn
+     out along them, longer where the surface turns away and they are seen
+     side-on — and a slow drift in the pile's tone. Kept as the film's two
+     parts: darker as black (laid as the colour's own deep shade, see
+     gapFilm), lighter as white. */
   const darkImg = new ImageData(Rb, Rb), lightImg = new ImageData(Rb, Rb);
   const glintImg = new ImageData(Rb, Rb), backImg = new ImageData(Rb, Rb), softImg = new ImageData(Rb, Rb);
   const white = new Float32Array(Rb * Rb);
   /* The light on single fibres at a design point, for a fibre lying along
      (ux, uy) on screen and standing `stand` radians out of the surface:
      into `fib` the key's highlight along it, the back light it carries,
-     and how far the point faces the key at all. */
-  const fib = new Float32Array(4);
+     how far the point faces the key at all, and the even glow of a soft
+     back light; the body's own normal there and how far it faces the key;
+     how deep in a crease or under the body the point lies; how far it is
+     on the body and its halo at all; and the pile's tone there. */
+  const fib = new Float32Array(11);
   const fibreLight = (X: number, Y: number, ux: number, uy: number, stand: number) => {
-    /* past the halo, under a turned body's side, the tips keep most of
-       their light and there is no light on single fibres */
-    /* the four grids read at one set of bilinear weights */
+    /* the grids read at one set of bilinear weights */
     const fx = Math.min(G - 1, Math.max(0, (X + O) / gu - 0.5)), fy = Math.min(G - 1, Math.max(0, (Y + O) / gu - 0.5));
     const x0 = Math.min(G - 2, fx | 0), y0 = Math.min(G - 2, fy | 0);
     const u = fx - x0, v = fy - y0, j = y0 * G + x0;
     const w00 = (1 - u) * (1 - v), w10 = u * (1 - v), w01 = (1 - u) * v, w11 = u * v;
     const read = (f: Float32Array) => f[j] * w00 + f[j + 1] * w10 + f[j + G] * w01 + f[j + G + 1] * w11;
+    let nx = read(nXg), ny = read(nYg), nz = read(nZg);
+    const nn = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+    nx /= nn;
+    ny /= nn;
+    nz /= nn;
+    const nK = nx * K3[0] + ny * K3[1] + nz * K3[2];
+    fib[4] = nx;
+    fib[5] = ny;
+    fib[6] = nz;
+    fib[7] = nK;
+    fib[8] = read(creaseG);
+    /* past the halo, under a turned body's side, the tips keep most of
+       their light and there is no light on single fibres */
     const on = read(onG);
+    fib[9] = on;
+    fib[10] = read(toneG);
     if (on <= 0) {
       fib[0] = fib[1] = fib[3] = 0;
       fib[2] = 0.7;
       return;
     }
-    let nx = read(nXg), ny = read(nYg), nz = read(nZg);
-    const nn = Math.hypot(nx, ny, nz) || 1;
-    nx /= nn;
-    ny /= nn;
-    nz /= nn;
-    const nK = nx * K3[0] + ny * K3[1] + nz * K3[2];
     const key = smooth(-0.2, 0.5, nK);
     /* the fibre: the flow laid onto the surface, then raised out of it at
        the pile's angle — a plush's fibres stand, they do not lie flat */
     const along = ux * nx + uy * ny;
     let tx = ux - along * nx, ty = uy - along * ny, tz = -along * nz;
-    const tl = Math.hypot(tx, ty, tz);
+    const tl = Math.sqrt(tx * tx + ty * ty + tz * tz);
     if (tl > 1e-3) {
       tx /= tl;
       ty /= tl;
@@ -1412,73 +1688,287 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     }
   });
   /* a triangle kernel of half-width n: its weights' sum and the spread its
-     average of the noise keeps, to bring every length to one contrast */
+     average of the noise keeps, to bring every length to one contrast (the
+     halo's hairs, below) */
   const W_MEAN = 0.25, W_SD = Math.sqrt(1 / 7 - 1 / 16);
   const strandHalf = Math.max(1, Math.round((0.35 + 0.4 * kLen) * px));
-  const kSd = new Float32Array(strandHalf + 1);
-  for (let n = 0; n <= strandHalf; n++) {
-    const s1 = n + 1, s2 = 1 + (n * (2 * n + 1)) / (3 * (n + 1));
-    kSd[n] = (W_SD * Math.sqrt(s2)) / s1;
+  /* The fleece's strands are one-sided: a pixel reads the seeds of the
+     sparse noise upstream of it, each the root of a strand running down the
+     flow to it, as long as its seed says — between STRAND_SHORT and 1 of
+     the longest, so their ends do not line up — and thinning toward its
+     tip.
+     For each longest length L, the kernel's weights, and the mean and
+     spread its sum of the noise has (a strand reaches t with the chance
+     its random length allows), to bring every length to one contrast. */
+  const strandW: Float32Array[] = [], strandMean = new Float32Array(2 * strandHalf + 1), strandSd = new Float32Array(2 * strandHalf + 1);
+  for (let L = 0; L <= 2 * strandHalf; L++) {
+    const w = new Float32Array(L + 1);
+    let m1 = 0, v2 = 0;
+    for (let t = 0; t <= L; t++) {
+      const tau = L ? t / L : 0, p = tau <= STRAND_SHORT ? 1 : (1 - tau) / (1 - STRAND_SHORT);
+      w[t] = 1 - STRAND_TAPER * tau;
+      m1 += w[t] * p * W_MEAN;
+      v2 += w[t] * w[t] * (p / 7 - W_MEAN * W_MEAN * p * p);
+    }
+    strandW.push(w);
+    strandMean[L] = m1;
+    strandSd[L] = Math.sqrt(Math.max(1e-6, v2));
   }
-  const lockA = 5 * (0.4 + clumps), litA = 9 * (0.45 + clumps), strandA = 7 * Math.min(1.4, 0.55 + 0.35 * kDen);
-  {
-    rows(Rb, 32, (y0, y1) => {
-      const dd = darkImg.data, ld = lightImg.data;
-      for (let y = y0; y < y1; y++) {
-        const Y = (y + 0.5) / px - O;
-        for (let x = 0; x < Rb; x++) {
-          const X = (x + 0.5) / px - O;
-          const i = y * Rb + x;
-          const [ux, uy] = dirAt(X, Y);
-          const tilt = gridAt(tiltG, X, Y);
-          const n = Math.max(1, Math.round(strandHalf * (0.5 + 0.5 * tilt)));
-          let acc = 0;
-          for (let t = -n; t <= n; t++) {
-            const sx = Math.round(x + ux * t), sy = Math.round(y + uy * t);
-            const w = 1 - Math.abs(t) / (n + 1);
-            acc += (sx < 0 || sy < 0 || sx >= Rb || sy >= Rb ? W_MEAN : white[sy * Rb + sx]) * w;
+  /* the strands' contrast; a small pile is drawn small, its strands finer
+     than the pixels they land on, where they would only be grain */
+  const strandK = 0.12 * (R >= 512 ? 1 : R >= 320 ? 0.75 : 0.4) * Math.min(1.4, 0.55 + 0.35 * kDen);
+  /* the key's shadow on the pile: looked for toward the light, as far as
+     a lock's shadow can reach over the pile below it, as film offsets */
+  const reach = Math.max(1, 1.5 * lockWd * px), NSH = Math.max(1, Math.min(5, Math.round(reach)));
+  const shX = new Int32Array(NSH), shY = new Int32Array(NSH), shD = new Float32Array(NSH);
+  for (let t = 0; t < NSH; t++) {
+    const d = ((t + 1) / NSH) * reach;
+    shX[t] = Math.round(Lx * d);
+    shY[t] = Math.round(Ly * d);
+    shD[t] = Math.hypot(shX[t], shY[t]) / px;
+  }
+  /* the key on a surface facing it by n·k, wrapped a little past the
+     terminator by the pile scattering it, as the matcap's */
+  const difLut = powLut(1.35), gamLut = powLut(1 / 2.2);
+  const keyOn = (nk: number) => {
+    const q = (nk + PILE_WRAP) / (1 + PILE_WRAP);
+    return q <= 0 ? 0 : q >= 1 ? 1 : difLut[(q * POW_N) | 0];
+  };
+  /* a small pile is drawn small: its relief is a few pixels, which would
+     read as specks rather than depth, so it is shallower */
+  const depthK = R >= 512 ? 1 : R >= 320 ? 0.8 : 0.55;
+  /* The lock seen at a film pixel (x, y), design point (X, Y), into
+     `seen`: its strands' way there (unit, on screen), how far along the
+     lock the point lies (0 root … 1 tip) and how high in it (0 … 1) — with
+     no lock, the flow and the middle of a lock. */
+  const seen = new Float32Array(4);
+  const lockSeen = (x: number, y: number, X: number, Y: number, k: number) => {
+    if (k < 0) {
+      const [ux, uy] = dirAt(X, Y);
+      seen[0] = ux;
+      seen[1] = uy;
+      seen[2] = 0.5;
+      seen[3] = 0;
+      return;
+    }
+    const b = k * LP;
+    const ax = locks[b + 2], ay = locks[b + 3], La = locks[b + 4], Wa = locks[b + 5], bend = locks[b + 7];
+    const dx = x + 0.5 - locks[b], dy = y + 0.5 - locks[b + 1];
+    const s = Math.min(0.995, Math.max(0.005, (dx * ax + dy * ay) / La));
+    const ss = Math.sqrt(s), w = LOCK_TAPER * ss * (1 - s), dw = LOCK_TAPER * ((0.5 * (1 - s)) / ss - ss);
+    const q = Math.max(-1, Math.min(1, ((dy * ax - dx * ay) / Wa - bend * s * s) / w));
+    /* a strand keeps its place across the lock as it narrows: out from the
+       root, then in to the tip */
+    const sl = Math.max(-1.2, Math.min(1.2, q * dw + 2 * bend * s));
+    const ux = La * ax - sl * Wa * ay, uy = La * ay + sl * Wa * ax;
+    const ul = Math.sqrt(ux * ux + uy * uy) || 1;
+    seen[0] = ux / ul;
+    seen[1] = uy / ul;
+    seen[2] = s;
+    seen[3] = lockAlong(s) * (1 - q * q);
+  };
+  /* The fine strands first, into a buffer of their own, so the pass after
+     can read a strand's neighbours. Along the lock's own way: longer where
+     the pile is seen side-on, and shortened by as much of each as the
+     curve of the body hides (see foreG). Each strand grows one way from
+     its root (see strandW); a pixel lies some way along the strands
+     reaching it, 0 at their roots and 1 at their tips — a strand's root is
+     in the shade of the tips lying over it and its tip up in the light, so
+     a strand reads as lying over the next rather than drawn on the pile. */
+  const strandBuf = new Float32Array(Rb * Rb);
+  rows(Rb, 32, (y0, y1) => {
+    for (let y = y0; y < y1; y++) {
+      const Y = (y + 0.5) / px - O;
+      for (let x = 0, i = y * Rb; x < Rb; x++, i++) {
+        const X = (x + 0.5) / px - O;
+        lockSeen(x, y, X, Y, own[i]);
+        const ux = seen[0], uy = seen[1];
+        /* the surface's tilt and the share of a fibre seen, at one set of
+           bilinear weights */
+        const gx = Math.min(G - 1, Math.max(0, (X + O) / gu - 0.5)), gy = Math.min(G - 1, Math.max(0, (Y + O) / gu - 0.5));
+        const gx0 = Math.min(G - 2, gx | 0), gy0 = Math.min(G - 2, gy | 0), gtx = gx - gx0, gty = gy - gy0, gj = gy0 * G + gx0;
+        const tilt = (tiltG[gj] * (1 - gtx) + tiltG[gj + 1] * gtx) * (1 - gty) + (tiltG[gj + G] * (1 - gtx) + tiltG[gj + G + 1] * gtx) * gty;
+        const fore = (foreG[gj] * (1 - gtx) + foreG[gj + 1] * gtx) * (1 - gty) + (foreG[gj + G] * (1 - gtx) + foreG[gj + G + 1] * gtx) * gty;
+        const L = 2 * Math.max(1, Math.min(strandHalf, Math.round((strandHalf * (0.5 + 0.5 * tilt) * fore) / PILE_COS)));
+        const sw = strandW[L];
+        let acc = 0, accR = 0;
+        for (let t = 0; t <= L; t++) {
+          const sx = Math.round(x - ux * t), sy = Math.round(y - uy * t);
+          if (sx < 0 || sy < 0 || sx >= Rb || sy >= Rb) {
+            acc += strandMean[L] / (L + 1);
+            continue;
           }
-          const strand = (acc / (n + 1) - W_MEAN) / kSd[n];
-          const lk = lockAt(lock, X, Y), ll = lockAt(lockLit, X, Y);
-          /* each strand stands at its own angle, so a highlight breaks up
-             along the fibres instead of lying across them as one band */
-          fibreLight(X, Y, ux, uy, 0.25 + 0.2 * lk);
-          let v =
-            FUR_MID + 6 +
-            (tone(X, Y) - 0.5) * 10 +
-            lk * lockA +
-            ll * litA +
-            strand * strandA * (0.75 + 0.1 * lk);
-          v = v < 0 ? 0 : v > 255 ? 255 : v;
-          const k = i * 4;
-          /* toward the film's own edge the pile thins out to nothing, so
-             where a body turned far round reaches past it the fur gives
-             way softly instead of ending at a straight line */
-          const edgeD = Math.min(X + O, FILM_SPAN - O - X, Y + O, FILM_SPAN - O - Y);
-          const fadeE = edgeD >= 8 ? 1 : edgeD <= 0 ? 0 : (edgeD / 8) * (edgeD / 8) * (3 - (2 * edgeD) / 8);
-          v = FUR_MID + (v - FUR_MID) * fadeE;
-          /* below mid-grey the film darkens, above it lightens */
-          if (v < FUR_MID) dd[k + 3] = Math.round(255 * (1 - v / FUR_MID));
-          else {
-            /* the tips are lit by the key: on the shade side only the fill
-               lifts them, so they do not grey the shade */
-            ld[k] = ld[k + 1] = ld[k + 2] = 255;
-            ld[k + 3] = Math.round(((255 * (v - FUR_MID)) / (255 - FUR_MID)) * (0.35 + 0.65 * fib[2]));
+          const m = white[sy * Rb + sx], f = m * 53.7, Ls = L * (STRAND_SHORT + (1 - STRAND_SHORT) * (f - Math.floor(f)));
+          if (t <= Ls) {
+            acc += m * sw[t];
+            accR += (m * sw[t] * t) / (Ls || 1);
           }
-          /* the fibres' own light is on the strands standing out and the
-             locks facing the light, not in the gaps between them */
-          const tipK = smooth(-0.4, 1, ll) * Math.max(0, Math.min(1.4, 0.65 + 0.25 * strand));
-          const gd = glintImg.data, bd = backImg.data;
-          gd[k] = gd[k + 1] = gd[k + 2] = bd[k] = bd[k + 1] = bd[k + 2] = 255;
-          gd[k + 3] = Math.round(255 * Math.min(1, fib[0] * tipK));
-          bd[k + 3] = Math.round(255 * Math.min(1, fib[1] * Math.max(0, Math.min(1.6, 0.5 + 0.4 * strand))));
-          const sd2 = softImg.data;
-          sd2[k] = sd2[k + 1] = sd2[k + 2] = 255;
-          sd2[k + 3] = Math.round(255 * Math.min(1, 0.85 * fib[3]));
         }
+        const strand = (acc - strandMean[L]) / strandSd[L];
+        const along = acc > 1e-4 ? accR / acc : 0.5;
+        strandBuf[i] = strand + STRAND_RISE * Math.min(2.5, Math.max(0, strand)) * (along - 0.45);
       }
-    });
-  }
+    }
+  });
+  let lsum = 0, lsum2 = 0;
+  rows(Rb, 16, (y0, y1) => {
+    const dd = darkImg.data, ld = lightImg.data, gd = glintImg.data, bd = backImg.data, sd2 = softImg.data;
+    for (let y = y0; y < y1; y++) {
+      const Y = (y + 0.5) / px - O;
+      for (let x = 0; x < Rb; x++) {
+        const X = (x + 0.5) / px - O;
+        const i = y * Rb + x, k = own[i], b = k * LP;
+        /* the lock seen here: where along it, and its strands' way */
+        lockSeen(x, y, X, Y, k);
+        const ux = seen[0], uy = seen[1], s = seen[2], hgt = seen[3];
+        /* each strand stands at its own angle, so a highlight breaks up
+           along the fibres instead of lying across them as one band */
+        fibreLight(X, Y, ux, uy, 0.25 + 0.2 * hgt);
+        const nx = fib[4], ny = fib[5], nz = fib[6], nKb = fib[7];
+        /* The pile's own surface: the body's, tilted by the slope of the
+           pile's height. The slope is read on the screen; on the surface
+           it is that slope along the two directions that lie on it — one
+           square to the screen's view of the normal (seen full length) and
+           one down the surface toward the silhouette (seen shortened by
+           how far the surface turns away, so its slope is that much less
+           than it looks). */
+        const xl0 = x > 0 ? i - 1 : i, xr0 = x < Rb - 1 ? i + 1 : i, yu0 = y > 0 ? i - Rb : i, yd0 = y < Rb - 1 ? i + Rb : i;
+        const gx = ((pileH[xr0] - pileH[xl0]) * px) / (xr0 - xl0 || 1), gy = ((pileH[yd0] - pileH[yu0]) * px * Rb) / (yd0 - yu0 || 1);
+        const l1 = Math.sqrt(nx * nx + ny * ny);
+        let t1x = 1, t1y = 0, t2x = 0, t2y = 1, t2z = 0;
+        if (l1 > 1e-3) {
+          t1x = -ny / l1;
+          t1y = nx / l1;
+          t2x = (-nz * nx) / l1;
+          t2y = (-nz * ny) / l1;
+          t2z = l1;
+        }
+        const g1 = Math.max(-1.5, Math.min(1.5, gx * t1x + gy * t1y)), g2 = Math.max(-1.5, Math.min(1.5, gx * t2x + gy * t2y));
+        let mx = nx - g1 * t1x - g2 * t2x, my = ny - g1 * t1y - g2 * t2y, mz = nz - g2 * t2z;
+        const ml = Math.sqrt(mx * mx + my * my + mz * mz) || 1;
+        mx /= ml;
+        my /= ml;
+        mz /= ml;
+        /* a fibre catches the key as far as it lies across it: the
+           strands' way on the surface, standing a little out of it */
+        let kk = 1;
+        if (k >= 0) {
+          const tx = locks[b + 8], ty = locks[b + 9], tz = locks[b + 10];
+          const fx = 0.9 * tx + 0.44 * nx, fy = 0.9 * ty + 0.44 * ny, fz = 0.9 * tz + 0.44 * nz;
+          const fK = (fx * K3[0] + fy * K3[1] + fz * K3[2]) / (Math.sqrt(fx * fx + fy * fy + fz * fz) || 1);
+          kk = 1 - PILE_KK + PILE_KK * Math.min(1.2, Math.sqrt(Math.max(0, 1 - fK * fK)) / 0.85);
+        }
+        const nKp = mx * K3[0] + my * K3[1] + mz * K3[2];
+        /* the key's shadow: a lock standing higher toward the light, by
+           more than the light rises over the distance to it */
+        const h0 = pileH[i];
+        let sh = 1;
+        if (nKb > -0.25) {
+          const sinE = Math.min(0.97, Math.max(0.05, nKb)), tanE = sinE / Math.sqrt(1 - sinE * sinE);
+          let occ = 0;
+          for (let t = 0; t < NSH; t++) {
+            const sx = x + shX[t], sy = y + shY[t];
+            if (sx < 0 || sy < 0 || sx >= Rb || sy >= Rb) break;
+            const o = pileH[sy * Rb + sx] - h0 - shD[t] * tanE;
+            if (o > occ) occ = o;
+          }
+          sh = 1 - PILE_SHADOW * smooth(0, 0.35 * hMax, occ);
+        }
+        /* the hollows, and a lock's root under the tip lying over it */
+        let ao = 1 - PILE_AO * smooth(0, 0.6 * hMax, pileB[i] - h0);
+        if (k >= 0) ao *= 1 - PILE_ROOT * (1 - smooth(0, 0.35, s));
+        /* the pile against the smooth body, in the same light; the tips
+           thin out and let a little more light through */
+        const fillP = PILE_AMB + PILE_FILL * Math.max(0, mx * F3[0] + my * F3[1] + mz * F3[2]);
+        const fillB = PILE_AMB + PILE_FILL * Math.max(0, nx * F3[0] + ny * F3[1] + nz * F3[2]);
+        let r = (ao * (fillP + keyOn(nKp) * sh * kk) * PILE_GAIN) / (fillB + keyOn(nKb));
+        if (k >= 0) r *= (1 + 0.15 * s * s) * (1 + 0.08 * (hash2(k, 5) - 0.5));
+        /* in a crease between lobes or under the body the room's light
+           hardly reaches the roots: the pile sinks into a deeper shade
+           there, its hollows most */
+        const crease = fib[8];
+        r *= 1 - PILE_CREASE * crease * (0.6 + 0.4 * smooth(0, 0.6 * hMax, pileB[i] - h0));
+        r = 1 + (r - 1) * depthK;
+        /* the smooth body's own light here, as the screen shows it (its
+           sRGB value, 1 where the key is full on): the films lighten and
+           darken the colour as it is laid there, so the same share of light
+           is a smaller step where the body is in shade. Off the body, under
+           a turned body's side, an even middle light. */
+        const on = fib[9], lq = (fillB + keyOn(nKb)) / PILE_LIT;
+        const lbs = (lq >= 1 ? 1 : gamLut[(lq * POW_N) | 0]) * on + 0.75 * (1 - on);
+        /* matte: the lit side of a lock lifts the colour, but rolls off
+           well before it would turn white — where the body is in shade
+           there is room below that, and a lock the key grazes stands out
+           of the shade around it the more */
+        let m0 = Math.sqrt(r > 2.4 ? 2.4 : r);
+        if (m0 > 1) m0 = 1 + (m0 - 1) / (1 + 2.5 * lbs * (m0 - 1));
+        /* the fine strands, and the shadow a strand standing over the pile
+           casts beside it, away from the key: the key's way along the
+           surface, as long as the strand's height over the key's rise
+           (longer where it grazes), read between pixels */
+        const strand = strandBuf[i];
+        let cast = 0;
+        if (nKb > 0) {
+          const kx = K3[0] - nKb * nx, ky = K3[1] - nKb * ny, kt = Math.sqrt(1 - nKb * nKb);
+          const reachS = kt > 1e-3 ? (STRAND_CAST_H * px * Math.min(3, kt / Math.max(0.2, nKb))) / kt : 0;
+          const cx = Math.min(Rb - 1.001, Math.max(0, x + kx * reachS)), cy = Math.min(Rb - 1.001, Math.max(0, y + ky * reachS));
+          const cx0 = cx | 0, cy0 = cy | 0, tx = cx - cx0, ty = cy - cy0, ci = cy0 * Rb + cx0;
+          const caster = (strandBuf[ci] * (1 - tx) + strandBuf[ci + 1] * tx) * (1 - ty) + (strandBuf[ci + Rb] * (1 - tx) + strandBuf[ci + Rb + 1] * tx) * ty;
+          cast = Math.max(0, caster - Math.max(0, strand)) * smooth(0, 0.3, nKb);
+        }
+        let m = m0 * (1 + strandK * (strand * (0.45 + 0.55 * fib[2]) * (0.75 + 0.5 * s) - STRAND_CAST * cast)) + 0.04 * (fib[10] - 0.5) + PILE_BIAS * depthK * on;
+        /* toward the film's own edge the pile thins out to nothing, so
+           where a body turned far round reaches past it the fur gives way
+           softly instead of ending at a straight line */
+        const edgeD = Math.min(X + O, FILM_SPAN - O - X, Y + O, FILM_SPAN - O - Y);
+        const fadeE = edgeD >= 8 ? 1 : edgeD <= 0 ? 0 : (edgeD / 8) * (edgeD / 8) * (3 - (2 * edgeD) / 8);
+        m = 1 + (m - 1) * fadeE;
+        const k4 = i * 4;
+        /* darker as the gap film's alpha: laid in the colour's own deep
+           shade (about GAP_REF of it fully lit, see gapFilm) over the colour
+           as lit here (lbs of it), it takes that to m of itself */
+        if (m < 1) dd[k4 + 3] = Math.round(255 * Math.min(1, ((1 - m) * lbs) / Math.max(0.4, lbs - GAP_REF)));
+        else {
+          /* lighter as the tips' film: it lifts the colour as lit here
+             toward the tips' (TIP_TOP of the colour fully lit) — fully lit,
+             PILE_LIFT per unit of m; in shade a smaller step. In a crease
+             the tips stay in its shade too. */
+          ld[k4] = ld[k4 + 1] = ld[k4 + 2] = 255;
+          ld[k4 + 3] = Math.round(255 * Math.min(1, ((PILE_LIFT * (TIP_TOP - 1) * lbs) / (TIP_TOP - lbs)) * (m - 1) * (1 - 0.7 * crease)));
+        }
+        /* the lock's height and light at half the resolution */
+        const lit = Math.max(-2, Math.min(2, 4 * (m0 - 1)));
+        const xl = x >> 1, yl = y >> 1;
+        if (xl < Rl && yl < Rl) {
+          const j = yl * Rl + xl;
+          lock[j] += 0.25 * h0;
+          lockLit[j] += 0.25 * lit;
+        }
+        /* the fibres' own light is on the strands standing out and the
+           locks facing the light, not in the gaps between them */
+        const tipK = smooth(-0.4, 1, lit) * Math.max(0, Math.min(1.4, 0.65 + 0.25 * strand));
+        gd[k4] = gd[k4 + 1] = gd[k4 + 2] = bd[k4] = bd[k4 + 1] = bd[k4 + 2] = 255;
+        gd[k4 + 3] = Math.round(255 * Math.min(1, fib[0] * tipK));
+        bd[k4 + 3] = Math.round(255 * Math.min(1, fib[1] * Math.max(0, Math.min(1.6, 0.5 + 0.4 * strand))));
+        /* the soft back light's glow is soft, but still on the pile: a
+           little more on the strands and locks standing out into it than in
+           the hollows between them, so it does not lie over them as a mist */
+        const onPile = Math.max(0.55, Math.min(1.3, 0.85 + 0.15 * strand + 0.12 * lit));
+        sd2[k4] = sd2[k4 + 1] = sd2[k4 + 2] = 255;
+        sd2[k4 + 3] = Math.round(255 * Math.min(1, 0.85 * fib[3] * onPile));
+      }
+    }
+  });
+  /* the half-resolution height brought to one spread, as the tufts read it */
+  steps.push(() => {
+    const n = Rl * Rl;
+    for (let i = 0; i < n; i++) {
+      lsum += lock[i];
+      lsum2 += lock[i] * lock[i];
+    }
+    const mean = lsum / n, sdv = Math.sqrt(Math.max(1e-9, lsum2 / n - mean * mean));
+    for (let i = 0; i < n; i++) lock[i] = Math.max(-2.5, Math.min(2.5, (lock[i] - mean) / sdv));
+  });
   /* the two parts of the film into their canvases; the strokes after them
      are drawn in the body's square, inside the wider one */
   steps.push(() => {
@@ -1494,92 +1984,187 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     }
   });
 
-  /* 2. the pile over it: short fibres combed with the flow but messily,
-     root in shade and tip in the light, and a sparse few longer ones that
-     glint — strokes bucketed by shade, so a layer is a few dozen stroke
-     calls however many fibres it draws */
+  /* 2. single hairs over the fleece, at two scales. Guard hairs: sparse,
+     longer fibres combed with the flow but messily. Fine hairs: many short
+     single fibres, crisp, of mixed length and curl, gathered in twos and
+     threes, most up in the light and a few deeper in the pile and darker —
+     only on a pile large enough to hold them (finer than its pixels they
+     would only be noise), and crowding toward the outline as the surface
+     turns away. Each runs from its root, deep in the pile and in its
+     shade, to its tip, up in the light; one standing proud of the pile
+     hides the gaps beneath it and casts a thin shadow onto the pile beside
+     it, away from the key — none at the root, where it meets the pile, and
+     furthest off at the tip. Strokes are bucketed by shade, so a kind is a
+     few dozen stroke calls however many hairs it draws. */
   const SHADES = 16;
-  const area = SPAN * SPAN;
-  const layers = [
-    { count: 0.12, len: [1.2, 1.0], width: 0.09, spread: 30, alpha: 0.4, split: true, lift: 0.25 },
+  /* rooted over the film's whole square, not only the body's: turned, the
+     body's side shows past the front's outline, and the film laid over it
+     must carry the same hairs there or the pile would end at a seam */
+  const area = FILM_SPAN * FILM_SPAN;
+  const fine = R >= 512 ? 1 : R >= 320 ? 0.45 : 0;
+  /* count: per unit² of the square (times the density); len, vary: the
+     base length and how much longer at most, in units; endOn: how much
+     shorter it looks where the surface faces the viewer, standing out of
+     it toward the eye; width: in units; spread, alpha: the shades' range
+     and strength, and deep: how much of it the shaded hairs keep — one
+     dye, so a hair in shade is only a little deeper than the gaps around
+     it, where one in the light stands out; lift: how far into the light
+     the kind sits; light, dark: the shares of hairs catching the light and
+     of those in shade; bend: how wavy; clump, clumpW: how many hairs
+     gather into one (at least, and up to how many more) and how wide their
+     roots spread, in units; shadow, shadowW: how far a clump's shadow
+     falls, in units, and how wide it is against a hair; over: how much of
+     the gaps it hides; crowd: denser where the surface turns away; short:
+     how much finer and fainter it is on a shorter pile, whose hairs stand
+     lower and thinner (a velvet's are barely seen) */
+  const kinds = [
+    { count: 0.12, len: 1.2, vary: 1.0, endOn: 0.6, width: 0.09, spread: 30, alpha: 0.4, deep: 1, lift: 0.25, light: 0.46, dark: 0.34, bend: 0.93, clump: [1, 0], clumpW: 0, shadow: 0, shadowW: 1, over: 0, crowd: false, short: 0 },
+    { count: 0.4 * fine, len: 0.9, vary: 1.2, endOn: 0.35, width: 0.13, spread: 100, alpha: 0.26, deep: 0.2, lift: 0.18, light: 0.55, dark: 0.06, bend: 1.2, clump: [1, Math.round(1 + 2 * clumps)], clumpW: 0.08 + 0.07 * clumps, shadow: 0.25, shadowW: 2, over: 0.25, crowd: true, short: 1 },
   ];
   const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
   /* the fibres that catch the key or the back light, by how much: their
      tips drawn again into the fibres' own light, crisp single hairs */
   const GLINTS = 6;
   const glintOf = (v: number) => Math.min(GLINTS - 1, (v * GLINTS) | 0);
-  /* a dense layer goes in more, smaller steps, so no one idle task runs
-     long enough to cost a frame */
-  for (const L of layers) {
-    const parts = Math.max(1, Math.ceil((L.count * kDen) / 1.2));
+  /* a hair's points from root to tip, on a cubic through two bends */
+  const SEGS = 4;
+  const hx = new Float32Array(SEGS + 1), hy = new Float32Array(SEGS + 1);
+  for (const L of kinds) {
+    if (L.count <= 0) continue;
+    /* a dense kind goes in more, smaller steps, so no one idle task runs
+       long enough to cost a frame */
+    const perRoot = L.clump[0] + 0.5 * L.clump[1];
+    const parts = Math.max(1, Math.ceil((area * L.count * kDen * (L.crowd ? 2 : 1) * (0.5 + 0.5 * perRoot)) / 9000));
     for (let part = 0; part < parts; part++) steps.push(() => {
-    const buckets: Path2D[] = [], glints: Path2D[] = [], backs: Path2D[] = [];
+    const buckets: Path2D[] = [], glints: Path2D[] = [], backs: Path2D[] = [], shades: Path2D[] = [];
     for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
     for (let i = 0; i < GLINTS; i++) glints.push(new Path2D()), backs.push(new Path2D());
-    const count = Math.round((area * L.count * kDen) / parts);
+    for (let i = 0; i < 3; i++) shades.push(new Path2D());
+    const over = new Path2D();
+    /* crowding: twice the tries, kept as the surface faces away */
+    const count = Math.round((area * L.count * kDen * (L.crowd ? 2 : 1)) / parts);
     for (let n = 0; n < count; n++) {
-      const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
-      if (sdAt(X, Y) < -0.3) continue;
-      /* with the flow: where the surface faces the viewer the fibres stand
-         end-on and look short, where it turns away they lie side-on */
+      const X = rand() * FILM_SPAN - O, Y = rand() * FILM_SPAN - O;
+      const r0 = rand(), r1 = rand(), r2 = rand(), r3 = rand(), r4 = rand(), r5 = rand();
+      /* toward the film's own edge the hairs thin out with the fleece */
+      if (r5 * 8 > Math.min(X + O, FILM_SPAN - O - X, Y + O, FILM_SPAN - O - Y)) continue;
+      if (L.crowd && r5 > (sdAt(X, Y) > 0 ? 0.5 / Math.max(0.25, gridAt(nZg, X, Y)) : 0.5)) continue;
+      /* with the strand as seen (see pfX): where the surface faces the
+         viewer a standing fibre is seen end-on and looks short; where it
+         turns away it is seen side-on, at full length along the outline
+         and foreshortened across it */
       const [fx, fy] = dirAt(X, Y);
-      const tiltS = gridAt(tiltG, X, Y);
-      const ang = (rand() - 0.5) * (0.6 + 0.8 * curl) * (1 - 0.5 * tiltS);
+      const tiltS = gridAt(tiltG, X, Y), vl = gridAt(foreG, X, Y) / PILE_COS;
+      const ang = (r1 - 0.5) * (0.6 + 0.8 * curl) * (1 - 0.5 * tiltS);
       const ca = Math.cos(ang), sa = Math.sin(ang);
       const ux = fx * ca - fy * sa, uy = fx * sa + fy * ca;
-      /* mostly the layer's length, now and then a stray half as long again */
-      const stray = rand() < 0.1 ? 1.35 + 0.6 * rand() : 1;
-      const len = (L.len[0] + L.len[1] * rand()) * px * kLen * stray * (0.35 + 0.95 * tiltS);
-      /* the fibre's own shade: its tuft's light and height, and whether it
-         is one catching the light or one in a gap */
-      const r0 = rand();
-      let v = 0.22 * lockAt(lock, X, Y) + 0.3 * lockAt(lockLit, X, Y);
-      /* seen from above, a pile is mostly tips: more fibres catch the
-         light than fall into the gaps between them */
-      if (r0 < 0.46) v += 0.2 + 0.28 * rand();
-      else if (r0 < 0.8) v -= 0.2 + 0.28 * rand();
-      v += L.lift;
-      /* lit by the key on its side of the form, in shade on the other */
+      /* mostly the kind's length, now and then one half as long again */
+      const longer = r2 < 0.1 ? 1.35 + 0.6 * r3 : 1;
+      const len = (L.len + L.vary * r3 * r3) * px * kLen * longer * vl * (1 - L.endOn + 1.25 * L.endOn * tiltS);
+      /* lit by the key where it reaches the pile, in shade where it does
+         not, and deeper in a crease or under the body */
       fibreLight(X, Y, ux, uy, 0.1 + 0.5 * hash2(n, 7 + part));
-      v += 0.35 * (fib[2] - 0.5);
+      /* the clump's own shade: its lock's light and height, and whether it
+         is one catching the light — only where the key reaches: on the
+         shade side a hair standing out of the pile is no lighter than it —
+         or one deeper in the pile */
+      let v = 0.22 * lockAt(lock, X, Y) + 0.3 * lockAt(lockLit, X, Y);
+      const lit = r0 < L.light * (0.4 + 0.6 * fib[2]);
+      if (lit) v += 0.2 + 0.28 * r4;
+      else if (r0 < L.light + L.dark) v -= 0.2 + 0.28 * r4;
+      v += L.lift;
+      /* a hair up in the light is only as light as the key makes it there */
+      v += 0.45 * (fib[2] - 0.5) - 0.35 * fib[8];
+      if (v > 0) v *= 0.3 + 0.7 * fib[2];
+      /* and in the shade the pile's depth shows the more: its roots deeper */
+      const deepen = 0.15 * (1 - fib[2]);
       const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
-      const bend = (rand() - 0.5) * 0.93 * curl * len;
-      const mx = x0 + ux * len * 0.45 - uy * bend, my = y0 + uy * len * 0.45 + ux * bend;
-      const x1 = x0 + ux * len, y1 = y0 + uy * len;
-      if (L.split) {
-        /* root in shade, tip in the light */
-        const rb = buckets[shadeOf(v - 0.2)], tb = buckets[shadeOf(v + 0.12)];
-        rb.moveTo(x0, y0);
-        rb.lineTo(mx, my);
-        tb.moveTo(mx, my);
-        tb.lineTo(x1, y1);
+      /* the two bends: mostly one arc, now and then an S */
+      const b1 = (rand() - 0.5) * L.bend * curl * len, b2 = r4 < 0.3 ? -0.6 * b1 : b1 * (0.6 + 0.8 * rand());
+      /* a clump: hairs rooted side by side across the flow, gathering
+         toward one tip, as the fibres of a small lock cling together */
+      const hairs = L.clump[0] + ((rand() * (L.clump[1] + 1)) | 0);
+      const wC = L.clumpW * px * Math.min(1.5, kLen);
+      for (let k = 0; k < hairs; k++) {
+        const o = hairs > 1 ? rand() - 0.5 : 0, f = hairs > 1 ? 0.7 + 0.3 * rand() : 1, j = hairs > 1 ? (rand() - 0.5) * 0.3 : 0;
+        const rx = x0 - uy * o * wC, ry = y0 + ux * o * wC;
+        const lk = len * f, e1 = b1 + j * lk, e2 = b2 + j * lk - o * wC * 0.7;
+        const c1x = rx + ux * lk * 0.33 - uy * e1, c1y = ry + uy * lk * 0.33 + ux * e1;
+        const c2x = rx + ux * lk * 0.67 - uy * e2, c2y = ry + uy * lk * 0.67 + ux * e2;
+        const x1 = rx + ux * lk - uy * (b2 - o * wC * 0.75), y1 = ry + uy * lk + ux * (b2 - o * wC * 0.75);
+        /* a short hair needs fewer pieces to bend and shade along */
+        const sg = lk < 4 ? 2 : lk < 10 ? 3 : SEGS;
+        for (let s = 0; s <= sg; s++) {
+          const t = s / sg, q = 1 - t;
+          const a = q * q * q, b = 3 * q * q * t, c = 3 * q * t * t, d = t * t * t;
+          hx[s] = a * rx + b * c1x + c * c2x + d * x1;
+          hy[s] = a * ry + b * c1y + c * c2y + d * y1;
+        }
+        /* root in the pile's shade, tip in the light — risen out of it as
+           far as the key lights it; each hair of a clump a shade of its own */
+        const vh = v + (hairs > 1 ? (rand() - 0.5) * 0.25 : 0), rise = 0.3 + 0.15 * fib[2];
+        for (let s = 0; s < sg; s++) {
+          const bk = buckets[shadeOf(vh - 0.3 - deepen * (1 - s / sg) + (rise * (s + 0.5)) / sg)];
+          bk.moveTo(hx[s], hy[s]);
+          bk.lineTo(hx[s + 1], hy[s + 1]);
+        }
+        if (lit && L.over > 0) {
+          over.moveTo(hx[1], hy[1]);
+          for (let s = 2; s <= sg; s++) over.lineTo(hx[s], hy[s]);
+        }
+        /* the clump's shadow, once, along its middle hair */
+        if (k === 0 && L.shadow > 0 && fib[2] > 0.25 && v > -0.2) {
+          const kk = L.shadow * px * Math.min(1, kLen), sh = shades[Math.min(2, ((fib[2] - 0.25) * 4) | 0)];
+          for (let s = 1; s <= sg; s++) {
+            const t = s / sg, ox = -Lx * kk * t, oy = -Ly * kk * t + 0.3 * kk * t;
+            if (s === 1) sh.moveTo(hx[0], hy[0]);
+            sh.lineTo(hx[s] + ox, hy[s] + oy);
+          }
+        }
+        const h = sg >> 1;
         if (fib[0] > 0.3) {
           const gb = glints[glintOf(fib[0])];
-          gb.moveTo(mx, my);
-          gb.lineTo(x1, y1);
+          gb.moveTo(hx[h], hy[h]);
+          for (let s = h + 1; s <= sg; s++) gb.lineTo(hx[s], hy[s]);
         }
         if (fib[1] > 0.1) {
           const bb = backs[glintOf(fib[1])];
-          bb.moveTo(mx, my);
-          bb.lineTo(x1, y1);
+          bb.moveTo(hx[h], hy[h]);
+          for (let s = h + 1; s <= sg; s++) bb.lineTo(hx[s], hy[s]);
         }
-      } else {
-        const b = buckets[shadeOf(v)];
-        b.moveTo(x0, y0);
-        b.quadraticCurveTo(mx, my, x1, y1);
+      }
+    }
+    const shortK = Math.min(1, kLen) ** L.short;
+    const lw = Math.max(0.45, L.width * px * (0.5 + 0.5 * shortK));
+    /* first what the hairs hide and the shadows they cast, then the hairs */
+    if (L.over > 0) {
+      dg.globalCompositeOperation = 'destination-out';
+      dg.lineWidth = lw;
+      dg.globalAlpha = L.over * shortK;
+      dg.strokeStyle = '#000';
+      dg.stroke(over);
+      dg.globalCompositeOperation = 'source-over';
+    }
+    if (L.shadow > 0) {
+      /* a clump's shadow is soft: wider than a hair, and faint */
+      dg.lineWidth = lw * L.shadowW;
+      dg.strokeStyle = '#000';
+      for (let i = 0; i < 3; i++) {
+        dg.globalAlpha = 0.03 * (i + 1) * shortK;
+        dg.stroke(shades[i]);
       }
     }
     /* a grey stroke as the film's black or white at the matching alpha */
     for (let i = 0; i < SHADES; i++) {
       const v = FUR_MID + ((i / (SHADES - 1)) * 2 - 1) * L.spread;
       const g = v < FUR_MID ? dg : lg;
-      g.lineWidth = Math.max(0.45, L.width * px);
-      g.globalAlpha = L.alpha * (v < FUR_MID ? 1 - v / FUR_MID : (v - FUR_MID) / (255 - FUR_MID));
+      g.lineWidth = lw;
+      g.globalAlpha = L.alpha * shortK * (v < FUR_MID ? L.deep * (1 - v / FUR_MID) : (v - FUR_MID) / (255 - FUR_MID));
       g.strokeStyle = v < FUR_MID ? '#000' : '#fff';
       g.stroke(buckets[i]);
     }
     for (const g of [gg, bg]) {
-      g.lineWidth = Math.max(0.45, L.width * px);
+      g.lineWidth = lw;
       g.strokeStyle = '#fff';
     }
     for (let i = 0; i < GLINTS; i++) {
@@ -1612,8 +2197,10 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   for (let part = 0; part < FRINGE_PARTS; part++) steps.push(() => {
   if (part === 0) {
     for (let i = 0; i < N * N; i++) if (form.sd[i] > -1.6 && form.sd[i] < 2.2) cells.push(i);
-    /* fewer on a small pile, whose hairs are finer than its pixels */
-    edgeTries = Math.round(cells.length * cu * cu * 24 * (0.3 + 1.4 * fuzz) * Math.sqrt(kDen) * (0.5 + 0.5 * Math.min(1, R / 512)));
+    /* fewer on a small pile, whose hairs are finer than its pixels, and
+       where the pile is fine enough for the tufts (below) to carry the
+       silhouette */
+    edgeTries = Math.round(cells.length * cu * cu * 24 * (0.3 + 1.4 * fuzz) * Math.sqrt(kDen) * (0.5 + 0.5 * Math.min(1, R / 512)) * (1 - 0.55 * fine));
   }
   const n1 = Math.floor((edgeTries * (part + 1)) / FRINGE_PARTS);
   for (let n = Math.floor((edgeTries * part) / FRINGE_PARTS); n < n1; n++) {
@@ -1653,7 +2240,90 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     }
   }
   });
+  /* The silhouette is made of locks: tufts of hairs standing past it, each
+     a few hairs from roots side by side just inside the outline that leave
+     the surface standing out, bend over with the flow and the pull of
+     gravity, and gather toward one tip, as a lock's hairs cling together.
+     Seen against the backdrop they are single strands, where the haze
+     between them is thin. Spaced about a lock apart along the outline,
+     rooted where a lock is rather than in the gaps between them. */
+  /* the tufts' hairs whole (for the halo), and their outer halves by how
+     far the key lights them (for the tips' film) */
+  const tufts = new Path2D(), tuftTips = [new Path2D(), new Path2D(), new Path2D()];
+  const tuftBack: Path2D[] = [];
+  for (let i = 0; i < GLINTS; i++) tuftBack.push(new Path2D());
   steps.push(() => {
+    const band = cells.length * cu * cu, around = band / 3.8;
+    const count = Math.round((around / (0.45 + 0.3 * kLen)) * (0.3 + 0.8 * fuzz) * Math.sqrt(kDen) * (1 + 0.6 * fine));
+    for (let n = 0, tries = 0; n < count && tries < 6 * count; tries++) {
+      const c = cells[(rand() * cells.length) | 0];
+      const X = ((c % N) + rand()) * cu - PAD, Y = (((c / N) | 0) + rand()) * cu - PAD;
+      const r0 = rand(), r1 = rand(), r2 = rand(), r3 = rand();
+      const d0 = sdAt(X, Y);
+      if (d0 < -0.5 || d0 > 1.6) continue;
+      const d = d0 + tuftAt(X, Y);
+      if (d < 0 || d > 0.9) continue;
+      if (lockAt(lock, X, Y) < -0.4 + 0.8 * r3) continue;
+      n++;
+      const [fx, fy] = flow(X, Y);
+      const [ox, oy] = outward(X, Y);
+      /* it leaves the surface standing out, then bends over with the flow
+         and down; the tuft leans its own way */
+      const a = (r0 - 0.5) * 0.8 * (0.5 + curl), ca = Math.cos(a), sa = Math.sin(a);
+      let sx = 0.75 * ox + 0.25 * fx, sy = 0.75 * oy + 0.25 * fy;
+      let ex = 0.55 * fx + 0.45 * ox, ey = 0.55 * fy + 0.45 * oy + 0.35 * gravity;
+      const sl = Math.hypot(sx, sy) || 1, el = Math.hypot(ex, ey) || 1;
+      [sx, sy] = [(sx * ca - sy * sa) / sl, (sx * sa + sy * ca) / sl];
+      [ex, ey] = [(ex * ca - ey * sa) / el, (ex * sa + ey * ca) / el];
+      const hang = 1 + 0.5 * gravity * Math.max(0, oy) - 0.35 * gravity * Math.max(0, -oy);
+      const Lt = (0.5 + 1.1 * r1 * r1) * px * kLen * (0.5 + fuzz) * hang;
+      const wT = (0.3 + 0.35 * r2) * px * Math.min(1.5, kLen);
+      const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
+      const cx = x0 + sx * Lt * 0.5, cy = y0 + sy * Lt * 0.5;
+      const tx = x0 + (sx * 0.4 + ex * 0.6) * Lt, ty = y0 + (sy * 0.4 + ey * 0.6) * Lt;
+      const qx = -sy, qy = sx;
+      fibreLight(X, Y, ex, ey, 0.4);
+      const fb = fib[1] > 0.08 ? tuftBack[glintOf(fib[1])] : null;
+      const tt = tuftTips[Math.min(2, (fib[2] * 3) | 0)];
+      const hairs = 4 + ((rand() * 5) | 0);
+      for (let k = 0; k < hairs; k++) {
+        const o = rand() - 0.5, f = 0.7 + 0.3 * rand(), w = (rand() - 0.5) * 0.35;
+        const hx0 = x0 + qx * o * wT, hy0 = y0 + qy * o * wT;
+        const hcx = cx + qx * o * wT * 0.6, hcy = cy + qy * o * wT * 0.6;
+        const htx = hx0 + (tx + qx * (o * 0.25 + w) * wT - hx0) * f, hty = hy0 + (ty + qy * (o * 0.25 + w) * wT - hy0) * f;
+        tufts.moveTo(hx0, hy0);
+        tufts.quadraticCurveTo(hcx, hcy, htx, hty);
+        /* the outer half, up in the light, for the tips' film */
+        const mx = 0.25 * hx0 + 0.5 * hcx + 0.25 * htx, my = 0.25 * hy0 + 0.5 * hcy + 0.25 * hty;
+        tt.moveTo(mx, my);
+        tt.quadraticCurveTo(0.5 * (hcx + htx), 0.5 * (hcy + hty), htx, hty);
+        if (fb) {
+          fb.moveTo(mx, my);
+          fb.quadraticCurveTo(0.5 * (hcx + htx), 0.5 * (hcy + hty), htx, hty);
+        }
+      }
+    }
+  });
+  steps.push(() => {
+  /* the tufts: their tips a touch lighter, clear of the gaps' shade */
+  const tw = Math.max(0.4, 0.11 * px);
+  dg.lineWidth = lg.lineWidth = bg.lineWidth = tw;
+  dg.globalCompositeOperation = 'destination-out';
+  dg.globalAlpha = 0.6;
+  dg.strokeStyle = '#000';
+  lg.strokeStyle = '#fff';
+  for (let i = 0; i < 3; i++) {
+    dg.stroke(tuftTips[i]);
+    lg.globalAlpha = 0.08 + 0.11 * i;
+    lg.stroke(tuftTips[i]);
+  }
+  dg.globalCompositeOperation = 'source-over';
+  bg.strokeStyle = '#fff';
+  for (let i = 0; i < GLINTS; i++) {
+    bg.globalAlpha = (i + 0.5) / GLINTS;
+    bg.stroke(tuftBack[i]);
+  }
+  dg.globalAlpha = lg.globalAlpha = bg.globalAlpha = 1;
   /* the edge hairs are seen side-on against the light: a touch lighter,
      and clear of the gaps' shade the film holds where they stand */
   lg.lineWidth = dg.lineWidth = Math.max(0.35, 0.08 * px);
@@ -1686,6 +2356,10 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      silhouette breaks into soft bumps. */
   const mi = new ImageData(R, R), zi = new ImageData(R, R), ci = new ImageData(R, R);
   const hOut = 0.5 + 1.2 * fuzz, reachOut = hOut + tuftK;
+  /* where the pile is fine enough to show single strands, the haze between
+     the tufts is thinner and more streaked: strands with the backdrop
+     between them, not a mist */
+  const haloA = HALO_A * (1 - 0.6 * fine), haloStreak = HALO_STREAK * (1 + 1.2 * fine);
   /* the halo's hairs are seen whole, standing free: drawn out further
      than the fleece's strands */
   const hn = Math.max(1, Math.round(HALO_HAIR * kLen * px)), hs1 = hn + 1;
@@ -1717,14 +2391,14 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         zd[k + 3] = Math.round(255 * HALO_LIFT * z * z * (3 - 2 * z) * (0.45 + 0.55 * smooth(-0.3, 0.6, nB)));
         if (d <= -hOut) continue;
         const o = 1 + d / hOut, f = o * o * (3 - 2 * o);
-        const [ux, uy] = dirAt(X, Y);
+        const [ux, uy] = freeDirAt(X, Y);
         let acc = 0;
         for (let t = -hn; t <= hn; t++) {
           const sx = Math.round(x + off + ux * t), sy = Math.round(y + off + uy * t);
           acc += (sx < 0 || sy < 0 || sx >= Rb || sy >= Rb ? W_MEAN : white[sy * Rb + sx]) * (1 - Math.abs(t) / hs1);
         }
         const strand = (acc / hs1 - W_MEAN) / hsd;
-        md[k + 3] = Math.round(255 * Math.max(0, Math.min(1, f * (HALO_A + HALO_STREAK * strand))));
+        md[k + 3] = Math.round(255 * Math.max(0, Math.min(1, f * (haloA + haloStreak * strand))));
       }
     }
   });
@@ -1739,6 +2413,10 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   mg.lineWidth = Math.max(0.35, 0.08 * px);
   mg.strokeStyle = 'rgba(255,255,255,0.45)';
   mg.stroke(fringe);
+  /* the tufts, whole strands */
+  mg.lineWidth = Math.max(0.4, 0.11 * px);
+  mg.strokeStyle = 'rgba(255,255,255,0.8)';
+  mg.stroke(tufts);
   const oc = makeCanvas(R), og = oc && ctx2d(oc, false);
   if (oc && og) {
     og.putImageData(ci, 0, 0);
@@ -1902,8 +2580,16 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
 /* The gaps between locks and strands are the pile's own colour in shade —
    a dyed fibre deepens and warms there, it does not grey — so the film's
    dark part is laid in a deep, richer shade of the body colour rather
-   than black: one copy per pile and colour, made on first use. Laid at
-   twice the film's alpha, it deepens the gaps about as far as black did. */
+   than black: one copy per pile and colour, made on first use. A gap is
+   shade inside the pile, a share of whatever light reaches that point of
+   the body, so it must darken the lit side and the shade side alike: its
+   shade is darker than the body's own shade side (about GAP_DEEP of the
+   colour, deeper still in hue), so a gap there deepens it rather than
+   lighting it up. A light, pale dye lets the light scatter far down into
+   the pile and fill its depths in, where a dark or strong one swallows
+   it: the lighter and paler the colour, the lighter its gaps
+   (GAP_SCATTER), so a cream pile reads warm and soft rather than dirty. */
+const GAP_DEEP = 0.28, GAP_SCATTER = 0.42;
 const gapFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
 function gapFilm(fur: Fur, color: string, vivid = 0): AnyCanvas | null {
   const src = fur.dark;
@@ -1916,17 +2602,30 @@ function gapFilm(fur: Fur, color: string, vivid = 0): AnyCanvas | null {
   if (hit !== undefined) return hit;
   const c = makeCanvas(src.width), g = c && ctx2d(c, false);
   if (c && g) {
-    g.drawImage(src as HTMLCanvasElement, 0, 0);
-    g.drawImage(src as HTMLCanvasElement, 0, 0);
-    g.globalCompositeOperation = 'source-in';
-    /* half as light, and each channel scaled again by its share of the
-       strongest, so the hue holds and the saturation grows */
+    /* GAP_DEEP as light or a little more, and each channel scaled again by
+       its share of the strongest, so the hue holds and the saturation
+       grows — light bounced between dyed fibres before it leaves a gap,
+       filtered each time */
     const lin = linearColor(color);
     const e: V3 = [srgb(lin[0]) / 255, srgb(lin[1]) / 255, srgb(lin[2]) / 255];
     const mx = Math.max(e[0], e[1], e[2], 1e-3);
+    const lu = 0.2126 * e[0] + 0.7152 * e[1] + 0.0722 * e[2];
+    const pale = Math.min(e[0], e[1], e[2]) / mx;
+    const kd = GAP_DEEP + GAP_SCATTER * lu * lu * pale;
     /* and past the palette's saturation (vivid) richer still */
-    const ch = (v: number) => Math.round(255 * 0.5 * v * Math.pow(v / mx, 2 + 3 * vq));
-    g.fillStyle = `rgb(${ch(e[0])} ${ch(e[1])} ${ch(e[2])})`;
+    const ch = (v: number) => Math.round(255 * kd * v * Math.pow(v / mx, 3.2 + 3 * vq));
+    const r = ch(e[0]), gr = ch(e[1]), b = ch(e[2]);
+    /* The film is encoded for a shade GAP_REF of the colour; a strong dye's
+       shade is deeper than that, so laid in full it would darken the whole
+       body, not only its gaps. It is laid at the share that halves the
+       difference: a strong colour's gaps read a little deeper and richer,
+       its body keeps its tone. */
+    const deep = (0.2126 * r + 0.7152 * gr + 0.0722 * b) / 255 / Math.max(1e-3, lu);
+    g.globalAlpha = Math.min(1, Math.sqrt((1 - GAP_REF) / Math.max(0.05, 1 - deep)));
+    g.drawImage(src as HTMLCanvasElement, 0, 0);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = `rgb(${r} ${gr} ${b})`;
     g.fillRect(0, 0, src.width, src.height);
   }
   if (byColor.size >= 4) byColor.clear();
@@ -1934,15 +2633,18 @@ function gapFilm(fur: Fur, color: string, vivid = 0): AnyCanvas | null {
   return c && g ? c : null;
 }
 
-/* Past the palette's saturation (vivid) the fibres' tips keep their
-   colour: the film's light part laid in the colour at full brightness, as
-   much of the way from white as `vivid` says, instead of white — one copy
-   per pile, colour and step of it. */
+/* The fibres' lit tips and the lit sides of the locks are the key come
+   through a dyed fibre: the film's light part is laid in the colour at
+   full brightness, TIP_TINT of the way from white — and past the
+   palette's saturation (vivid) further, all the way at 1 — so lighting a
+   lock lifts its colour rather than chalking it. One copy per pile,
+   colour and step of it. */
+const TIP_TINT = 0.6;
 const tipFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
 function tipFilm(fur: Fur, color: string, vivid: number): AnyCanvas | null {
   const src = fur.light;
-  if (!src || !(vivid > 0)) return null;
-  const v = Math.round(vivid * 10) / 10;
+  if (!src) return null;
+  const v = Math.round((TIP_TINT + (1 - TIP_TINT) * Math.min(1, Math.max(0, vivid))) * 10) / 10;
   const key = `${color}|${v}`;
   let byKey = tipFilms.get(fur);
   if (!byKey) tipFilms.set(fur, (byKey = new Map()));
@@ -2957,10 +3659,19 @@ export function drawPlasticCap(
        its pixels, so the matcap's rim and the halo carry the light there */
     const sheenA = rig.dev < 160 ? 0 : face >= 0.88 ? 1 : face <= 0.55 ? 0 : (face - 0.55) / 0.33;
     const sheen = sheenA > 0.01 ? sheenFilm(film, pal.base, mat) : null;
-    const lay = (M: number[], a: number, withSheen: boolean) => {
+    /* The pile has depth: its tops stand over its hollows by about its
+       length, so as the body turns they move across the view a little
+       further than the surface under them does — the film's light part
+       (the lit tops and tips) is laid that much further along the turn than
+       its dark part (the hollows and gaps), and the pile is seen to have
+       thickness as it moves */
+    const lift = near * PILE_H * (cfg.fur ?? FUR_STOCK).length;
+    const capT = mulAffine(mulAffine(mulAffine(rig.ctm, [1, 0, 0, 1, lift * sy, -lift * cy * sp]), [cy, m1, 0, cp, 0, 0]), [A, B, B, D, shift * ex - 50 * A - 50 * B, shift * ey - 50 * B - 50 * D]);
+    const lay = (M: number[], a: number, withSheen: boolean, T: number[] = M) => {
       g.setTransform(M[0], M[1], M[2], M[3], M[4] - ox, M[5] - oy);
       g.globalAlpha = a;
       g.drawImage(dark as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+      if (T !== M) g.setTransform(T[0], T[1], T[2], T[3], T[4] - ox, T[5] - oy);
       g.globalAlpha = a * (0.25 + 0.75 * lum);
       g.drawImage(tips as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
       if (withSheen && sheen) {
@@ -2975,7 +3686,7 @@ export function drawPlasticCap(
        the view instead, over the whole turned body, at its own size — the
        front is gone by then, so nothing needs it to line up */
     const sideU = face >= 0.62 ? 0 : face <= 0.36 ? 1 : (0.62 - face) / 0.26;
-    if (sideU < 1) lay(capM, 1 - sideU, true);
+    if (sideU < 1) lay(capM, 1 - sideU, true, capT);
     if (sideU > 0) {
       const k = rig.dev / 100, cxs = ox + bw / 2, cys = oy + bh / 2;
       lay([k, 0, 0, k, cxs - 50 * k, cys - 50 * k], sideU, false);
