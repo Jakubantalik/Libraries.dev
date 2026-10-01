@@ -22,7 +22,7 @@ export const botAvatarPresets: Record<BotAvatarType, BotAvatarPreset> = {
   cloud: { label: 'Cloud', color: '#CFD5E4', face: 'eyes', faceX: 50, faceY: 58, faceScale: 0.95 },
   pill: { label: 'Pill', color: '#ACAAF3', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.9 },
   pebble: { label: 'Pebble', color: '#ABC793', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
-  puddle: { label: 'Puddle', color: '#FF2A2A', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
+  puddle: { label: 'Puddle', color: '#EE8BDB', face: 'eyes', faceX: 50, faceY: 50, faceScale: 0.95 },
 };
 
 export const botAvatarTypes = Object.keys(botAvatarPresets) as BotAvatarType[];
