@@ -1,6 +1,13 @@
 import { StrictMode, useRef, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BotAvatar, botAvatarPresets, botAvatarTypes, type BotAvatarState, type BotAvatarType } from "bot-avatars";
+import {
+  BotAvatar,
+  botAvatarPresets,
+  botAvatarTypes,
+  type BotAvatarShading,
+  type BotAvatarState,
+  type BotAvatarType,
+} from "bot-avatars";
 import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { BotRoster, BotChat } from "./examples/avatars-mocks";
@@ -10,15 +17,64 @@ import { useDemoFlag, useDemoReset } from "./examples/demoFlags";
 
 /* Bot avatars detail page — one React island rendering the examples, the
    playground (stage + controls) and the live-updating snippet below it.
-   Controls are the Studio's first knobs — type, state — plus the size;
-   the face, colour, ink, speed and shading live in the Studio. */
+   Controls are the Studio's first knobs — type, state — plus the size and
+   the shading, fabric (the default) or plastic with the other three shown
+   but locked, then its wear rows, every hat, pair of glasses and extra
+   shown in the row but locked. The face, colour, ink, light, fur and
+   motion live in the Studio. */
+
+/* What a locked choice says on hover: the note PgTabs gives the choices
+   past `open`. */
+const PRO_NOTE = "Available with Pro plan";
 
 const STATE_OPTIONS = [
   { value: "default", label: "Idle" },
   { value: "working", label: "Working" },
   /* Sleeping ships with the paid plan, so the tab is here but locked. */
-  { value: "sleeping", label: "Sleeping", locked: "Available with Pro plan" },
+  { value: "sleeping", label: "Sleeping", locked: PRO_NOTE },
 ] as const;
+
+/* Fabric, the plush fur, is the library's default and plastic the glossy
+   look of 0.1; the other three are the Studio's, locked in the row. */
+const SHADING_OPTIONS = [
+  { value: "fabric", label: "Fabric" },
+  { value: "plastic", label: "Plastic" },
+  { value: "crisp", label: "Crisp", locked: PRO_NOTE },
+  { value: "smooth", label: "Smooth", locked: PRO_NOTE },
+  { value: "flat", label: "Flat", locked: PRO_NOTE },
+] as const;
+
+/* Things to wear are the Studio's too: every choice shows in its row,
+   locked, and None is the only one open — so the rows always read None
+   and change nothing on the stage. Headphones and the bow tie share one
+   row, as they do in the Studio. */
+const HAT_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "beret", label: "Beret", locked: PRO_NOTE },
+  { value: "beanie", label: "Beanie", locked: PRO_NOTE },
+  { value: "party", label: "Party", locked: PRO_NOTE },
+  { value: "crown", label: "Crown", locked: PRO_NOTE },
+] as const;
+const GLASSES_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "round", label: "Round", locked: PRO_NOTE },
+  { value: "square", label: "Square", locked: PRO_NOTE },
+  { value: "shades", label: "Shades", locked: PRO_NOTE },
+] as const;
+const EXTRAS_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "headphones", label: "Headphones", locked: PRO_NOTE },
+  { value: "bowTie", label: "Bow tie", locked: PRO_NOTE },
+] as const;
+/* None is already picked, so a click on it has nothing to change. */
+const keepNone = () => {};
+
+/* The Studio's colour row opens on the palette's own colours, in type
+   order, so the teaser's does too: clover's first. */
+const TEASER_COLORS = botAvatarTypes
+  .map((t) => botAvatarPresets[t].color)
+  .filter((c, i, all) => all.indexOf(c) === i)
+  .slice(0, 5);
 
 const SIZE_OPTIONS = [
   { value: "96", label: "96px" },
@@ -106,6 +162,7 @@ function AvatarsPlayground() {
   const [type, setType] = useState<BotAvatarType>("clover");
   const [state, setState] = useState<BotAvatarState>("default");
   const [size, setSize] = useState<Size>("96");
+  const [shading, setShading] = useState<BotAvatarShading>("fabric");
   /* Paused on arrival, like every other library's stage: the pose shows,
      the motion waits for Play. The examples above run on their own. */
   const [paused, setPaused] = useState(true);
@@ -114,6 +171,7 @@ function AvatarsPlayground() {
   const props = [`type="${type}"`];
   if (state !== "default") props.push(`state="${state}"`);
   if (size !== "64") props.push(`size={${size}}`);
+  if (shading !== "fabric") props.push(`shading="${shading}"`);
   if (paused) props.push("paused");
   const snippet = `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
 
@@ -139,7 +197,7 @@ function AvatarsPlayground() {
 
       <div className="pg">
         <div className="pg-stage" id="playground-stage">
-          <BotAvatar type={type} state={state} size={Number(size)} paused={paused} />
+          <BotAvatar type={type} state={state} size={Number(size)} shading={shading} paused={paused} />
           <button
             type="button"
             className="btn-animate pg-play"
@@ -154,19 +212,26 @@ function AvatarsPlayground() {
           <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} open={TEAM.length} />
           <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />
           <PgTabs label="Size" options={SIZE_OPTIONS} value={size} onChange={setSize} />
+          <PgTabs label="Shading" options={SHADING_OPTIONS} value={shading} onChange={setShading} />
+          <PgTabs label="Hat" options={HAT_OPTIONS} value="none" onChange={keepNone} />
+          <PgTabs label="Glasses" options={GLASSES_OPTIONS} value="none" onChange={keepNone} />
+          <PgTabs label="Extras" options={EXTRAS_OPTIONS} value="none" onChange={keepNone} />
+          {/* The Studio's other knobs at clover's and fabric's defaults, as
+              the Studio shows them: values and fills in its own units and
+              ranges. */}
           <StudioTeaser
             rows={[
-              { kind: "tabs", label: "Shading", options: ["Plastic", "Fabric", "Crisp", "Smooth", "Flat"] },
-              { kind: "tabs", label: "Hat", options: ["None", "Beret", "Beanie", "Party", "Crown"] },
-              { kind: "tabs", label: "Glasses", options: ["None", "Round", "Square", "Shades"] },
               { kind: "slider", label: "Fur length", value: "100%", fill: 32 },
-              { kind: "swatches", label: "Color", colors: ["#35B8FF", "#FF7AB8", "#DC48FF", "#2FCB7A", "#FFD32B"] },
-              { kind: "slider", label: "Brightness", value: "100%", fill: 50 },
-              { kind: "slider", label: "Saturation", value: "100%", fill: 50 },
-              { kind: "swatches", label: "Ink", colors: ["#1E1A33", "#F7F5F2", "#35B8FF"] },
-              { kind: "slider", label: "Speed", value: "1×", fill: 33 },
-              { kind: "slider", label: "Shadow", value: "35%", fill: 17 },
+              { kind: "swatches", label: "Color", colors: TEASER_COLORS },
+              { kind: "slider", label: "Brightness", value: "120%", fill: 70 },
+              { kind: "slider", label: "Saturation", value: "159%", fill: 55 },
+              { kind: "swatches", label: "Ink", colors: ["#1F1B2E", "#F6F4F0", "#35B8FF", "#DC48FF"] },
+              { kind: "slider", label: "Shadow", value: "115%", fill: 58 },
+              { kind: "slider", label: "Back light", value: "60%", fill: 30 },
+              { kind: "slider", label: "Sheen", value: "0%", fill: 0 },
               { kind: "slider", label: "Depth", value: "65%", fill: 25 },
+              { kind: "slider", label: "Edge fuzz", value: "90%", fill: 90 },
+              { kind: "slider", label: "Speed", value: "1×", fill: 27 },
             ]}
           />
         </div>

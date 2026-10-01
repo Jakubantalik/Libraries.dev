@@ -1454,14 +1454,21 @@ export const VOICE_SPEC: LibrarySpec = {
 export const AVATARS_SPEC: LibrarySpec = {
   label: "Bot avatars",
   about:
-    "BotAvatar draws a small glossy 3D bot: a soft extruded body shape with a living face (two dot eyes, " +
-    "optionally a mouth) that blinks, glances, turns side to side, follows the pointer and now and then " +
-    "hops and flips. The type picks the body shape and its palette colour; the state is what the bot is " +
-    "doing (idle, working — hopping and spinning — or sleeping). Perceived character comes from the " +
-    "shape and colour; perceived energy from speed, the side turn and the jump (how high, how often, how " +
-    "much it squashes and stretches); perceived material from the shading — plastic is glossy and " +
-    "physical, crisp a vector-style lit rim, smooth a soft airbrush, flat no lighting at all. A shape the " +
-    "library does not ship — a heart, a robot head, a letter — is a core rebuild: a new body outline.",
+    "BotAvatar draws a small 3D bot like a plush toy: a soft body shape, inflated like a cushion, with a " +
+    "living face (two eyes, optionally a mouth) that blinks, glances, turns side to side, follows the " +
+    "pointer and now and then hops and flips. By default it is made of faux fur (shading fabric): a " +
+    "pillowy form under a studio key light, with a back light rimming the top and far side, fine strands " +
+    "combed down the form and gathered into lit locks, the silhouette breaking into soft tufts and a haze " +
+    "of hairs, and the eyes turned into glossy beads. shading plastic makes the same form a glossy, " +
+    "physical plastic instead. The type picks the body shape and its palette colour; the state is what " +
+    "the bot is doing (idle, working — hopping and spinning — or sleeping); it can wear a hat, glasses, " +
+    "headphones and a bow tie. Perceived character comes from the shape, the colour and what it wears; " +
+    "perceived energy from speed, the side turn and the jump (how high, how often, how much it squashes " +
+    "and stretches); perceived material from the shading — fabric is soft and touchable, and its fur " +
+    "style (length, density, fuzz, clumps, curl, gravity) decides whether it reads as a neat velvety " +
+    "plush or a shaggy, scruffy one; plastic is glossy and physical, crisp a vector-style lit rim, smooth " +
+    "a soft airbrush, flat no lighting at all. A shape the library does not ship — a heart, a robot " +
+    "head, a letter — is a core rebuild: a new body outline.",
   params: {
     type: {
       kind: "enum",
@@ -1470,10 +1477,11 @@ export const AVATARS_SPEC: LibrarySpec = {
         "droid", "mech", "alien", "hexagon", "cat", "cloud", "pill", "pebble", "puddle",
       ],
       describe:
-        "The body shape, which also brings its own palette colour and face placement. droid and mech are " +
-        "robot heads with antennae; ghost, cat, alien and cloud are characters; the rest are soft geometric " +
-        "or organic blobs. Changing it drops a custom outline (core). Send color in the same call if the " +
-        "user wants to keep a colour they chose.",
+        "The body shape, which also brings its own palette colour and face placement, and its own " +
+        "brightness and saturation where it has them (clover, star and cat do) unless those were moved. " +
+        "droid and mech are robot heads with antennae; ghost, cat, alien and cloud are characters; the rest " +
+        "are soft geometric or organic blobs. Changing it drops a custom outline (core). Send color in the " +
+        "same call if the user wants to keep a colour they chose.",
     },
     face: {
       kind: "enum",
@@ -1489,26 +1497,243 @@ export const AVATARS_SPEC: LibrarySpec = {
     color: {
       kind: "color",
       describe:
-        "Body colour. The palette: #35B8FF sky, #2FCB7A green, #DC48FF magenta, #9A62FF violet, #1ED3C6 teal, " +
-        "#FFD32B yellow, #FF8C42 orange, #FF2A2A red, #7B77F0 indigo, #F4F2FA white, #D5DBEA silver — but any hex works.",
+        "Body colour. The palette: #41C4FF sky, #35B8FF blue, #2FCB7A green, #9CD66A lime, #ABC793 sage, " +
+        "#1ED3C6 teal, #DC48FF magenta, #9A62FF violet, #ACAAF3 lavender, #EE8BDB pink, #EB7575 coral, " +
+        "#EAA06F apricot, #EFDB8E pale gold, #F4F2FA white, #D5DBEA silver, #CFD5E4 cloud grey, #95A6C4 " +
+        "steel — but any hex works.",
     },
     ink: {
       kind: "color",
       describe: "Face ink (eyes and mouth). #1F1B2E dark and #F6F4F0 light are the stock inks; pick whichever reads on the body.",
     },
-    brightness: { kind: "number", min: 50, max: 150, step: 1, describe: "Lightness of the body colour, in %. 100 is the colour as picked." },
-    saturation: { kind: "number", min: 50, max: 150, step: 1, describe: "Saturation of the body colour, in %. 150 is the library's default; lower is duller and more muted." },
+    brightness: {
+      kind: "number",
+      min: 50,
+      max: 150,
+      step: 1,
+      describe: "Lightness of the body colour, in %. 100 is the colour as the palette has it; a few types start a little lighter.",
+    },
+    saturation: {
+      kind: "number",
+      min: 50,
+      max: 250,
+      step: 1,
+      describe:
+        "Saturation of the body colour, in %. 100 is the colour as the palette has it, lower is duller and more " +
+        "muted; most types start at 150. Past 150, where most of the palette is already as saturated as a " +
+        "screen shows it, it gets richer and more vivid: the colour is pushed along its own hue toward its most " +
+        "vivid shade (a sky blue toward an electric one), the shade side and the gaps in the fur grow richer, " +
+        "and fabric and plastic keep more of the colour in the light — highlights, sheen, rim and fur tips stay " +
+        "coloured instead of paling toward white.",
+    },
     shading: {
       kind: "enum",
-      values: ["plastic", "crisp", "smooth", "flat"],
-      describe: "How the body is lit: plastic (glossy per-pixel material, the default), crisp (lit rim, vector look), smooth (soft shadow and highlight, no edge), flat (no lighting).",
+      values: ["fabric", "plastic", "crisp", "smooth", "flat"],
+      describe:
+        "How the body is lit. fabric (the default): a plush faux fur under a studio light — fine strands " +
+        "gathered into lit locks, a back light rimming the top and far side, a silhouette of soft tufts, the " +
+        "eyes glossy beads; the fur style and the fabric light below apply only here. plastic: the same form " +
+        "as a glossy material — a hot spot and a sheen, a Fresnel rim, a window reflection. crisp: a lit rim " +
+        "with a clean edge, vector-style. smooth: a soft shadow and highlight across the whole form, no edge. " +
+        "flat: the depth alone, no lighting. Switching moves shadow, highlight, light, rim and spread to the " +
+        "new material's own defaults, unless any of them had been moved; values sent in the same call still " +
+        "win. A call that switches cannot yet set what only the new shading uses (the fur style and the " +
+        "fabric light on a switch to fabric; any light knob or roundness the old shading did not have): " +
+        "switch, then set them in a second call.",
     },
-    shadow: { kind: "number", min: 0, max: 200, step: 5, describe: "Strength of the shadow side, in %.", when: "shading is not flat" },
-    highlight: { kind: "number", min: 0, max: 200, step: 5, describe: "Strength of the lit side, in %.", when: "shading is not flat" },
-    light: { kind: "number", min: 0, max: 360, step: 5, describe: "Where the light comes from, degrees clockwise from the top. 265 is from the left.", when: "shading is not flat" },
-    rim: { kind: "number", min: 0, max: 200, step: 5, describe: "Width of the lit rim (crisp) or strength of the Fresnel rim (plastic), in %.", when: "shading is plastic or crisp" },
-    spread: { kind: "number", min: 40, max: 250, step: 5, describe: "Width of the highlight (plastic) or reach of the soft shading (smooth), in %.", when: "shading is plastic or smooth" },
+    shadow: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe: "Strength of the shadow side, in %. 115 on fabric (a strong key against a deep shade side), 35 on the others.",
+      when: "shading is not flat",
+    },
+    highlight: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe: "Strength of the lit side, in %. 145 on fabric, 130 on the others.",
+      when: "shading is not flat",
+    },
+    light: {
+      kind: "number",
+      min: 0,
+      max: 360,
+      step: 5,
+      describe:
+        "Where the key light comes from, degrees clockwise from the top: 90 is from the right, 270 from the " +
+        "left. 295 on fabric and 300 on the others, the upper left like a studio key.",
+      when: "shading is not flat",
+    },
+    lightFront: {
+      kind: "number",
+      min: 0,
+      max: 85,
+      step: 1,
+      describe:
+        "How far round to the front the key light sits, in degrees. 0 grazes the toy from the side (dramatic), " +
+        "85 lights it nearly from the camera (flat and even). Default 32.",
+      when: "shading is fabric",
+    },
+    rim: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe:
+        "Width of the lit rim (crisp), strength of the Fresnel rim (plastic), or strength of the back light " +
+        "(fabric, where the knob is called Back light) — the bright rim it wraps round the top and far side " +
+        "and the glow of the edge's hairs — in %. 60 on fabric, 50 on the others.",
+      when: "shading is fabric, plastic or crisp",
+    },
+    backSoftness: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "How soft the back light is, in %. 0 is a small source caught on single fibres as crisp bright hairs; " +
+        "100 (default) a large one, an even glow reaching further in from the edge and fading out gently.",
+      when: "shading is fabric",
+    },
+    backLight: {
+      kind: "number",
+      min: 0,
+      max: 360,
+      step: 5,
+      describe:
+        "Where the back light comes from, degrees clockwise from the top. While backLightAuto is true this is " +
+        "where it follows the key to (above the toy, toward the side away from light); setting it holds the " +
+        "back light there and turns backLightAuto off.",
+      when: "shading is fabric",
+    },
+    backLightAuto: {
+      kind: "boolean",
+      describe:
+        "true (default) lets the back light follow the key light, moving with light; false holds it at " +
+        "backLight. Send true alone to hand it back to the key; it wins over a backLight in the same call.",
+      when: "shading is fabric",
+    },
+    shine: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe:
+        "Highlights along single fibres where the key grazes the pile, in %. 0 (default) is a soft, matte " +
+        "pile; higher reads silkier, like a glossy faux fur.",
+      when: "shading is fabric",
+    },
+    sheen: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe:
+        "A smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even " +
+        "gradients, a shine of the material rather than of the fur's own fibres — in %. 0 (default) is matte, " +
+        "only the fibres shine.",
+      when: "shading is fabric",
+    },
+    spread: {
+      kind: "number",
+      min: 40,
+      max: 250,
+      step: 5,
+      describe:
+        "How far the light wraps round the form (fabric), width of the highlight (plastic), or reach of the " +
+        "soft shading (smooth), in %. 160 on fabric, 155 on the others.",
+      when: "shading is fabric, plastic or smooth",
+    },
     depth: { kind: "number", min: 20, max: 200, step: 5, describe: "Thickness of the body, in %: what shows when it turns or flips. Low reads like a flat sticker, high like a chunky toy." },
+    roundness: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "The body's profile through its depth, in %. 100 (default) is inflated like a cushion or a plush toy — " +
+        "thickest in the middle and rounding off to nothing at the outline, so a turn shows a round side; " +
+        "toward 0 it becomes a slab with soft edges.",
+      when: "shading is fabric or plastic",
+    },
+    furLength: {
+      kind: "number",
+      min: 30,
+      max: 250,
+      step: 5,
+      describe: "Length of the pile — the strands, the locks and the tufts — in %. Default 100; low is a short, velvety plush, high a long shaggy one.",
+      when: "shading is fabric",
+    },
+    furDensity: {
+      kind: "number",
+      min: 30,
+      max: 200,
+      step: 5,
+      describe: "How many fibres, in %. Default 160; lower is a sparser pile.",
+      when: "shading is fabric",
+    },
+    furFuzz: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "Softness of the silhouette — the tufts breaking the edge and the haze of fine hairs standing past " +
+        "it — in %. Default 90; 0 is a clean edge.",
+      when: "shading is fabric",
+    },
+    furClumps: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe: "How much the fibres gather into locks and tufts, in %. Default 40; 0 is an even pile, high shows strong locks.",
+      when: "shading is fabric",
+    },
+    furCurl: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe: "How wavy the fibres are, in %: 0 straight, 100 curly. Default 70.",
+      when: "shading is fabric",
+    },
+    furGravity: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "How much the pile hangs, in %: combed down from a parting at the top, lying over the top edge and " +
+        "hanging off the sides and bottom, rather than standing out evenly all round (0). Default 90.",
+      when: "shading is fabric",
+    },
+    hat: {
+      kind: "enum",
+      values: ["none", "beret", "beanie", "party", "crown"],
+      describe:
+        "A hat on the top of the head, turning with it: beret (pleated felt with a stalk), beanie (knitted, " +
+        "with a ribbed cuff and a pompom), party (a striped paper cone with tinsel), crown (gold, with pearls " +
+        "and stones). none for no hat.",
+    },
+    glasses: {
+      kind: "enum",
+      values: ["none", "round", "square", "shades"],
+      describe: "Glasses over the eyes: round or square acetate frames with clear lenses that reflect, or shades with dark lenses. none for none.",
+    },
+    headphones: { kind: "boolean", describe: "Over-ear headphones, a cup on either side of the head and a padded band over the top." },
+    bowTie: { kind: "boolean", describe: "A bow tie under the face — satin, or felt on a fabric body." },
+    accessoryColor: {
+      kind: "color",
+      describe:
+        "Colour of the beret, the beanie, the party hat, the headphones and the bow tie (the crown stays gold " +
+        "and the glasses keep their own frames). The swatches: #27272b charcoal (default), #f4efe6 cream, " +
+        "#c8323c red, #2f5fd0 blue, #e9a93b mustard, #2e8b57 green — but any hex works. Send it with the item " +
+        "it colours.",
+    },
     speed: { kind: "number", min: 25, max: 300, step: 5, describe: "Animation speed, in % of normal." },
     turn: { kind: "number", min: 0, max: 200, step: 5, describe: "How far the head turns side to side while idle, in %. 0 keeps it facing forward." },
     interactive: { kind: "boolean", describe: "Eyes and head follow a nearby pointer, and a click makes it hop and flip." },
@@ -1535,7 +1760,8 @@ export const AVATARS_SPEC: LibrarySpec = {
       describe:
         "The body outline, redrawn. Use it when the request is for a shape none of the types has — a heart, " +
         "a letter, a robot head of a particular kind, a mascot silhouette — while keeping the bot's face, " +
-        "material and motion. The library extrudes, lights and animates whatever outline it is given.",
+        "material, what it wears and motion. The library inflates, lights, furs and animates whatever outline " +
+        "it is given, and sits the wearables on it.",
       contract:
         "Write SVG path data (the d attribute only — no <path> tag, no quotes) for a closed outline in a " +
         "100×100 box centred on (50, 50), y pointing down. Keep it roughly 70–90 units across so it sits like " +
@@ -1543,21 +1769,31 @@ export const AVATARS_SPEC: LibrarySpec = {
         "close every subpath with Z. Several subpaths are allowed (ears, antennae, limbs) and are filled " +
         "non-zero, so wind them the same way and let them overlap the body. The face is drawn at the " +
         "selected type's face point (given with the stock outline you are shown), about 30 units wide — keep " +
-        "the outline solid round that point. Prefer smooth rounded curves over sharp corners: the plastic " +
-        "material reads best on soft forms. Keep it under ~3000 characters.",
+        "the outline solid round that point. Prefer smooth rounded curves over sharp corners: the plush fur " +
+        "and the glossy plastic both inflate the outline like a cushion and read best on soft forms, and fine " +
+        "points soften under the fur's tufts. Keep it under ~3000 characters.",
     },
   },
   relevant(params) {
-    const shading = String(params.shading ?? "plastic");
+    const shading = String(params.shading ?? "fabric");
     const keys = [
       "type", "face", "state", "size", "color", "ink", "brightness", "saturation", "shading", "depth",
+      "hat", "glasses", "headphones", "bowTie", "accessoryColor",
       "speed", "turn", "interactive", "whirl", "jumpEvery", "jumpHeight", "jumpTime", "jumpStretch",
       "jumpSpin", "jumpLean", "jumpSquash", "jumpSquashTime", "jumpSquashEase", "jumpGroundTime",
       "jumpRiseTime", "jumpRiseEase", "jumpClickSquashTime", "jumpLand", "paused", "core",
     ];
     if (shading !== "flat") keys.push("shadow", "highlight", "light");
-    if (shading === "plastic" || shading === "crisp") keys.push("rim");
-    if (shading === "plastic" || shading === "smooth") keys.push("spread");
+    if (shading === "fabric" || shading === "plastic" || shading === "crisp") keys.push("rim");
+    if (shading === "fabric" || shading === "plastic" || shading === "smooth") keys.push("spread");
+    if (shading === "fabric" || shading === "plastic") keys.push("roundness");
+    // The fabric light rig and the pile's own style exist only on the plush.
+    if (shading === "fabric") {
+      keys.push(
+        "lightFront", "backLight", "backLightAuto", "backSoftness", "shine", "sheen",
+        "furLength", "furDensity", "furFuzz", "furClumps", "furCurl", "furGravity"
+      );
+    }
     if (Number(params.jumpGroundTime) > 0) keys.push("jumpGroundEase");
     return keys;
   },

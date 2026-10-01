@@ -1,6 +1,6 @@
 # Bot avatars
 
-Animated 3D bot avatars for AI agents: a glossy body with a living face that looks around, blinks and hops while it works. React, drawn on a 2D canvas (no WebGL, no runtime dependencies). npm package `bot-avatars`.
+Animated 3D bot avatars for AI agents: a plush, furry body (or glossy plastic) with a living face that looks around, blinks and hops while it works. React, drawn on a 2D canvas (no WebGL, no runtime dependencies). npm package `bot-avatars`.
 
 ## When to use
 
@@ -47,6 +47,8 @@ The detail page also has two ports, both local to the repo (not on npm):
 
 - React Native: `bot-avatars-native` in `packages/bot-avatars/ports/react-native/bot-avatars-native`, needs `@shopify/react-native-skia react-native-reanimated react-native-worklets`. Expo needs `expo run:ios` / `run:android`.
 - SwiftUI (iOS 17+): `BotAvatarsKit` in `packages/bot-avatars/ports/ios/BotAvatarsKit`, added as a local Swift package.
+
+Neither port has the fur or the things to wear: both draw the glossy `plastic` look by default.
 
 ## Basic usage
 
@@ -98,9 +100,10 @@ import { BotAvatar } from 'bot-avatars';
 | `type` | `"clover"`, `"flower"`, `"star"`, `"ghost"`, `"mech"`, `"circle"`, `"hexagon"`, `"square"` | `"clover"` | Body shape. Each type has its own body colour. |
 | `state` | `"default"`, `"working"` | `"default"` | `default` is idle: looks from corner to corner, blinks, a jump with a full turn now and then. `working` hops, spins every third hop, smiles and laughs now and then. |
 | `size` | `96`, `64`, `32` (px) | `64` | Layout size of the avatar box. Also accepts any CSS length string. |
+| `shading` | `"fabric"`, `"plastic"` | `"fabric"` | The body's material. `fabric` is a plush faux fur, like a toy's, under a studio light: a soft pile, a bright rim from a light behind, a fuzzy silhouette and glossy bead eyes. `plastic` is a glossy material shaded per pixel, with a hot spot, a sheen and a rim (the default before 0.2.0). |
 | `paused` | `true` / `false` | `false` | Freezes the animation on its current frame. |
 
-Tuner to props: the Type, State and Size tabs set `type`, `state` and `size`. The State tab label "Idle" is the value `"default"`. The Play / Pause button on the stage toggles `paused`; the playground loads paused, so its snippet carries `paused` until you press Play. The playground starts at 96 px; the snippet drops `size` at 64 because 64 is the package default, and drops `state` at `"default"`.
+Tuner to props: the Type, State, Size and Shading tabs set `type`, `state`, `size` and `shading`. The State tab label "Idle" is the value `"default"`. Fabric is the default, so the snippet drops it; Plastic writes `shading="plastic"`. Crisp, Smooth and Flat are shown on the Shading tab but locked. The Hat, Glasses and Extras (headphones, bow tie) rows show every choice locked except None, so they change nothing. The Play / Pause button on the stage toggles `paused`; the playground loads paused, so its snippet carries `paused` until you press Play. The playground starts at 96 px; the snippet drops `size` at 64 because 64 is the package default, and drops `state` at `"default"`.
 
 State changes are cross-animated: the rig eases from the old pose to the new one, so toggling `state` on every token or tool call is safe.
 
@@ -190,7 +193,7 @@ Job header. Use for the header of a long-running agent task.
 - `paused` stops the loop entirely (no per-frame cost).
 - One shared `requestAnimationFrame` loop serves every avatar on the page. Each avatar leaves it when scrolled offscreen (IntersectionObserver), and the loop stops while the tab is hidden.
 - Device pixel ratio is capped at 2.
-- The default look is a per-pixel material. The first time a body type appears, its form is baked (a few ms, on idle time); a softer look stands in for those frames.
+- The default look (`fabric`) is a fur pile over a per-pixel material. The first time a body type appears, its form is baked (a few ms) and then its pile (30–50 ms, in small steps), both on idle time and shared by every avatar of that type; a softer look stands in for those frames. A paused or reduced-motion avatar shows the softer look too and is redrawn once its pile lands. `plastic` bakes the form only.
 - Clicking an avatar makes it hop and turn round, and its eyes follow a nearby pointer. This is on by default; your own `onClick` still runs.
 - Hydration: the server output is an empty `<canvas>` with the same attributes, so there is no mismatch. Nothing paints until JavaScript runs.
 
@@ -208,6 +211,7 @@ Job header. Use for the header of a long-running agent task.
   | `offline`, `away`, `disabled` | `state="default"` with `paused` (a still bot) |
 
   A dedicated `sleeping` state for offline agents exists in the Pro options.
+- Expecting the glossy look of 0.1. Since 0.2.0 the default is `fabric`, the plush fur; pass `shading="plastic"` for a glossy body. Leave the light props unset when you switch: each shading has its own default light (`fabric`: `shadow` 1.15, `highlight` 1.45, `light` 295, `rim` 0.6, `spread` 1.6; the others 0.35, 1.3, 300, 0.5, 1.55), and `rim` and `spread` mean different things in each (the back light and how far the light wraps in `fabric`, the Fresnel rim and the highlight's width in `plastic`).
 - Putting the avatar inside a clickable row and being surprised by the hop. A click on the avatar itself triggers it; clicks on the row around it do not.
 - Expecting a state to hold a loop: `working` shows while the prop says so. Drive it from your real status (streaming flag, job status), not from a timer.
 
@@ -226,7 +230,10 @@ Job header. Use for the header of a long-running agent task.
 ## Go further (Pro)
 
 - The Studio unlocks the other ten body types and the `sleeping` state (head down, shut lids, slow breaths) for offline or scheduled agents.
-- Face, body colour, face ink, brightness and saturation, plus the shading modes and their lighting.
+- Face, body colour, face ink, brightness and saturation (up to 2.5, more vivid than the palette; some types carry their own brightness and saturation), plus the other shading modes (`crisp`, `smooth`, `flat`) and the lighting: shadow, highlight, light angle, depth, rim, spread and `roundness` (a cushion toward a slab).
+- The fur's style (`furLength`, `furDensity`, `furFuzz`, `furClumps`, `furCurl`, `furGravity`) and its studio light (`backLight`, `lightFront`, `shine`, `backSoftness`, `sheen`).
+- Things to wear: `hat` (`beret`, `beanie`, `party`, `crown`), `glasses` (`round`, `square`, `shades`), `headphones` and `bowTie`, in an `accessoryColor`.
+- A body outline of your own (`path`, SVG path data in a 100×100 box) and turning the avatar round by hand (`pose`, usually with `paused`).
 - Motion: speed, blink seed, side turn, pointer following and a whirl ring round a spin.
 - A full Jump group: height, air time, squash and stretch, ground and rise timing with easings.
 

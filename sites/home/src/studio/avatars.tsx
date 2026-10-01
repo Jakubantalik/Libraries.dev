@@ -98,7 +98,8 @@ const INK_OPTIONS = [
   { value: "#DC48FF", label: "Magenta" },
 ];
 
-/* Param key -> the knob's own label, for the agent's applied-change line. */
+/* Param key -> the knob's own label, for the agent's applied-change line.
+   The rim knob is called Back light on fabric; see `agentLabels`. */
 const AVATAR_PARAM_LABELS: Record<string, string> = {
   type: "Type",
   face: "Face",
@@ -112,9 +113,27 @@ const AVATAR_PARAM_LABELS: Record<string, string> = {
   shadow: "Shadow",
   highlight: "Highlight",
   light: "Light angle",
+  lightFront: "Key front",
   rim: "Rim",
+  backSoftness: "Back light softness",
+  backLight: "Back light angle",
+  backLightAuto: "Back light angle auto",
+  shine: "Fibre shine",
+  sheen: "Sheen",
   spread: "Spread",
   depth: "Depth",
+  roundness: "Roundness",
+  furLength: "Length",
+  furDensity: "Density",
+  furFuzz: "Edge fuzz",
+  furClumps: "Clumps",
+  furCurl: "Curl",
+  furGravity: "Gravity",
+  hat: "Hat",
+  glasses: "Glasses",
+  headphones: "Headphones",
+  bowTie: "Bow tie",
+  accessoryColor: "Wear color",
   speed: "Speed",
   turn: "Side turn",
   interactive: "Follow pointer",
@@ -285,19 +304,29 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   };
 
   /* Agent wiring — keys match the Worker's spec (AVATARS_SPEC), which
-     owns the ranges; values are in the knobs' own units (% and ms). The
-     colour and ink are sent as shown, so the model sees the palette
-     colour even before one is picked. */
+     owns the ranges; values are in the knobs' own units (%, degrees and
+     ms). The colour and ink are sent as shown, so the model sees the
+     palette colour even before one is picked; the back light likewise
+     sends the angle the slider shows while it follows the key, with
+     backLightAuto saying that it does. */
   const agentParams: Record<string, unknown> = {
     type, face: shownFace, state, size, color: shownColor, ink: shownInk, brightness, saturation,
-    shading, shadow, highlight, light, rim, spread, depth, speed, turn, interactive, whirl: whirl > 0,
+    shading, shadow, highlight, light, lightFront, rim, backSoftness: backSoft, backLight: backLight ?? autoBack(light),
+    backLightAuto: backLight === null, shine, sheen, spread, depth, roundness,
+    furLength, furDensity, furFuzz, furClumps, furCurl, furGravity,
+    hat, glasses, headphones, bowTie, accessoryColor: wearColor,
+    speed, turn, interactive, whirl: whirl > 0,
     jumpEvery, jumpHeight, jumpTime, jumpStretch, jumpSpin, jumpLean, jumpSquash, jumpSquashTime,
     jumpSquashEase, jumpGroundTime, jumpGroundEase, jumpRiseTime, jumpRiseEase, jumpClickSquashTime,
     jumpLand, paused, core,
   };
+  /* the rim knob's own name on the plush */
+  const agentLabels = { ...AVATAR_PARAM_LABELS, rim: shading === "fabric" ? "Back light" : "Rim" };
 
   /* A patch that switches type and picks a colour in one call must land
-     the colour on the NEW type, so the type goes first. */
+     the colour on the NEW type, so the type goes first. The shading goes
+     through the knob's own switch, so the light follows the material as it
+     does by hand, and any light numbers in the same patch land after it. */
   const applyAgentParams = (patch: Record<string, unknown>) => {
     const n = (k: string, set: (v: number) => void) => {
       if (typeof patch[k] === "number") set(patch[k] as number);
@@ -311,16 +340,38 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
     if (patch.state === "default" || patch.state === "working" || patch.state === "sleeping") setState(patch.state);
     if (typeof patch.color === "string") setColor(patch.color);
     if (typeof patch.ink === "string") setInk(patch.ink);
-    if (typeof patch.shading === "string" && SHADING_OPTIONS.some((o) => o.value === patch.shading)) setShading(patch.shading as BotAvatarShading);
+    if (typeof patch.shading === "string" && SHADING_OPTIONS.some((o) => o.value === patch.shading)) chooseShading(patch.shading as BotAvatarShading);
     n("size", setSize);
     n("brightness", setBrightness);
     n("saturation", setSaturation);
     n("shadow", setShadow);
     n("highlight", setHighlight);
     n("light", setLight);
+    n("lightFront", setLightFront);
     n("rim", setRim);
+    n("backSoftness", setBackSoft);
+    /* the back light follows the key unless an angle holds it; handing it
+       back wins over an angle in the same patch, and holding it without
+       one pins it where it was following to */
+    if (patch.backLightAuto === true) setBackLight(null);
+    else if (typeof patch.backLight === "number") setBackLight(patch.backLight);
+    else if (patch.backLightAuto === false && backLight === null) setBackLight(autoBack(typeof patch.light === "number" ? patch.light : light));
+    n("shine", setShine);
+    n("sheen", setSheen);
     n("spread", setSpread);
     n("depth", setDepth);
+    n("roundness", setRoundness);
+    n("furLength", setFurLength);
+    n("furDensity", setFurDensity);
+    n("furFuzz", setFurFuzz);
+    n("furClumps", setFurClumps);
+    n("furCurl", setFurCurl);
+    n("furGravity", setFurGravity);
+    if (typeof patch.hat === "string" && HAT_OPTIONS.some((o) => o.value === patch.hat)) setHat(patch.hat as BotAvatarHat);
+    if (typeof patch.glasses === "string" && GLASSES_OPTIONS.some((o) => o.value === patch.glasses)) setGlasses(patch.glasses as BotAvatarGlasses);
+    if (typeof patch.headphones === "boolean") setHeadphones(patch.headphones);
+    if (typeof patch.bowTie === "boolean") setBowTie(patch.bowTie);
+    if (typeof patch.accessoryColor === "string") setWearColor(patch.accessoryColor);
     n("speed", setSpeed);
     n("turn", setTurn);
     if (typeof patch.interactive === "boolean") setInteractive(patch.interactive);
@@ -417,7 +468,7 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const snippet = core
     ? `import { BotAvatar } from 'bot-avatars';\n\n// A custom body outline: SVG path data in the 100×100 body box.\nconst outline = '${core}';\n\n<BotAvatar ${props.join(" ")} />`
     : `import { BotAvatar } from 'bot-avatars';\n\n<BotAvatar ${props.join(" ")} />`;
-  const agent = { libraryId: "avatars", params: agentParams, labels: AVATAR_PARAM_LABELS, onApply: applyAgentParams };
+  const agent = { libraryId: "avatars", params: agentParams, labels: agentLabels, onApply: applyAgentParams };
 
   return (
     <div className="pg">
