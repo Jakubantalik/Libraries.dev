@@ -1,5 +1,6 @@
 import { acquireAnalyser } from './audio';
 import { voiceLobes, LOBE_SPAN } from './styles';
+import { createSurfaceState, drawSurface, type SurfaceState } from './surface';
 
 /**
  * Shared driver for the voice reaction.
@@ -89,6 +90,45 @@ export interface VoiceDriverConfig {
   reducedMotion: boolean;
   /** Hold the frame: the clock stops and the source is not read, but a changed config still repaints. */
   paused: boolean;
+  /** How the voice is drawn: the stylesheet's glow, or a surface of dots or lines painted on a canvas. */
+  look: 'glow' | 'dots' | 'lines';
+  /** The dots: radius and spacing multipliers, and their shape. */
+  dotSize: number;
+  dotGap: number;
+  dotShape: 'round' | 'square';
+  /** The lines: width and spacing multipliers, which way they run, and whether a raised ridge hides the lines behind it. */
+  lineWidth: number;
+  lineGap: number;
+  linePattern: 'rows' | 'columns' | 'grid';
+  seeThrough: boolean;
+  /** The surface's ripple, 0–1, and how hard it falls when the voice drops, as a multiplier on its gravity. */
+  texture: number;
+  gravity: number;
+  /** The surface's shape: its height (×), its arc (×, below 0 it cups), its
+   *  tails (lift × its height, where the rise starts, its exponent) and how
+   *  far in its sides dissolve (share of the half-width). */
+  surfaceHeight: number;
+  surfaceCurve: number;
+  surfaceTail: number;
+  surfaceTailPosition: number;
+  surfaceTailCurve: number;
+  surfaceFade: number;
+  /** The glow's layer shapes and weights, which the surface rebuilds (the stylesheet carries them for the glow). */
+  layers: {
+    glowWidth: number;
+    glowHeight: number;
+    innerScale: number;
+    innerHeight: number;
+    bloomScale: number;
+    bloomHeight: number;
+    strokeScale: number;
+    softness: number;
+    coreSize: number;
+    innerOpacity: number;
+    bloomOpacity: number;
+    strokeOpacity: number;
+    brightness: number;
+  };
 }
 
 export interface VoiceSource {
@@ -117,6 +157,11 @@ interface VoiceState {
   lastTs: number;
   /** The distortion's share, 0–1: 1 while listening, settling to 0 for processing. */
   warp: number;
+  /** The flow's travel in px, unwrapped — the surface's ripple rides it without a jump at the wrap. */
+  drift: number;
+  /** The surface's drive: the level and bands on a fast envelope — gravity, not a release curve, brings it down. */
+  fast: number;
+  fastBands: [number, number, number];
 }
 
 interface VoiceInstance {
@@ -149,6 +194,8 @@ interface VoiceInstance {
   cssBlur: string | null;
   /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped for processing. */
   warpOff: boolean;
+  /** The surface's canvas and lattice, for `look="dots"` and `look="lines"`. */
+  surface: SurfaceState | null;
 }
 
 const stateByElement = new WeakMap<HTMLElement, VoiceState>();
@@ -156,13 +203,16 @@ const stateByElement = new WeakMap<HTMLElement, VoiceState>();
 function stateFor(el: HTMLElement): VoiceState {
   let s = stateByElement.get(el);
   if (!s) {
-    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1 };
+    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1, drift: 0, fast: 0, fastBands: [0, 0, 0] };
     stateByElement.set(el, s);
   }
   return s;
 }
 
 const instances = new Set<VoiceInstance>();
+/** The surface's per-frame lobes; frames are painted one instance at a time. */
+const surfaceLobeX = new Float32Array(voiceLobes.length);
+const surfaceLobeL = new Float32Array(voiceLobes.length);
 let rafId: number | null = null;
 let lastFrame = 0;
 
@@ -241,6 +291,8 @@ const BAND_DPR_MAX = 2;
 const WARP_OUT_TAU = 0.06;
 const WARP_IN_TAU = 0.35;
 const WARP_OFF_BELOW = 0.03;
+/** The surface's envelope release, s: near-instant, so the fall is gravity's. */
+const FAST_RELEASE = 0.03;
 // The distortion filter only has to cover the glow under the band line:
 // the warp layers are clipped to it, and the host crops at its own box.
 // Its region is kept to that strip — from a little above the line's
@@ -642,7 +694,11 @@ function frame(ts: number): void {
     for (let b = 0; b < 3; b++) {
       const bt = shape(scratch.bands[b], config.threshold * 0.6);
       s.bands[b] = follow(s.bands[b], bt, dt, config.attack, config.release * 1.15);
+      if (inst.surface) s.fastBands[b] = follow(s.fastBands[b], bt, dt, config.attack * 0.6, FAST_RELEASE);
     }
+    // The surface lifts on a fast envelope and lets gravity be the
+    // release: a slow release curve would lower it gently instead.
+    if (inst.surface) s.fast = follow(s.fast, target, dt, config.attack * 0.6, FAST_RELEASE);
 
     // ── Processing travel ────────────────────────────────────────────
     // Like border-beam's line type: the lobes gather into one compact beam
@@ -699,6 +755,42 @@ function frame(ts: number): void {
     // ── Flow: the spectrum slides sideways as the voice comes in ─────
     if (config.flow !== 0 && !config.reducedMotion) {
       s.phase = (((s.phase + config.flow * eff * dt) % span) + span) % span;
+      s.drift += config.flow * eff * dt;
+    }
+
+    // ── Dots and lines: the voice as a surface ───────────────────────
+    // Everything below is the glow's stylesheet plumbing; the surface
+    // takes the lobes straight and paints its canvas instead.
+    if (inst.surface) {
+      for (let i = 0; i < voiceLobes.length; i++) {
+        const lobe = voiceLobes[i];
+        const x = wrapX(lobe.x * config.lobeSpacing + s.phase, span);
+        surfaceLobeX[i] = cw / 2 + (cx + x * gather) * w;
+        // The spectrum shapes the peaks while a voice is heard; the
+        // travelling mound has no spectrum to follow, so it stands full.
+        const bandAmp = config.bands ? 0.6 + 0.7 * s.fastBands[lobe.band] : 1;
+        surfaceLobeL[i] = (bandAmp + (1 - bandAmp) * morph) * edgeEnvelope(x, span);
+      }
+      const fastVoiced = s.fast + (1 - s.fast) * config.idle * breathe;
+      if (cw && ch) {
+        drawSurface(inst.surface, config, {
+          cw,
+          ch,
+          lobeX: surfaceLobeX,
+          lobeL: surfaceLobeL,
+          w,
+          lift: Math.max(fastVoiced, config.processingLevel * held),
+          glow,
+          t: tSec,
+          dt,
+          drift: s.drift,
+        });
+      }
+      el.style.setProperty(`--vb-level-${config.id}`, s.level.toFixed(3));
+      el.style.setProperty(`--vb-glow-${config.id}`, glow.toFixed(3));
+      inst.onLevel?.(s.level);
+      inst.paintedConfig = config;
+      return;
     }
 
     el.style.setProperty(`--vb-level-${config.id}`, s.level.toFixed(3));
@@ -837,7 +929,12 @@ export function registerVoiceInstance(
     cssBlur: null,
     // Match the mark a previous registration may have left on the element.
     warpOff: el.hasAttribute('data-voice-warp'),
+    surface: null,
   };
+  if (config.look !== 'glow') {
+    const surfaceCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-surface]');
+    if (surfaceCanvas) inst.surface = createSurfaceState(surfaceCanvas);
+  }
   if (config.distortion > 0) {
     inst.displace = el.querySelector<SVGFEDisplacementMapElement>(':scope > svg feDisplacementMap');
     inst.noiseShift = el.querySelector<SVGFEOffsetElement>(':scope > svg feOffset');

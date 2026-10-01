@@ -79,6 +79,8 @@ export default mergeConfig(defineConfig({
       input: {
         index: resolve(__dirname, "index.html"),
         "how-to-use": resolve(__dirname, "how-to-use.html"),
+        skill: resolve(__dirname, "skill.html"),
+        "skill-example": resolve(__dirname, "skill-example.html"),
         introduction: resolve(__dirname, "introduction.html"),
         accessibility: resolve(__dirname, "accessibility.html"),
         beam: resolve(__dirname, "beam.html"),
@@ -91,6 +93,7 @@ export default mergeConfig(defineConfig({
         image: resolve(__dirname, "image.html"),
         voice: resolve(__dirname, "voice.html"),
         "voice-phone": resolve(__dirname, "voice-phone.html"),
+        "skill-demo": resolve(__dirname, "skill-demo.html"),
         pro: resolve(__dirname, "pro.html"),
         studio: resolve(__dirname, "studio.html"),
         "studio-app": resolve(__dirname, "studio/app.html"),

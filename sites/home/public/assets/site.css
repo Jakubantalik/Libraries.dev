@@ -1811,6 +1811,14 @@ html[data-theme="dark"] .footer-name:hover {
      same width the testimonial cards take — rather than a 320px island. */
   .cards { grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: none; }
 }
+/* Four nav pills (Libraries, How to use, Skill, Studio) only just fit
+   before the burger takes over at 639px: tighten the pills and the
+   brand-to-pills gap so they clear the buttons on the right. */
+@media (min-width: 640px) and (max-width: 760px) {
+  .site-nav-left { gap: 14px; }
+  .nav-pill { padding: 0 9px; }
+  .nav-pill:has(.nav-pill-pro) { padding-right: 6px; }
+}
 @media (max-width: 639px) {
   .app { --app-gutter: 12px; padding: 0 var(--app-gutter) 48px; }
   .site-nav-menu { display: none; }
