@@ -335,14 +335,21 @@ function pathId(p: Path2D): string {
    stacks all of them into one frame */
 const queue: (() => void)[] = [];
 let scheduled = false;
-/* one task at least, then as many more as the idle period has room for;
-   a callback forced by its timeout runs just the one */
+/* one task at least, then as many more as the idle period has room for.
+   A page busy drawing a dozen avatars may never idle at all, and every
+   callback is then forced by its timeout: those (and the timers where
+   there is no requestIdleCallback) run steps for a few ms rather than
+   just the one, or a row of fur would take a minute to land */
+const FORCED_MS = 6;
+const clock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 function pump(deadline?: { timeRemaining(): number; didTimeout?: boolean }) {
   scheduled = false;
+  const t0 = clock();
   let fn = queue.shift();
   while (fn) {
     fn();
-    if (!deadline || deadline.didTimeout || deadline.timeRemaining() < 6) break;
+    const room = deadline && !deadline.didTimeout ? deadline.timeRemaining() - 6 : FORCED_MS - (clock() - t0);
+    if (room <= 0) break;
     fn = queue.shift();
   }
   if (queue.length) schedule();
@@ -351,12 +358,40 @@ function schedule() {
   if (scheduled) return;
   scheduled = true;
   const ric = (globalThis as { requestIdleCallback?: (cb: (d: { timeRemaining(): number; didTimeout?: boolean }) => void, o?: { timeout: number }) => void }).requestIdleCallback;
-  if (ric) ric(pump, { timeout: 120 });
-  else setTimeout(() => pump(), 16);
+  if (ric) ric(pump, { timeout: 60 });
+  else setTimeout(() => pump(), 24);
 }
 function idle(fn: () => void) {
   queue.push(fn);
   schedule();
+}
+/* A still avatar that stood in for a form or a pile still baking is
+   drawn again as bakes land: no animation frame will come to show it.
+   Draws note a stand-in in `missed`; the caller reads it right after. */
+const landed = new Set<() => void>();
+let missed = false;
+let landing = false;
+/* soon, but never inside the draw or bake that landed it */
+function land() {
+  if (landing || !landed.size) return;
+  landing = true;
+  setTimeout(() => {
+    landing = false;
+    for (const fn of [...landed]) fn();
+  }, 0);
+}
+/** Call `fn` each time a form or a pile lands, until the returned function is called. */
+export function onLanded(fn: () => void): () => void {
+  landed.add(fn);
+  return () => {
+    landed.delete(fn);
+  };
+}
+/** Whether a draw since the last call stood in for a bake still under way (and clear it). */
+export function takeMissed(): boolean {
+  const m = missed;
+  missed = false;
+  return m;
 }
 /** The form for an outline, built now (`sync`) or on idle time (null until then). */
 function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: boolean): Form | null {
@@ -370,6 +405,7 @@ function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: 
     if (!cov) return;
     if (forms.size >= 48) forms.clear();
     forms.set(id, buildForm(cov, N, halfDepth));
+    land();
   };
   if (sync) {
     build();
@@ -379,6 +415,7 @@ function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: 
     pending.add(id);
     idle(build);
   }
+  missed = true;
   return null;
 }
 /** Build a form ahead of time (call from an idle callback at mount). */
@@ -1068,6 +1105,7 @@ function furReady(form: Form, key: string, halfDepth: number, capPx: number, syn
   }
   /* while it bakes, the same shape's pile at another tier or light will
      do — close enough for the few frames until this one lands */
+  missed = true;
   for (const [k, f] of furs) if (k.startsWith(prefix)) return f;
   return null;
 }
@@ -1160,6 +1198,7 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     if (furs.size >= 24) furs.delete(furs.keys().next().value as string);
     furs.set(id, f);
     furPending.delete(id);
+    land();
   };
   const { N } = form;
   const px = R / SPAN; // pixels per design unit
@@ -3143,7 +3182,10 @@ export function drawPlasticCap(
     const [bx, by] = rig.bx !== undefined && rig.by !== undefined ? [rig.bx, rig.by] : backFromKey(rig.lx, rig.ly);
     return { bx, by, front: mat.front ?? KEY_EL };
   })();
-  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still, rig.lx, rig.ly, cfg.fur ?? FUR_STOCK, lights) : null;
+  /* a still frame makes its pile now, unless the caller redraws when it
+     lands (`furOnIdle`, the component): made now it holds the page for a
+     few hundred ms, and a row of still avatars for seconds */
+  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still && !cfg.furOnIdle, rig.lx, rig.ly, cfg.fur ?? FUR_STOCK, lights) : null;
   if (fabric && !fur) return false;
   const st = stateFor(ctx, (cfg.typeKey ?? pathId(cfg.path)) + (fabric ? '|fabric' : ''));
   const f = capFrame(rig);
@@ -3160,7 +3202,8 @@ export function drawPlasticCap(
     if (st.version > 0) st.mcPrev.set(st.mcMix);
     if (fabric) buildFabricMatcap(st.mc, linearColor(pal.base), f, mat);
     else buildMatcap(st.mc, linearColor(pal.base), f, mat);
-    if (st.version === 0) {
+    /* a still frame shows the new light at once: no frames follow to fade */
+    if (st.version === 0 || rig.still) {
       st.mcMix.set(st.mc);
       st.blendT = 1;
     } else {

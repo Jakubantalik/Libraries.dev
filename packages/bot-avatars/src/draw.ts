@@ -57,8 +57,13 @@ export interface DrawConfig {
   /** no animation loop follows this draw (reduced motion, paused): build
    * materials now instead of on idle time */
   still?: boolean;
-  /** thin parts (antennae) drawn behind the body with `partsDepth` of its depth */
-  parts?: Path2D;
+  /** with `still`, bake fabric's pile on idle time all the same; the caller
+   * draws again when it lands (`takeMissed` and `onLanded` in plastic.ts),
+   * as the component does */
+  furOnIdle?: boolean;
+  /** thin parts (antennae) drawn behind the body with `partsDepth` of its
+      depth; a list draws each piece as its own solid */
+  parts?: Path2D | Path2D[];
   partsDepth?: number;
   /** the resolved surface: the whirl is white on dark, black on light */
   theme?: 'dark' | 'light';
@@ -315,8 +320,10 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const mode = cfg.shading;
   /* one solid: the slice stack (or the plastic material) for an outline
      at a depth; the thin parts come first with a fraction of the depth,
-     then the body over them */
-  const drawSolid = (path: Path2D, key: string, halfDepth: number): boolean => {
+     then the body over them. A plush toy's antennae are moulded plastic:
+     a pile on a rod that thin is all fringe, so parts take the plastic
+     when the body is fabric (`plush` false) */
+  const drawSolid = (path: Path2D, key: string, halfDepth: number, plush = true): boolean => {
     /* the lit gradient, in the body's own space: light from the upper left */
     let lit: CanvasGradient | string = pal.near;
     let capFill: CanvasGradient | string = pal.base;
@@ -343,7 +350,7 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
     if (mode === 'plastic' || mode === 'fabric') {
       plasticDone = drawPlasticCap(
         ctx,
-        { ...cfg, path, typeKey: key },
+        { ...cfg, path, typeKey: key, shading: plush ? mode : 'plastic' },
         { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, ...backOf(cfg.backLight), dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
@@ -424,8 +431,12 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const wr: WearRig = { cy, sy, cp, sp, facing, halfDepth, lx, ly };
   if (worn) drawWearBehind(ctx, cfg.path, wr, wear!);
 
-  if (cfg.parts) drawSolid(cfg.parts, `${cfg.typeKey ?? 'custom'}:parts`, halfDepth * (cfg.partsDepth ?? 0.4));
-  const plasticDone = drawSolid(cfg.path, cfg.typeKey ?? 'custom', halfDepth);
+  const key = cfg.typeKey ?? 'custom';
+  /* each piece rounds on its own: two antennae inflated as one shape
+     would be scaled toward the middle between them, slice by slice */
+  const parts = cfg.parts ? (Array.isArray(cfg.parts) ? cfg.parts : [cfg.parts]) : [];
+  for (let i = 0; i < parts.length; i++) drawSolid(parts[i], Array.isArray(cfg.parts) ? `${key}:parts${i}/${parts.length}` : `${key}:parts`, halfDepth * (cfg.partsDepth ?? 0.4), false);
+  const plasticDone = drawSolid(cfg.path, key, halfDepth);
 
   /* the face: each feature sits on a sphere behind the front cap, so a
      turn slides it round the head — the eye moving toward the edge
@@ -437,7 +448,6 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
   const zf = facing >= 0 ? 1 : -1;
   const round = cfg.roundness ?? 1;
   const cushion = plasticDone;
-  const key = cfg.typeKey ?? 'custom';
   const sf = cushion ? 1 : profile(zf, cap);
   const surface = (x: number, y: number) => (cushion ? surfaceAt(key, halfDepth, x, y, round) ?? 0.8 * halfDepth : halfDepth * sf);
   const zFace = cushion ? 0.55 * surface(cfg.faceX, cfg.faceY) : halfDepth;

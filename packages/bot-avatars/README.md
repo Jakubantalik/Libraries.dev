@@ -1,6 +1,6 @@
 # bot-avatars
 
-Animated bot avatars for React. Eighteen simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and three states an agent can be in: idle, working and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, rounded extrusion: no WebGL, no runtime dependencies.
+Animated bot avatars for React. Eighteen simple 3D shapes with living faces — round eyes that blink and glance, an optional mouth — and three states an agent can be in: idle, working and sleeping. Each one turns its head, looks around, hops and flips, and every state change is a cross-animation. Vector shapes drawn on a 2D canvas as a lit, inflated body in plush faux fur (or glossy plastic): no WebGL, no runtime dependencies.
 
 [Live demo](https://libraries.dev/bots) · [Repository](https://github.com/Jakubantalik/Libraries.dev) · [Report an issue](https://github.com/Jakubantalik/Libraries.dev/issues)
 
@@ -26,7 +26,7 @@ Eighteen bodies, each with its own colour:
 
 ```tsx
 <BotAvatar type="clover" />    {/* sky */}
-<BotAvatar type="flower" />    {/* pink */}
+<BotAvatar type="flower" />    {/* green */}
 <BotAvatar type="triangle" />  {/* magenta */}
 <BotAvatar type="square" />    {/* sky */}
 <BotAvatar type="blob" />      {/* green */}
@@ -37,17 +37,17 @@ Eighteen bodies, each with its own colour:
 <BotAvatar type="droid" />     {/* pale, antenna ball, round ears */}
 <BotAvatar type="mech" />      {/* slate, wide head, two antennae */}
 <BotAvatar type="alien" />     {/* lime, wide brow, narrow chin */}
-<BotAvatar type="hexagon" />   {/* orange nut */}
-<BotAvatar type="cat" />       {/* butter, round head, two ears */}
+<BotAvatar type="hexagon" />   {/* coral nut */}
+<BotAvatar type="cat" />       {/* apricot, round head, two ears */}
 <BotAvatar type="cloud" />     {/* pale sky, five puffs */}
 <BotAvatar type="pill" />      {/* indigo, a wide capsule */}
-<BotAvatar type="pebble" />    {/* peach, a wide flat stone */}
-<BotAvatar type="puddle" />    {/* salmon, a taller lumpy blob */}
+<BotAvatar type="pebble" />    {/* sage, a wide flat stone */}
+<BotAvatar type="puddle" />    {/* pink, a taller lumpy blob */}
 ```
 
 ### Your own shape
 
-`path` takes SVG path data for the body outline, in a 100×100 box centred on (50, 50), in place of the type's own. It is extruded, lit and animated like any stock shape. The type still sets where the face sits, the default colour and the label, so keep the outline solid round the face.
+`path` takes SVG path data for the body outline, in a 100×100 box centred on (50, 50), in place of the type's own. It is inflated, lit and animated like any stock shape. The type still sets where the face sits, the default colour and the label, so keep the outline solid round the face.
 
 ```tsx
 const heart = 'M50 88C50 88 12 64 12 38C12 24 23 14 35 14C42 14 47 18 50 23C53 18 58 14 65 14C77 14 88 24 88 38C88 64 50 88 50 88Z';
@@ -82,8 +82,8 @@ Every state is a resting pose plus its own motion. The pose is a small rig — y
 <BotAvatar type="clover" color="#111" />            {/* the ink turns light on a dark body */}
 <BotAvatar type="star" ink="#4D7CFF" />             {/* or pick the ink yourself */}
 <BotAvatar type="drop" brightness={1.25} />          {/* lighter body; below 1 darker */}
-<BotAvatar type="drop" saturation={0.7} />           {/* duller body; the default is 1.5, more vivid than the palette */}
-<BotAvatar type="clover" shading="fabric" saturation={2.2} /> {/* past 1.5 (up to 2.5) more vivid: richer colour, richer shade, coloured light */}
+<BotAvatar type="drop" saturation={0.7} />           {/* duller body; the default is 1.5 (or the type's own), more vivid than the palette */}
+<BotAvatar type="clover" saturation={2.2} />         {/* past 1.5 (up to 2.5) more vivid: richer colour, richer shade, coloured light */}
 <BotAvatar type="clover" paused pose={{ yaw: 0.8, pitch: -0.2 }} />  {/* held turned round, as a 3D viewer would */}
 <BotAvatar type="clover" shading="plastic" />       {/* glossy plastic instead of the default plush fur */}
 <BotAvatar type="square" shading="crisp" />         {/* a lit rim with a clean edge */}
@@ -91,7 +91,7 @@ Every state is a resting pose plus its own motion. The pose is a small rig — y
 <BotAvatar type="square" shading="flat" />          {/* keep the depth, drop the lighting */}
 ```
 
-The palette is exported as `botAvatarPalette` (type → colour), with `botAvatarPresets` carrying each type's face and label.
+The palette is exported as `botAvatarPalette` (type → colour), with `botAvatarPresets` carrying each type's face and label (and, for a few, their own `brightness` and `saturation`).
 
 ## Shading
 
@@ -101,13 +101,13 @@ Both are drawn on an inflated body: thickest in the middle and rounding off to n
 
 ```tsx
 <BotAvatar
-  shadow={1.4}      // 0–2, strength of the shadow side (default 0.35)
-  highlight={0.6}   // 0–2, strength of the lit side (default 1.3)
-  light={265}       // degrees clockwise from the top (default 300, the upper left)
+  shadow={1.4}      // 0–2, strength of the shadow side (default 1.15 in fabric, 0.35 in the others)
+  highlight={0.6}   // 0–2, strength of the lit side (default 1.45 in fabric, 1.3 in the others)
+  light={265}       // degrees clockwise from the top (default 295 in fabric, 300 in the others: the upper left)
   depth={1.5}       // 0.2–2, thickness shown when the head turns (default 0.65)
   roundness={0.5}   // 0–1, plastic and fabric: a cushion at 1, toward a slab at 0 (default 1)
-  rim={1.5}         // 0–2, Fresnel strength in plastic, rim width in crisp (default 0.5)
-  spread={0.7}      // 0.4–2.5, width of the highlight in plastic, reach of the soft shading in smooth (default 1.55)
+  rim={1.5}         // 0–2, strength of the back light in fabric, of the Fresnel rim in plastic, rim width in crisp (default 0.6 in fabric, 0.5 in the others)
+  spread={0.7}      // 0.4–2.5, how far the light wraps round in fabric, width of the highlight in plastic, reach of the soft shading in smooth (default 1.6 in fabric, 1.55 in the others)
 />
 ```
 
@@ -115,7 +115,6 @@ The plush pile has a style of its own:
 
 ```tsx
 <BotAvatar
-  shading="fabric"
   furLength={2}     // 0.3–2.5, length of the pile (default 1)
   furDensity={1}    // 0.3–2, how many fibres (default 1.6)
   furFuzz={0.5}     // 0–1, the haze of hairs at the silhouette (default 0.9)
@@ -132,13 +131,13 @@ Each style is baked once per shape on idle time and shared by every avatar that 
 A hat, glasses, headphones and a bow tie, each a small 3D object built from lit surfaces and placed on the body's own shape — the hat seated where the head is wide enough to hold it, the headphones on its widest row with the band resting on the head, the glasses over the eyes, the bow tie under the face — and turned with the head, so it tips, turns and flips with the body. They are lit from the body's light and cast a soft shadow where they sit. Each surface is built once per shape and size and painted a strip at a time with the light carried along it, so a hat is a few dozen canvas fills — about 0.2–0.8 ms a frame at 120 px.
 
 ```tsx
-<BotAvatar type="clover" shading="fabric" hat="beret" />
+<BotAvatar type="clover" hat="beret" />
 <BotAvatar type="triangle" glasses="round" bowTie />
 <BotAvatar type="flower" headphones accessoryColor="#f4efe6" />
 ```
 
 - `hat`: `none` (default), `beret` (pleated felt with a leather binding and a stalk), `beanie` (knit stitch by stitch, with a ribbed cuff and a yarn pompom), `party` (a striped paper cone with a foil trim and tinsel) or `crown` (gold, with ridged points, pearls, cut stones, a velvet cap and an orb and cross)
-- the headphones are over-ear: leather cushions, brushed metal rings and yokes, a stitched padded band; the glasses are acetate with rounded rims and reflecting lenses; the bow tie is satin
+- the headphones are over-ear: leather cushions, brushed metal rings and yokes, a stitched padded band; the glasses are acetate with rounded rims and reflecting lenses; the bow tie is satin, or felt on a plush body
 - `glasses`: `none` (default), `round`, `square` or `shades`
 - `headphones`, `bowTie`: booleans
 - `accessoryColor`: the hat's, the headphones' and the bow tie's colour, a soft black by default (the crown stays gold)
@@ -174,12 +173,13 @@ drawBotAvatarFrame(ctx, 64, sim.pose, {
   ...botAvatarPresets.clover, // face, faceX, faceY, faceScale, color
   ink: autoInk(botAvatarPresets.clover.color),
   shading: 'plastic',
+  typeKey: 'clover', // names the outline for the material caches, the key warmBotAvatarPlastic takes
   dpr: devicePixelRatio, // the scale the context is set to (optional; else read from the context)
   sides: 'auto', // plastic's side slices: 'vector' fills, or 'sprite' blits (what WebKit gets by default)
 }); // on a canvas 64 * BOT_AVATAR_OVERSCAN * devicePixelRatio px square; the body's centre sits BOT_AVATAR_RISE * 64 below its middle
 ```
 
-In `plastic` the first frame of a new type bakes its form (a few ms, done on idle time when an animation loop is running; the smooth look stands in until then). `warmBotAvatarPlastic(type, path, devicePx)` bakes ahead of time.
+In `plastic` and `fabric` the first frame of a new type bakes its form (a few ms, done on idle time when an animation loop is running; the smooth look stands in until then). `warmBotAvatarPlastic(type, path, devicePx)` bakes ahead of time; `warmBotAvatarPlastic(type, path, devicePx, depth, true)` also queues `fabric`'s pile, in small steps on idle time.
 
 ## The idle look
 

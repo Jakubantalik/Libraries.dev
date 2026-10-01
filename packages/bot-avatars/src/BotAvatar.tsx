@@ -5,7 +5,7 @@ import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, richer, shade } from './color';
 import { Sim, restPose } from './engine';
 import { draw, LIGHT_DEFAULTS, OVERSCAN, RISE, type DrawConfig } from './draw';
-import { stockLights, warmPlastic, type FurStyle } from './plastic';
+import { onLanded, stockLights, takeMissed, warmPlastic, type FurStyle } from './plastic';
 import { subscribe, pointer } from './ticker';
 
 /* A 0–1 seed from the React id, so two avatars side by side never blink
@@ -24,6 +24,17 @@ function bodyPath(d: string): Path2D {
   if (!p) {
     p = new Path2D(d);
     pathCache.set(d, p);
+  }
+  return p;
+}
+
+/* the thin parts one piece per subpath, so each rounds on its own */
+const partsCache = new Map<string, Path2D[]>();
+function partPaths(d: string): Path2D[] {
+  let p = partsCache.get(d);
+  if (!p) {
+    p = d.split(/(?=M)/).filter((s) => s.trim()).map((s) => new Path2D(s));
+    partsCache.set(d, p);
   }
   return p;
 }
@@ -178,8 +189,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     spread: clamp(spread ?? lit.spread, 0.4, 2.5),
     typeKey: outlineKey,
     still: frozen || reducedMotion(),
+    furOnIdle: true,
     whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
-    parts: typeof Path2D !== 'undefined' && !customPath && SHAPE_PARTS[type] ? bodyPath(SHAPE_PARTS[type] as string) : undefined,
+    parts: typeof Path2D !== 'undefined' && !customPath && SHAPE_PARTS[type] ? partPaths(SHAPE_PARTS[type] as string) : undefined,
     wear: { hat, glasses, headphones, bowTie, color: accessoryColor, fabric: shadingMode === 'fabric' },
   };
 
@@ -224,6 +236,29 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     draw(ctx, px, pose, c);
   };
 
+  /* A still avatar's pile bakes on idle time like any other (made at once
+     it would hold the page): while it draws a stand-in it is drawn again
+     each time a bake lands, until a draw needs none — no animation frame
+     will come to show it. */
+  const stillPaint = useRef<(() => void) | null>(null);
+  const waiting = useRef<(() => void) | null>(null);
+  const stopWaiting = () => {
+    if (waiting.current) waiting.current();
+    waiting.current = null;
+  };
+  const settle = (paintNow: () => void) => {
+    takeMissed();
+    paintNow();
+    if (!takeMissed()) stopWaiting();
+    else if (!waiting.current)
+      waiting.current = onLanded(() => {
+        const p = stillPaint.current;
+        if (canvasRef.current && p) settle(p);
+        else stopWaiting();
+      });
+  };
+  useEffect(() => stopWaiting, []);
+
   /* first paint before the browser shows the frame */
   useLayoutEffect(() => {
     if (!sim.current) sim.current = new Sim(seedValue, stateKey);
@@ -232,8 +267,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     sim.current.setJump({ height: jumpHeight, time: Math.max(0.2, jumpTime), stretch: jumpStretch, spin: Math.max(0, Math.round(jumpSpin)), lean: jumpLean, every: jumpEvery, land: jumpLand, squash: jumpSquash, squashTime: Math.max(0.05, jumpSquashTime), squashEase: jumpSquashEase, groundTime: Math.max(0, jumpGroundTime), groundEase: jumpGroundEase, riseTime: Math.max(0.05, jumpRiseTime), riseEase: jumpRiseEase, clickSquashTime: Math.max(0.05, jumpClickSquashTime) });
     if (reducedMotion()) {
       /* the still pose of the state, no loop */
-      const canvas = canvasRef.current;
-      if (canvas && cfg.current && cfg.current.path) {
+      const still = () => {
+        const canvas = canvasRef.current;
+        if (!canvas || !cfg.current || !cfg.current.path) return;
         const px = canvas.clientWidth / OVERSCAN || cssSize.current || (typeof size === 'number' ? size : 64);
         if (!px) return;
         cssSize.current = px;
@@ -246,12 +282,21 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           draw(ctx, px, restPose(stateKey), cfg.current);
         }
-      }
+      };
+      stillPaint.current = still;
+      settle(still);
       return;
     }
     /* the surface's theme, read once per render rather than per frame */
     if (cfg.current && canvasRef.current) cfg.current.theme = resolveTheme(canvasRef.current);
-    paint();
+    if (frozen) {
+      stillPaint.current = paint;
+      settle(paint);
+    } else {
+      stillPaint.current = null;
+      stopWaiting();
+      paint();
+    }
   });
 
   /* plastic bakes its form per type; start that on idle time at mount so
