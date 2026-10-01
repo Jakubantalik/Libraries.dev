@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   BotAvatar,
   botAvatarPalette,
@@ -148,6 +148,41 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [turn, setTurn] = useState(100); // % of the idle side turn (35° either way)
   const [whirl, setWhirl] = useState(0);
   const [paused, setPaused] = useState(false);
+  /* Dragging the avatar turns it round by hand, as a 3D viewer does: the
+     animation stops and the body follows the pointer (across for the
+     turn, up and down for the tilt) and stays where it is let go; Play
+     hands it back to the animation. A press that does not move is still a
+     click (a hop). */
+  const [held, setHeld] = useState<{ yaw: number; pitch: number } | null>(null);
+  const drag = useRef<{ id: number; x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
+  const DRAG_TURN = 0.012; // radians per pixel
+  const onDragStart = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (e.button !== 0) return;
+    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, yaw: held?.yaw ?? 0, pitch: held?.pitch ?? 0, moved: false };
+  };
+  const onDragMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved) {
+      if (Math.hypot(dx, dy) < 4) return;
+      d.moved = true;
+      setPaused(true);
+      /* keep the drag when the pointer leaves the avatar */
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* a pointer the browser no longer tracks: the drag still works over the avatar */
+      }
+    }
+    setHeld({ yaw: d.yaw + dx * DRAG_TURN, pitch: Math.max(-1.3, Math.min(1.3, d.pitch - dy * DRAG_TURN)) });
+  };
+  const onDragEnd = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    drag.current = null;
+  };
   const [hat, setHat] = useState<BotAvatarHat>("none");
   const [glasses, setGlasses] = useState<BotAvatarGlasses>("none");
   const [headphones, setHeadphones] = useState(false);
@@ -313,12 +348,21 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             bowTie={bowTie}
             accessoryColor={wearColor}
             paused={paused}
+            pose={held ?? undefined}
+            onPointerDown={onDragStart}
+            onPointerMove={onDragMove}
+            onPointerUp={onDragEnd}
+            onPointerCancel={onDragEnd}
+            style={{ cursor: held ? "grabbing" : "grab", touchAction: "none" }}
           />
         )}
         <button
           type="button"
           className="btn-animate pg-play"
-          onClick={() => setPaused((p) => !p)}
+          onClick={() => {
+            setPaused((p) => !p);
+            setHeld(null);
+          }}
           aria-pressed={!paused}
         >
           {paused ? "Play" : "Pause"}

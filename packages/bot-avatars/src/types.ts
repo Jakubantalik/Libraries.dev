@@ -165,6 +165,14 @@ export interface BotAvatarProps
   /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.6` for `fabric`). */
   spread?: number;
   /**
+   * Holds the body at this orientation, in radians — `yaw` turns it to the
+   * viewer's right, `pitch` tips it to look up, `roll` tilts it — in the
+   * state's rest pose, overriding the animation's turns, hops and glances
+   * (and pointer play) while it is set. For turning an avatar round by
+   * hand, as a 3D viewer does; usually with `paused`.
+   */
+  pose?: { yaw?: number; pitch?: number; roll?: number };
+  /**
    * Pointer play: the eyes and head follow a pointer that comes near, and
    * a click makes the avatar hop and turn right round. Default `true`.
    */

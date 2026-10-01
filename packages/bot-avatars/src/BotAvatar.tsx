@@ -68,6 +68,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     shine,
     sheen,
     backSoftness,
+    pose: heldPose,
     interactive = true,
     turn = 1,
     theme = 'auto',
@@ -139,7 +140,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const speedRef = useRef(speed);
   speedRef.current = speed;
   const interactiveRef = useRef(interactive);
-  interactiveRef.current = interactive;
+  interactiveRef.current = interactive && !heldPose;
+  const heldRef = useRef(heldPose);
+  heldRef.current = heldPose;
 
   cfg.current = {
     path: typeof Path2D === 'undefined' ? (null as unknown as Path2D) : bodyPath(SHAPE_PATHS[type] ?? SHAPE_PATHS.clover),
@@ -204,7 +207,11 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.dpr = dpr;
-    const pose = sim.current ? sim.current.pose : restPose(stateKey);
+    /* a held pose: the state's rest with the head turned as given — the
+       body seen from any side, with nothing of a hop or a glance in it */
+    const held = heldRef.current;
+    const rest0 = restPose(stateKey);
+    const pose = held ? { ...rest0, yaw: held.yaw ?? 0, pitch: held.pitch ?? rest0.pitch, roll: held.roll ?? rest0.roll } : sim.current ? sim.current.pose : rest0;
     draw(ctx, px, pose, c);
   };
 
@@ -319,7 +326,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   };
 
   const onClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (interactive && !frozen) sim.current?.poke();
+    if (interactive && !frozen && !heldPose) sim.current?.poke();
     rest.onClick?.(e);
   };
 

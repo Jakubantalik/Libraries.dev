@@ -72,6 +72,7 @@ Every state is a resting pose plus its own motion. The pose is a small rig — y
 <BotAvatar type="drop" brightness={1.25} />          {/* lighter body; below 1 darker */}
 <BotAvatar type="drop" saturation={0.7} />           {/* duller body; the default is 1.5, more vivid than the palette */}
 <BotAvatar type="clover" shading="fabric" saturation={2.2} /> {/* past 1.5 (up to 2.5) more vivid: richer colour, richer shade, coloured light */}
+<BotAvatar type="clover" paused pose={{ yaw: 0.8, pitch: -0.2 }} />  {/* held turned round, as a 3D viewer would */}
 <BotAvatar type="clover" shading="fabric" />        {/* plush faux fur with a soft, tufted edge */}
 <BotAvatar type="square" shading="crisp" />         {/* a lit rim with a clean edge */}
 <BotAvatar type="square" shading="smooth" />        {/* soft shadow and highlight, no edge */}
