@@ -119,9 +119,9 @@ export interface BotAvatarProps
   bowTie?: boolean;
   /** Colour of the hat, the headphones and the bow tie. Default a soft black. */
   accessoryColor?: string;
-  /** Strength of the shadow side, 0–2. Default `0.35` (`0.85` for `fabric`). */
+  /** Strength of the shadow side, 0–2. Default `0.35` (`1.15` for `fabric`). */
   shadow?: number;
-  /** Strength of the lit side, 0–2. Default `1.3` (`1.9` for `fabric`). */
+  /** Strength of the lit side, 0–2. Default `1.3` (`1.45` for `fabric`). */
   highlight?: number;
   /** Thickness of the body, 0.2–2: what shows when it turns or flips. Default `0.65`. */
   depth?: number;

@@ -45,7 +45,7 @@ const STATE_OPTIONS = [
 /* the library's default light per material, in slider units */
 const lightDefaults = (shading: BotAvatarShading) =>
   shading === "fabric"
-    ? { shadow: 85, highlight: 190, light: 295, rim: 60, spread: 160 }
+    ? { shadow: 115, highlight: 145, light: 295, rim: 60, spread: 160 }
     : { shadow: 35, highlight: 130, light: 300, rim: 50, spread: 155 };
 /* where the library puts the back light when none is given: above the
    toy, toward the side away from the key (degrees clockwise from the top) */

@@ -258,7 +258,7 @@ const backOf = (deg: number | undefined): { bx?: number; by?: number } => {
     a plush pile wants a broad, low studio light that shows its lobes and
     grain, a clear coat a brighter one for its gloss. */
 export const LIGHT_DEFAULTS = {
-  fabric: { shadow: 0.85, highlight: 1.9, light: 295, rim: 0.6, spread: 1.6 },
+  fabric: { shadow: 1.15, highlight: 1.45, light: 295, rim: 0.6, spread: 1.6 },
   other: { shadow: 0.35, highlight: 1.3, light: 300, rim: 0.5, spread: 1.55 },
 };
 
