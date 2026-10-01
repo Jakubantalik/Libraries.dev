@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+Less work a frame, with the same picture. The body's slices that cannot show are no longer drawn: a fabric far slice lying wholly inside the equator, and a near slice lying wholly inside the front's opaque part while the front is laid at full strength — tested against the outline's distance field with the rim's own depth allowed for, so only what is covered is left out (most of a body's slices near the front view); Chrome and Safari draw the same pixels as before. Firefox draws a conic gradient in software even on an accelerated canvas, over its whole box, so there each slice's light is made once into a sprite — one for each distinct inset, remade with the light, only for the slices drawn — and the slices are placed from it; the picture is the same but for the edges' antialiasing. On the detail page's mix of eight animated avatars that is about a sixth less main thread a frame in Firefox.
+
 ## 0.2.0
 
 `fabric`, the plush fur, is now the default shading; `shading="plastic"` keeps the glossy look of 0.1.
