@@ -382,13 +382,13 @@ function formFor(key: string, path: Path2D, N: number, halfDepth: number, sync: 
   return null;
 }
 /** Build a form ahead of time (call from an idle callback at mount). */
-export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65, fabric = false, style: FurStyle = FUR_STOCK, light = 295) {
+export function warmPlastic(key: string, path: Path2D, devicePx = 192, depth = 0.65, fabric = false, style: FurStyle = FUR_STOCK, light = 295, lights?: FurLights) {
   const form = formFor(key, path, tierFor(devicePx), 15 * depth, true);
   if (fabric && form) {
     /* toward the light on screen. The pile is queued as idle steps rather
        than baked here in one long task. */
     const a = (light * Math.PI) / 180;
-    furReady(form, key, 15 * depth, Math.ceil((SPAN * devicePx) / 100), false, Math.sin(a), -Math.cos(a), style);
+    furReady(form, key, 15 * depth, Math.ceil((SPAN * devicePx) / 100), false, Math.sin(a), -Math.cos(a), style, lights ?? stockLights(Math.sin(a), -Math.cos(a)));
   }
 }
 /** Texture size for an avatar `devicePx` wide (CSS px × device pixel ratio). */
@@ -561,6 +561,11 @@ export interface Material {
   /** 0–1: how much colour the light keeps past the palette's full
       saturation (see vivify) */
   vivid?: number;
+  /** fabric: how far round to the front the key sits, radians — 0 grazes
+      from the side, π/2 lights from the camera */
+  front?: number;
+  /** fabric: the strength of the light along single fibres, 1 as it comes */
+  shine?: number;
 }
 /* More colour than a fully saturated palette colour has: the light's own
    mixes — a highlight, a sheen, a rim, a fill — pulled away from grey
@@ -583,6 +588,8 @@ export interface Frame {
   L: V3; V: V3; H: V3; U: V3; W: V3; A: V3; B: V3;
   /** down on screen, in the cap's frame: toward the floor */
   D: V3;
+  /** toward the back light on screen, in the cap's frame */
+  K: V3;
 }
 const ENV: V3 = [0.92, 0.96, 1.0];
 const WARM: V3 = [1, 0.98, 0.95];
@@ -704,8 +711,17 @@ export function shadeTexels(form: Form, mc: Float32Array, px: Uint8ClampedArray,
       px[k + 3] = 0;
       continue;
     }
-    const m = lift ? aoMul[lift.ao[i]] * lift.k[i] : aoMul[a];
+    let m = lift ? aoMul[lift.ao[i]] * lift.k[i] : aoMul[a];
     const b = i00[i] * 3, x = wx[i] * (1 / 255), y = wy[i] * (1 / 255);
+    if (lift) {
+      /* The occlusion is the room's light hidden by the form around a
+         point — the ambient and the fill — not the key's, which reaches
+         any point facing it past a dome's own sides: where the matcap is
+         lit by the key it takes less of it, so the lit side stays bright
+         and only the shade and the creases sink */
+      const g = (mc[b + 1] * (1 - x) + mc[b + 4] * x) * (1 - y) + (mc[b + R + 1] * (1 - x) + mc[b + R + 4] * x) * y;
+      m = 1 - (1 - m) * (1.1 - 0.75 * Math.min(1, g / 235));
+    }
     const w00 = (1 - x) * (1 - y) * m, w10 = x * (1 - y) * m, w01 = (1 - x) * y * m, w11 = x * y * m;
     px[k] = mc[b] * w00 + mc[b + 3] * w10 + mc[b + R] * w01 + mc[b + R + 3] * w11;
     px[k + 1] = mc[b + 1] * w00 + mc[b + 4] * w10 + mc[b + R + 1] * w01 + mc[b + R + 4] * w11;
@@ -799,6 +815,13 @@ export interface Fur {
       one continuous pile. */
   dark: AnyCanvas | null;
   light: AnyCanvas | null;
+  /** the light on single fibres, as alpha over the film's square, white:
+      the key's highlights along the fibres where they lie across it
+      (`glint`), and the back light carried through the fibres toward the
+      silhouette and out along the halo's hairs (`back`) — each laid in its
+      own mix of the colour and at its slider's strength (see sheenFilm) */
+  glint: AnyCanvas | null;
+  back: AnyCanvas | null;
 }
 /* The pile is a property of the shape, not of one avatar or one texture
    size: it is kept per outline and depth, per resolution tier (matched to
@@ -827,7 +850,7 @@ export interface FurStyle {
 export const FUR_STOCK: FurStyle = { length: 1, density: 1.6, fuzz: 0.9, clumps: 0.35, curl: 0.35, gravity: 0.9 };
 const styleId = (s: FurStyle) =>
   `${s.length.toFixed(2)},${s.density.toFixed(2)},${s.fuzz.toFixed(2)},${s.clumps.toFixed(2)},${s.curl.toFixed(2)},${(s.gravity ?? FUR_STOCK.gravity).toFixed(2)}`;
-const furKey = (key: string, halfDepth: number, R: number, bin: number, style: FurStyle) => `${key}|${Math.round(halfDepth)}|${R}|${bin}|${styleId(style)}`;
+const furKey = (key: string, halfDepth: number, R: number, bin: number, style: FurStyle, lights: FurLights) => `${key}|${Math.round(halfDepth)}|${R}|${bin}|${styleId(style)}|${lightsId(lights)}`;
 /* a slider dragged through styles queues a bake per stop: past the two
    newest for a shape, the older ones are dropped before they run */
 const queuedFor = new Map<string, string[]>();
@@ -872,6 +895,44 @@ const HALO_VEIL = 0.8;
 const HALO_BLEND = 0.3;
 const HALO_EASE = 0.1;
 
+/* The pile's two lights, in a frame where U is toward the light on
+   screen, V toward the viewer and D down on screen. The key comes in lower
+   than plastic's, from further round the side, so the far side of the
+   form falls into real shade. The back light is behind the toy, above it
+   and toward the side away from the key, grazing it: a pile catches it
+   only toward the silhouette, and there the fibres carry it through to the
+   viewer as a bright rim. */
+const KEY_EL = (32 * Math.PI) / 180;
+function fabricKey(U: V3, V: V3, front = KEY_EL): V3 {
+  const c = Math.cos(front), s = Math.sin(front);
+  return norm3([U[0] * c + V[0] * s, U[1] * c + V[1] * s, U[2] * c + V[2] * s]);
+}
+function fabricBack(K: V3, V: V3): V3 {
+  return norm3([0.94 * K[0] - 0.34 * V[0], 0.94 * K[1] - 0.34 * V[1], 0.94 * K[2] - 0.34 * V[2]]);
+}
+/** Where the back light is on screen by default, as a unit vector (y down)
+    from the key's (lx, ly): above the toy and toward the side away from the
+    key. */
+export function backFromKey(lx: number, ly: number): [number, number] {
+  const x = -0.5 * lx, y = -0.5 * ly - 0.87;
+  const l = Math.hypot(x, y) || 1;
+  return [x / l, y / l];
+}
+/** The lights the pile's own fibres are baked for: the back light's
+    direction on screen (unit, y down) and how far round to the front the
+    key sits (radians). */
+export interface FurLights {
+  bx: number;
+  by: number;
+  front: number;
+}
+/** the stock lights for a key at (lx, ly) on screen */
+export const stockLights = (lx: number, ly: number): FurLights => {
+  const [bx, by] = backFromKey(lx, ly);
+  return { bx, by, front: KEY_EL };
+};
+const lightsId = (s: FurLights) => `${Math.round(Math.atan2(s.by, s.bx) / (Math.PI / 36))}|${Math.round(s.front / (Math.PI / 90))}`;
+
 /* a stable white noise, so every avatar of a type wears the same pile */
 function hash2(x: number, y: number): number {
   let h = (x * 374761393 + y * 668265263) | 0;
@@ -890,12 +951,12 @@ function bilerp(f: Float32Array, N: number, x: number, y: number): number {
 
 /* the pile takes 30–50 ms to make: on idle time, in small steps, unless
    no animation will follow (then now) */
-function furReady(form: Form, key: string, halfDepth: number, capPx: number, sync: boolean, lx: number, ly: number, style: FurStyle = FUR_STOCK): Fur | null {
+function furReady(form: Form, key: string, halfDepth: number, capPx: number, sync: boolean, lx: number, ly: number, style: FurStyle = FUR_STOCK, lights: FurLights = stockLights(lx, ly)): Fur | null {
   const R = furTier(capPx), bin = lightBin(lx, ly);
-  const id = furKey(key, halfDepth, R, bin, style);
+  const id = furKey(key, halfDepth, R, bin, style, lights);
   const hit = furs.get(id);
   if (hit) return hit;
-  if (sync) return furFor(form, key, halfDepth, capPx, lx, ly, style);
+  if (sync) return furFor(form, key, halfDepth, capPx, lx, ly, style, lights);
   /* a large pile takes a while on idle time: with nothing of this shape
      to stand in meanwhile, the smallest one is baked first — in a small
      fraction of the time — and drawn until the full one lands */
@@ -904,7 +965,7 @@ function furReady(form: Form, key: string, halfDepth: number, capPx: number, syn
     let any = false;
     for (const k of furs.keys()) if (k.startsWith(prefix)) any = true;
     for (const k of furPending) if (k.startsWith(prefix)) any = true;
-    if (!any) furReady(form, key, halfDepth, 1, false, lx, ly, style);
+    if (!any) furReady(form, key, halfDepth, 1, false, lx, ly, style, lights);
   }
   if (!furPending.has(id)) {
     furPending.add(id);
@@ -918,7 +979,7 @@ function furReady(form: Form, key: string, halfDepth: number, capPx: number, syn
       furPending.delete(old);
     }
     queuedFor.set(shape, line);
-    const job = furJob(form, id, R, lx, ly, style);
+    const job = furJob(form, id, R, lx, ly, style, lights);
     if (job) for (const step of job.steps) idle(() => (dropped.has(id) ? undefined : step()));
   }
   /* while it bakes, the same shape's pile at another tier or light will
@@ -987,19 +1048,19 @@ function valueNoise3(scale: number, seed: number) {
  * film covers the whole turned body. The silhouette breaks into tufts —
  * the locks standing past it — with a haze of fine hairs.
  */
-export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0, style: FurStyle = FUR_STOCK): Fur {
+export function furFor(form: Form, key = 'custom', halfDepth = 9.75, capPx = 320, lx = -1, ly = 0, style: FurStyle = FUR_STOCK, lights: FurLights = stockLights(lx, ly)): Fur {
   const R = furTier(capPx);
-  const id = furKey(key, halfDepth, R, lightBin(lx, ly), style);
+  const id = furKey(key, halfDepth, R, lightBin(lx, ly), style, lights);
   const hit = furs.get(id);
   if (hit) return hit;
-  const job = furJob(form, id, R, lx, ly, style);
+  const job = furJob(form, id, R, lx, ly, style, lights);
   if (job) for (const step of job.steps) step();
-  return furs.get(id) ?? { R: 0, mask: null, haze: null, cut: null, core: null, dark: null, light: null };
+  return furs.get(id) ?? { R: 0, mask: null, haze: null, cut: null, core: null, dark: null, light: null, glint: null, back: null };
 }
 
 /* the bake as a list of steps sharing one closure; the last one files the
    finished pile in the cache */
-function furJob(form: Form, id: string, R: number, lx: number, ly: number, style: FurStyle = FUR_STOCK): { steps: (() => void)[] } | null {
+function furJob(form: Form, id: string, R: number, lx: number, ly: number, style: FurStyle = FUR_STOCK, lights: FurLights = stockLights(lx, ly)): { steps: (() => void)[] } | null {
   if (furs.has(id)) return null;
   /* files the finished pile, keeping the cache to a couple of dozen */
   const file = (f: Fur) => {
@@ -1015,10 +1076,11 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      units past it all round, so the film laid over a turned body still
      covers the back half showing past the front's outline */
   const O = PAD + FILM_M, Rb = Math.round((R * FILM_SPAN) / SPAN);
-  const fur: Fur = { R, mask: null, haze: null, cut: null, core: null, dark: null, light: null };
-  const dc = makeCanvas(Rb), lc = makeCanvas(Rb), mc = makeCanvas(R);
+  const fur: Fur = { R, mask: null, haze: null, cut: null, core: null, dark: null, light: null, glint: null, back: null };
+  const dc = makeCanvas(Rb), lc = makeCanvas(Rb), mc = makeCanvas(R), gc = makeCanvas(Rb), bc = makeCanvas(Rb);
   const dg = dc && ctx2d(dc, false), lg = lc && ctx2d(lc, false), mg = mc && ctx2d(mc, false);
-  if (!dc || !lc || !mc || !dg || !lg || !mg) {
+  const gg = gc && ctx2d(gc, false), bg = bc && ctx2d(bc, false);
+  if (!dc || !lc || !mc || !gc || !bc || !dg || !lg || !mg || !gg || !bg) {
     file(fur);
     return null;
   }
@@ -1034,6 +1096,11 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   const gravity = style.gravity ?? FUR_STOCK.gravity;
   const ll = Math.hypot(lx, ly) || 1;
   const Lx = lx / ll, Ly = ly / ll;
+  /* the matcap's key and back light as the front sees them head-on, and
+     the key's half vector: the fibres' own highlights are baked for them */
+  const Uf: V3 = [Lx, Ly, 0], Vf: V3 = [0, 0, 1], Df: V3 = [0, 1, 0];
+  void Df;
+  const K3 = fabricKey(Uf, Vf, lights.front), B3 = fabricBack([lights.bx, lights.by, 0], Vf), H3 = norm3([K3[0], K3[1], K3[2] + 1]);
 
   /* the parting: at the top of the head over its middle */
   /* the parting: over the top of the head, behind it — seen from the
@@ -1103,6 +1170,14 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      the front rather than up over the edge */
   const G = 112, gu = FILM_SPAN / G;
   const flowX = new Float32Array(G * G), flowY = new Float32Array(G * G), tiltG = new Float32Array(G * G);
+  /* and the surface's normal there, as the form's own: off the height
+     field, turned out toward the outline over its last two units, and
+     lying flat (facing out) past it, where the halo's hairs stand */
+  const nXg = new Float32Array(G * G), nYg = new Float32Array(G * G), nZg = new Float32Array(G * G);
+  /* and how far the halo's hairs reach there: the fibres' own light is on
+     the body and its halo, none past them (where a turned body's side
+     lies under the film) */
+  const onG = new Float32Array(G * G);
   rows(G, 28, (j0, j1) => {
     for (let j = j0, i = j0 * G; j < j1; j++) {
       for (let x = 0; x < G; x++, i++) {
@@ -1118,6 +1193,23 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         flowX[i] = fx / fl;
         flowY[i] = fy / fl;
         tiltG[i] = tiltS;
+        let nx = dx * tiltS, ny = dy * tiltS, nz = Math.sqrt(Math.max(0, 1 - tiltS * tiltS));
+        const d0 = sdAt(X, Y);
+        if (d0 < 2) {
+          const [ox, oy] = outward(X, Y);
+          const w = d0 >= 0 ? 0.7 * (1 - d0 / 2) : Math.min(1, 0.7 - 0.2 * d0);
+          nx += w * (ox - nx);
+          ny += w * (oy - ny);
+          nz -= w * nz;
+          const nl = Math.hypot(nx, ny, nz) || 1;
+          nx /= nl;
+          ny /= nl;
+          nz /= nl;
+        }
+        nXg[i] = nx;
+        nYg[i] = ny;
+        nZg[i] = nz;
+        onG[i] = smooth(-3.5, -1.5, d0);
       }
     }
   });
@@ -1232,7 +1324,71 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      between locks and strands deepen the colour whatever its lightness,
      as occlusion does), above it white. */
   const darkImg = new ImageData(Rb, Rb), lightImg = new ImageData(Rb, Rb);
+  const glintImg = new ImageData(Rb, Rb), backImg = new ImageData(Rb, Rb);
   const white = new Float32Array(Rb * Rb);
+  /* The light on single fibres at a design point, for a fibre lying along
+     (ux, uy) on screen and standing `stand` radians out of the surface:
+     into `fib` the key's highlight along it, the back light it carries,
+     and how far the point faces the key at all. */
+  const fib = new Float32Array(3);
+  const fibreLight = (X: number, Y: number, ux: number, uy: number, stand: number) => {
+    /* past the halo, under a turned body's side, the tips keep most of
+       their light and there is no light on single fibres */
+    /* the four grids read at one set of bilinear weights */
+    const fx = Math.min(G - 1, Math.max(0, (X + O) / gu - 0.5)), fy = Math.min(G - 1, Math.max(0, (Y + O) / gu - 0.5));
+    const x0 = Math.min(G - 2, fx | 0), y0 = Math.min(G - 2, fy | 0);
+    const u = fx - x0, v = fy - y0, j = y0 * G + x0;
+    const w00 = (1 - u) * (1 - v), w10 = u * (1 - v), w01 = (1 - u) * v, w11 = u * v;
+    const read = (f: Float32Array) => f[j] * w00 + f[j + 1] * w10 + f[j + G] * w01 + f[j + G + 1] * w11;
+    const on = read(onG);
+    if (on <= 0) {
+      fib[0] = fib[1] = 0;
+      fib[2] = 0.7;
+      return;
+    }
+    let nx = read(nXg), ny = read(nYg), nz = read(nZg);
+    const nn = Math.hypot(nx, ny, nz) || 1;
+    nx /= nn;
+    ny /= nn;
+    nz /= nn;
+    const nK = nx * K3[0] + ny * K3[1] + nz * K3[2];
+    const key = smooth(-0.2, 0.5, nK);
+    /* the fibre: the flow laid onto the surface, then raised out of it at
+       the pile's angle — a plush's fibres stand, they do not lie flat */
+    const along = ux * nx + uy * ny;
+    let tx = ux - along * nx, ty = uy - along * ny, tz = -along * nz;
+    const tl = Math.hypot(tx, ty, tz);
+    if (tl > 1e-3) {
+      tx /= tl;
+      ty /= tl;
+      tz /= tl;
+    } else (tx = 0), (ty = 0), (tz = 1);
+    const cs = Math.cos(stand), sn = Math.sin(stand);
+    tx = tx * cs + nx * sn;
+    ty = ty * cs + ny * sn;
+    tz = tz * cs + nz * sn;
+    /* Kajiya–Kay: a fibre reflects the key into a cone about itself, seen
+       brightest where the fibre lies square to the half vector. Two
+       reflections, as Marschner's: off the fibre's surface, sharp and
+       white, its cone tilted toward the root; and through the fibre and
+       back, broad and in the dye's colour, tilted toward the tip */
+    const tH = tx * H3[0] + ty * H3[1] + tz * H3[2], nH = nx * H3[0] + ny * H3[1] + nz * H3[2];
+    const a1 = tH - 0.12 * nH, a2 = tH + 0.2 * nH;
+    /* (1 − a²)³⁶ and (1 − a²)⁴, by squaring */
+    const b1 = Math.max(0, 1 - a1 * a1), b2 = b1 * b1, b4 = b2 * b2, b8 = b4 * b4, b16 = b8 * b8;
+    const c1 = Math.max(0, 1 - a2 * a2), c2 = c1 * c1;
+    fib[0] = key * (0.85 * b16 * b16 * b4 + 0.15 * c2 * c2);
+    /* and brightest where the key grazes the pile: there the fibres stand
+       across it, their tips lit over roots already in shade */
+    fib[0] *= (0.4 + 0.6 * (1 - smooth(0.35, 0.85, nK))) * on;
+    /* the back light: where the pile faces it at all, carried through the
+       fibres to the viewer — the more pile the view passes through, the
+       more: toward the silhouette, and on a fibre seen side-on; the
+       underside, over the floor, gets little */
+    const side = Math.sqrt(Math.max(0, 1 - tz * tz));
+    fib[1] = smooth(-0.3, 0.6, nx * B3[0] + ny * B3[1] + nz * B3[2]) * Math.pow(1 - nz, 1.6) * (0.4 + 0.6 * side) * (1 - 0.6 * Math.max(0, ny)) * on;
+    fib[2] = key * on + 0.7 * (1 - on);
+  };
   steps.push(() => {
     for (let y = 0, i = 0; y < Rb; y++) for (let x = 0; x < Rb; x++, i++) {
       const h = hash2(x + 911, y + 37);
@@ -1268,6 +1424,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
           }
           const strand = (acc / (n + 1) - W_MEAN) / kSd[n];
           const lk = lockAt(lock, X, Y), ll = lockAt(lockLit, X, Y);
+          /* each strand stands at its own angle, so a highlight breaks up
+             along the fibres instead of lying across them as one band */
+          fibreLight(X, Y, ux, uy, 0.25 + 0.2 * lk);
           let v =
             FUR_MID + 6 +
             (tone(X, Y) - 0.5) * 10 +
@@ -1279,9 +1438,18 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
           /* below mid-grey the film darkens, above it lightens */
           if (v < FUR_MID) dd[k + 3] = Math.round(255 * (1 - v / FUR_MID));
           else {
+            /* the tips are lit by the key: on the shade side only the fill
+               lifts them, so they do not grey the shade */
             ld[k] = ld[k + 1] = ld[k + 2] = 255;
-            ld[k + 3] = Math.round((255 * (v - FUR_MID)) / (255 - FUR_MID));
+            ld[k + 3] = Math.round(((255 * (v - FUR_MID)) / (255 - FUR_MID)) * (0.35 + 0.65 * fib[2]));
           }
+          /* the fibres' own light is on the strands standing out and the
+             locks facing the light, not in the gaps between them */
+          const tipK = smooth(-0.4, 1, ll) * Math.max(0, Math.min(1.4, 0.65 + 0.25 * strand));
+          const gd = glintImg.data, bd = backImg.data;
+          gd[k] = gd[k + 1] = gd[k + 2] = bd[k] = bd[k + 1] = bd[k + 2] = 255;
+          gd[k + 3] = Math.round(255 * Math.min(1, fib[0] * tipK));
+          bd[k + 3] = Math.round(255 * Math.min(1, fib[1] * Math.max(0, Math.min(1.6, 0.5 + 0.4 * strand))));
         }
       }
     });
@@ -1291,7 +1459,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   steps.push(() => {
     dg.putImageData(darkImg, 0, 0);
     lg.putImageData(lightImg, 0, 0);
-    for (const g of [dg, lg]) {
+    gg.putImageData(glintImg, 0, 0);
+    bg.putImageData(backImg, 0, 0);
+    for (const g of [dg, lg, gg, bg]) {
       g.setTransform(1, 0, 0, 1, FILM_M * px, FILM_M * px);
       g.lineCap = 'round';
       g.lineJoin = 'round';
@@ -1308,13 +1478,18 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     { count: 0.12, len: [1.2, 1.0], width: 0.09, spread: 30, alpha: 0.4, split: true, lift: 0.25 },
   ];
   const shadeOf = (v: number) => Math.min(SHADES - 1, Math.max(0, Math.round(((Math.max(-1, Math.min(1, v)) + 1) / 2) * (SHADES - 1))));
+  /* the fibres that catch the key or the back light, by how much: their
+     tips drawn again into the fibres' own light, crisp single hairs */
+  const GLINTS = 6;
+  const glintOf = (v: number) => Math.min(GLINTS - 1, (v * GLINTS) | 0);
   /* a dense layer goes in more, smaller steps, so no one idle task runs
      long enough to cost a frame */
   for (const L of layers) {
     const parts = Math.max(1, Math.ceil((L.count * kDen) / 1.2));
     for (let part = 0; part < parts; part++) steps.push(() => {
-    const buckets: Path2D[] = [];
+    const buckets: Path2D[] = [], glints: Path2D[] = [], backs: Path2D[] = [];
     for (let i = 0; i < SHADES; i++) buckets.push(new Path2D());
+    for (let i = 0; i < GLINTS; i++) glints.push(new Path2D()), backs.push(new Path2D());
     const count = Math.round((area * L.count * kDen) / parts);
     for (let n = 0; n < count; n++) {
       const X = rand() * SPAN - PAD, Y = rand() * SPAN - PAD;
@@ -1338,6 +1513,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
       if (r0 < 0.46) v += 0.2 + 0.28 * rand();
       else if (r0 < 0.8) v -= 0.2 + 0.28 * rand();
       v += L.lift;
+      /* lit by the key on its side of the form, in shade on the other */
+      fibreLight(X, Y, ux, uy, 0.1 + 0.5 * hash2(n, 7 + part));
+      v += 0.35 * (fib[2] - 0.5);
       const x0 = (X + PAD) * px, y0 = (Y + PAD) * px;
       const bend = (rand() - 0.5) * 0.93 * curl * len;
       const mx = x0 + ux * len * 0.45 - uy * bend, my = y0 + uy * len * 0.45 + ux * bend;
@@ -1349,6 +1527,16 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         rb.lineTo(mx, my);
         tb.moveTo(mx, my);
         tb.lineTo(x1, y1);
+        if (fib[0] > 0.3) {
+          const gb = glints[glintOf(fib[0])];
+          gb.moveTo(mx, my);
+          gb.lineTo(x1, y1);
+        }
+        if (fib[1] > 0.1) {
+          const bb = backs[glintOf(fib[1])];
+          bb.moveTo(mx, my);
+          bb.lineTo(x1, y1);
+        }
       } else {
         const b = buckets[shadeOf(v)];
         b.moveTo(x0, y0);
@@ -1364,7 +1552,17 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
       g.strokeStyle = v < FUR_MID ? '#000' : '#fff';
       g.stroke(buckets[i]);
     }
-    dg.globalAlpha = lg.globalAlpha = 1;
+    for (const g of [gg, bg]) {
+      g.lineWidth = Math.max(0.45, L.width * px);
+      g.strokeStyle = '#fff';
+    }
+    for (let i = 0; i < GLINTS; i++) {
+      gg.globalAlpha = (0.4 * (i + 0.5)) / GLINTS;
+      bg.globalAlpha = (0.8 * (i + 0.5)) / GLINTS;
+      gg.stroke(glints[i]);
+      bg.stroke(backs[i]);
+    }
+    dg.globalAlpha = lg.globalAlpha = gg.globalAlpha = bg.globalAlpha = 1;
     });
   }
 
@@ -1372,6 +1570,10 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
      many, very fine, of mixed length (mostly short, a few long), leaning
      with the flow, so the edge is a soft haze rather than a comb */
   const fringe = new Path2D();
+  /* the same hairs again, by how much of the back light they carry: the
+     edge's hairs stand free of the body, so on its side they glow */
+  const fringeBack: Path2D[] = [];
+  for (let i = 0; i < GLINTS; i++) fringeBack.push(new Path2D());
   /* tried only in the form's cells along the outline, where a hair can
      root: as many tries per unit of that band as over the whole square */
   const cells: number[] = [];
@@ -1415,7 +1617,14 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
     }
     fringe.moveTo(x0, y0);
     /* and the tip sags a little more under its own weight */
-    fringe.quadraticCurveTo(x0 + ux * fl * 0.5 - uy * bend, y0 + uy * fl * 0.5 + ux * bend, x0 + ux * fl, y0 + uy * fl + gravity * fl * 0.25);
+    const qx = x0 + ux * fl * 0.5 - uy * bend, qy = y0 + uy * fl * 0.5 + ux * bend, ex = x0 + ux * fl, ey = y0 + uy * fl + gravity * fl * 0.25;
+    fringe.quadraticCurveTo(qx, qy, ex, ey);
+    fibreLight(X, Y, ux, uy, 0.3);
+    if (fib[1] > 0.08) {
+      const fb = fringeBack[glintOf(fib[1])];
+      fb.moveTo(x0, y0);
+      fb.quadraticCurveTo(qx, qy, ex, ey);
+    }
   }
   });
   steps.push(() => {
@@ -1426,6 +1635,13 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
   lg.strokeStyle = '#fff';
   lg.stroke(fringe);
   lg.globalAlpha = 1;
+  bg.lineWidth = lg.lineWidth;
+  bg.strokeStyle = '#fff';
+  for (let i = 0; i < GLINTS; i++) {
+    bg.globalAlpha = (i + 0.5) / GLINTS;
+    bg.stroke(fringeBack[i]);
+  }
+  bg.globalAlpha = 1;
   dg.globalCompositeOperation = 'destination-out';
   dg.globalAlpha = 0.7;
   dg.strokeStyle = '#000';
@@ -1470,7 +1686,9 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
         }
         /* past the outline the hairs are lit, the further out the more */
         const z = Math.min(1, -d / (2 * hOut));
-        zd[k + 3] = Math.round(255 * HALO_LIFT * z * z * (3 - 2 * z));
+        /* most where the halo faces the back light: there its hairs glow */
+        const nB = gridAt(nXg, X, Y) * B3[0] + gridAt(nYg, X, Y) * B3[1];
+        zd[k + 3] = Math.round(255 * HALO_LIFT * z * z * (3 - 2 * z) * (0.45 + 0.55 * smooth(-0.3, 0.6, nB)));
         if (d <= -hOut) continue;
         const o = 1 + d / hOut, f = o * o * (3 - 2 * o);
         const [ux, uy] = dirAt(X, Y);
@@ -1503,6 +1721,8 @@ function furJob(form: Form, id: string, R: number, lx: number, ly: number, style
 
   fur.dark = dc;
   fur.light = lc;
+  fur.glint = gc;
+  fur.back = bc;
   fur.mask = mc;
   file(fur);
   });
@@ -1523,39 +1743,55 @@ function furCut(fur: Fur): AnyCanvas | null {
   return fur.cut;
 }
 
-/** The lit sphere for the pile: a softly wrapped diffuse that still
-    rounds every lobe, and a sheen that grows toward the silhouette, where
-    the fibres catch the light side-on. No specular lobe and no
-    reflections — fur has no clear coat. */
+/** The lit sphere for the pile, as a studio photograph of a plush toy
+    lights it: a clear key high on the light's side with a soft but
+    readable terminator and a real shade side (about 4:1), the shade the
+    colour deepened rather than greyed, a saturated band where the key
+    turns into shade (light that has passed through dyed fibres), a sheen
+    where the fibres at the lit side's silhouette lie side-on to the key,
+    and a strong back light: from behind, above and away from the key, it
+    catches the pile all along the silhouette as a bright rim — the colour
+    at full brightness, whitening toward the outermost hairs — widest over
+    the top and on the side away from the key. No specular lobe and no
+    reflections — fur has no clear coat; its own fibre highlights are in
+    the pile's film (see furJob). */
 export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Material) {
   const { V, U, D } = f;
   const vivid = p.vivid ?? 0, px: V3 = [0, 0, 0];
-  /* the key comes in lower than plastic's, from further round the side, so
-     the far side of the form falls into real shade */
-  const EK = (34 * Math.PI) / 180;
-  const L = norm3([U[0] * Math.cos(EK) + V[0] * Math.sin(EK), U[1] * Math.cos(EK) + V[1] * Math.sin(EK), U[2] * Math.cos(EK) + V[2] * Math.sin(EK)]);
-  /* A plush toy under studio light: a large soft key high on the light's
-     side, turning into shade gradually — the pile scatters it, so the
-     terminator is wide and the shade keeps the body's colour, deepened
-     rather than greyed; a dim fill from the other side and the front, so
-     no side goes flat; a thin back light the fibres at the silhouette catch
-     all round; and the floor's occlusion under the body. */
-  /* a pile scatters light through itself: its shade side is lit by the
-     room and by light passing between the fibres, so it falls off far more
-     gently than a clear coat's */
-  const amb = Math.max(0.06, 0.2 - 0.1 * p.shadow);
-  const wrap = Math.min(0.9, 0.26 + 0.16 * p.spread);
+  const L = fabricKey(U, V, p.front);
+  const Lb = fabricBack(f.K, V);
+  /* the shade side: a little ambient from the room and a dim fill from the
+     other side and the front; `shadow` takes both down, so the key to fill
+     ratio runs from about 2:1 to 6:1 */
+  const amb = Math.max(0.03, 0.2 - 0.15 * p.shadow);
+  const fillK = Math.max(0.04, 0.24 - 0.13 * p.shadow);
+  /* the key wraps a little past the terminator — the pile scatters it —
+     and more toward the silhouette, where the fibres stand in the light */
+  const wrap = Math.min(0.7, 0.05 + 0.12 * p.spread);
   const kd = 1.3;
-  const fillK = 0.17, floorK = 0.28 * Math.min(1.5, p.shadow / 0.35);
-  /* the fill: from the other side of the screen, a little low, mostly from
-     the front */
+  const floorK = 0.34 * Math.min(1.6, p.shadow / 0.35);
   const Fl = norm3([-0.55 * U[0] + 0.85 * V[0] + 0.15 * D[0], -0.55 * U[1] + 0.85 * V[1] + 0.15 * D[1], -0.55 * U[2] + 0.85 * V[2] + 0.15 * D[2]]);
-  const sheenK = 0.2 * p.highlight, rimK = 0.12 * p.rim;
-  /* the sheen and the back light are the body colour itself: plush keeps
-     its colour where it catches the light, it does not go white */
-  const tint: V3 = [c[0], c[1], c[2]];
-  /* the shade is the colour deepened: a little more saturated, not grey */
-  const deep: V3 = [c[0] * c[0] * 0.9 + c[0] * 0.1, c[1] * c[1] * 0.9 + c[1] * 0.1, c[2] * c[2] * 0.9 + c[2] * 0.1];
+  const sheenK = 0.16 * p.highlight, rimK = 1.15 * p.rim, sssK = 0.2;
+  /* the colour at full brightness, and the key's sheen: mostly the colour,
+     a quarter of the light's own white */
+  const mx = Math.max(c[0], c[1], c[2], 0.02);
+  const cb: V3 = [c[0] / mx, c[1] / mx, c[2] / mx];
+  /* the back light through the pile: carried through the dyed fibres it
+     comes out in their colour at full brightness — only the outermost
+     hairs, thin and seen against it, pass some of its white */
+  const rimIn: V3 = [cb[0], cb[1], cb[2]];
+  const rimOut: V3 = [0.45 + 0.55 * cb[0], 0.45 + 0.55 * cb[1], 0.45 + 0.55 * cb[2]];
+  const sheenC: V3 = [0.25 + 0.75 * cb[0], 0.25 + 0.75 * cb[1], 0.25 + 0.75 * cb[2]];
+  /* the shade's colour: the body's twice filtered through its own dye —
+     deeper in hue, as a dyed pile is in its shade — brought back to the
+     body's luminance, so how dark the shade is stays the light's to say */
+  const yOf = (v: V3) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  const d0: V3 = [Math.pow(c[0], 1.8), Math.pow(c[1], 1.8), Math.pow(c[2], 1.8)];
+  const dk = yOf(c) / Math.max(1e-4, yOf(d0));
+  const deep: V3 = [d0[0] * dk, d0[1] * dk, d0[2] * dk];
+  /* and the band at the terminator: light that has passed through the
+     fibres, the colour filtered once more */
+  const sc: V3 = [cb[0] * cb[0] * c[0], cb[1] * cb[1] * c[1], cb[2] * cb[2] * c[2]];
   for (let j = 0; j < M; j++) {
     for (let i = 0; i < M; i++) {
       let nx = (i / (M - 1)) * 2 - 1, ny = (j / (M - 1)) * 2 - 1;
@@ -1568,28 +1804,34 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
       const nz = Math.sqrt(1 - r2);
       const nl = nx * L[0] + ny * L[1] + nz * L[2];
       const nv = Math.max(0, nx * V[0] + ny * V[1] + nz * V[2]);
-      /* the key, wrapped, with a gamma on it so the light falls off toward
-         the shade like a round form's, and a little more wrap toward the
-         silhouette where the fibres scatter it */
-      const w = wrap + (1.2 - wrap) * (1 - nz) * (1 - nz);
+      const nd = nx * D[0] + ny * D[1] + nz * D[2];
+      const nb = nx * Lb[0] + ny * Lb[1] + nz * Lb[2];
+      const q = 1 - nv;
+      const w = wrap + (0.45 - wrap) * q * q;
       let dif = Math.min(1, Math.max(0, (nl + w) / (1 + w)));
-      dif = Math.pow(dif, 1.25);
+      dif = Math.pow(dif, 1.35);
       const fill = fillK * Math.max(0, nx * Fl[0] + ny * Fl[1] + nz * Fl[2]);
-      const floor = 1 - floorK * Math.max(0, nx * D[0] + ny * D[1] + nz * D[2]) * (0.6 + 0.4 * (1 - nv));
-      const q = 1 - nv, graze = q * q;
-      const lit = Math.min(1, Math.max(0, (nl + 0.3) / 1.3));
-      /* the sheen on the lit side where the fibres lie side-on, and the back
-         light round the whole silhouette, strongest away from the key */
-      const away = 0.45 + 0.55 * Math.max(0, -(nx * U[0] + ny * U[1] + nz * U[2]));
-      const sheen = sheenK * graze * lit + rimK * graze * graze * graze * away;
+      const floor = 1 - floorK * Math.max(0, nd) * (0.6 + 0.4 * q);
       const light = (amb + kd * dif + fill) * floor;
       /* toward the shade the colour deepens rather than greys */
-      const t = Math.min(1, Math.max(0, (1.1 - light) / 1.1));
+      const t = Math.min(1, Math.max(0, 1 - light));
+      const sb = Math.max(0, 1 - ((nl + 0.08) * (nl + 0.08)) / 0.18);
+      const sss = sssK * sb * sb * floor;
+      /* the key's sheen on the lit side where the fibres lie side-on to it */
+      const lit = Math.min(1, Math.max(0, (nl + 0.2) / 0.8));
+      const sheen = sheenK * q * q * lit;
+      /* the back light: where the pile faces it at all (the fibres scatter
+         it a little round), seen through the most pile toward the
+         silhouette; the underside, facing the floor, catches little */
+      const bl = smooth(-0.3, 0.6, nb);
+      const rq = smooth(0.18, 0.62, q);
+      const rim = rimK * rq * Math.sqrt(rq) * (0.3 + 0.7 * bl) * (1 - 0.7 * Math.max(0, nd));
+      const hot = rq * rq * Math.sqrt(rq);
       const k = (j * M + i) * 3;
       let r = 0, g = 0, b = 0;
       for (let ch = 0; ch < 3; ch++) {
-        const base = c[ch] + (deep[ch] - c[ch]) * t * 0.85;
-        const v = base * light + sheen * tint[ch];
+        const base = c[ch] + (deep[ch] - c[ch]) * t * 0.9;
+        const v = base * light + sss * sc[ch] + sheen * sheenC[ch] + rim * (rimIn[ch] + (rimOut[ch] - rimIn[ch]) * hot);
         if (ch === 0) r = v;
         else if (ch === 1) g = v;
         else b = v;
@@ -1597,9 +1839,9 @@ export function buildFabricMatcap(out: Float32Array, c: V3, f: Frame, p: Materia
       /* bright parts roll off as a whole, not channel by channel: a lit
          yellow stays yellow instead of its red clipping first and the rest
          running on toward green */
-      const mx = Math.max(r, g, b);
-      if (mx > 0.8) {
-        const kk = (0.8 + 0.2 * (1 - Math.exp(-(mx - 0.8) / 0.2))) / mx;
+      const m = Math.max(r, g, b);
+      if (m > 0.8) {
+        const kk = (0.8 + 0.2 * (1 - Math.exp(-(m - 0.8) / 0.2))) / m;
         r *= kk;
         g *= kk;
         b *= kk;
@@ -1682,6 +1924,51 @@ function tipFilm(fur: Fur, color: string, vivid: number): AnyCanvas | null {
   return c && g ? c : null;
 }
 
+/* The fibres' own light as one film for a colour and material: the key's
+   highlights along the fibres, white with about half the dye's colour in
+   them (as strong as `highlight` says), and the back light the fibres
+   carry, mostly in the dye's colour at full brightness (as strong as
+   `rim` says) — the light's white come through a dyed fibre. Past the
+   palette's saturation (vivid) both keep more of the colour. Laid over
+   the body's colour, as the film's light part is. One copy per pile,
+   colour and material, made on first use. */
+const sheenFilms = new WeakMap<Fur, Map<string, AnyCanvas | null>>();
+function sheenFilm(fur: Fur, color: string, p: Material): AnyCanvas | null {
+  const gl = fur.glint, bk = fur.back;
+  if (!gl || !bk) return null;
+  const hk = Math.min(1, 0.45 * p.highlight * (p.shine ?? 1)), rk = Math.min(1, 1.1 * p.rim);
+  if (hk <= 0.01 && rk <= 0.01) return null;
+  const vivid = Math.min(1, p.vivid ?? 0);
+  const key = `${color}|${hk.toFixed(2)}|${rk.toFixed(2)}|${vivid.toFixed(1)}`;
+  let byKey = sheenFilms.get(fur);
+  if (!byKey) sheenFilms.set(fur, (byKey = new Map()));
+  const hit = byKey.get(key);
+  if (hit !== undefined) return hit;
+  const W = gl.width;
+  const c = makeCanvas(W), g = c && ctx2d(c, false);
+  const t = makeCanvas(W), tg = t && ctx2d(t, false);
+  if (c && g && t && tg) {
+    const lin = linearColor(color);
+    const e: V3 = [srgb(lin[0]), srgb(lin[1]), srgb(lin[2])];
+    const mx = Math.max(e[0], e[1], e[2], 1);
+    const mix = (k: number) => `rgb(${[0, 1, 2].map((i) => Math.round(255 + ((255 * e[i]) / mx - 255) * k)).join(' ')})`;
+    for (const [src, fill, a] of [[bk, mix(0.65 + 0.3 * vivid), rk], [gl, mix(0.45 + 0.4 * vivid), hk]] as [AnyCanvas, string, number][]) {
+      if (a <= 0.01) continue;
+      tg.globalCompositeOperation = 'copy';
+      tg.drawImage(src as HTMLCanvasElement, 0, 0);
+      tg.globalCompositeOperation = 'source-in';
+      tg.fillStyle = fill;
+      tg.fillRect(0, 0, W, W);
+      g.globalAlpha = a;
+      g.drawImage(t as HTMLCanvasElement, 0, 0);
+    }
+    g.globalAlpha = 1;
+  }
+  if (byKey.size >= 6) byKey.clear();
+  byKey.set(key, c && g ? c : null);
+  return c && g ? c : null;
+}
+
 /* ── the cap's frame: light and view in the cap's own space ────────── */
 
 export interface Rig {
@@ -1694,6 +1981,9 @@ export interface Rig {
   cap: number;
   /** unit vector toward the light on screen */
   lx: number; ly: number;
+  /** unit vector toward the back light on screen (fabric); from the key's
+      when not given */
+  bx?: number; by?: number;
   /** the avatar box in device pixels (CSS px × dpr) */
   dev: number;
   /** the context's transform for body space (a, b, c, d, e, f): the
@@ -1736,7 +2026,9 @@ export function capFrame(r: Rig): Frame {
   const W = local(Ws[0], Ws[1], Ws[2], mirror), A = local(As[0], As[1], As[2], mirror), B = local(Bs[0], Bs[1], Bs[2], mirror);
   /* screen down, un-rolled the same way as the light */
   const D = local(sr, cr, 0, mirror);
-  return { L, V, H, U, W, A, B, D };
+  const [kx0, ky0] = r.bx !== undefined && r.by !== undefined ? [r.bx, r.by] : backFromKey(r.lx, r.ly);
+  const K = local(cr * kx0 + sr * ky0, -sr * kx0 + cr * ky0, 0, mirror);
+  return { L, V, H, U, W, A, B, D, K };
 }
 
 /* ── per-instance state, hung on the canvas ────────────────────────── */
@@ -1757,6 +2049,8 @@ interface State {
   spread: number;
   rim: number;
   vivid: number;
+  front: number;
+  K: V3 | null;
   /** bumped on every matcap rebuild */
   version: number;
   /** the matcap the texels show: the last one cross-faded into the new
@@ -1823,7 +2117,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
     s = {
       N: 0, img: null, mc: new Float32Array(MM * 3),
       mcPrev: new Float32Array(MM * 3), mcMix: new Float32Array(MM * 3), mixVersion: 0, blendT: 1, blendFrames: 1, sinceBuild: 0,
-      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN,
+      L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, K: null,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
       sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null,
@@ -1905,6 +2199,20 @@ function sliceGradient(ctx: CanvasRenderingContext2D, rays: Rays, inset: number 
   return g;
 }
 
+/* the halo's lit tips: the front's brightest colour, and toward the back
+   light's own through the dyed fibres — the colour at full brightness,
+   paled halfway to white — as far as `rim` says: seen against the back
+   light a pile's outermost hairs glow */
+function hazeColor(rays: Rays, base: string, rim: number): string {
+  const m = /rgb\((\d+) (\d+) (\d+)\)/.exec(brightest(rays));
+  const b = m ? [+m[1], +m[2], +m[3]] : [255, 255, 255];
+  const lin = linearColor(base);
+  const e = [srgb(lin[0]), srgb(lin[1]), srgb(lin[2])];
+  const mx = Math.max(e[0], e[1], e[2], 1);
+  const k = Math.min(0.85, 0.75 * rim);
+  const q = (i: number) => Math.round(b[i] + (255 + ((255 * e[i]) / mx - 255) * 0.45 - b[i]) * k);
+  return `rgb(${q(0)} ${q(1)} ${q(2)})`;
+}
 /* the front's brightest colour, where it faces the light */
 function brightest(rays: Rays): string {
   let best = -1, r = 0, g = 0, b = 0;
@@ -2073,7 +2381,11 @@ export function drawPlasticCap(
   /* fabric wears the same form in a pile instead of a clear coat */
   const fabric = cfg.shading === 'fabric';
   const capPx = Math.ceil((SPAN * rig.dev) / 100);
-  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still, rig.lx, rig.ly, cfg.fur ?? FUR_STOCK) : null;
+  const lights: FurLights = (() => {
+    const [bx, by] = rig.bx !== undefined && rig.by !== undefined ? [rig.bx, rig.by] : backFromKey(rig.lx, rig.ly);
+    return { bx, by, front: mat.front ?? KEY_EL };
+  })();
+  const fur = fabric ? furReady(form, cfg.typeKey ?? pathId(cfg.path), rig.halfDepth, capPx, !!rig.still, rig.lx, rig.ly, cfg.fur ?? FUR_STOCK, lights) : null;
   if (fabric && !fur) return false;
   const st = stateFor(ctx, (cfg.typeKey ?? pathId(cfg.path)) + (fabric ? '|fabric' : ''));
   const f = capFrame(rig);
@@ -2083,7 +2395,7 @@ export function drawPlasticCap(
   })();
   if (
     moved(f.L, st.L) || moved(f.V, st.V) || rig.lx !== st.lx || rig.ly !== st.ly || pal.base !== st.base ||
-    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid
+    mat.shadow !== st.shadow || mat.highlight !== st.highlight || mat.spread !== st.spread || mat.rim !== st.rim || (mat.vivid ?? 0) !== st.vivid || (mat.front ?? KEY_EL) !== st.front || (fabric && moved(f.K, st.K))
   ) {
     /* the fade starts from what is showing now, so a rebuild during a
        fade does not jump */
@@ -2109,6 +2421,8 @@ export function drawPlasticCap(
     st.spread = mat.spread;
     st.rim = mat.rim;
     st.vivid = mat.vivid ?? 0;
+    st.front = mat.front ?? KEY_EL;
+    st.K = f.K;
     st.version++;
   }
   st.sinceBuild++;
@@ -2240,7 +2554,7 @@ export function drawPlasticCap(
         g.drawImage(halo.haze as HTMLCanvasElement, 0, 0, spx, spx);
         g.imageSmoothingQuality = 'high';
         g.globalCompositeOperation = 'source-in';
-        g.fillStyle = brightest(rays);
+        g.fillStyle = hazeColor(rays, pal.base, mat.rim);
         g.fillRect(0, 0, spx, spx);
         g.globalCompositeOperation = 'destination-over';
       }
@@ -2580,6 +2894,19 @@ export function drawPlasticCap(
     g.globalAlpha = 0.25 + 0.75 * lum;
     g.drawImage((tipFilm(film, pal.base, mat.vivid ?? 0) ?? film.light) as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
     g.globalAlpha = 1;
+    /* and the fibres' own light over it all: the key's highlights along
+       them and the back light they carry, the halo's hairs included */
+    /* baked for the front seen head-on — its rim is the front's outline —
+       it gives way as the body turns, to the matcap's own rim; and on a
+       small avatar single fibres are finer than its pixels, so the
+       matcap's rim and the halo carry the light there */
+    const sheenA = rig.dev < 160 ? 0 : face >= 0.88 ? 1 : face <= 0.55 ? 0 : (face - 0.55) / 0.33;
+    const sheen = sheenA > 0.01 ? sheenFilm(film, pal.base, mat) : null;
+    if (sheen) {
+      g.globalAlpha = sheenA;
+      g.drawImage(sheen as HTMLCanvasElement, -PAD - FILM_M, -PAD - FILM_M, FILM_SPAN, FILM_SPAN);
+      g.globalAlpha = 1;
+    }
     g.globalCompositeOperation = 'source-over';
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -38,6 +38,14 @@ export interface DrawConfig {
       palette's full saturation — highlights, sheen and rim stay coloured
       rather than paling toward white */
   vivid?: number;
+  /** fabric: where the back light comes from, degrees clockwise from the
+      top; by default above the toy, toward the side away from the key */
+  backLight?: number;
+  /** fabric: how far round to the front the key sits, degrees — 0 grazes
+      the toy from the side, 90 lights it from the camera (default 32) */
+  lightFront?: number;
+  /** fabric: the strength of the highlights along single fibres (default 1) */
+  shine?: number;
   /** identifies the outline for the material caches (the type name) */
   typeKey?: string;
   /** no animation loop follows this draw (reduced motion, paused): build
@@ -233,6 +241,13 @@ function drawWhirl(ctx: CanvasRenderingContext2D, pose: Pose, color: string, lx:
  * is `box * OVERSCAN` square with the body's centre `RISE * box` below
  * its middle, and the context already scaled for the device pixel ratio.
  */
+/* the back light's direction on screen from its angle, when one is given */
+const backOf = (deg: number | undefined): { bx?: number; by?: number } => {
+  if (deg === undefined || !Number.isFinite(deg)) return {};
+  const a = (deg * Math.PI) / 180;
+  return { bx: Math.sin(a), by: -Math.cos(a) };
+};
+
 /** The light each material looks its best in where the config leaves it:
     a plush pile wants a broad, low studio light that shows its lobes and
     grain, a clear coat a brighter one for its gloss. */
@@ -323,10 +338,10 @@ export function draw(ctx: CanvasRenderingContext2D, box: number, pose: Pose, cfg
       plasticDone = drawPlasticCap(
         ctx,
         { ...cfg, path, typeKey: key },
-        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
+        { cy, sy, cp, sp, facing, roll: pose.roll, halfDepth, cap, lx, ly, ...backOf(cfg.backLight), dev: box * dpr, ctm: body, still: cfg.still, round: cfg.roundness ?? 1 },
         pal,
         null,
-        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0 }
+        { shadow, highlight, spread, rim: rimK, vivid: cfg.vivid ?? 0, front: (Math.min(85, Math.max(0, cfg.lightFront ?? 32)) * Math.PI) / 180, shine: cfg.shine ?? 1 }
       );
     }
     const mode2: BotAvatarShading = (mode === 'plastic' || mode === 'fabric') && !plasticDone ? 'smooth' : mode;

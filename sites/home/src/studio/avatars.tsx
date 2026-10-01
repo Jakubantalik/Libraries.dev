@@ -47,6 +47,13 @@ const lightDefaults = (shading: BotAvatarShading) =>
   shading === "fabric"
     ? { shadow: 90, highlight: 140, light: 295, rim: 85, spread: 160 }
     : { shadow: 35, highlight: 130, light: 300, rim: 50, spread: 155 };
+/* where the library puts the back light when none is given: above the
+   toy, toward the side away from the key (degrees clockwise from the top) */
+const autoBack = (light: number) => {
+  const a = (light * Math.PI) / 180;
+  const x = -0.5 * Math.sin(a), y = 0.5 * Math.cos(a) - 0.87;
+  return Math.round(((((Math.atan2(x, -y) * 180) / Math.PI) % 360) + 360) % 360 / 5) * 5;
+};
 const SHADING_OPTIONS = [
   { value: "plastic", label: "Plastic" },
   { value: "fabric", label: "Fabric" },
@@ -119,6 +126,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
   const [light, setLight] = useState(300);
   const [rim, setRim] = useState(50);
   const [spread, setSpread] = useState(155);
+  /* fabric's light rig: where the back light comes from (null follows the
+     key), how far round to the front the key sits, and the fibres' shine */
+  const [backLight, setBackLight] = useState<number | null>(null);
+  const [lightFront, setLightFront] = useState(32);
+  const [shine, setShine] = useState(100);
   const chooseShading = (next: BotAvatarShading) => {
     const was = lightDefaults(shading), to = lightDefaults(next);
     if (shadow === was.shadow && highlight === was.highlight && light === was.light && rim === was.rim && spread === was.spread) {
@@ -194,6 +206,11 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
     if (light !== lit.light) props.push(`light={${light}}`);
     if (shading !== "smooth" && rim !== lit.rim) props.push(`rim={${num(rim / 100)}}`);
     if (shading !== "crisp" && spread !== lit.spread) props.push(`spread={${num(spread / 100)}}`);
+    if (shading === "fabric") {
+      if (backLight !== null) props.push(`backLight={${backLight}}`);
+      if (lightFront !== 32) props.push(`lightFront={${lightFront}}`);
+      if (shine !== 100) props.push(`shine={${num(shine / 100)}}`);
+    }
   }
   if (depth !== 65) props.push(`depth={${num(depth / 100)}}`);
   if ((shading === "plastic" || shading === "fabric") && roundness !== 100) props.push(`roundness={${num(roundness / 100)}}`);
@@ -260,6 +277,9 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
             furCurl={furCurl / 100}
             furGravity={furGravity / 100}
             light={light}
+            backLight={shading === "fabric" && backLight !== null ? backLight : undefined}
+            lightFront={lightFront}
+            shine={shine / 100}
             rim={rim / 100}
             spread={spread / 100}
             interactive={interactive}
@@ -316,8 +336,25 @@ export function AvatarsStudio({ visible = true, theme = "dark" }: { visible?: bo
               <PgSlider label="Shadow" value={shadow} min={0} max={200} step={5} display={`${shadow}%`} onChange={setShadow} />
               <PgSlider label="Highlight" value={highlight} min={0} max={200} step={5} display={`${highlight}%`} onChange={setHighlight} />
               <PgSlider label="Light angle" value={light} min={0} max={360} step={5} display={`${light}°`} onChange={setLight} />
+              {shading === "fabric" && (
+                <PgSlider label="Key front" value={lightFront} min={0} max={85} step={1} display={`${lightFront}°`} onChange={setLightFront} />
+              )}
               {shading !== "smooth" && (
-                <PgSlider label="Rim" value={rim} min={0} max={200} step={5} display={`${rim}%`} onChange={setRim} />
+                <PgSlider label={shading === "fabric" ? "Back light" : "Rim"} value={rim} min={0} max={200} step={5} display={`${rim}%`} onChange={setRim} />
+              )}
+              {shading === "fabric" && (
+                <PgSlider
+                  label="Back light angle"
+                  value={backLight ?? autoBack(light)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  display={backLight === null ? `${autoBack(light)}° auto` : `${backLight}°`}
+                  onChange={setBackLight}
+                />
+              )}
+              {shading === "fabric" && (
+                <PgSlider label="Fibre shine" value={shine} min={0} max={200} step={5} display={`${shine}%`} onChange={setShine} />
               )}
               {shading !== "crisp" && (
                 <PgSlider label="Spread" value={spread} min={40} max={250} step={5} display={`${spread}%`} onChange={setSpread} />

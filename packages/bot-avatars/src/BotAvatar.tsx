@@ -5,7 +5,7 @@ import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, richer, shade } from './color';
 import { Sim, restPose } from './engine';
 import { draw, LIGHT_DEFAULTS, OVERSCAN, RISE, type DrawConfig } from './draw';
-import { warmPlastic, type FurStyle } from './plastic';
+import { stockLights, warmPlastic, type FurStyle } from './plastic';
 import { subscribe, pointer } from './ticker';
 
 /* A 0–1 seed from the React id, so two avatars side by side never blink
@@ -63,6 +63,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     light,
     rim,
     spread,
+    backLight,
+    lightFront,
+    shine,
     interactive = true,
     turn = 1,
     theme = 'auto',
@@ -151,6 +154,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     roundness: clamp(roundness, 0, 1),
     fur: fur,
     vivid,
+    backLight,
+    lightFront,
+    shine,
     light: light ?? lit.light,
     rim: clamp(rim ?? lit.rim, 0, 2),
     spread: clamp(spread ?? lit.spread, 0.4, 2.5),
@@ -236,13 +242,17 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
     const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
     const lightAt = cfg.current.light ?? 295;
-    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric', fur, lightAt));
+    const a = (lightAt * Math.PI) / 180, b = ((backLight ?? 0) * Math.PI) / 180;
+    const lights = stockLights(Math.sin(a), -Math.cos(a));
+    if (backLight !== undefined) [lights.bx, lights.by] = [Math.sin(b), -Math.cos(b)];
+    if (lightFront !== undefined) lights.front = (Math.min(85, Math.max(0, lightFront)) * Math.PI) / 180;
+    const id = ric(() => warmPlastic(type, path, dev, depth, shadingMode === 'fabric', fur, lightAt, lights));
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shadingMode, type, size, depth, furId, light]);
+  }, [shadingMode, type, size, depth, furId, light, backLight, lightFront]);
 
   /* the loop: only while visible, animated and not reduced */
   useEffect(() => {
