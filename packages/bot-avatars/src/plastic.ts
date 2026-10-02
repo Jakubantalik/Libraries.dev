@@ -342,13 +342,19 @@ let scheduled = false;
    just the one, or a row of fur would take a minute to land */
 const FORCED_MS = 6;
 const clock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+/* While an avatar waits to be shown until its material is made (see
+   hurry), the bakes run in long slices one after another rather than in
+   what idle time a busy page leaves: a page's piles take a second or so of
+   work, which spread over idle scraps took ten */
+const HURRY_MS = 20;
+let hurrying = 0;
 function pump(deadline?: { timeRemaining(): number; didTimeout?: boolean }) {
   scheduled = false;
   const t0 = clock();
   let fn = queue.shift();
   while (fn) {
     fn();
-    const room = deadline && !deadline.didTimeout ? deadline.timeRemaining() - 6 : FORCED_MS - (clock() - t0);
+    const room = hurrying > 0 ? HURRY_MS - (clock() - t0) : deadline && !deadline.didTimeout ? deadline.timeRemaining() - 6 : FORCED_MS - (clock() - t0);
     if (room <= 0) break;
     fn = queue.shift();
   }
@@ -357,9 +363,23 @@ function pump(deadline?: { timeRemaining(): number; didTimeout?: boolean }) {
 function schedule() {
   if (scheduled) return;
   scheduled = true;
+  if (hurrying > 0) {
+    setTimeout(() => pump(), 0);
+    return;
+  }
   const ric = (globalThis as { requestIdleCallback?: (cb: (d: { timeRemaining(): number; didTimeout?: boolean }) => void, o?: { timeout: number }) => void }).requestIdleCallback;
   if (ric) ric(pump, { timeout: 60 });
   else setTimeout(() => pump(), 24);
+}
+/** An avatar starts (true) or stops (false) waiting on its bakes to be
+    shown: while any waits, they run in long slices (see HURRY_MS). */
+export function hurry(on: boolean) {
+  hurrying = Math.max(0, hurrying + (on ? 1 : -1));
+  if (on && queue.length) setTimeout(() => pump(), 0);
+}
+/** Whether any form or pile is still being made. */
+export function bakesPending(): boolean {
+  return pending.size > 0 || furPending.size > 0;
 }
 function idle(fn: () => void) {
   queue.push(fn);
@@ -1110,9 +1130,10 @@ function furReady(form: Form, key: string, halfDepth: number, capPx: number, syn
   if (sync) return furFor(form, key, halfDepth, capPx, lx, ly, style, lights);
   /* a large pile takes a while on idle time: with nothing of this shape
      to stand in meanwhile, the smallest one is baked first — in a small
-     fraction of the time — and drawn until the full one lands */
+     fraction of the time — and drawn until the full one lands; not while
+     avatars wait to be shown, where nothing stands in */
   const prefix = `${key}|${Math.round(halfDepth)}|`;
-  if (R > 192 && !furPending.has(id)) {
+  if (R > 192 && !hurrying && !furPending.has(id)) {
     let any = false;
     for (const k of furs.keys()) if (k.startsWith(prefix)) any = true;
     for (const k of furPending) if (k.startsWith(prefix)) any = true;
