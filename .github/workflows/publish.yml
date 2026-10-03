@@ -15,6 +15,7 @@ on:
           - metal-fx
           - voice-glow
           - bot-avatars
+          - img-fx
   release:
     types: [published]
 
