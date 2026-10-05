@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- **Breaking:** the processing state moved to Libraries Pro. `processing`, `processingDuration`, `processingLevel`, `processingEase`, `processingTravel`, `processingCurve` and `cornerFollow` are gone, and the wrapper no longer carries `data-processing`.
+- New `motion` prop (a value or a per-frame getter, type `VoiceBeamMotion`): gathers the lobes into one beam, places it, holds the glow's level and rides the corners. Pro's `useVoiceProcessing` drives it to give the processing sweep.
+
 ## 0.2.0
 
 - First public release, as `voice-glow` (a `voice-beam` 0.1.0 was withdrawn before launch).

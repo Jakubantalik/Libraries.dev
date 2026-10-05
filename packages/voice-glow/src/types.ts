@@ -74,6 +74,22 @@ export type VoiceBeamColorVariant =
 export type VoiceBeamLevel = number | (() => number);
 
 /**
+ * The glow's motion for one frame.
+ * - `gather`: 0 the voice glow at rest … 1 the lobes gathered into one beam
+ * - `offset`: where the beam sits, in half-widths of the lobe ring (0 = centre)
+ * - `stretch`: extra width while it moves, 0–1
+ * - `heldLevel`: the level the glow is held at while gathered, 0–1
+ * - `cornerFollow`: how much the beam rides the element's corner arcs, 0–1
+ */
+export interface VoiceBeamMotion {
+  gather: number;
+  offset?: number;
+  stretch?: number;
+  heldLevel?: number;
+  cornerFollow?: number;
+}
+
+/**
  * Theme color configuration
  */
 export interface VoiceThemeColors {
@@ -317,63 +333,12 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   flow?: number;
 
   /**
-   * Processing state — turn it on once the voice has been captured and
-   * something is working on it. The lobes gather into one compact beam
-   * that travels the glow's range left to right and back, eased at each
-   * end and looped — border-beam's `line` type, confined to the voice
-   * glow — and the glow is held lit at `processingLevel` so the beam has
-   * colour. Both blend in and out smoothly. The distortion settles out in
-   * about a quarter second and stays off while processing.
-   * @default false
+   * The glow's large-scale motion, sampled every frame: how far the lobes
+   * are gathered into one compact beam, where it sits, the level it is held
+   * at. At rest (the default) the glow is the voice glow. Pass a getter for
+   * anything that moves; the Pro processing state is one.
    */
-  processing?: boolean;
-
-  /**
-   * Seconds for one pass of the processing beam (left to right, or back
-   * again).
-   * @default 1.1 (1.05 for `type="mobile"`)
-   */
-  processingDuration?: number;
-
-  /**
-   * How lit the glow is held while processing, 0–1, as if a voice were
-   * speaking at that level.
-   * @default 0.55 (0.35 for `type="mobile"`)
-   */
-  processingLevel?: number;
-
-  /**
-   * Seconds the morph between the voice glow and the travelling beam
-   * takes, in either direction — the gather, the narrowing and the travel
-   * ease in and out over it.
-   * @default 0.6
-   */
-  processingEase?: number;
-
-  /**
-   * How far the processing beam travels to each side, as a multiple of
-   * half the lobe ring: 1 sweeps the glow's resting spread, lower keeps
-   * it near the centre, higher runs it out to the corners.
-   * @default 1.55 (2 for `pill`, 1 for `mobile`)
-   */
-  processingTravel?: number;
-
-  /**
-   * How the processing beam eases into each turn of its sweep: 1 runs at
-   * a constant speed and turns sharply, 2 slows smoothly into the ends,
-   * higher dwells there longer before heading back.
-   * @default 2.1
-   */
-  processingCurve?: number;
-
-  /**
-   * How much the coloured glow rides the element's corner arcs while
-   * processing, 0–1: 0 keeps it flat along the bottom edge, 1 lifts it
-   * along the rounded corner as it passes through. The band line follows
-   * the corner either way.
-   * @default 0.45 (0 for `type="pill"`, 0.4 for `type="mobile"`)
-   */
-  cornerFollow?: number;
+  motion?: VoiceBeamMotion | (() => VoiceBeamMotion | null | undefined) | null;
 
   /**
    * Color variant for the beam

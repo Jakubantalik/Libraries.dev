@@ -12,7 +12,7 @@ import { createSurfaceState, drawSurface, type SurfaceState } from './surface';
  * gate, soft saturation), follows it with an attack/release envelope,
  * advances the flow (the lobes sliding sideways at a speed set by the
  * level, so the spectrum travels while a voice is heard and rests when it
- * stops), carries the gathered beam across the range while processing,
+ * stops), gathers the lobes into a beam where a motion getter asks for it,
  * folds in the idle breathing and the slow hue drift, and writes
  * the result as
  * CSS custom properties on the element. The generated stylesheet multiplies
@@ -68,22 +68,8 @@ export interface VoiceDriverConfig {
   coreLight: number;
   /** The effect's overall scale, for the few px values not carried by the geometry props. */
   scale: number;
-  /** The element's corner radius, px — the travelling beam follows its arc while processing. */
+  /** The element's corner radius, px — a gathered beam follows its arc. */
   radius: number;
-  /** Processing state: the beam gathers and travels the range, ping-pong. */
-  processing: boolean;
-  /** Seconds for one pass of the beam (left to right, or back). */
-  processingDuration: number;
-  /** Seconds the morph between the voice glow and the travelling beam takes. */
-  processingEase: number;
-  /** How far the beam travels to each side, × half the lobe ring (1 = the resting spread). */
-  processingTravel: number;
-  /** How the sweep eases into each turn: 1 constant speed, 2 smooth, higher dwells at the ends. */
-  processingCurve: number;
-  /** How much the coloured glow rides the corner arcs, 0–1 (the band line always does). */
-  cornerFollow: number;
-  /** How lit the glow is held while processing, 0–1. */
-  processingLevel: number;
   hueRange: number;
   hueDuration: number;
   staticColors: boolean;
@@ -131,11 +117,31 @@ export interface VoiceDriverConfig {
   };
 }
 
+/**
+ * The glow's large-scale motion for one frame: how far the lobes are
+ * gathered into one compact beam (0 the voice glow, 1 fully gathered),
+ * where that beam sits (in half-widths of the lobe ring), how much wider it
+ * runs while moving, the level it is held at, and how much it rides the
+ * corner arcs. A getter returning it every frame moves the whole effect —
+ * the Pro processing state is one.
+ */
+export interface VoiceMotion {
+  gather: number;
+  offset?: number;
+  stretch?: number;
+  heldLevel?: number;
+  cornerFollow?: number;
+}
+
+const REST: Required<VoiceMotion> = { gather: 0, offset: 0, stretch: 0, heldLevel: 0, cornerFollow: 0 };
+
 export interface VoiceSource {
   /** Audio to analyse; wins over `getLevel`. */
   stream?: MediaStream | null;
   /** Manual 0–1 level, sampled every frame. */
   getLevel?: () => number;
+  /** The glow's motion, sampled every frame; at rest without it. */
+  getMotion?: () => VoiceMotion | null | undefined;
 }
 
 /**
@@ -148,14 +154,12 @@ interface VoiceState {
   bands: [number, number, number];
   /** Flow phase in px, 0 ≤ phase < LOBE_SPAN. */
   phase: number;
-  /** Processing blend, 0–1, following `processing`. */
-  scanA: number;
-  /** Processing clock in seconds, running while processing. */
-  scanT: number;
+  /** The motion last read, held while paused. */
+  motion: Required<VoiceMotion>;
   /** The instance's own clock in seconds — advances only while running, so a pause holds every drift and resumes without a jump. */
   t: number;
   lastTs: number;
-  /** The distortion's share, 0–1: 1 while listening, settling to 0 for processing. */
+  /** The distortion's share, 0–1: 1 for the voice glow, settling to 0 while gathered. */
   warp: number;
   /** The flow's travel in px, unwrapped — the surface's ripple rides it without a jump at the wrap. */
   drift: number;
@@ -192,7 +196,7 @@ interface VoiceInstance {
   paintedConfig: VoiceDriverConfig | null;
   /** The CSS blur last written for the band canvas (WebKit fallback). */
   cssBlur: string | null;
-  /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped for processing. */
+  /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped while gathered. */
   warpOff: boolean;
   /** The surface's canvas and lattice, for `look="dots"` and `look="lines"`. */
   surface: SurfaceState | null;
@@ -203,7 +207,7 @@ const stateByElement = new WeakMap<HTMLElement, VoiceState>();
 function stateFor(el: HTMLElement): VoiceState {
   let s = stateByElement.get(el);
   if (!s) {
-    s = { level: 0, bands: [0, 0, 0], phase: 0, scanA: 0, scanT: 0, t: 0, lastTs: 0, warp: 1, drift: 0, fast: 0, fastBands: [0, 0, 0] };
+    s = { level: 0, bands: [0, 0, 0], phase: 0, motion: { ...REST }, t: 0, lastTs: 0, warp: 1, drift: 0, fast: 0, fastBands: [0, 0, 0] };
     stateByElement.set(el, s);
   }
   return s;
@@ -280,11 +284,11 @@ function follow(prev: number, target: number, dt: number, attack: number, releas
   return prev + (target - prev) * a;
 }
 
-// Processing drops the distortion. Its share settles out on its own clock,
+// A gathered beam drops the distortion. Its share settles out on its own clock,
 // well ahead of the morph: a 60 ms time constant has it gone in about a
 // quarter second — inside the effect's own voice dynamics (the attack is
 // 325 ms), so it reads as the shimmer coming to rest rather than a cut —
-// and it eases back over roughly a second once processing ends. Below this
+// and it eases back over roughly a second once the beam releases. Below this
 // share (3% of the full displacement, about a pixel) the warp layers are
 // taken out of the paint altogether, so the swap is invisible.
 const BAND_DPR_MAX = 2;
@@ -363,7 +367,7 @@ interface BandFrame {
   lift: number;
   strength: number;
   level: number;
-  /** How much the beam follows the corner arcs, 0–1 (the processing blend). */
+  /** How much the beam follows the corner arcs, 0–1 (the gather). */
   corner: number;
 }
 
@@ -426,7 +430,7 @@ function bandPoints(config: VoiceDriverConfig, f: BandFrame, cw: number, ch: num
     const y =
       bell(t, config.bandCurve, config.bandSpread, config.bandSkew) +
       tailLift(Math.abs(x - centre), edge, tail, config.bandTailPosition, config.bandTailCurve);
-    // While processing, the line rides the corner arcs instead of running
+    // While gathered, the line rides the corner arcs instead of running
     // straight into the radius and being clipped.
     // The band line always rides the corner arc; `cornerFollow` only
     // governs whether the coloured glow rides it too.
@@ -700,44 +704,34 @@ function frame(ts: number): void {
     // release: a slow release curve would lower it gently instead.
     if (inst.surface) s.fast = follow(s.fast, target, dt, config.attack * 0.6, FAST_RELEASE);
 
-    // ── Processing travel ────────────────────────────────────────────
-    // Like border-beam's line type: the lobes gather into one compact beam
-    // that travels the glow's range, left to right and back, eased at each
-    // end and looped. `scanA` blends the whole thing in over ~0.25 s when
-    // `processing` turns on and out when it stops; the glow is held at
-    // `processingLevel` meanwhile so the beam has colour.
+    // ── Motion: the lobes gathered into one beam, and where it sits ──
+    // At rest unless a motion getter moves it (the Pro processing state:
+    // the beam travels the glow's range, like border-beam's line type).
+    // The glow is held at the motion's level meanwhile so the beam has
+    // colour.
     const span = LOBE_SPAN * config.lobeSpacing;
-    // A fresh start begins the pass at the centre, heading right, so the
-    // beam grows out of the voice glow instead of jumping to one end.
-    const fresh = config.processing && s.scanA < 0.001 && s.scanT === 0;
-    if (fresh) s.scanT = Math.max(0.05, config.processingDuration) / 2;
-    const ease = Math.max(0.05, config.processingEase);
-    s.scanA = follow(s.scanA, config.processing ? 1 : 0, dt, ease * 0.9, ease * 0.8);
-    if (config.processing) s.scanT += dt;
-    else if (s.scanA < 0.001) s.scanT = 0;
-    // The morph itself runs on an eased copy of the blend — slow to start,
-    // slow to settle — so the gather, the narrowing and the travel read as
-    // one movement rather than a snap that then coasts.
-    const morph = s.scanA * s.scanA * (3 - 2 * s.scanA);
+    if (!paused) {
+      const m = source.getMotion?.();
+      s.motion = m
+        ? {
+            gather: clamp01(m.gather),
+            offset: m.offset ?? 0,
+            stretch: clamp01(m.stretch ?? 0),
+            heldLevel: clamp01(m.heldLevel ?? 0),
+            cornerFollow: clamp01(m.cornerFollow ?? 0),
+          }
+        : REST;
+    }
+    const motion = s.motion;
+    const morph = motion.gather;
     const cw = el.clientWidth;
     const ch = el.clientHeight;
-    const travel = (span / 2) * config.processingTravel;
-    // -1 … 1 along the pass, ping-pong. Each pass eases symmetrically on
-    // a power curve: exponent 1 is a constant-speed triangle with sharp
-    // turns, 2 slows smoothly into the ends, higher dwells there longer.
-    const passes = s.scanT / Math.max(0.05, config.processingDuration);
-    const passIndex = Math.floor(passes);
-    const u = passes - passIndex;
-    const k = Math.max(1, config.processingCurve);
-    const eased = u < 0.5 ? 0.5 * Math.pow(2 * u, k) : 1 - 0.5 * Math.pow(2 - 2 * u, k);
-    const pass = config.reducedMotion ? 0 : passIndex % 2 === 0 ? 2 * eased - 1 : 1 - 2 * eased;
-    const cx = morph * travel * pass;
+    const cx = config.reducedMotion ? 0 : (motion.offset * span) / 2;
     // The cluster: lobes pulled to 40% of their resting spread, the
-    // visible range narrowed to match, and — as the line type does — the
-    // beam a little wider mid-pass than at the turns.
+    // visible range narrowed to match, a little wider while it moves.
     const gather = 1 - morph * 0.6;
     const maskWidth = 1 - morph * 0.45;
-    const passWidth = 1 + morph * 0.3 * (1 - pass * pass);
+    const passWidth = 1 + morph * 0.3 * motion.stretch;
 
     // ── Idle breathing folded under the voice ────────────────────────
     const breathe = config.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin((TWO_PI * tSec) / config.breatheDuration);
@@ -746,7 +740,7 @@ function frame(ts: number): void {
     // the tail hooks take to collapse — so they never light up with it.
     const heldT = Math.max(0, Math.min(1, (morph - 0.25) / 0.75));
     const held = heldT * heldT * (3 - 2 * heldT);
-    const eff = Math.max(voiced, config.processingLevel * held);
+    const eff = Math.max(voiced, motion.heldLevel * held);
 
     const glow = 0.15 + 0.85 * eff;
     const h = 0.5 + config.reach * eff;
@@ -761,7 +755,7 @@ function frame(ts: number): void {
     // ── Dots and lines: the voice as a surface ───────────────────────
     // Everything below is the glow's stylesheet plumbing; the surface
     // takes the lobes straight and paints its canvas instead.
-    if (inst.surface) {
+    if (__VOICE_SURFACE__ && inst.surface) {
       for (let i = 0; i < voiceLobes.length; i++) {
         const lobe = voiceLobes[i];
         const x = wrapX(lobe.x * config.lobeSpacing + s.phase, span);
@@ -779,7 +773,7 @@ function frame(ts: number): void {
           lobeX: surfaceLobeX,
           lobeL: surfaceLobeL,
           w,
-          lift: Math.max(fastVoiced, config.processingLevel * held),
+          lift: Math.max(fastVoiced, motion.heldLevel * held),
           glow,
           t: tSec,
           dt,
@@ -811,24 +805,24 @@ function frame(ts: number): void {
     // distortion is confined to the glow under it either way.
     const frame: BandFrame = { cx, w, h, mw: maskWidth, lift, strength: bendA, level: s.level, corner: morph };
     // The beam's centre and every lobe lift along the corner arcs as they
-    // pass through them while processing, so the cluster wraps the corner
+    // pass through them while gathered, so the cluster wraps the corner
     // the way the line type does instead of being cut off by it.
     const beamAbsX = cw / 2 + cx * w;
     const lobeReach = 30 * config.scale * w;
     const arcRadius = paintedRadius(config.radius, cw, ch);
-    const cornerBlend = morph * config.cornerFollow;
+    const cornerBlend = morph * motion.cornerFollow;
     el.style.setProperty(`--vb-cy-${config.id}`, `${(-cornerLift(beamAbsX, cw, arcRadius, lobeReach * 1.4) * cornerBlend).toFixed(1)}px`);
     // ── Distortion: the glow under the band warps sideways ───────────
     // A displacement map on the inner light and the bloom, its strength
     // following the voice and its noise drifting slowly, so the colours
     // shimmer and stretch horizontally like light through bent space.
-    // Processing drops it: the warp settles out fast (see WARP_OUT_TAU),
+    // A gathered beam drops it: the warp settles out fast (see WARP_OUT_TAU),
     // and once it is gone the wrapper is marked so its two layers leave the
     // paint and the base layers give up their split at the band line — the
     // reference filter is the costliest thing here where SVG filters run in
     // software, and the travelling beam is the one fast motion in the
-    // effect. It eases back the same way as processing ends.
-    s.warp = follow(s.warp, config.processing ? 0 : 1, dt, WARP_IN_TAU, WARP_OUT_TAU);
+    // effect. It eases back the same way as the beam releases.
+    s.warp = follow(s.warp, morph > 0.02 ? 0 : 1, dt, WARP_IN_TAU, WARP_OUT_TAU);
     const warp = s.warp;
     const warpOff = inst.displace != null && warp < WARP_OFF_BELOW;
     if (warpOff !== inst.warpOff) {
@@ -931,7 +925,7 @@ export function registerVoiceInstance(
     warpOff: el.hasAttribute('data-voice-warp'),
     surface: null,
   };
-  if (config.look !== 'glow') {
+  if (__VOICE_SURFACE__ && config.look !== 'glow') {
     const surfaceCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-surface]');
     if (surfaceCanvas) inst.surface = createSurfaceState(surfaceCanvas);
   }

@@ -107,7 +107,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
     {
       children,
       type = 'default',
-      look = 'glow',
+      look: lookProp = 'glow',
       dotSize = 1,
       dotGap = 1,
       dotShape = 'round',
@@ -136,13 +136,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       spread: spreadProp,
       bands = true,
       flow: flowProp,
-      processing = false,
-      processingDuration: processingDurationProp,
-      processingLevel: processingLevelProp,
-      processingTravel: processingTravelProp,
-      processingCurve: processingCurveProp,
-      cornerFollow: cornerFollowProp,
-      processingEase = 0.6,
+      motion = null,
       colorVariant = 'colorful',
       colors,
       bandColors,
@@ -220,11 +214,6 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
     const strokeOpacityMul = strokeOpacityProp ?? d.strokeOpacity;
     const innerOpacityMul = innerOpacityProp ?? d.innerOpacity;
     const bloomOpacityMul = bloomOpacityProp ?? d.bloomOpacity;
-    const processingDuration = processingDurationProp ?? d.processingDuration;
-    const processingLevel = processingLevelProp ?? d.processingLevel;
-    const processingTravel = processingTravelProp ?? d.processingTravel;
-    const processingCurve = processingCurveProp ?? d.processingCurve;
-    const cornerFollow = cornerFollowProp ?? d.cornerFollow;
     const idle = idleProp ?? d.idle;
     const reach = reachProp ?? d.reach;
     const spread = spreadProp ?? d.spread;
@@ -280,7 +269,9 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       return () => ro.disconnect();
     }, []);
     // Dots and lines are one surface, painted on a canvas instead of the glow's layers.
-    const isSurface = look === 'dots' || look === 'lines';
+    // Not released yet: without the build switch every look is the glow.
+    const look = __VOICE_SURFACE__ ? lookProp : 'glow';
+    const isSurface = __VOICE_SURFACE__ && (look === 'dots' || look === 'lines');
     // The WebKit gate is about the SVG warp's cost; the surface has no warp.
     const distortion = !isSurface && IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
 
@@ -461,13 +452,6 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         coreLight,
         scale: sc,
         radius: finalBorderRadius,
-        processing,
-        processingDuration: Math.max(0.05, processingDuration),
-        processingLevel: Math.max(0, Math.min(1, processingLevel)),
-        processingEase: Math.max(0.05, processingEase),
-        processingTravel: Math.max(0, processingTravel),
-        processingCurve: Math.max(1, processingCurve),
-        cornerFollow: Math.max(0, Math.min(1, cornerFollow)),
         hueRange: Math.max(0, hueRange),
         hueDuration: Math.max(0.5, hueDuration),
         staticColors: colorVariant === 'mono' ? true : staticColors,
@@ -539,13 +523,6 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         coreLight,
         sc,
         finalBorderRadius,
-        processing,
-        processingDuration,
-        processingLevel,
-        processingEase,
-        processingTravel,
-        processingCurve,
-        cornerFollow,
         hueRange,
         hueDuration,
         staticColors,
@@ -590,6 +567,8 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
     levelRef.current = level;
     const onLevelRef = useRef(onLevel);
     onLevelRef.current = onLevel;
+    const motionRef = useRef(motion);
+    motionRef.current = motion;
 
     useEffect(() => {
       if (!(isActive || isFading) || !isVisible) return;
@@ -601,8 +580,12 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         return typeof current === 'function' ? current() : current;
       };
       const report = (value: number) => onLevelRef.current?.(value);
+      const getMotion = () => {
+        const current = motionRef.current;
+        return typeof current === 'function' ? current() : current;
+      };
 
-      return registerVoiceInstance(el, driverConfig, { stream, getLevel }, report);
+      return registerVoiceInstance(el, driverConfig, { stream, getLevel, getMotion }, report);
     }, [driverConfig, stream, isActive, isFading, isVisible]);
 
     const setRefs = useCallback(
@@ -636,7 +619,6 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           data-fading={isFading ? '' : undefined}
           data-paused={isActive && !isFading && (!isVisible || paused) ? '' : undefined}
           data-listening={stream ? '' : undefined}
-          data-processing={processing ? '' : undefined}
           className={className}
           style={mergedStyle}
           onAnimationEnd={handleAnimationEnd}

@@ -1,6 +1,6 @@
 {
   "name": "voice-glow",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Sound-reactive glow for React — a centered, colorful beam along the bottom edge that rises and blooms with voice intensity",
   "type": "module",
   "main": "dist/index.cjs",

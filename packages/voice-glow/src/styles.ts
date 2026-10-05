@@ -414,7 +414,7 @@ function generateSurfaceCSS(id: string, borderRadius: number): string {
  * range is — the processing travel) and `--vb-hue` (drift).
  */
 export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): string {
-  if (options.look === 'dots' || options.look === 'lines') return generateSurfaceCSS(options.id, options.borderRadius);
+  if (__VOICE_SURFACE__ && (options.look === 'dots' || options.look === 'lines')) return generateSurfaceCSS(options.id, options.borderRadius);
   const {
     id,
     borderRadius,

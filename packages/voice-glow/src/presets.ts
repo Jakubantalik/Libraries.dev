@@ -10,13 +10,6 @@ export interface VoiceGeometry {
   scale: number;
   /** Bloom blur multiplier (see the `glowSize` prop). */
   glowSize: number;
-  /** Processing: seconds per pass of the beam, the level it is held at, how far it travels and how it eases into the turns. */
-  processingDuration: number;
-  processingLevel: number;
-  processingTravel: number;
-  processingCurve: number;
-  /** How much the travelling beam rides the element's corner arcs, 0–1. */
-  cornerFollow: number;
   /** Per-layer opacity multipliers on the theme preset. */
   strokeOpacity: number;
   innerOpacity: number;
@@ -68,11 +61,6 @@ export interface VoiceGeometry {
 export const voiceDefaults: VoiceGeometry = {
   scale: 1,
   glowSize: 1,
-  processingDuration: 1.1,
-  processingLevel: 0.55,
-  processingTravel: 1.55,
-  processingCurve: 2.1,
-  cornerFollow: 0.45,
   strokeOpacity: 1,
   innerOpacity: 1,
   bloomOpacity: 1,
@@ -139,8 +127,6 @@ export const voiceTypePresets: Record<VoiceBeamType, Partial<VoiceGeometry>> = {
     bandSpread: 0.38,
     bandOffset: -16,
     bandTail: 0,
-    processingTravel: 2,
-    cornerFollow: 0,
     distortion: 0.45,
     distortionDetail: 3,
     glowWidth: 0.65,
@@ -169,10 +155,6 @@ export const voiceTypePresets: Record<VoiceBeamType, Partial<VoiceGeometry>> = {
     bandTailPosition: 0.42,
     bandTailCurve: 2.7,
     bandTailOverflow: 22,
-    processingDuration: 1.05,
-    processingLevel: 0.35,
-    processingTravel: 1,
-    cornerFollow: 0.4,
     bandStrength: 1.8,
     distortionDetail: 2,
     glowWidth: 1.15,
