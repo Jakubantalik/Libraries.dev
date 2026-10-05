@@ -1,11 +1,11 @@
-import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, type CSSProperties, type MouseEvent } from 'react';
+import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import type { BotAvatarProps, BotAvatarShading, BotAvatarState } from './types';
 import { botAvatarPresets, stateLabels } from './presets';
 import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
 import { autoInk, richer, shade } from './color';
 import { Sim, restPose } from './engine';
 import { draw, LIGHT_DEFAULTS, OVERSCAN, RISE, type DrawConfig } from './draw';
-import { onLanded, stockLights, takeMissed, warmPlastic, type FurStyle } from './plastic';
+import { bakesPending, hurry, onLanded, stockLights, takeMissed, warmPlastic, type FurStyle } from './plastic';
 import { subscribe, pointer } from './ticker';
 
 /* A 0–1 seed from the React id, so two avatars side by side never blink
@@ -37,6 +37,19 @@ function partPaths(d: string): Path2D[] {
     partsCache.set(d, p);
   }
   return p;
+}
+
+/* the longest an avatar waits for its material before it is shown anyway */
+const SHOW_WITHIN = 4000;
+/* the avatars waiting to be shown, each with whether it is ready: they are
+   shown together, once all are and no bake is under way */
+const waiters = new Map<object, { ready: () => boolean; show: () => void }>();
+function showReady() {
+  if (bakesPending()) return;
+  for (const w of waiters.values()) if (!w.ready()) return;
+  const all = [...waiters.values()];
+  waiters.clear();
+  for (const w of all) w.show();
 }
 
 const reducedMotion = () =>
@@ -259,12 +272,107 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   };
   useEffect(() => stopWaiting, []);
 
+  /* An avatar in a baked material is not shown until it can be drawn in
+     it: no flat stand-in first and the fur a few seconds later. It waits
+     with its bakes hurried (see plastic.ts), drawn again as each lands,
+     and comes in once it needs no stand-in and no bake is still under way
+     — so a page of them comes in at once — or after SHOW_WITHIN at most. */
+  const material = shadingMode === 'plastic' || shadingMode === 'fabric';
+  const [shown, setShown] = useState(!material);
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  const showPaint = useRef<(() => void) | null>(null);
+  const watch = useRef<(() => void) | null>(null);
+  const stopWatch = () => {
+    if (watch.current) watch.current();
+    watch.current = null;
+  };
+  const me = useRef({});
+  const ready = useRef(false);
+  const showWhenBaked = (paintNow: () => void) => {
+    showPaint.current = paintNow;
+    takeMissed();
+    paintNow();
+    ready.current = !takeMissed();
+    if (ready.current && !bakesPending()) {
+      showReady();
+      return;
+    }
+    if (!watch.current)
+      watch.current = onLanded(() => {
+        const p = showPaint.current;
+        if (canvasRef.current && p && !shownRef.current) showWhenBaked(p);
+        else stopWatch();
+        showReady();
+      });
+  };
+  useEffect(() => {
+    if (shown) return;
+    waiters.set(me.current, { ready: () => ready.current, show: () => setShown(true) });
+    showReady();
+    hurry(true);
+    const t = setTimeout(() => setShown(true), SHOW_WITHIN);
+    return () => {
+      hurry(false);
+      clearTimeout(t);
+      stopWatch();
+      waiters.delete(me.current);
+      showReady();
+    };
+  }, [shown]);
+
+  /* the material's bakes, queued now */
+  const warm = () => {
+    if (!material || !cfg.current?.path) return;
+    const path = cfg.current.path;
+    const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+    const lightAt = cfg.current.light ?? 295;
+    const a = (lightAt * Math.PI) / 180, b = ((backLight ?? 0) * Math.PI) / 180;
+    const lights = stockLights(Math.sin(a), -Math.cos(a));
+    if (backLight !== undefined) [lights.bx, lights.by] = [Math.sin(b), -Math.cos(b)];
+    if (lightFront !== undefined) lights.front = (Math.min(85, Math.max(0, lightFront)) * Math.PI) / 180;
+    warmPlastic(outlineKey, path, dev, depth, shadingMode === 'fabric', fur, lightAt, lights);
+  };
+
+  /* Shown, a new shape, material or size keeps the picture it has until
+     the new one is made (its bakes hurried), rather than standing in with
+     the flat look meanwhile. The pile's style and light are not held: a
+     slider dragged through them draws as it goes. */
+  const [, redraw] = useState(0);
+  const lookKey = `${shadingMode}|${outlineKey}|${size}`;
+  const lastLook = useRef<string | null>(null);
+  const holding = useRef<(() => void) | null>(null);
+  const hold = () => {
+    warm();
+    if (!bakesPending()) return;
+    hurry(true);
+    const release = () => {
+      if (!holding.current) return;
+      holding.current();
+      redraw((n) => n + 1);
+    };
+    const off = onLanded(() => {
+      if (!bakesPending()) release();
+    });
+    const t = setTimeout(release, SHOW_WITHIN);
+    holding.current = () => {
+      off();
+      clearTimeout(t);
+      hurry(false);
+      holding.current = null;
+    };
+  };
+  useEffect(() => () => holding.current?.(), []);
+
   /* first paint before the browser shows the frame */
   useLayoutEffect(() => {
     if (!sim.current) sim.current = new Sim(seedValue, stateKey);
     else sim.current.setState(stateKey);
     sim.current.setTurn(clamp(turn, 0, 2));
+    if (shownRef.current && material && lastLook.current !== null && lastLook.current !== lookKey && !holding.current) hold();
+    lastLook.current = lookKey;
     sim.current.setJump({ height: jumpHeight, time: Math.max(0.2, jumpTime), stretch: jumpStretch, spin: Math.max(0, Math.round(jumpSpin)), lean: jumpLean, every: jumpEvery, land: jumpLand, squash: jumpSquash, squashTime: Math.max(0.05, jumpSquashTime), squashEase: jumpSquashEase, groundTime: Math.max(0, jumpGroundTime), groundEase: jumpGroundEase, riseTime: Math.max(0.05, jumpRiseTime), riseEase: jumpRiseEase, clickSquashTime: Math.max(0.05, jumpClickSquashTime) });
+    if (holding.current) return;
     if (reducedMotion()) {
       /* the still pose of the state, no loop */
       const still = () => {
@@ -284,12 +392,16 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
         }
       };
       stillPaint.current = still;
-      settle(still);
+      if (shownRef.current) settle(still);
+      else showWhenBaked(still);
       return;
     }
     /* the surface's theme, read once per render rather than per frame */
     if (cfg.current && canvasRef.current) cfg.current.theme = resolveTheme(canvasRef.current);
-    if (frozen) {
+    if (!shownRef.current) {
+      stillPaint.current = frozen ? paint : null;
+      showWhenBaked(paint);
+    } else if (frozen) {
       stillPaint.current = paint;
       settle(paint);
     } else {
@@ -302,16 +414,9 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   /* plastic bakes its form per type; start that on idle time at mount so
      the first frames do not stand in with the smooth look for long */
   useEffect(() => {
-    if ((shadingMode !== 'plastic' && shadingMode !== 'fabric') || !cfg.current?.path) return;
-    const path = cfg.current.path;
-    const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+    if (!material || !cfg.current?.path) return;
     const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
-    const lightAt = cfg.current.light ?? 295;
-    const a = (lightAt * Math.PI) / 180, b = ((backLight ?? 0) * Math.PI) / 180;
-    const lights = stockLights(Math.sin(a), -Math.cos(a));
-    if (backLight !== undefined) [lights.bx, lights.by] = [Math.sin(b), -Math.cos(b)];
-    if (lightFront !== undefined) lights.front = (Math.min(85, Math.max(0, lightFront)) * Math.PI) / 180;
-    const id = ric(() => warmPlastic(outlineKey, path, dev, depth, shadingMode === 'fabric', fur, lightAt, lights));
+    const id = ric(warm);
     return () => {
       if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
       else clearTimeout(id);
@@ -342,7 +447,8 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
         s.setPointer(dx / Math.max(1, d), dy / Math.max(1, d), strength);
       } else s.setPointer(0, 0, 0);
       s.update(dt * speedRef.current);
-      paint();
+      /* not drawn while it waits to be shown: the frames go to its bakes */
+      if (shownRef.current && !holding.current) paint();
     };
     const run = () => {
       if (!unsub) unsub = subscribe(tick);
@@ -376,7 +482,7 @@ export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function 
   const css: CSSProperties = {
     display: 'inline-block', verticalAlign: 'middle', width: dim, height: dim,
     marginLeft: pull(side), marginRight: pull(side), marginTop: pull(side + RISE), marginBottom: pull(side - RISE),
-    flex: 'none', ...style,
+    flex: 'none', opacity: shown ? 1 : 0, transition: 'opacity 0.3s ease-out', ...style,
   };
 
   const onClick = (e: MouseEvent<HTMLCanvasElement>) => {

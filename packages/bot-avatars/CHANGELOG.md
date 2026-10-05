@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+An avatar in `fabric` or `plastic` is not shown until it can be drawn in its material: no flat stand-in first with the fur arriving seconds later. It waits invisible while its bakes run in long slices one after another (rather than in what idle time a busy page leaves, and without the small stand-in pile), and the avatars waiting on a page are shown together, with a short fade, once all are ready — on the detail page about a second and a half after load instead of the fur landing over ten. After four seconds an avatar is shown regardless. Once shown, a new type, shading or size keeps the picture it has until the new one is made, its bakes hurried the same way; the pile's style and the light still draw as they change, so a slider dragged through them stays live. A waiting avatar is not drawn each frame, so its frames go to its bakes.
+
+## 0.2.1
+
+Less work a frame, with the same picture. The body's slices that cannot show are no longer drawn: a fabric far slice lying wholly inside the equator, and a near slice lying wholly inside the front's opaque part while the front is laid at full strength — tested against the outline's distance field with the rim's own depth allowed for, so only what is covered is left out (most of a body's slices near the front view); Chrome and Safari draw the same pixels as before. Firefox draws a conic gradient in software even on an accelerated canvas, over its whole box, so there each slice's light is made once into a sprite — one for each distinct inset, remade with the light, only for the slices drawn — and the slices are placed from it; the picture is the same but for the edges' antialiasing. On the detail page's mix of eight animated avatars that is about a sixth less main thread a frame in Firefox.
+
 ## 0.2.0
 
 `fabric`, the plush fur, is now the default shading; `shading="plastic"` keeps the glossy look of 0.1.

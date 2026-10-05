@@ -342,13 +342,19 @@ let scheduled = false;
    just the one, or a row of fur would take a minute to land */
 const FORCED_MS = 6;
 const clock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+/* While an avatar waits to be shown until its material is made (see
+   hurry), the bakes run in long slices one after another rather than in
+   what idle time a busy page leaves: a page's piles take a second or so of
+   work, which spread over idle scraps took ten */
+const HURRY_MS = 20;
+let hurrying = 0;
 function pump(deadline?: { timeRemaining(): number; didTimeout?: boolean }) {
   scheduled = false;
   const t0 = clock();
   let fn = queue.shift();
   while (fn) {
     fn();
-    const room = deadline && !deadline.didTimeout ? deadline.timeRemaining() - 6 : FORCED_MS - (clock() - t0);
+    const room = hurrying > 0 ? HURRY_MS - (clock() - t0) : deadline && !deadline.didTimeout ? deadline.timeRemaining() - 6 : FORCED_MS - (clock() - t0);
     if (room <= 0) break;
     fn = queue.shift();
   }
@@ -357,9 +363,23 @@ function pump(deadline?: { timeRemaining(): number; didTimeout?: boolean }) {
 function schedule() {
   if (scheduled) return;
   scheduled = true;
+  if (hurrying > 0) {
+    setTimeout(() => pump(), 0);
+    return;
+  }
   const ric = (globalThis as { requestIdleCallback?: (cb: (d: { timeRemaining(): number; didTimeout?: boolean }) => void, o?: { timeout: number }) => void }).requestIdleCallback;
   if (ric) ric(pump, { timeout: 60 });
   else setTimeout(() => pump(), 24);
+}
+/** An avatar starts (true) or stops (false) waiting on its bakes to be
+    shown: while any waits, they run in long slices (see HURRY_MS). */
+export function hurry(on: boolean) {
+  hurrying = Math.max(0, hurrying + (on ? 1 : -1));
+  if (on && queue.length) setTimeout(() => pump(), 0);
+}
+/** Whether any form or pile is still being made. */
+export function bakesPending(): boolean {
+  return pending.size > 0 || furPending.size > 0;
 }
 function idle(fn: () => void) {
   queue.push(fn);
@@ -820,6 +840,36 @@ function rimOf(form: Form): Float32Array {
   rims.set(form, r);
   return r;
 }
+/* about a hundred of the rim's points, in order round its middle: the
+   slices' tests below try first the side a slice leans out to, where one
+   that shows is caught in a step or two */
+const rings = new WeakMap<Form, { x: Float32Array; y: Float32Array; d: Float32Array }>();
+function ringOf(form: Form) {
+  let r = rings.get(form);
+  if (r) return r;
+  const rim = rimOf(form);
+  const all: [number, number, number, number][] = [];
+  let mx = 0, my = 0;
+  for (let i = 0; i < rim.length; i += 3) (mx += rim[i]), (my += rim[i + 1]);
+  mx /= rim.length / 3 || 1;
+  my /= rim.length / 3 || 1;
+  for (let i = 0; i < rim.length; i += 3) all.push([rim[i], rim[i + 1], Math.atan2(rim[i + 1] - my, rim[i] - mx), rim[i + 2]]);
+  /* sorted round first, then thinned, so every side keeps its points (in
+     the raster's row order a straight side could lose all of them) */
+  all.sort((p, q) => p[2] - q[2]);
+  const step = Math.max(1, Math.floor(all.length / 96));
+  const pts = all.filter((_, i) => i % step === 0);
+  /* each point's depth inside the outline: the tests allow for it */
+  r = { x: Float32Array.from(pts, (p) => p[0]), y: Float32Array.from(pts, (p) => p[1]), d: Float32Array.from(pts, (p) => p[3]) };
+  rings.set(form, r);
+  return r;
+}
+/* the ring's points from the one nearest angle `a` outward, both ways */
+function ringOrder(n: number, a: number, k: number): number {
+  const start = Math.round(((a + Math.PI) / (2 * Math.PI)) * n);
+  const off = k & 1 ? (k + 1) >> 1 : -(k >> 1);
+  return (((start + off) % n) + n) % n;
+}
 function reach(rim: Float32Array, ex: number, ey: number): number {
   let m = -INF;
   for (let i = 0; i < rim.length; i += 3) {
@@ -1080,9 +1130,10 @@ function furReady(form: Form, key: string, halfDepth: number, capPx: number, syn
   if (sync) return furFor(form, key, halfDepth, capPx, lx, ly, style, lights);
   /* a large pile takes a while on idle time: with nothing of this shape
      to stand in meanwhile, the smallest one is baked first — in a small
-     fraction of the time — and drawn until the full one lands */
+     fraction of the time — and drawn until the full one lands; not while
+     avatars wait to be shown, where nothing stands in */
   const prefix = `${key}|${Math.round(halfDepth)}|`;
-  if (R > 192 && !furPending.has(id)) {
+  if (R > 192 && !hurrying && !furPending.has(id)) {
     let any = false;
     for (const k of furs.keys()) if (k.startsWith(prefix)) any = true;
     for (const k of furPending) if (k.startsWith(prefix)) any = true;
@@ -2874,6 +2925,13 @@ interface State {
   /** the near half's slices' side light, one gradient a slice, and what
       they were made for */
   sliceG: CanvasGradient[];
+  /** the inset each slice's light was taken at, and (Firefox) the light
+      made into a sprite of the outline for each distinct one, keyed by it */
+  sliceIns: number[];
+  sliceSpr: Map<number, { c: HTMLCanvasElement; g: CanvasRenderingContext2D }>;
+  sliceSprKey: string;
+  /** the insets whose sprite has been made for sliceSprKey */
+  sliceSprMade: Set<number>;
   sliceKey: string;
   /** fabric: the slices' own buffer, two in turn */
   body: ({ c: AnyCanvas; g: CanvasRenderingContext2D; w: number; h: number } | null)[];
@@ -2915,7 +2973,7 @@ function stateFor(ctx: CanvasRenderingContext2D, outline: string): State {
       L: null, V: null, lx: NaN, ly: NaN, base: '', shadow: NaN, highlight: NaN, spread: NaN, rim: NaN, vivid: NaN, front: NaN, sheen: NaN, backSoft: NaN, K: null,
       version: 0, imgVersion: -1, imgAoK: NaN, imgForm: null, aoK: -1, aoMul: new Float32Array(256),
       scratch: [null, null], scratchIdx: 0, scratchN: 0, scratchStale: true,
-      sprites: [null, null, null, null, null], sliceG: [], sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null, haloTmp: null,
+      sprites: [null, null, null, null, null], sliceG: [], sliceIns: [], sliceSpr: new Map(), sliceSprKey: '', sliceSprMade: new Set(), sliceKey: '', body: [null, null], bodyIdx: 0, spriteVersion: -1, spritePx: 0, spriteFur: null, miss: [0, 0], missAt: [0, 0], turnAt: [0, 0], fade: null, lay: 1, layTmp: null, haloTmp: null,
     };
     if (byOutline.size > 4) byOutline.clear();
     byOutline.set(outline, s);
@@ -3163,6 +3221,13 @@ function measureMiss(form: Form, path: Path2D, rel: Relief, K: number, S: number
    a flat fill is 2 µs — so there the side sprite takes a linear ramp. */
 const WEBKIT =
   typeof navigator !== 'undefined' && /AppleWebKit\//.test(navigator.userAgent) && !/Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+/* Firefox draws a conic gradient in software even on an accelerated
+   canvas, at several times the cost of anything else and over its whole
+   box of pixels, where an accelerated canvas drawn into another costs next
+   to nothing: there each slice's light is made once into a sprite (one a
+   distinct inset, remade with the light) and the slices are placed from
+   it, the same picture */
+const GECKO = typeof navigator !== 'undefined' && /Firefox\//.test(navigator.userAgent);
 
 export function drawPlasticCap(
   ctx: CanvasRenderingContext2D,
@@ -3469,16 +3534,58 @@ export function drawPlasticCap(
     /* fabric's from past the front's outermost units, whose light is the
        pile's rim — lit where the fibres at the silhouette catch it, which
        turned into view is no longer the silhouette, a light ring inside it */
-    for (let k = 0; k < K; k++) st.sliceG.push(sliceGradient(ctx, rays, fur ? Math.max(HALO_INSET, rel.inset[k]) : rel.inset[k], 0, c0, lxy, WEBKIT));
+    st.sliceIns = [];
+    for (let k = 0; k < K; k++) {
+      const inset = fur ? Math.max(HALO_INSET, rel.inset[k]) : rel.inset[k];
+      st.sliceIns.push(inset);
+      st.sliceG.push(sliceGradient(ctx, rays, inset, 0, c0, lxy, WEBKIT));
+    }
     st.sliceKey = sliceKey;
   }
+  /* Firefox's slice sprites (see GECKO): the outline in each distinct
+     inset's light, at the avatar's device size, on accelerated canvases —
+     made as a slice first needs one, so the slices left out need none */
+  const useSpr = GECKO && typeof document !== 'undefined';
+  const sprKey = `${sliceKey}|${spx}`;
+  if (useSpr && st.sliceSprKey !== sprKey) {
+    st.sliceSprKey = sprKey;
+    st.sliceSprMade = new Set();
+    /* insets move with the roundness and the size: keep the canvases a
+       few dozen at most */
+    if (st.sliceSpr.size > 32) st.sliceSpr.clear();
+  }
+  const sprite = (k: number) => {
+    const ins = st.sliceIns[k];
+    let sp = st.sliceSpr.get(ins);
+    if (sp && st.sliceSprMade.has(ins)) return sp;
+    if (!sp || sp.c.width !== spx) {
+      const c = document.createElement('canvas');
+      c.width = c.height = spx;
+      const cg = c.getContext('2d');
+      if (!cg) return undefined;
+      sp = { c, g: cg };
+      st.sliceSpr.set(ins, sp);
+    }
+    const kk = spx / SPAN;
+    sp.g.setTransform(1, 0, 0, 1, 0, 0);
+    sp.g.clearRect(0, 0, spx, spx);
+    sp.g.setTransform(kk, 0, 0, kk, PAD * kk, PAD * kk);
+    sp.g.fillStyle = st.sliceG[k];
+    sp.g.fill(cfg.path);
+    st.sliceSprMade.add(ins);
+    return sp;
+  };
   const slice = (k: number, z: number, dark: number) => {
     at(z);
     const sk = rel.scale[k];
     if (k > 0) {
       g.transform(sk, 0, 0, sk, rel.cx[k] - sk * rel.cx[0], rel.cy[k] - sk * rel.cy[0]);
-      g.fillStyle = st.sliceG[k];
-      g.fill(cfg.path);
+      const spr = useSpr ? sprite(k) : undefined;
+      if (spr) g.drawImage(spr.c, -PAD, -PAD, SPAN, SPAN);
+      else {
+        g.fillStyle = st.sliceG[k];
+        g.fill(cfg.path);
+      }
       if (dark > 0.01) {
         g.globalAlpha = dark;
         g.fillStyle = '#000';
@@ -3509,8 +3616,32 @@ export function drawPlasticCap(
   };
   const faceOn = Math.abs(rig.facing);
   const fringeA = faceOn >= 0.8 ? 1 : faceOn <= 0.45 ? 0 : (faceOn - 0.45) / 0.35;
-  /* the far half, deepest first, each slice a little further into shade */
-  for (let k = K - 1; k >= 1; k--) slice(k, -near * rel.z[k], fur ? 0 : backShade * (1 - Math.exp(-2.4 * (k / K))));
+  /* the far half, deepest first, each slice a little further into shade.
+     Fabric's far slice lying wholly inside the equator, which is drawn
+     over it, cannot show and is left out: its outline, carried into the
+     equator's frame, sits inside that outline by more than a pixel and the
+     equator's soft edge (most of the far half, near the front view) */
+  const ring = ringOf(form), rn = ring.x.length, sd = form.sd, NF = form.N;
+  const hideBy = 1.5 / (Math.sqrt(Math.abs(ta * td - tb * tc)) || 1) + 0.4;
+  /* a rim point lies up to two texels in from the outline, by its own
+     depth; and the distance field runs a texel generous at sharp corners */
+  const texel = SPAN / NF;
+  const toG = (v: number) => ((v + PAD) / SPAN) * NF - 0.5;
+  /* the side the far half leans out to, and the near half */
+  const leanFar = Math.atan2(-near * dys, -near * dxs), leanNear = Math.atan2(near * dys, near * dxs);
+  for (let k = K - 1; k >= 1; k--) {
+    const z = -near * rel.z[k], sk = rel.scale[k];
+    if (fur) {
+      const bx = rel.cx[k] - sk * rel.cx[0] + z * dxs, by = rel.cy[k] - sk * rel.cy[0] + z * dys;
+      let hidden = Number.isFinite(bx) && Number.isFinite(by);
+      for (let j = 0; hidden && j < rn; j++) {
+        const i = ringOrder(rn, leanFar, j);
+        if (bilerp(sd, NF, toG(sk * ring.x[i] + bx), toG(sk * ring.y[i] + by)) < hideBy + sk * (ring.d[i] + texel)) hidden = false;
+      }
+      if (hidden) continue;
+    }
+    slice(k, z, fur ? 0 : backShade * (1 - Math.exp(-2.4 * (k / K))));
+  }
   /* fabric's far half sinks into shade smoothly rather than a step a slice
      (the steps show through a pile as fine stripes): one ramp laid over
      it, from the outline's far edge out to the stack's, as deep as the
@@ -3531,16 +3662,38 @@ export function drawPlasticCap(
     g.globalCompositeOperation = 'source-over';
   }
   slice(0, 0, 0);
-  /* the near half */
-  for (let k = 1; k < K; k++) slice(k, near * rel.z[k], 0);
+  /* the near half. Where the front is laid at full strength over it, a
+     near slice lying wholly inside the front's opaque part — past its
+     faded band (FRONT_FADE) by more than a pixel — cannot show and is left
+     out: deep in the cushion, most of them, near the front view */
+  const face = Math.abs(rig.facing);
+  const frontA = face >= 0.72 ? 1 : face <= 0.34 ? 0 : ((face - 0.34) / 0.38) ** 1.5;
+  const cdet = capM[0] * capM[3] - capM[1] * capM[2];
+  const coverBy = FRONT_FADE + 1.5 / (Math.sqrt(Math.abs(cdet)) || 1);
+  for (let k = 1; k < K; k++) {
+    const z = near * rel.z[k], sk = rel.scale[k];
+    if (frontA >= 1 && Math.abs(cdet) > 1e-9) {
+      const e = z * sy - 50 * cy, fo = -z * cy * sp - 50 * m1 - 50 * cp;
+      const E = ca * e + cc * fo + ce - capM[4], F = cb * e + cd * fo + cf - capM[5];
+      const ux = rel.cx[k] - sk * rel.cx[0], uy = rel.cy[k] - sk * rel.cy[0];
+      let covered = true;
+      for (let j = 0; covered && j < rn; j++) {
+        const i = ringOrder(rn, leanNear, j);
+        const u = sk * ring.x[i] + ux, v = sk * ring.y[i] + uy;
+        const X = ta * u + tc * v + E, Y = tb * u + td * v + F;
+        const qx = (capM[3] * X - capM[2] * Y) / cdet, qy = (capM[0] * Y - capM[1] * X) / cdet;
+        if (bilerp(sd, NF, toG(qx), toG(qy)) < coverBy + sk * (ring.d[i] + texel)) covered = false;
+      }
+      if (covered) continue;
+    }
+    slice(k, z, 0);
+  }
 
   /* The front fades out over its outer band into the slices under it; the
      silhouette is the slices' (and fabric's fringe is the halo's, below).
      Turned far round, the front is seen so obliquely that a flat picture
      of it no longer fits the form: it gives way to the slices' own smooth
      light, so a side view is one rounded surface without a seam. */
-  const face = Math.abs(rig.facing);
-  const frontA = face >= 0.72 ? 1 : face <= 0.34 ? 0 : ((face - 0.34) / 0.38) ** 1.5;
   if (frontA > 0.01) {
     g.save();
     g.setTransform(capM[0], capM[1], capM[2], capM[3], capM[4] - ox, capM[5] - oy);
