@@ -42,6 +42,10 @@ sites/beam/parity-web/
 sites/beam/parity-diff/
 packages/border-beam/ports/ios/BorderBeamShowcase/build/
 packages/border-beam/ports/ios/BorderBeamShowcase/BorderBeamShowcase.xcodeproj/
+# voice-glow iOS port: build output and the generated demo project
+packages/voice-glow/ports/ios/VoiceGlowKit/.build/
+packages/voice-glow/ports/ios/VoiceGlowDemo/VoiceGlowDemo.xcodeproj/
+packages/voice-glow/ports/ios/VoiceGlowDemo/build/
 
 # Local Worker secrets (never commit)
 .dev.vars
