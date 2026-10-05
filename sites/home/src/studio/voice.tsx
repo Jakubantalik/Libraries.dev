@@ -6,6 +6,7 @@ import {
   resolveVoiceStyle,
   voicePalettes,
   parseRgb,
+  VOICE_SURFACE_LOOKS,
   type VoiceBeamColorVariant,
   type VoiceBeamDotShape,
   type VoiceBeamLinePattern,
@@ -13,8 +14,62 @@ import {
   type VoiceBeamType,
   type VoiceGeometry,
 } from "voice-glow";
-import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
+import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, CodeBlock, num, StageBar, PgGroup } from "./controls";
 import { checkCss, tpl, type CoreWiring } from "./core";
+import { useVoiceProcessing, PROCESSING_DEFAULTS, type ProcessingTuning } from "./voice-processing";
+import { MOOD_PRESETS, moodBand, moodColors, type MoodPoint, type MoodPreset } from "./voice-mood";
+
+/* Emotion (SwiftUI only): a preview of the colours the SwiftUI glow takes
+   for a mood. The web glow has no emotion; the preview rides its `colors`
+   and `bandColors`, and the web snippet never includes it. */
+const EMOTION_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "happy", label: "Happy" },
+  { value: "calm", label: "Calm" },
+  { value: "angry", label: "Angry" },
+  { value: "sad", label: "Sad" },
+] as const;
+type Emotion = (typeof EMOTION_OPTIONS)[number]["value"];
+const SWIFT_TYPE: Record<string, string> = { default: ".standard", pill: ".pill", mobile: ".mobile" };
+
+/* The mood plane: drag to set valence (→ positive) and arousal (↑ excited). */
+function MoodPad({ value, onChange }: { value: MoodPoint; onChange: (p: MoodPoint) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const move = (e: React.PointerEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    onChange({ valence: x * 2 - 1, arousal: 1 - y });
+  };
+  const corner = (text: string, pos: React.CSSProperties) => (
+    <span style={{ position: "absolute", fontSize: 11, opacity: 0.5, pointerEvents: "none", ...pos }}>{text}</span>
+  );
+  return (
+    <div
+      ref={ref}
+      role="slider"
+      aria-label="Mood: drag right for positive, up for excited"
+      aria-valuetext={`valence ${value.valence.toFixed(2)}, arousal ${value.arousal.toFixed(2)}`}
+      tabIndex={0}
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); move(e); }}
+      onPointerMove={(e) => { if (e.buttons) move(e); }}
+      style={{ position: "relative", height: 132, borderRadius: 12, background: "rgba(255,255,255,0.05)", cursor: "crosshair", touchAction: "none", marginTop: 4 }}
+    >
+      {corner("Angry", { left: 10, top: 8 })}
+      {corner("Happy", { right: 10, top: 8 })}
+      {corner("Sad", { left: 10, bottom: 8 })}
+      {corner("Calm", { right: 10, bottom: 8 })}
+      <span
+        style={{
+          position: "absolute", width: 14, height: 14, borderRadius: 7, background: "currentColor",
+          left: `calc(${((value.valence + 1) / 2) * 100}% - 7px)`, top: `calc(${(1 - value.arousal) * 100}% - 7px)`,
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
+}
 import { ChatInputMock } from "../examples/beam-mocks";
 import { RecordingPill, PhoneScreen, DEMO_TRANSCRIPT, demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 
@@ -53,6 +108,9 @@ function stockVoiceCss(): string {
   return (style.textContent ?? "").split(id).join("{id}");
 }
 
+/* Dots and lines are not released yet: only a build with VOICE_SURFACE=1
+   carries them (see packages/voice-glow/LOOKS.md), and only then does the
+   Studio offer them. */
 const LOOK_OPTIONS = [
   { value: "glow", label: "Glow" },
   { value: "dots", label: "Dots" },
@@ -111,7 +169,7 @@ const BAND_SLOTS: Array<[keyof (typeof BAND_DEFAULTS)["dark"], string]> = [
 
 /* Geometry keys in the order the snippet lists them. */
 const GEOMETRY_KEYS: ReadonlyArray<keyof VoiceGeometry> = [
-  "scale", "glowSize", "processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow", "idle", "reach", "spread", "flow", "bend",
+  "scale", "glowSize", "idle", "reach", "spread", "flow", "bend",
   "bandStrength", "bandWidth", "bandPosition", "bandCurve", "bandSpread", "bandSkew", "bandOffset", "bandTail", "bandTailPosition", "bandTailCurve", "bandTailOverflow", "bandAberration",
   "distortion", "distortionDetail",
   "glowWidth", "glowHeight", "lobeSpacing", "rangeWidth", "rangeHeight", "softness", "coreSize", "coreLight", "coreLightWidth", "coreLightHeight",
@@ -230,7 +288,27 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const [type, setType] = useState<VoiceBeamType>("default");
   const [geo, setGeo] = useState<VoiceGeometry>(() => resolveVoiceDefaults("default", theme));
   const [breathe, setBreathe] = useState(5.2);
-  const [processingEase, setProcessingEase] = useState(0.6);
+  /* The processing state (Pro): its tuning, reset with the host type. */
+  const [proc, setProc] = useState<ProcessingTuning>(PROCESSING_DEFAULTS.default);
+  /* Emotion preview (SwiftUI only). */
+  const [emotion, setEmotion] = useState<Emotion>("off");
+  const [moodPoint, setMoodPoint] = useState<MoodPoint>(MOOD_PRESETS.happy);
+  const chooseEmotion = (next: Emotion) => {
+    setEmotion(next);
+    if (next !== "off") setMoodPoint(MOOD_PRESETS[next as MoodPreset]);
+  };
+  /* Dragging the pad lights the tab of the nearest mood. */
+  const dragMood = (p: MoodPoint) => {
+    setMoodPoint(p);
+    let best: MoodPreset = "happy";
+    let bestD = Infinity;
+    for (const [name, q] of Object.entries(MOOD_PRESETS) as Array<[MoodPreset, MoodPoint]>) {
+      const d = (q.valence - p.valence) ** 2 + (q.arousal - p.arousal) ** 2;
+      if (d < bestD) { bestD = d; best = name; }
+    }
+    setEmotion(best);
+  };
+  const setP = (key: keyof ProcessingTuning) => (v: number) => setProc((p) => ({ ...p, [key]: v }));
   const [bands, setBands] = useState(true);
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. */
@@ -278,6 +356,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const handleTypeChange = useCallback((next: VoiceBeamType) => {
     setType(next);
     setGeo(resolveVoiceDefaults(next, theme));
+    setProc(PROCESSING_DEFAULTS[next]);
     setStrength(defaultStrength(next, theme));
     setRadius(RADIUS_BY_TYPE[next]);
     setBrightness(resolveVoiceStyle(next, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
@@ -339,11 +418,11 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     hueRange,
     hueDuration,
     hueShift,
-    processingDuration: geo.processingDuration,
-    processingLevel: geo.processingLevel,
-    processingTravel: geo.processingTravel,
-    processingCurve: geo.processingCurve,
-    cornerFollow: geo.cornerFollow,
+    processingDuration: proc.duration,
+    processingLevel: proc.level,
+    processingTravel: proc.travel,
+    processingCurve: proc.curve,
+    cornerFollow: proc.cornerFollow,
     paused,
     core,
     processing: source === "processing",
@@ -353,7 +432,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     /* Type first: it re-tunes the geometry, so anything else in the same
        patch must land on top of the new defaults. */
     if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
-    if (patch.look === "glow" || patch.look === "dots" || patch.look === "lines") setLook(patch.look);
+    if (patch.look === "glow" || (VOICE_SURFACE_LOOKS && (patch.look === "dots" || patch.look === "lines"))) setLook(patch.look);
     if (typeof patch.dotSize === "number") setDotSize(patch.dotSize);
     if (typeof patch.dotGap === "number") setDotGap(patch.dotGap);
     if (patch.dotShape === "round" || patch.dotShape === "square") setDotShape(patch.dotShape);
@@ -393,7 +472,6 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
       "reach", "spread", "scale", "glowSize", "idle", "flow", "bend",
       "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
       "coreLight", "coreSize", "softness",
-      "processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow",
     ] as const;
     const geoPatch: Partial<VoiceGeometry> = {};
     for (const key of GEO_KEYS) {
@@ -401,6 +479,17 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
       if (typeof v === "number") geoPatch[key] = v;
     }
     if (Object.keys(geoPatch).length) setGeo((g) => ({ ...g, ...geoPatch }));
+    /* The processing tuning, under the names the agent knows. */
+    const PROC_KEYS: Array<[string, keyof ProcessingTuning]> = [
+      ["processingDuration", "duration"], ["processingLevel", "level"], ["processingTravel", "travel"],
+      ["processingCurve", "curve"], ["cornerFollow", "cornerFollow"],
+    ];
+    const procPatch: Partial<ProcessingTuning> = {};
+    for (const [key, field] of PROC_KEYS) {
+      const v = patch[key];
+      if (typeof v === "number") procPatch[field] = v;
+    }
+    if (Object.keys(procPatch).length) setProc((p) => ({ ...p, ...procPatch }));
   }, [handleTypeChange]);
 
   useEffect(() => {
@@ -417,6 +506,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const mic = useMicrophone();
   const isMic = source === "mic";
   const processing = source === "processing";
+  const processingMotion = useVoiceProcessing(processing, { ...proc, type });
   const stream = isMic ? mic.stream : null;
 
   /* Leaving the Microphone source releases the device; nothing else
@@ -520,8 +610,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   if (release !== 0.86) props.push(`release={${num(release)}}`);
   if (type !== "default") props.splice(1, 0, `type="${type}"`);
   if (breathe !== 5.2) props.push(`breatheDuration={${num(breathe)}}`);
-  if (processing) props.push("processing");
-  if (processingEase !== 0.6) props.push(`processingEase={${num(processingEase)}}`);
+  if (processing) props.push("motion={processing}");
   if (!bands) props.push("bands={false}");
   if (colorVariant !== "colorful") props.push(`colorVariant="${colorVariant}"`);
   const paletteDefault = paletteHex(colorVariant, theme);
@@ -548,8 +637,81 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     props.push(`style={{ ${varLines} }}`);
   }
   const attrs = "\n  " + props.join("\n  ") + "\n";
-  const imports = isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';";
-  const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "");
+  const imports = (isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';")
+    + (processing ? "\n// Pro: the processing state (the Pro skill adds it to your project)\nimport { useVoiceProcessing } from './voice-processing';" : "");
+  /* Processing: only the tuning that differs from the type's own. */
+  const procDefaults = PROCESSING_DEFAULTS[type];
+  const procDiff = (Object.keys(proc) as Array<keyof ProcessingTuning>)
+    .filter((k) => proc[k] !== procDefaults[k])
+    .map((k) => `${k}: ${num(proc[k])}`);
+  const procArgs = [type !== "default" ? `type: '${type}'` : "", ...procDiff].filter(Boolean).join(", ");
+  const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "")
+    + (processing ? `const processing = useVoiceProcessing(isThinking${procArgs ? `, { ${procArgs} }` : ""});\n\n` : "");
+  const emotionColors = emotion !== "off" && !isSurface ? moodColors(moodPoint, theme !== "light") : null;
+  const swiftSnippet = `// SwiftUI only — VoiceGlow Pro.
+// Models: run models/setup.sh once.
+import VoiceGlowKit
+import VoiceGlowEmotion
+
+VoiceGlow(
+  type: ${SWIFT_TYPE[type] ?? ".standard"},
+  meter: meter,
+  mood: .blend(
+    tone: tone.mood,
+    meaning: words.mood
+  )
+) {
+  ${CHILD_BY_TYPE[type].replace(/[<>/ ]/g, "")}()
+}
+
+// This preview's mood:
+// VoiceMood(valence: ${num(moodPoint.valence)},
+//           arousal: ${num(moodPoint.arousal)})`;
+  /* Install & Usage › Swift UI: the free VoiceGlowKit from the same knobs.
+     The port takes the type, the palette, the theme, the corner radius and
+     the response / shape options; emotion and processing are VoiceGlow Pro. */
+  const swiftPreset = resolveVoiceDefaults(type, theme);
+  const swiftOpts: string[] = [];
+  if (sensitivity !== 3.1) swiftOpts.push(`options.sensitivity = ${num(sensitivity)}`);
+  if (threshold !== 0.015) swiftOpts.push(`options.threshold = ${num(threshold)}`);
+  if (attack !== 0.325) swiftOpts.push(`options.attack = ${num(attack)}`);
+  if (release !== 0.86) swiftOpts.push(`options.release = ${num(release)}`);
+  for (const key of ["scale", "idle", "reach", "spread", "flow", "bend", "bandStrength", "bandWidth"] as const) {
+    if (geo[key] !== swiftPreset[key]) swiftOpts.push(`options.${key} = ${num(geo[key])}`);
+  }
+  if (brightness !== defaultBrightness) swiftOpts.push(`options.brightness = ${num(brightness)}`);
+  if (saturation !== defaultSaturation) swiftOpts.push(`options.saturation = ${num(saturation)}`);
+  if (strength !== defaultStrength(type, theme)) swiftOpts.push(`options.strength = ${num(strength / 100)}`);
+  if (hueRange !== (theme === "light" ? 40 : 24)) swiftOpts.push(`options.hueRange = ${num(hueRange)}`);
+  const swiftArgs = [`type: ${SWIFT_TYPE[type] ?? ".standard"}`];
+  if (isMic) swiftArgs.push("meter: meter");
+  else if (source === "manual") swiftArgs.push(`level: ${num(manualLevel / 100)}`);
+  else swiftArgs.push("levelProvider: { yourLevel }");
+  if (emotionColors) swiftArgs.push(`mood: VoiceMood(valence: ${num(moodPoint.valence)}, arousal: ${num(moodPoint.arousal)})`);
+  if (colorVariant !== "colorful") swiftArgs.push(`colorVariant: .${colorVariant}`);
+  if (theme === "light") swiftArgs.push("theme: .light");
+  swiftArgs.push(`cornerRadius: ${num(radius)}`);
+  if (swiftOpts.length) swiftArgs.push("options: options");
+  const swiftNotes = [
+    processing ? "// Processing is VoiceGlow Pro: motion: { processing.motion(active: thinking) }\n" : "",
+    emotionColors ? "// A fixed mood here; live emotion detection is VoiceGlow Pro (VoiceGlowEmotion).\n" : "",
+  ].join("");
+  const swiftUsage = [
+    "import VoiceGlowKit",
+    isMic ? "@State private var meter = VoiceMeter()" : "",
+    swiftOpts.length ? `var options = VoiceGlowOptions()\n${swiftOpts.join("\n")}` : "",
+    `${swiftNotes}VoiceGlow(\n  ${swiftArgs.join(",\n  ")}\n) {\n  ${CHILD_BY_TYPE[type].replace(/[<>/ ]/g, "")}()\n}${isMic ? "\n.task { try? await meter.start() }" : ""}`,
+  ].filter(Boolean).join("\n\n");
+  const platforms = [
+    {
+      id: "swift",
+      label: "Swift UI",
+      installTitle: "Add VoiceGlowKit as a local Swift package (iOS 17+)",
+      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…\n.package(path: "packages/voice-glow/ports/ios/VoiceGlowKit")`,
+      note: "Build through Xcode: the Metal shader is compiled by Xcode's build system. Emotion detection, the live transcript and processing are VoiceGlow Pro.",
+      usage: swiftUsage,
+    },
+  ];
   const snippet = `${imports}\n\n${decl}<VoiceBeam${attrs}>\n  ${CHILD_BY_TYPE[type]}\n</VoiceBeam>${isMic ? "\n\n<button onClick={mic.start}>Listen</button>" : ""}`;
 
   /* Choosing Microphone starts listening right away — the click is the
@@ -562,7 +724,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   return (
     <div className="pg">
-      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet }} agent={{ libraryId: "voice", params: agentParams, labels: VOICE_PARAM_LABELS, onApply: applyAgentParams }} />
+      <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet, platforms }} agent={{ libraryId: "voice", params: agentParams, labels: VOICE_PARAM_LABELS, onApply: applyAgentParams }} />
       <div className="pg-stage">
         {visible && (
           <VoiceBeam
@@ -590,12 +752,11 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             attack={attack}
             release={release}
             breatheDuration={breathe}
-            processing={processing}
-            processingEase={processingEase}
+            motion={processingMotion}
             bands={bands}
             colorVariant={colorVariant}
-            colors={lobeColors}
-            bandColors={bandCols}
+            colors={emotionColors ?? lobeColors}
+            bandColors={emotionColors ? moodBand(bandCols, emotionColors) : bandCols}
             theme={theme}
             css={core || undefined}
             paused={paused}
@@ -609,7 +770,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
             className={type === "mobile" ? "mock-phone-host" : undefined}
             brightness={brightness}
             saturation={saturation}
-            hueRange={hueRange}
+            hueRange={emotionColors ? hueRange * 0.3 : hueRange}
             hueDuration={hueDuration}
             staticColors={staticColors}
             style={isSurface ? ({ ...(beamStyle ?? {}), "--mock-btn-blur": `${buttonBlur}px` } as CSSProperties) : beamStyle}
@@ -678,7 +839,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         }}
       >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
-        <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} />
+        {VOICE_SURFACE_LOOKS && <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} />}
         {isDots && (
           <PgGroup label="Dots">
             <PgTabs label="Shape" options={DOT_SHAPE_OPTIONS} value={dotShape} onChange={setDotShape} />
@@ -710,6 +871,17 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           </PgGroup>
         )}
         <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
+        {!isSurface && <PgTabs label="Emotion (SwiftUI)" options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />}
+        {emotionColors && (
+          <div className="pg-field">
+            <MoodPad value={moodPoint} onChange={dragMood} />
+            <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "8px 0" }}>
+              A preview of the SwiftUI glow&apos;s mood colours. Emotion detection — from the tone of the voice and
+              the words — runs on the iPhone with VoiceGlow Pro; the web glow keeps its palette.
+            </span>
+            <CodeBlock code={swiftSnippet} label="Copy SwiftUI code" />
+          </div>
+        )}
         {isMic && MIC_STATUS[mic.state] && (
           <div className="pg-field">
             <span style={{ display: "block", fontSize: 12, opacity: 0.7 }} role="status">
@@ -722,12 +894,12 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         )}
         {processing && (
           <>
-            <PgSlider label="Pass duration" value={geo.processingDuration} min={0.3} max={3} step={0.05} display={`${num(geo.processingDuration)}s`} onChange={setG("processingDuration")} />
-            <PgSlider label="Held level" value={geo.processingLevel} min={0} max={1} step={0.01} display={`${Math.round(geo.processingLevel * 100)}%`} onChange={setG("processingLevel")} />
-            <PgSlider label="Travel" value={geo.processingTravel} min={0} max={2} step={0.05} display={`${num(geo.processingTravel)}×`} onChange={setG("processingTravel")} />
-            <PgSlider label="Turn ease" value={geo.processingCurve} min={1} max={4} step={0.05} display={`${num(geo.processingCurve)}`} onChange={setG("processingCurve")} />
-            <PgSlider label="Corner follow" value={geo.cornerFollow} min={0} max={1} step={0.05} display={`${Math.round(geo.cornerFollow * 100)}%`} onChange={setG("cornerFollow")} />
-            <PgSlider label="Morph" value={processingEase} min={0.1} max={2} step={0.05} display={`${num(processingEase)}s`} onChange={setProcessingEase} />
+            <PgSlider label="Pass duration" value={proc.duration} min={0.3} max={3} step={0.05} display={`${num(proc.duration)}s`} onChange={setP("duration")} />
+            <PgSlider label="Held level" value={proc.level} min={0} max={1} step={0.01} display={`${Math.round(proc.level * 100)}%`} onChange={setP("level")} />
+            <PgSlider label="Travel" value={proc.travel} min={0} max={2} step={0.05} display={`${num(proc.travel)}×`} onChange={setP("travel")} />
+            <PgSlider label="Turn ease" value={proc.curve} min={1} max={4} step={0.05} display={`${num(proc.curve)}`} onChange={setP("curve")} />
+            <PgSlider label="Corner follow" value={proc.cornerFollow} min={0} max={1} step={0.05} display={`${Math.round(proc.cornerFollow * 100)}%`} onChange={setP("cornerFollow")} />
+            <PgSlider label="Morph" value={proc.ease} min={0.1} max={2} step={0.05} display={`${num(proc.ease)}s`} onChange={setP("ease")} />
           </>
         )}
         {!isSurface && (

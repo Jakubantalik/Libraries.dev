@@ -15,7 +15,7 @@ import { PgTabs } from "./examples/PgTabs";
    PAUSED, like every other library's; the examples above run on their
    own. */
 
-type Source = "demo" | "mic" | "processing";
+type Source = "demo" | "mic";
 
 /* The host the glow is tuned for. Each type swaps the stage mock (Figma
    1561:44249 for the chat input, 1561:44294 for the phone) and the
@@ -31,14 +31,26 @@ const TYPES_LOCKED = ["Recording pill"];
 
 /* Demo plays a synthetic speech envelope so the effect can be judged
    without a microphone; Microphone asks for the real thing through the
-   library's own hook; Processing is the state after the voice — the
-   gathered beam travelling its range. Manual drive lives in the Studio. */
+   library's own hook. Processing (the gathered beam travelling its range
+   after the voice) is Pro; Manual drive lives in the Studio. */
 const SOURCE_OPTIONS = [
   { value: "demo", label: "Demo voice" },
   { value: "mic", label: "Microphone" },
-  { value: "processing", label: "Processing" },
 ] as const;
-const SOURCES_LOCKED = ["Manual drive"];
+const SOURCES_LOCKED = ["Processing", "Manual drive"];
+
+/* Pro features shown here, locked: emotion colouring (the SwiftUI port —
+   the glow takes the colour of the voice's emotion, from its tone and its
+   words) and the live transcript (real speech-to-text, word by word). The
+   free choice is the one the stage shows. */
+const COLOUR_OPTIONS = [
+  { value: "palette", label: "Palette" },
+  { value: "emotion", label: "Emotion", locked: "SwiftUI only, with Pro plan" },
+] as const;
+const TRANSCRIPT_OPTIONS = [
+  { value: "demo", label: "Demo" },
+  { value: "live", label: "Live", locked: "Available with Pro plan" },
+] as const;
 
 const CHILD_BY_TYPE: Record<PageType, string> = {
   default: "<ChatInput />",
@@ -160,7 +172,6 @@ function VoicePlayground() {
 
   const mic = useMicrophone();
   const isMic = source === "mic";
-  const processing = source === "processing";
   const stream = isMic ? mic.stream : null;
 
   /* Leaving the Microphone source releases the device; nothing should
@@ -199,7 +210,6 @@ function VoicePlayground() {
   const props: string[] = [];
   if (type !== "default") props.push(`type="${type}"`);
   if (isMic) props.push("stream={mic.stream}");
-  else if (processing) props.push("processing");
   else props.push("level={() => yourLevel}");
   if (paused) props.push("paused");
   const attrs = "\n  " + props.join("\n  ") + "\n";
@@ -210,7 +220,7 @@ function VoicePlayground() {
   const [fitRef, fitScale] = useFitScale();
   const beam =
     type === "mobile" ? (
-      <VoiceBeam type="mobile" stream={stream} level={level} processing={processing} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
+      <VoiceBeam type="mobile" stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
         <div className="mock-phone-scale">
           <div className="mock-phone-scale-inner">
             <PhoneScreen promptKey={runKey} transcript={transcript} />
@@ -219,7 +229,7 @@ function VoicePlayground() {
       </VoiceBeam>
     ) : (
       <div ref={fitRef} className="voice-fit">
-        <VoiceBeam type="default" stream={stream} level={level} processing={processing} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
+        <VoiceBeam type="default" stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
           <ChatInputMock />
         </VoiceBeam>
       </div>
@@ -257,6 +267,8 @@ function VoicePlayground() {
         <div className="pg-controls" id="playground-controls">
           <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} extra={TYPES_LOCKED} />
           <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} extra={SOURCES_LOCKED} />
+          <PgTabs label="Colour" options={COLOUR_OPTIONS} value="palette" onChange={() => {}} />
+          <PgTabs label="Transcript" options={TRANSCRIPT_OPTIONS} value="demo" onChange={() => {}} />
           {isMic && MIC_STATUS[mic.state] && (
             <div className="pg-field">
               <span className="pg-note" role="status">{MIC_STATUS[mic.state]}</span>

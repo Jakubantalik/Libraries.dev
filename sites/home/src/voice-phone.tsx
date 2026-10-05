@@ -52,13 +52,12 @@ function useTranscript() {
 
 function App() {
   const [type, setType] = useState<VoiceBeamType>("mobile");
-  const [processing, setProcessing] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [paused, setPaused] = useState(false);
   const [fps, setFps] = useState(0);
   const { transcript, runKey, onLevel, restart } = useTranscript();
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
-  useEffect(() => { restart(); }, [type, processing, restart]);
+  useEffect(() => { restart(); }, [type, restart]);
 
   /* Frame rate readout, so a device's real rate is on screen. */
   useEffect(() => {
@@ -68,15 +67,15 @@ function App() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const level = processing ? 0 : demoGetter;
+  const level = demoGetter;
   const B = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: string }) => (
     <button type="button" aria-pressed={on} onClick={onClick}>{children}</button>
   );
   return (
     <div className="vp">
       <span className="vp-fps" aria-live="off">{fps} fps</span>
-      <VoiceBeam type={type} level={level} processing={processing} paused={paused} theme={theme} borderRadius={RADIUS[type]} onLevel={onLevel}>
-        {type === "pill" ? <RecordingPill running={!processing} paused={paused} resetKey={runKey} />
+      <VoiceBeam type={type} level={level} paused={paused} theme={theme} borderRadius={RADIUS[type]} onLevel={onLevel}>
+        {type === "pill" ? <RecordingPill running paused={paused} resetKey={runKey} />
           : type === "mobile" ? <PhoneScreen promptKey={runKey} transcript={transcript} />
           : <ChatInputMock radius={RADIUS.default} />}
       </VoiceBeam>
@@ -84,7 +83,6 @@ function App() {
         <B on={type === "default"} onClick={() => setType("default")}>Chat</B>
         <B on={type === "pill"} onClick={() => setType("pill")}>Pill</B>
         <B on={type === "mobile"} onClick={() => setType("mobile")}>Mobile</B>
-        <B on={processing} onClick={() => setProcessing((p) => !p)}>Processing</B>
         <B on={theme === "light"} onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>Light</B>
         <B on={paused} onClick={() => setPaused((p) => !p)}>Pause</B>
       </div>
