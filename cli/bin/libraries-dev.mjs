@@ -21,6 +21,14 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
 import { spawn } from "node:child_process";
+import dns from "node:dns";
+import net from "node:net";
+
+// Node's fetch tries the first address DNS returns and, before Node 20, has no
+// fallback: on a network with broken IPv6 every call to the API failed while
+// the site loaded fine in a browser. Prefer IPv4 and race both families.
+dns.setDefaultResultOrder?.("ipv4first");
+net.setDefaultAutoSelectFamily?.(true);
 
 const PKG_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CREDS_PATH = join(homedir(), ".libraries-dev.json");
@@ -51,6 +59,32 @@ const log = (...a) => console.log(...a);
 const die = (msg) => { console.error(c.red("✗ ") + msg); process.exit(1); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+if (typeof fetch !== "function") {
+  die(`libraries-dev needs Node 18 or newer (this is ${process.version}). Update Node and run it again.`);
+}
+
+// Every API call goes through here so a failure says what actually happened:
+// no connection, a firewall or proxy answering instead of the API, or a rate
+// limit. All of them used to read "couldn't reach api.libraries.dev".
+async function api(path, init, what) {
+  let res;
+  try {
+    res = await fetch(API + path, init);
+  } catch (e) {
+    const cause = e?.cause;
+    const code = cause?.code || cause?.errors?.[0]?.code || cause?.message || e?.message || "unknown error";
+    die(`${what}: couldn't connect to ${API} (${code}). Check your connection, VPN or proxy and try again.`);
+  }
+  if (res.status === 429) die(`${what}: too many attempts. Wait a minute and try again.`);
+  const text = await res.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch { /* not our API answering */ }
+  if (data === null) {
+    die(`${what}: ${API} answered ${res.status} with a page instead of the API. A firewall, VPN, proxy or browser check is in the way; try another network, or email jakubja@gmail.com.`);
+  }
+  return { res, data };
+}
+
 function loadCreds() {
   try { return JSON.parse(readFileSync(CREDS_PATH, "utf8")); } catch { return null; }
 }
@@ -58,7 +92,14 @@ function saveCreds(obj) { writeFileSync(CREDS_PATH, JSON.stringify(obj, null, 2)
 
 function openBrowser(url) {
   const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-  try { spawn(cmd, [url], { stdio: "ignore", detached: true }).unref(); } catch { /* user opens it */ }
+  // `start` is a cmd builtin, not a program; and a missing opener must not
+  // crash sign-in, since the link is printed for the user anyway.
+  const [bin, argv] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : [cmd, [url]];
+  try {
+    const child = spawn(bin, argv, { stdio: "ignore", detached: true });
+    child.on("error", () => { /* user opens it */ });
+    child.unref();
+  } catch { /* user opens it */ }
 }
 
 // Where skills live: ~/.claude/skills by default, ./.claude/skills with
@@ -153,17 +194,12 @@ async function ensureSignedIn() {
 
 async function installPro() {
   const creds = await ensureSignedIn();
-  let res;
-  try {
-    res = await fetch(API + "/skill/pro", { headers: { Authorization: "Bearer " + creds.token } });
-  } catch {
-    die("Couldn't reach api.libraries.dev. Check your connection and try again.");
-  }
+  const { res, data } = await api("/skill/pro", { headers: { Authorization: "Bearer " + creds.token } }, "Downloading the Pro skill");
   if (res.status === 401 || res.status === 403) {
     die("Your sign-in expired or your Pro plan isn't active. Run `npx libraries-dev login` again.");
   }
   if (!res.ok) die(`The Pro skill isn't available right now (${res.status}). Try again later.`);
-  const { files, version } = await res.json();
+  const { files, version } = data;
   if (!Array.isArray(files) || !files.some((f) => f.path === "SKILL.md")) die("The Pro skill came back empty.");
 
   // Where Pro goes: an explicit --dir or --project wins; otherwise next to
@@ -214,15 +250,14 @@ async function installPro() {
 // ── auth ─────────────────────────────────────────────────────────────────────
 
 async function cmdLogin() {
-  let start;
-  try {
-    start = await (await fetch(API + "/device/code", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ variants: ["skill"] }),
-    })).json();
-  } catch { die("Couldn't start sign-in. Is api.libraries.dev reachable?"); }
-  if (!start.user_code || !start.device_secret) die("Couldn't start sign-in. Is api.libraries.dev reachable?");
+  const { res: startRes, data: start } = await api("/device/code", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ variants: ["skill"] }),
+  }, "Starting sign-in");
+  if (!start.user_code || !start.device_secret) {
+    die(`Starting sign-in: the API answered ${startRes.status} (${start.error || "no sign-in code"}). Try again in a minute.`);
+  }
 
   log("\n" + c.bold("To sign in, open this page and confirm the code:"));
   log("  " + c.blue(start.verification_uri));
