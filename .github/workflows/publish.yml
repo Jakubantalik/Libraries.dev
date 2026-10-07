@@ -15,6 +15,7 @@ on:
           - metal-fx
           - voice-glow
           - bot-avatars
+          - libraries-dev
   release:
     types: [published]
 
@@ -51,8 +52,12 @@ jobs:
         id: pkg
         run: |
           name="${PKG%%@*}"
-          version=$(node -p "require('./packages/$name/package.json').version")
+          # The skill CLI lives in cli/, outside the packages/ workspaces.
+          dir="packages/$name"
+          [ "$name" = "libraries-dev" ] && dir="cli"
+          version=$(node -p "require('./$dir/package.json').version")
           echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
           if [ -n "$(npm view "$name@$version" version 2>/dev/null)" ]; then
             echo "$name@$version is already on the registry — nothing to publish."
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -62,13 +67,22 @@ jobs:
       # publish can't ship a stale or missing build.
       - name: Publish
         if: steps.pkg.outputs.skip != 'true'
-        run: npm publish -w "${{ steps.pkg.outputs.name }}" --access public
+        run: |
+          if [ "${{ steps.pkg.outputs.dir }}" = "cli" ]; then
+            cd cli && npm publish --access public
+          else
+            npm publish -w "${{ steps.pkg.outputs.name }}" --access public
+          fi
         env:
           # One npm token per package, so a leak can't reach the other.
+          # libraries-dev uses its own CLI token once one exists, the VOICE
+          # token until then, and never the BEAM2 fallback.
           NODE_AUTH_TOKEN: >-
             ${{ steps.pkg.outputs.name == 'liquid-gooey' && secrets.GOOEY
              || steps.pkg.outputs.name == 'thinking-orbs' && secrets.ORBS
              || steps.pkg.outputs.name == 'metal-fx' && secrets.METAL2
              || steps.pkg.outputs.name == 'bot-avatars' && secrets.BOTS
              || steps.pkg.outputs.name == 'voice-glow' && secrets.VOICE
-             || secrets.BEAM2 }}
+             || steps.pkg.outputs.name == 'libraries-dev' && (secrets.CLI || secrets.VOICE)
+             || steps.pkg.outputs.name != 'libraries-dev' && secrets.BEAM2
+             || '' }}
