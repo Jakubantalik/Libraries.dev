@@ -453,14 +453,16 @@ type LibId = string;
 
 function Workbench({ theme }: { theme: StudioTheme }) {
   const [lib, setLib] = useState<LibId>(() => {
-    const wanted = window.location.hash.replace("#", "");
+    /* "#beam&preset=Name" (a link from the team MCP) opens the bench; the
+       bench's StageBar applies the preset. */
+    const wanted = window.location.hash.replace("#", "").split("&")[0];
     return (LIBS.some((l) => l.id === wanted) ? wanted : "gooey") as LibId;
   });
 
   /* Deep-linkable: #beam .. #image select the library. */
   useEffect(() => {
     const onHash = () => {
-      const wanted = window.location.hash.replace("#", "");
+      const wanted = window.location.hash.replace("#", "").split("&")[0];
       if (LIBS.some((l) => l.id === wanted)) setLib(wanted as LibId);
     };
     window.addEventListener("hashchange", onHash);

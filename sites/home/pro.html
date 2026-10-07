@@ -5325,15 +5325,16 @@
           <div class="pro-price-plan-name">Business</div>
           <div class="pro-price-head">
             <div class="pro-price-amount">
-              <span class="pro-price-value p9-number" data-price-value aria-live="polite"><span class="p9-static">$</span><span class="p9-digits"><span class="p9-char">5</span><span class="p9-char">9</span></span></span>
+              <span class="pro-price-value p9-number" data-price-value aria-live="polite"><span class="p9-static">$</span><span class="p9-digits"><span class="p9-char">2</span><span class="p9-char">9</span></span></span>
               <span class="pro-price-per p6-text" data-price-per>/mo</span>
             </div>
             <div class="pro-price-seat" data-price-seat>Billed monthly</div>
           </div>
           <ul class="pro-feature-list">
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for companies and teams, 5 seats included</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for companies and teams, 3 seats included</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Everything in Pro, for every seat</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Team MCP server: your brand kit and presets in every developer's coding agent</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Priority support</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Extra Studio AI credit: $10 per seat each month (Pro has $3)</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Invite, remove and manage seats from your account</li>
@@ -5496,7 +5497,17 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $59/mo (or $590/yr) with 5 seats for people in the same organization, each seat beyond 5 an extra $9/mo, plus priority support and more Studio AI credit per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro with every future update included, forever; Business is monthly or annual only.</p>
+            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI credit per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro with every future update included, forever; Business is monthly or annual only.</p>
+          </div></div>
+        </div>
+
+        <div class="t-acc" data-open="false">
+          <button class="t-acc-head" type="button" aria-expanded="false">
+            <span>What is the team MCP server?</span>
+            <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
+          </button>
+          <div class="t-acc-panel"><div class="t-acc-panel-inner">
+            <p>Part of Business: it connects every developer's coding agent (Claude Code, Cursor, Codex and others) to your team's Libraries.dev data. Agents read your brand kit and the presets your team saved in the Studio, look up every option and reference, and check values before writing code, and a preset saved from code opens in the Studio for a designer to fine-tune. Your agent does the work with its own model, so there's nothing extra to pay. Set it up with <code>npx libraries-dev mcp</code>.</p>
           </div></div>
         </div>
 
@@ -5601,11 +5612,11 @@
           lifetime: { v: "$149", per: "once", seat: "Pay once, yours forever" }
         },
         team: {
-          monthly: { v: "$59", per: "/mo", seat: "Billed monthly" },
-          annual:  { v: "$590", per: "/yr", seat: "Billed yearly, two months free" },
+          monthly: { v: "$29", per: "/mo", seat: "Billed monthly" },
+          annual:  { v: "$290", per: "/yr", seat: "Billed yearly, two months free" },
           // No lifetime for Business: the card keeps showing the monthly
           // price and goes inert (see renderPrice).
-          lifetime: { v: "$59", per: "/mo", seat: "Monthly or annual only" }
+          lifetime: { v: "$29", per: "/mo", seat: "Monthly or annual only" }
         }
       };
       var billing = document.getElementById("pro-billing");

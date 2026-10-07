@@ -78,10 +78,11 @@ export const BEAM_SPEC: LibrarySpec = {
     },
     colorVariant: {
       kind: "enum",
-      values: ["colorful", "mono", "ocean", "sunset"],
+      values: ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"],
       describe:
         "Palette. colorful = full spectrum, mono = single neutral, ocean = blues/teals (reads cool), " +
-        "sunset = oranges/pinks (reads warm).",
+        "sunset = oranges/pinks (reads warm), forest = greens/teals, candy = pinks/magentas, " +
+        "ice = cyans and pale blues (reads crisp), gold = ambers and yellows (reads premium).",
     },
     strength: {
       kind: "number",

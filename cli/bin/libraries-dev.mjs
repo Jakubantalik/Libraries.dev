@@ -4,6 +4,7 @@
 //   npx libraries-dev skill           install the free skill (no account)
 //   npx libraries-dev skill --pro     install the Pro skill (signs you in if needed),
 //                                     next to every free copy, replacing it
+//   npx libraries-dev mcp             Business: connect an agent to the team MCP server
 //   npx libraries-dev login           sign in (opens the browser)
 //   npx libraries-dev logout          sign out
 //   npx libraries-dev whoami          show sign-in status
@@ -20,7 +21,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, cpSync, rea
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import dns from "node:dns";
 import net from "node:net";
 
@@ -250,10 +251,19 @@ async function installPro() {
 // ── auth ─────────────────────────────────────────────────────────────────────
 
 async function cmdLogin() {
+  const token = await deviceSignIn(["skill"]);
+  saveCreds({ ...(loadCreds() || {}), token, api: API, saved_at: Date.now() });
+  log("\n" + c.green("✓ Signed in."));
+}
+
+// Browser sign-in through the device flow; resolves to the API token.
+// `variants` tells the API what the token is for: "skill" for the Pro skill,
+// "mcp" for the Business team server (a longer-lived token, Business only).
+async function deviceSignIn(variants) {
   const { res: startRes, data: start } = await api("/device/code", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ variants: ["skill"] }),
+    body: JSON.stringify({ variants }),
   }, "Starting sign-in");
   if (!start.user_code || !start.device_secret) {
     die(`Starting sign-in: the API answered ${startRes.status} (${start.error || "no sign-in code"}). Try again in a minute.`);
@@ -275,15 +285,56 @@ async function cmdLogin() {
     try {
       r = await (await fetch(`${API}/device/token?device_secret=${encodeURIComponent(start.device_secret)}`)).json();
     } catch { continue; }
-    if (r.status === "approved" && r.download_token) {
-      saveCreds({ token: r.download_token, api: API, saved_at: Date.now() });
-      log("\n" + c.green("✓ Signed in."));
-      return;
+    if (r.status === "approved" && r.download_token) return r.download_token;
+    if (r.status === "denied" && r.reason === "no_business_seat") {
+      die("\nThe team MCP server is part of Business, and this account has no Business seat. Business covers any company or team: https://libraries.dev/pro");
     }
     if (r.status === "denied") die("\nThis account doesn't have an active Libraries Pro plan. See https://libraries.dev/pro");
     if (r.status === "expired") die("\nThe sign-in request expired. Run `npx libraries-dev login` again.");
   }
   die("\nTimed out waiting for approval.");
+}
+
+// ── mcp ──────────────────────────────────────────────────────────────────────
+
+// Business: connect coding agents to the team MCP server. Signs in for an
+// MCP token, then either registers the server with Claude Code / Cursor
+// (--claude, --cursor) or prints the config for any agent.
+async function cmdMcp() {
+  log(c.dim("The team MCP server is part of Libraries.dev Business."));
+  const token = await deviceSignIn(["mcp"]);
+  saveCreds({ ...(loadCreds() || {}), mcp_token: token, api: API });
+  log("\n" + c.green("✓ Signed in for the team MCP server."));
+
+  const url = API + "/mcp";
+  const header = "Authorization: Bearer " + token;
+  let done = false;
+
+  if (flags.claude) {
+    const r = spawnSync("claude", ["mcp", "add", "--transport", "http", "--scope", "user", "libraries-dev", url, "--header", header], { stdio: "inherit", shell: process.platform === "win32" });
+    if (r.status === 0) { log(c.green("✓ ") + "Added to Claude Code as " + c.bold("libraries-dev") + "."); done = true; }
+    else log(c.yellow("Couldn't run `claude mcp add`; use the command below."));
+  }
+  if (flags.cursor) {
+    const file = join(homedir(), ".cursor", "mcp.json");
+    let cfg = {};
+    try { cfg = JSON.parse(readFileSync(file, "utf8")); } catch { /* new file */ }
+    cfg.mcpServers = { ...(cfg.mcpServers || {}), "libraries-dev": { url, headers: { Authorization: "Bearer " + token } } };
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n", { mode: 0o600 });
+    log(c.green("✓ ") + "Added to Cursor in " + c.dim(file) + ".");
+    done = true;
+  }
+
+  if (!done) {
+    log("\n" + c.bold("Claude Code:"));
+    log("  claude mcp add --transport http --scope user libraries-dev " + url + ' --header "' + header + '"');
+    log("\n" + c.bold("Cursor") + c.dim(" (~/.cursor/mcp.json), and most other agents:"));
+    log(JSON.stringify({ mcpServers: { "libraries-dev": { url, headers: { Authorization: "Bearer " + token } } } }, null, 2).replace(/^/gm, "  "));
+    log("\n" + c.dim("Or run again with --claude or --cursor to add it for you."));
+  }
+  log(c.dim("The token is personal to your seat; don't commit it. It stops working if you leave the team."));
+  log(c.dim("Then ask your agent: \"use our brand kit and add a thinking orb to the chat reply\"."));
 }
 
 function cmdLogout() {
@@ -305,6 +356,8 @@ ${c.bold("Commands")}
   skill                    install the free skill (no account needed)
   skill --pro              install the Pro skill (signs you in if needed) in every
                            agent folder that has the free skill, replacing it
+  mcp                      Business: connect your coding agent to the team MCP server
+                           (--claude or --cursor adds it for you)
   login                    sign in to Libraries Pro (opens the browser)
   logout                   sign out
   whoami                   show sign-in status
@@ -325,6 +378,7 @@ const [cmd] = positional;
     switch (cmd) {
       case "skill": flags.pro ? await installPro() : installFree(); break;
       case "login": await cmdLogin(); break;
+      case "mcp": await cmdMcp(); break;
       case "logout": cmdLogout(); break;
       case "whoami": cmdWhoami(); break;
       case undefined:

@@ -41,6 +41,18 @@ copies), and removes the free copies it replaces (`--keep-free` to keep both).
 With no free copy it installs to `~/.claude/skills`; `--project` or `--dir`
 choose the folder yourself. Run it again to update.
 
+## Team MCP server (Business)
+
+```bash
+npx libraries-dev mcp --claude    # or --cursor; without either it prints the config
+```
+
+Connects your coding agent to your team's Libraries.dev data: the brand kit,
+every preset your team saved in the Studio, each library's full option list and
+Pro reference, and a validator that checks values the way the Studio does. A
+preset saved from code comes with a Studio link. Your agent does the work with
+its own model. Needs a Business seat; the token is personal to it.
+
 ## Using it
 
 Ask your agent:
@@ -56,6 +68,7 @@ Ask your agent:
 | --- | --- |
 | `skill` | Install the free skill |
 | `skill --pro` | Install the Pro skill (signs in if needed) |
+| `mcp` | Business: connect your agent to the team MCP server (`--claude`, `--cursor`) |
 | `login` / `logout` / `whoami` | Manage the Pro sign-in |
 
 Docs: https://libraries.dev/how-to-use

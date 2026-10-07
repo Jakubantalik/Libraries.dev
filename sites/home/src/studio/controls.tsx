@@ -939,6 +939,20 @@ function readPresets(libraryId: string): StoredPreset[] {
   }
 }
 
+/* The preset a link asked for ("#beam&preset=Name"), if the link is for
+   this library. */
+function linkedPreset(libraryId: string): string | null {
+  const parts = window.location.hash.replace("#", "").split("&");
+  if (parts[0] !== libraryId) return null;
+  const p = parts.find((x) => x.startsWith("preset="));
+  if (!p) return null;
+  try {
+    return decodeURIComponent(p.slice(7));
+  } catch {
+    return null;
+  }
+}
+
 function accountPresets() {
   const LP = window.LibrariesPro;
   return LP && LP.state?.authenticated && LP.presets ? LP.presets : null;
@@ -1073,6 +1087,8 @@ export function StageBar({
   const defaultsRef = useRef<Record<string, unknown> | null>(agent ? { ...agent.params } : null);
   const libraryId = agent?.libraryId ?? "";
   const theme: PresetTheme = useContext(StudioThemeContext)?.theme ?? "dark";
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   const [presets, setPresets] = useState<StoredPreset[]>(() => (libraryId ? readPresets(libraryId) : []));
 
   /* Account presets replace the local list once the session is known —
@@ -1095,7 +1111,18 @@ export function StageBar({
           setPresets(readPresets(libraryId));
           return;
         }
-        setPresets(r.presets.map((x) => ({ name: x.name, values: x.values as PresetValues, savedAt: x.updated_at })));
+        const list: StoredPreset[] = r.presets.map((x) => ({ name: x.name, values: x.values as PresetValues, savedAt: x.updated_at }));
+        setPresets(list);
+        /* Open a linked preset once, then drop it from the URL so a reload
+           or a later sign-in doesn't undo the user's own tuning. */
+        const wanted = linkedPreset(libraryId);
+        const hit = wanted ? list.find((x) => x.name === wanted) : null;
+        if (hit) {
+          const t = themeRef.current;
+          const side = hit.values[t] ?? hit.values[t === "dark" ? "light" : "dark"];
+          agentRef.current?.onApply({ ...side });
+          history.replaceState(null, "", `#${libraryId}`);
+        }
       }).catch(() => {
         if (live) setPresets(readPresets(libraryId));
       });
