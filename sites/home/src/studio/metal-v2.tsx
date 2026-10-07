@@ -491,8 +491,8 @@ export function MetalStudioV2({
     {
       id: "swift",
       label: "Swift UI",
-      installTitle: "Add MetalFxKit as a local Swift package (iOS 17+)",
-      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…\n.package(path: "ports/ios/MetalFxKit")`,
+      installTitle: "Add MetalFxKit from GitHub with Swift Package Manager (iOS 17+)",
+      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "MetalFxKit", package: "Libraries.dev")`,
       note: "Build through Xcode: the Metal shader is compiled by Xcode's build system, not by SwiftPM alone. Tilt bends the rings; .metalEdgeHalo() refracts a card through the screen edge.",
       usage: swiftSnippet,
     },

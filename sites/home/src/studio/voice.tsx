@@ -706,8 +706,8 @@ VoiceGlow(
     {
       id: "swift",
       label: "Swift UI",
-      installTitle: "Add VoiceGlowKit as a local Swift package (iOS 17+)",
-      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…\n.package(path: "packages/voice-glow/ports/ios/VoiceGlowKit")`,
+      installTitle: "Add VoiceGlowKit from GitHub with Swift Package Manager (iOS 17+)",
+      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "VoiceGlowKit", package: "Libraries.dev")`,
       note: "Build through Xcode: the Metal shader is compiled by Xcode's build system. Emotion detection, the live transcript and processing are VoiceGlow Pro.",
       usage: swiftUsage,
     },

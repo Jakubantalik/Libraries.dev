@@ -296,8 +296,8 @@ export function BeamStudio({ visible = true, theme = "dark" }: { visible?: boole
     {
       id: "swift",
       label: "Swift UI",
-      installTitle: "Add BorderBeamKit as a local Swift package (iOS 17+)",
-      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…\n.package(path: "packages/border-beam/ports/ios/BorderBeamKit")`,
+      installTitle: "Add BorderBeamKit from GitHub with Swift Package Manager (iOS 17+)",
+      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "BorderBeamKit", package: "Libraries.dev")`,
       note: "Build through Xcode: the Metal shader is compiled by Xcode's build system, not by SwiftPM alone.",
       usage: swiftSnippet,
     },

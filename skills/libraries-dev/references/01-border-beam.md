@@ -52,7 +52,7 @@ import { BorderBeam } from 'border-beam';
 The detail page also lists two ports, both local to the repo (not on npm):
 
 - React Native: `border-beam-native` in `packages/border-beam/ports/react-native/border-beam-native`. Needs `@shopify/react-native-skia` and `react-native-reanimated`. Expo needs `expo run:ios` / `run:android` (native modules).
-- SwiftUI: `BorderBeamKit` in `packages/border-beam/ports/ios/BorderBeamKit`, added as a local Swift package. Build through Xcode; the Metal shader is compiled by Xcode's build system, not SwiftPM alone.
+- SwiftUI: `BorderBeamKit` in `packages/border-beam/ports/ios/BorderBeamKit`, installed from GitHub through the repo's root `Package.swift`. Build through Xcode; the Metal shader is compiled by Xcode's build system, not SwiftPM alone.
 
 ## Basic usage
 
@@ -83,8 +83,10 @@ import { BorderBeam } from 'border-beam-native';
 SwiftUI:
 
 ```swift
-// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: "packages/border-beam/ports/ios/BorderBeamKit")
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "BorderBeamKit", package: "Libraries.dev")
 ```
 
 ```swift

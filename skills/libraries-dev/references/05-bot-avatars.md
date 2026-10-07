@@ -46,7 +46,7 @@ import { BotAvatar } from 'bot-avatars';
 The detail page also has two ports, both local to the repo (not on npm):
 
 - React Native: `bot-avatars-native` in `packages/bot-avatars/ports/react-native/bot-avatars-native`, needs `@shopify/react-native-skia react-native-reanimated react-native-worklets`. Expo needs `expo run:ios` / `run:android`.
-- SwiftUI (iOS 17+): `BotAvatarsKit` in `packages/bot-avatars/ports/ios/BotAvatarsKit`, added as a local Swift package.
+- SwiftUI (iOS 17+): `BotAvatarsKit` in `packages/bot-avatars/ports/ios/BotAvatarsKit`, installed from GitHub through the repo's root `Package.swift`.
 
 Neither port has the fur or the things to wear: both draw the glossy `plastic` look by default.
 
@@ -75,8 +75,10 @@ import { BotAvatar } from 'bot-avatars-native';
 SwiftUI:
 
 ```swift
-// Package.swift, or Xcode: File > Add Package Dependencies > Add Local...
-.package(path: "packages/bot-avatars/ports/ios/BotAvatarsKit")
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "BotAvatarsKit", package: "Libraries.dev")
 ```
 
 ```swift

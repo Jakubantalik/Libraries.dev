@@ -369,8 +369,10 @@
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
-              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: &quot;packages/bot-avatars/ports/ios/BotAvatarsKit&quot;)</pre>
+              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: &quot;https://github.com/Jakubantalik/Libraries.dev&quot;, branch: &quot;main&quot;)
+// …and in your target&#x27;s dependencies:
+.product(name: &quot;BotAvatarsKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
               <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

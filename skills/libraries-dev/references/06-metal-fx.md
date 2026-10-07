@@ -45,7 +45,7 @@ import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } 
 - Requires WebGL2. Without it `<MetalFx>` renders the child as-is inside `div.metal-fx-fallback[data-metal-fx-unsupported]`.
 - Styles are injected into `<head>` on import; no CSS file to add.
 - The package ships no `"use client"` directive. In the Next.js App Router, import it from a file marked `"use client"`.
-- Native ports (shown on the detail page, not on npm): React Native `metal-fx-native` (Skia + Reanimated 4) and SwiftUI `MetalFxKit` (iOS 17+), both in the metal-fx repo under `ports/`.
+- Native ports (shown on the detail page, not on npm): React Native `metal-fx-native` (Skia + Reanimated 4) and SwiftUI `MetalFxKit` (iOS 17+), both under `ports/` (in this repo at `packages/metal-fx/ports/`); the SwiftUI one installs from GitHub through the repo's root `Package.swift`.
 
 ## Basic usage
 
@@ -81,8 +81,10 @@ import { MetalFx, MetalText, MetalBadge, MetalReflection, MetalEdgeHalo } from '
 SwiftUI (iOS 17+, build through Xcode so the Metal shader compiles):
 
 ```swift
-// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: "ports/ios/MetalFxKit")
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "MetalFxKit", package: "Libraries.dev")
 ```
 
 ```swift

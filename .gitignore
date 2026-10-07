@@ -63,3 +63,7 @@ sites/home/scripts/posters/extract
 # pages); the local build picks it up when present.
 private/
 sites/home/vite.local.mjs
+
+# Root Package.swift (the SwiftUI ports from GitHub): SwiftPM / Xcode output
+/.build/
+/.swiftpm/
