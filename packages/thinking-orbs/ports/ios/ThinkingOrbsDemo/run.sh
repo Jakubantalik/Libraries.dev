@@ -6,6 +6,18 @@ cd "$(dirname "$0")"
 
 DEVICE="${1:-booted}"
 
+# The three-argument form of awk's match() is a GNU extension, and macOS
+# ships BSD awk -- which is every machine this script runs on, so the old
+# inline awk printed nothing and xcodebuild got an empty destination id.
+device_udid() {
+  uuid='[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}'
+  if [ "$1" = "booted" ]; then
+    xcrun simctl list devices | grep '(Booted)' | grep -Eo "$uuid" | head -1
+  else
+    xcrun simctl list devices | grep "$1" | grep -Eo "$uuid" | head -1
+  fi
+}
+
 echo "==> generating project"
 xcodegen generate >/dev/null
 
@@ -13,9 +25,7 @@ echo "==> building"
 xcodebuild -project ThinkingOrbsDemo.xcodeproj \
   -scheme ThinkingOrbsDemo \
   -sdk iphonesimulator \
-  -destination "id=$(xcrun simctl list devices | awk -v d="$DEVICE" '
-      d=="booted" && /\(Booted\)/ {match($0,/\(([0-9A-F-]{36})\)/,m); print m[1]; exit}
-      d!="booted" && $0 ~ d {match($0,/\(([0-9A-F-]{36})\)/,m); print m[1]; exit}')" \
+  -destination "id=$(device_udid "$DEVICE")" \
   -derivedDataPath ./build build | grep -E "error:|BUILD" || true
 
 APP="./build/Build/Products/Debug-iphonesimulator/ThinkingOrbsDemo.app"
