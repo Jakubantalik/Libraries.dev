@@ -127,8 +127,8 @@ const USER_MONTHLY_BUDGET_USD = 3;
 /* Business seats get more Studio credit: teams iterate on brand presets and
    core rebuilds (the expensive turns), so the per-person ceiling and the turn
    cap are higher. Still per person, so one seat can't drain the team. */
-const BUSINESS_MONTHLY_BUDGET_USD = 10;
-const BUSINESS_MONTHLY_TURN_CAP = 500;
+const BUSINESS_MONTHLY_BUDGET_USD = 8;
+const BUSINESS_MONTHLY_TURN_CAP = 400;
 
 /* Lifetime Pro is a one-time payment for the Studio, variants and updates;
    agent credit is not part of it (see the terms). Paying once must not buy
