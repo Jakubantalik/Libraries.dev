@@ -141,7 +141,7 @@ const LIFETIME_MONTHLY_TURN_CAP = 50;
    amount rather than a monthly payout forever. The monthly cap above paces
    it; once this total is spent the agent stays off for that account until it
    takes a subscription or a Business seat. Never expires. */
-const LIFETIME_TOTAL_BUDGET_USD = 10;
+const LIFETIME_TOTAL_BUDGET_USD = 30;
 
 /* claude-opus-5, USD per million tokens. Cache writes cost 1.25x input and
    reads 0.1x; the system prompt is the only cached block, so a read-heavy
