@@ -97,7 +97,7 @@ function recordPrompt(env: Env, o: PromptOutcome): void {
 /** Supplied by the host Worker: resolves the .libraries.dev session cookie to
     a Pro user, or null. Kept as a parameter so this file has no dependency on
     the platform's session internals. */
-export type ResolvePro = (request: Request) => Promise<{ userId: string; pro: boolean; business?: boolean } | null>;
+export type ResolvePro = (request: Request) => Promise<{ userId: string; pro: boolean; business?: boolean; lifetime?: boolean } | null>;
 
 /* A tuning session is 10-15 turns. 150/month is far past any honest workload
    and caps a single user's worst case at a few dollars rather than the whole
@@ -129,6 +129,14 @@ const USER_MONTHLY_BUDGET_USD = 3;
    cap are higher. Still per person, so one seat can't drain the team. */
 const BUSINESS_MONTHLY_BUDGET_USD = 10;
 const BUSINESS_MONTHLY_TURN_CAP = 500;
+
+/* Lifetime Pro is a one-time payment for the Studio, variants and updates;
+   agent credit is not part of it (see the terms). Paying once must not buy
+   years of live model spend, so lifetime-only accounts get a small bonus
+   allowance that we may change or withdraw. A subscription or a Business
+   seat on the same account lifts it to that plan's allowance. */
+const LIFETIME_MONTHLY_BUDGET_USD = 1;
+const LIFETIME_MONTHLY_TURN_CAP = 50;
 
 /* claude-opus-5, USD per million tokens. Cache writes cost 1.25x input and
    reads 0.1x; the system prompt is the only cached block, so a read-heavy
@@ -264,8 +272,12 @@ export async function handleStudioChat(
   const session = await resolvePro(request);
   if (!session) return json({ error: "not_authenticated" }, 401);
   if (!session.pro) return json({ error: "pro_required" }, 403);
-  const turnCap = session.business ? BUSINESS_MONTHLY_TURN_CAP : MONTHLY_TURN_CAP;
-  const userBudget = session.business ? BUSINESS_MONTHLY_BUDGET_USD : USER_MONTHLY_BUDGET_USD;
+  const turnCap = session.business ? BUSINESS_MONTHLY_TURN_CAP
+    : session.lifetime ? LIFETIME_MONTHLY_TURN_CAP
+    : MONTHLY_TURN_CAP;
+  const userBudget = session.business ? BUSINESS_MONTHLY_BUDGET_USD
+    : session.lifetime ? LIFETIME_MONTHLY_BUDGET_USD
+    : USER_MONTHLY_BUDGET_USD;
 
   let body: {
     library?: string;
