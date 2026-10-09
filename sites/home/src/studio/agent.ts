@@ -47,7 +47,7 @@ const MESSAGES: Record<string, string> = {
   turn_cap_reached:
     "You've hit this month's agent limit. Manual control still works, and the limit resets next month.",
   user_budget_exhausted:
-    "You've used all your monthly agent tokens. Manual control still works, and your allowance resets next month.",
+    "You've used this month's agent credits. Manual control still works, and your credits reset next month.",
   lifetime_credit_used:
     "You've used the agent credit that comes with Lifetime. Manual control and everything else in the Studio still work; a Pro subscription adds a monthly agent allowance.",
   budget_exhausted:

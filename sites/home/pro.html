@@ -4353,6 +4353,81 @@
       color: #242424;
     }
     .pro-feature-check svg { width: 10px; height: 10px; display: block; }
+    /* Credit lines: the text, then an info dot with a tooltip on how far
+       the credits go (same tooltip as transitions.dev's pricing). The Pro
+       line swaps with billing, Lifetime's agent being a capped bonus, so it
+       borrows the text swap's blur but keeps the bullet's own type. */
+    .pro-feature-text { display: block; min-width: 0; }
+    .pro-credit-text.p6-text {
+      display: inline;
+      font: inherit;
+      color: inherit;
+      white-space: normal;
+    }
+    .cmp-info {
+      --tt-bg: #ffffff;
+      --tt-fg: #17181c;
+      --tt-scale: 0.98;
+      --tt-in-dur: 150ms;
+      --tt-out-dur: 100ms;
+      --tt-in-ease: ease-out;
+      --tt-out-ease: ease-out;
+      --tt-delay: 80ms;
+      position: relative; display: inline-flex; margin-left: 6px; vertical-align: middle; margin-top: -2px;
+    }
+    html[data-theme="dark"] .cmp-info { --tt-bg: #181818; --tt-fg: #e3e3e3; }
+    .cmp-info-btn {
+      border: 0; padding: 0; width: 16px; height: 16px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.06); color: var(--text-faint);
+      font-family: var(--font-sans); font-size: 10.5px; font-weight: 600; line-height: 1;
+      cursor: help;
+    }
+    html[data-theme="dark"] .cmp-info-btn { background: rgba(255, 255, 255, 0.1); }
+    .cmp-info-btn:hover { color: var(--text); }
+    .cmp-tip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: -8px;
+      transform: scale(var(--tt-scale));
+      transform-origin: 90% 100%;
+      width: 240px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 17px;
+      text-align: left;
+      white-space: normal;
+      text-wrap: pretty;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      background: var(--tt-bg);
+      color: var(--tt-fg);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 2px 6px 0 rgba(0, 0, 0, 0.05),
+        0 4px 42px 0 rgba(0, 0, 0, 0.06);
+      transition:
+        opacity var(--tt-out-dur) var(--tt-out-ease),
+        transform var(--tt-out-dur) var(--tt-out-ease);
+    }
+    html[data-theme="dark"] .cmp-tip {
+      box-shadow:
+        0 1px 16px 0 rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+    }
+    .cmp-info:hover .cmp-tip,
+    .cmp-info-btn:focus-visible + .cmp-tip,
+    .cmp-info.is-open .cmp-tip {
+      opacity: 1;
+      transform: scale(1);
+      transition-duration: var(--tt-in-dur);
+      transition-timing-function: var(--tt-in-ease);
+      transition-delay: var(--tt-delay);
+    }
+    @media (prefers-reduced-motion: reduce) { .cmp-tip { transition: none !important; } }
     html[data-theme="dark"] .pro-feature-check {
       background: rgba(255, 255, 255, 0.08);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -5313,6 +5388,7 @@
           <ul class="pro-feature-list">
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for solo builders and freelancers</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Studio access: deep customization of all seven libraries, with an AI coding agent</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-credit>Studio AI agent: 300 credits each month</span><span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="How far do credits go?" aria-describedby="tip-credit-pro">i</button><span class="cmp-tip" id="tip-credit-pro" role="tooltip" data-price-credit-tip>About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro presets and variants</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Every future library and update, free</li>
@@ -5336,7 +5412,7 @@
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Team MCP server: your brand kit and presets in every developer's coding agent</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Priority support</li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Extra Studio AI credit: $10 per seat each month (Pro has $3)</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Extra Studio AI agent credits: 1,000 per seat each month (Pro has 300)<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="How far do credits go?" aria-describedby="tip-credit-biz">i</button><span class="cmp-tip" id="tip-credit-biz" role="tooltip">About 500 edits a month for each seat. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Invite, remove and manage seats from your account</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Commercial license for your company, unlimited projects</li>
           </ul>
@@ -5497,7 +5573,7 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI credit per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. The Studio's AI agent comes as a bonus on Lifetime, a small monthly allowance capped in total, since it runs on live AI. Business is monthly or annual only.</p>
+            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. The Studio's AI agent comes as a bonus on Lifetime, a small monthly allowance capped in total, since it runs on live AI. Business is monthly or annual only.</p>
           </div></div>
         </div>
 
@@ -5607,9 +5683,10 @@
       /* ── Pricing: billing (Monthly/Annual/Lifetime) × plan (Pro/Business) ── */
       var PRICES = {
         solo: {
-          monthly: { v: "$9", per: "/mo", seat: "Billed monthly" },
-          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free" },
-          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal" }
+          monthly: { v: "$9", per: "/mo", seat: "Billed monthly", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
+          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
+          // Lifetime buys the Studio, not live AI: the agent is a capped bonus.
+          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", credit: "Studio AI agent bonus: 100 credits a month, up to 3,000 in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. A bonus, not part of the lifetime purchase." }
         },
         team: {
           monthly: { v: "$29", per: "/mo", seat: "Billed monthly" },
@@ -5765,6 +5842,10 @@
           if (perEl && p.per !== lastPer) swapText(perEl, p.per, priceReady, shrinking ? 200 : 0);
           card.setAttribute("data-last-per", p.per);
           if (seatEl) seatEl.textContent = p.seat;
+          var creditEl = card.querySelector("[data-price-credit]");
+          if (creditEl && p.credit && creditEl.textContent !== p.credit) swapText(creditEl, p.credit, priceReady, 0);
+          var tipEl = card.querySelector("[data-price-credit-tip]");
+          if (tipEl && p.tip) tipEl.textContent = p.tip;
           // Business goes inert under Lifetime (no lifetime plan to sell).
           var disabled = plan === "team" && curBilling === "lifetime";
           card.setAttribute("data-disabled", disabled ? "true" : "false");
@@ -5788,6 +5869,20 @@
         o.addEventListener("click", function () { setBilling(o.getAttribute("data-billing-opt")); });
       });
       renderPrice();
+      // Credit tooltips open on hover and keyboard focus (CSS); a tap
+      // toggles them on touch screens, and a tap elsewhere closes them.
+      document.querySelectorAll(".cmp-info-btn").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var wrap = btn.parentElement;
+          var open = !wrap.classList.contains("is-open");
+          document.querySelectorAll(".cmp-info.is-open").forEach(function (w) { w.classList.remove("is-open"); });
+          if (open) wrap.classList.add("is-open");
+        });
+      });
+      document.addEventListener("click", function () {
+        document.querySelectorAll(".cmp-info.is-open").forEach(function (w) { w.classList.remove("is-open"); });
+      });
       // Re-measure the pill once fonts settle and on resize so it stays
       // aligned to its tab.
       window.addEventListener("load", positionBillingIndicator);
