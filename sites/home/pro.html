@@ -4355,7 +4355,7 @@
     .pro-feature-check svg { width: 10px; height: 10px; display: block; }
     /* Credit lines: the text, then an info dot with a tooltip on how far
        the credits go (same tooltip as transitions.dev's pricing). The Pro
-       line swaps with billing, Lifetime's agent being a capped bonus, so it
+       line swaps with billing, Lifetime's agent credits being capped, so it
        borrows the text swap's blur but keeps the bullet's own type. */
     .pro-feature-text { display: block; min-width: 0; }
     .pro-credit-text.p6-text {
@@ -5573,7 +5573,7 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. The Studio's AI agent comes as a bonus on Lifetime, a small monthly allowance capped in total, since it runs on live AI. Business is monthly or annual only.</p>
+            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. Because the Studio's AI agent runs on live AI, Lifetime includes a limited amount of it: 100 credits a month, up to 3,000 in total. Business is monthly or annual only.</p>
           </div></div>
         </div>
 
@@ -5685,8 +5685,8 @@
         solo: {
           monthly: { v: "$9", per: "/mo", seat: "Billed monthly", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
           annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
-          // Lifetime buys the Studio, not live AI: the agent is a capped bonus.
-          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", credit: "Studio AI agent bonus: 100 credits a month, up to 3,000 in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. A bonus, not part of the lifetime purchase." }
+          // Lifetime buys the Studio, not live AI: agent credits are capped in total.
+          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", credit: "Studio AI agent: 100 credits a month, up to 3,000 in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. Once the 3,000 are used, the agent stops; the rest of the Studio keeps working." }
         },
         team: {
           monthly: { v: "$29", per: "/mo", seat: "Billed monthly" },
