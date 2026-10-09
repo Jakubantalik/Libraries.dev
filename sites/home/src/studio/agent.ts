@@ -48,6 +48,8 @@ const MESSAGES: Record<string, string> = {
     "You've hit this month's agent limit. Manual control still works, and the limit resets next month.",
   user_budget_exhausted:
     "You've used all your monthly agent tokens. Manual control still works, and your allowance resets next month.",
+  lifetime_credit_used:
+    "You've used the agent credit that comes with Lifetime. Manual control and everything else in the Studio still work; a Pro subscription adds a monthly agent allowance.",
   budget_exhausted:
     "The agent is paused for the rest of this month. Manual control still works — nothing you tuned is lost.",
   unknown_library: "The agent doesn't know this library yet.",

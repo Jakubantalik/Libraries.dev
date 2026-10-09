@@ -137,6 +137,11 @@ const BUSINESS_MONTHLY_TURN_CAP = 500;
    seat on the same account lifts it to that plan's allowance. */
 const LIFETIME_MONTHLY_BUDGET_USD = 1;
 const LIFETIME_MONTHLY_TURN_CAP = 50;
+/* And a ceiling over the account's whole life, so the bonus is a fixed
+   amount rather than a monthly payout forever. The monthly cap above paces
+   it; once this total is spent the agent stays off for that account until it
+   takes a subscription or a Business seat. Never expires. */
+const LIFETIME_TOTAL_BUDGET_USD = 10;
 
 /* claude-opus-5, USD per million tokens. Cache writes cost 1.25x input and
    reads 0.1x; the system prompt is the only cached block, so a read-heavy
@@ -311,16 +316,22 @@ export async function handleStudioChat(
   const usageKey = `studio:${session.userId}:${month}`;
   const userSpendKey = `studio:spend:${session.userId}:${month}`;
   const spendKey = `studio:spend:${month}`;
+  const lifetimeKey = `studio:lifetime-spend:${session.userId}`;
 
-  const [usedRaw, userSpentRaw, spentRaw] = await Promise.all([
+  const [usedRaw, userSpentRaw, spentRaw, lifetimeRaw] = await Promise.all([
     env.STUDIO_USAGE.get(usageKey),
     env.STUDIO_USAGE.get(userSpendKey),
     env.STUDIO_USAGE.get(spendKey),
+    session.lifetime ? env.STUDIO_USAGE.get(lifetimeKey) : Promise.resolve(null),
   ]);
   const used = Number(usedRaw ?? 0);
   const userSpent = Number(userSpentRaw ?? 0);
   const spent = Number(spentRaw ?? 0);
+  const lifetimeSpent = Number(lifetimeRaw ?? 0);
 
+  if (session.lifetime && lifetimeSpent >= LIFETIME_TOTAL_BUDGET_USD) {
+    return json({ error: "lifetime_credit_used" }, 429);
+  }
   if (used >= turnCap) return json({ error: "turn_cap_reached" }, 429);
   if (userSpent >= userBudget) return json({ error: "user_budget_exhausted" }, 429);
   if (spent >= MONTHLY_BUDGET_USD) return json({ error: "budget_exhausted" }, 429);
@@ -488,6 +499,8 @@ export async function handleStudioChat(
            low under load. Acceptable for a backstop whose hard counterpart
            is the Console spend limit; it is not an accounting record. */
         env.STUDIO_USAGE.put(spendKey, (spent + cost).toFixed(4), { expirationTtl }),
+        /* No TTL: the lifetime total must outlive every month. */
+        ...(session.lifetime ? [env.STUDIO_USAGE.put(lifetimeKey, (lifetimeSpent + cost).toFixed(4))] : []),
       ]);
 
       if (track) {
@@ -509,7 +522,10 @@ export async function handleStudioChat(
           type: "done",
           usage: { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, costUsd: cost },
           turnsRemaining: Math.max(0, turnCap - used - 1),
-          budgetRemainingUsd: Math.max(0, userBudget - userSpent - cost),
+          budgetRemainingUsd: Math.max(0, Math.min(
+            userBudget - userSpent - cost,
+            session.lifetime ? LIFETIME_TOTAL_BUDGET_USD - lifetimeSpent - cost : Infinity
+          )),
         })
       );
     } catch (err) {
