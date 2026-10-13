@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Cloudflare Pages serves this with a real 404 status for any path that
+       has no page. Without it, unknown URLs answered 200 with the homepage,
+       which search engines read as duplicate pages. -->
+  <title>Page not found | Libraries.dev</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root { color-scheme: dark; --bg: #121212; --text: #ededed; --muted: rgba(202, 202, 202, 0.7); --pill: rgba(255, 255, 255, 0.06); }
+    @media (prefers-color-scheme: light) {
+      :root { color-scheme: light; --bg: #fafafa; --text: #17181c; --muted: rgba(23, 24, 28, 0.6); --pill: rgba(0, 0, 0, 0.05); }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 32px 16px; background: var(--bg); color: var(--text);
+      font-family: Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
+    }
+    main { max-width: 520px; text-align: center; }
+    .brand { color: var(--text); text-decoration: none; font-weight: 500; font-size: 15px; }
+    .brand span { color: var(--muted); }
+    h1 { margin: 40px 0 8px; font-size: 32px; font-weight: 500; letter-spacing: -0.01em; }
+    p { margin: 0 0 32px; color: var(--muted); font-size: 15px; line-height: 22px; }
+    nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    nav a {
+      display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px;
+      background: var(--pill); color: var(--text); text-decoration: none; font-size: 13px;
+    }
+    nav a:hover { background: rgba(127, 127, 127, 0.18); }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="brand" href="/">Libraries<span>.dev</span></a>
+    <h1>Page not found</h1>
+    <p>This page doesn't exist or has moved. These are the libraries:</p>
+    <nav aria-label="Libraries">
+      <a href="/beam">Border beam</a>
+      <a href="/orbs">Thinking orbs</a>
+      <a href="/gooey">Gooey</a>
+      <a href="/voice">Voice</a>
+      <a href="/bots">Bot avatars</a>
+      <a href="/metal">Metal</a>
+      <a href="/image">Image</a>
+      <a href="/">Home</a>
+    </nav>
+  </main>
+</body>
+</html>

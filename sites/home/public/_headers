@@ -14,3 +14,12 @@
   Cache-Control: public, max-age=0, must-revalidate
 /assets/examples.css
   Cache-Control: public, max-age=0, must-revalidate
+
+# Agent-facing docs are plain text and markdown; say so, so agents and
+# crawlers don't treat them as HTML.
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+/llms/*
+  Content-Type: text/markdown; charset=utf-8
