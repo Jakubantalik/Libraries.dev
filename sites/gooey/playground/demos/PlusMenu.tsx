@@ -63,7 +63,7 @@ interface MenuState {
 const DEFAULTS: MenuState = {
   openDur: 550,
   openEase: 'Bouncy',
-  openStagger: 40,
+  openStagger: 0,
   closeDur: 250,
   closeEase: 'Snappy',
   closeStagger: 0,

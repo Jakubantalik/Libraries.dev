@@ -98,10 +98,9 @@ const GOOEY_PARAM_LABELS: Record<string, string> = {
    Figma elevation. */
 const LIQUID_SHADOW: Record<GooeyTheme, string> = {
   dark:
-    "0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 1px 0 0 rgba(255, 255, 255, 0.03) inset, " +
-    "0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 6px 0 rgba(0, 0, 0, 0.05), 0 4px 42px 0 rgba(0, 0, 0, 0.24)",
+    "0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 1px 0 0 rgba(255, 255, 255, 0.03) inset",
   light:
-    "0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05), 0 4px 42px rgba(0, 0, 0, 0.06)",
+    "",
 };
 
 /* Content ink flips with the liquid's luminance so icons stay legible on
@@ -183,7 +182,7 @@ const MORPH_DEFAULTS: MorphKnobs = {
   openDur: 550,
   closeDur: 250,
   openEase: "Bouncy",
-  openStagger: 40,
+  openStagger: 0,
   closeStagger: 0,
   spread: 1,
   anticipDist: 5,
