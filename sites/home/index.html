@@ -72,6 +72,26 @@
     crossorigin
   />
   <link rel="stylesheet" href="/assets/site.css" />
+  <!-- Hero tiles arrive with transitions.dev's UI-generation skeleton
+       (hero-tiles.tsx). Hidden before first paint so the static tiles never
+       flash ahead of their drawing; skipped under reduced motion, and lifted
+       after 4s whatever happens so a failed script can't leave them hidden. -->
+  <link rel="stylesheet" href="/assets/ui-generation.css" />
+  <style>
+    .tile-gen-pending .hero-tile { opacity: 0; }
+    /* The drawing sits at half strength over the hero, so it reads as a
+       sketch of the tiles rather than competing with the headline. */
+    .t-gen { opacity: 0.5; }
+    /* Each tile's clip art as geometry for the skeleton to trace; it never
+       paints (hero-tiles.tsx). */
+    .hero-tile-trace { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: none; pointer-events: none; }
+  </style>
+  <script>
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.classList.add("tile-gen-pending");
+      setTimeout(function () { document.documentElement.classList.remove("tile-gen-pending"); }, 4000);
+    }
+  </script>
   <script>
     (function () {
       var h = document.documentElement;
@@ -165,15 +185,20 @@
          lift below can compose with a dropped tile's position instead of
          being shadowed by it. */
       transform: translate(var(--drag-x, 0px), var(--drag-y, 0px));
+      /* Magnetic hover (hero-tiles.tsx writes --mx/--my): design.how's
+         primitives lean toward the pointer on `translate`, a property of
+         its own, so it composes with the drag offset and lift above. */
+      translate: var(--mx, 0px) var(--my, 0px);
       transition:
         background-color 0.15s ease,
         transform var(--tile-lift-dur, var(--duration-medium))
-                  var(--tile-lift-ease, cubic-bezier(0.34, 1.85, 0.64, 1));
+                  var(--tile-lift-ease, cubic-bezier(0.34, 1.85, 0.64, 1)),
+        translate 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
       z-index: 5;
     }
     /* Mid-drag the transform must track the pointer raw — the 350ms bounce
        above would trail it by a third of a second. */
-    .hero-tile[data-dragging="true"] { transition: background-color 0.15s ease; }
+    .hero-tile[data-dragging="true"] { transition: background-color 0.15s ease, translate 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
     /* Hover lifts the tile 6px over 350ms on a softened bounce curve, so it
        overshoots a little and settles. The curve sits between --ease-bounce
        and --ease-bounce-strong, so it's spelled out rather than tokenised.
@@ -244,11 +269,15 @@
          transform the scale is written into. */
       transform: translateX(-50%) scale(var(--dropdown-pre-scale));
       transform-origin: top center;
+      /* Against the tile's magnetic lean, at half strength and on a slower
+         ease, so the label stays put while the tile reaches for the pointer. */
+      translate: calc(var(--mx, 0px) * -0.5) calc(var(--my, 0px) * -0.5);
       opacity: 0;
       pointer-events: none;
       transition:
         transform var(--dropdown-close-dur) var(--dropdown-ease),
-        opacity var(--dropdown-close-dur) var(--dropdown-ease);
+        opacity var(--dropdown-close-dur) var(--dropdown-ease),
+        translate 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
       will-change: transform, opacity;
     }
     .hero-tile-pill svg { width: 16px; height: 16px; display: block; color: #9a9a9a; transform: rotate(-90deg); }
@@ -258,10 +287,11 @@
       opacity: 1;
       transition:
         transform var(--dropdown-open-dur) var(--dropdown-ease),
-        opacity var(--dropdown-open-dur) var(--dropdown-ease);
+        opacity var(--dropdown-open-dur) var(--dropdown-ease),
+        translate 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     @media (prefers-reduced-motion: reduce) {
-      .hero-tile-pill, .hero-tile { transition: none; }
+      .hero-tile-pill, .hero-tile { transition: none; translate: none; }
       .hero-tile:hover, .hero-tile:focus-visible {
         transform: translate(var(--drag-x, 0px), var(--drag-y, 0px));
       }
