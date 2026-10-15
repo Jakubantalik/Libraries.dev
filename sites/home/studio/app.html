@@ -392,6 +392,10 @@
         border-radius: 12px;
       }
       .st-main .pg-stage { align-self: stretch; }
+      /* The stage keeps the colour it had on the page ground (4% white over
+         #070707): on the lighter card the same tint would read grey. */
+      html[data-theme="dark"] .st-main .pg-stage,
+      html:not([data-theme="light"]) .st-main .pg-stage { background: #111111; }
       .st-main .pg-snippet { margin: 0 12px 12px; width: auto; min-width: 0; border-radius: 12px; }
       .st-main .pg-snippet .code-block { border-radius: 12px; }
       /* In the code view the panel is the last thing in the card. */
