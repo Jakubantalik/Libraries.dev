@@ -365,6 +365,9 @@
          under it either way. */
       max-height: calc(100dvh - 68px - 24px);
       overflow: hidden;
+      /* The transitions.dev Studio panel's insets: 12px at the sides and
+         foot, the header pulled up to 9px from the top (see the head rule). */
+      padding: 16px 12px 12px;
     }
     /* Only the knob list scrolls — the mode tabs and the actions row stay put. */
     /* Only the knob list scrolls, and only vertically. The section rules are
@@ -376,8 +379,8 @@
       overflow-y: auto;
       overflow-x: hidden;
       min-height: 0;
-      padding-inline: 16px;
-      margin-inline: -16px;
+      padding-inline: 12px;
+      margin-inline: -12px;
       /* The scroll box starts AT the header's rule (the panel's 16px gap is
          cancelled and re-added as padding), so scrolling content is clipped
          by the line itself instead of 16px under it — which read as a header
@@ -388,25 +391,23 @@
          edge, so scrolling content was cut 16px above the card and read as
          cropped. Now it clips at the card's own edge, and the 16px comes
          back as padding so the last row still has air at the end. */
-      margin-bottom: -16px;
-      padding-bottom: 16px;
+      margin-bottom: -12px;
+      padding-bottom: 12px;
     }
     /* The rules run the card's full width: the scroll box carries the
        panel's 16px inset as its own padding, so -16px lands exactly on the
        card's edge — inside the box, so it neither clips nor scrolls. */
     .st-main .pg-controls .st-panel-body > .pg-field::before {
-      left: -16px;
-      right: -16px;
+      left: -12px;
+      right: -12px;
     }
     /* The head is the panel's sticky header: it sits outside the scroll box,
        so it holds while the knobs scroll under it. The rule that used to be
        drawn by the body's ::before now belongs to the head — the body clips
        its own overflow, and a line drawn above its content box would be cut. */
     .st-main .pg-controls .st-panel-head {
-      padding-inline: 16px;
-      margin-inline: -16px;
-      padding-bottom: 16px;
-      margin-bottom: 0;
+      padding: 0 9px 9px;
+      margin: -7px -12px 0;
       border-bottom: 1px solid var(--pg-rule);
     }
     .st-main .pg-controls > .st-panel-body::before { content: none; }
