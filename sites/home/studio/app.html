@@ -392,10 +392,14 @@
         border-radius: 12px;
       }
       .st-main .pg-stage { align-self: stretch; }
-      /* The stage keeps the colour it had on the page ground (4% white over
-         #070707): on the lighter card the same tint would read grey. */
+      /* The stage and the code keep the colour they had on the page ground
+         (4% white over #070707): on the lighter card that tint reads grey. */
       html[data-theme="dark"] .st-main .pg-stage,
-      html:not([data-theme="light"]) .st-main .pg-stage { background: #111111; }
+      html:not([data-theme="light"]) .st-main .pg-stage,
+      html[data-theme="dark"] .st-main .pg-snippet,
+      html:not([data-theme="light"]) .st-main .pg-snippet,
+      html[data-theme="dark"] .st-main .st-stage-panel,
+      html:not([data-theme="light"]) .st-main .st-stage-panel { background: #111111; }
       .st-main .pg-snippet { margin: 0 12px 12px; width: auto; min-width: 0; border-radius: 12px; }
       .st-main .pg-snippet .code-block { border-radius: 12px; }
       /* In the code view the panel is the last thing in the card. */
