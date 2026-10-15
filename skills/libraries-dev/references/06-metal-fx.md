@@ -45,7 +45,7 @@ import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } 
 - Requires WebGL2. Without it `<MetalFx>` renders the child as-is inside `div.metal-fx-fallback[data-metal-fx-unsupported]`.
 - Styles are injected into `<head>` on import; no CSS file to add.
 - The package ships no `"use client"` directive. In the Next.js App Router, import it from a file marked `"use client"`.
-- Native ports (shown on the detail page, not on npm): React Native `metal-fx-native` (Skia + Reanimated 4) and SwiftUI `MetalFxKit` (iOS 17+), both under `ports/` (in this repo at `packages/metal-fx/ports/`); the SwiftUI one installs from GitHub through the repo's root `Package.swift`.
+- SwiftUI port (shown on the detail page): `MetalFxKit` (iOS 17+) at `packages/metal-fx/ports/ios/MetalFxKit`, installed from GitHub through the repo's root `Package.swift`.
 
 ## Basic usage
 
@@ -59,23 +59,6 @@ import { MetalFx, MetalText, MetalBadge } from 'metal-fx';
 <MetalText font="500 24px/1.2 Inter" color="#E2E2E2">Pro</MetalText>
 <MetalBadge>New</MetalBadge>
 // v1 engine: npm install metal-fx@1
-```
-
-React Native (not on npm yet; lives at `ports/react-native/metal-fx-native`; Expo needs `expo run:ios` / `run:android`):
-
-```bash
-npm install metal-fx-native @shopify/react-native-skia react-native-reanimated react-native-worklets
-```
-
-```tsx
-import { MetalFx, MetalText, MetalBadge, MetalReflection, MetalEdgeHalo } from 'metal-fx-native';
-<MetalFx variant="circle" preset="chromatic" strength={0.9} innerShadow id="send">
-  <View style={{ width: 40, height: 40 }}><ArrowUp /></View>
-</MetalFx>
-<MetalReflection of="send"><Chip label="Auto" /></MetalReflection>
-<MetalText fontSize={24} fontWeight="500">Pro</MetalText>
-<MetalBadge>New</MetalBadge>
-<MetalEdgeHalo style={styles.card}>…a ring with an id…</MetalEdgeHalo>
 ```
 
 SwiftUI (iOS 17+, build through Xcode so the Metal shader compiles):
@@ -95,10 +78,14 @@ MetalFx(variant: .circle, preset: .chromatic, strength: 0.9, innerShadow: true, 
 Text("Auto").metalReflection(of: "send")
 MetalText("Pro")
 MetalBadge("New")
-card.metalEdgeHalo()   // on the view touching the screen edge
+
+// Bend toward a magnet near the phone instead of the tilt:
+MetalFx(variant: .circle, source: .magnet) {
+    Image(systemName: "arrow.right").frame(width: 52, height: 52)
+}
 ```
 
-On phones there is no cursor: device tilt bends the rings.
+On phones there is no cursor: device tilt bends the rings, or a magnet with `source: .magnet`.
 
 Playground snippet, type "Circle button" (all toggles off):
 
