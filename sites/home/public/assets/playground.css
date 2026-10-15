@@ -2176,6 +2176,123 @@ html[data-theme="light"] .st-chat-composer {
   --cmp-btn-ink-on: #151515;
 }
 
+/* ── Agent composer, two rows (the transitions.dev Studio layout) ──
+   The text on top, and under it the + (attach image) and send. Attached
+   images sit above the text as 28px chips; a turn's images show as 56px
+   thumbnails in its bubble. While a turn runs, send becomes Stop. */
+.st-chat-composer {
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0 8px 8px;
+}
+.st-chat-input {
+  flex: 1 0 100%;
+  min-height: 32px;
+  box-sizing: border-box;
+  padding: 9px 4px 3px;
+  line-height: 20px;
+  max-height: calc(7 * 20px + 12px);
+  scrollbar-width: none;
+}
+/* What you type for the next turn stays readable while one runs; only the
+   placeholder dims. */
+.st-chat-composer[data-busy] .st-chat-input { color: var(--cmp-text-filled); }
+.st-chat-foot { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.st-chat-grow { flex: 1 1 auto; min-width: 0; }
+.st-chat-foot .st-chat-send { margin: 0; }
+.st-chat-plus {
+  flex: none;
+  width: 28px; height: 28px;
+  display: inline-grid; place-items: center;
+  padding: 0; border: 0; border-radius: 8px;
+  background: var(--cmp-btn-bg);
+  box-shadow: var(--cmp-btn-ring);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 160ms var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+  -webkit-tap-highlight-color: transparent;
+}
+.st-chat-plus svg { width: 16px; height: 16px; display: block; }
+.st-chat-plus:hover { color: var(--text); background: var(--cmp-bg-lift); }
+.st-chat-plus:active { transform: scale(0.95); }
+.st-chat-plus:disabled { opacity: 0.4; cursor: default; }
+.st-chat-plus:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
+.st-chat-send.is-stop { background: var(--cmp-btn-bg-on); box-shadow: var(--cmp-btn-ring-on); color: var(--cmp-btn-ink-on); cursor: pointer; }
+.st-chat-send.is-stop svg { width: 14px; height: 14px; }
+
+.st-chat-imgs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.st-chat-composer .st-chat-imgs { flex: 1 0 100%; padding: 8px 4px 0; }
+.st-chat-img {
+  position: relative;
+  flex: none;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  animation: st-img-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-theme="light"] .st-chat-img { background: rgba(0, 0, 0, 0.05); }
+.st-chat-img::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+html[data-theme="light"] .st-chat-img::before { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.st-chat-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.st-chat-img.is-loading { animation: st-img-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both, st-img-wait 1s ease-in-out infinite alternate; }
+@keyframes st-img-in { from { opacity: 0; transform: scale(0.8); } }
+@keyframes st-img-wait { to { background: rgba(127, 127, 127, 0.2); } }
+.st-chat-img-x {
+  position: absolute; inset: 0; z-index: 2;
+  display: grid; place-items: center;
+  padding: 0; border: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+.st-chat-img-x svg { width: 14px; height: 14px; }
+.st-chat-img:hover .st-chat-img-x, .st-chat-img-x:focus-visible { opacity: 1; }
+.st-chat-img-x:focus-visible { outline: 2px solid #ffffff; outline-offset: -2px; }
+@media (hover: none) { .st-chat-img-x { opacity: 1; background: rgba(0, 0, 0, 0.35); } }
+.st-chat-msg .st-chat-imgs--sent { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.st-chat-msg .st-chat-imgs--sent .st-chat-img { width: 56px; height: 56px; animation: none; }
+.st-chat-msg[data-role="user"]:has(.st-chat-imgs--sent) { white-space: normal; }
+
+/* Drag an image over the agent tab: a dashed drop target over it. */
+.st-chat { position: relative; }
+.st-chat::after {
+  content: "Drop images to attach";
+  position: absolute; inset: 0; z-index: 6;
+  display: grid; place-items: center;
+  box-sizing: border-box;
+  border: 1.5px dashed rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(27, 27, 27, 0.92);
+  color: var(--text);
+  font: 500 13px/16px var(--font-sans);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+html[data-theme="light"] .st-chat::after { border-color: rgba(0, 0, 0, 0.22); background: rgba(255, 255, 255, 0.9); }
+.st-chat.is-drop::after { opacity: 1; }
+
+/* A detail beside the status line, such as a core's growing line count. */
+.st-think-meta {
+  flex: none;
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-subtle);
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-chat-img, .st-chat-img.is-loading { animation: none; }
+}
+
 /* ── Docs prose: the written pages in the docs shell ──────────
    Same sidebar + main column as a library page; the main column
    carries prose instead of tabs and panels. */

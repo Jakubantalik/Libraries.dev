@@ -10,6 +10,9 @@
 export interface AgentEventHandlers {
   onText: (delta: string) => void;
   onParams: (patch: Record<string, unknown>) => void;
+  /** What the agent is doing right now ("Thinking it through"), with an
+      optional detail such as a line count. */
+  onStatus?: (text: string, meta?: string) => void;
 }
 
 export interface AgentTurnResult {
@@ -53,11 +56,20 @@ const MESSAGES: Record<string, string> = {
   budget_exhausted:
     "The agent is paused for the rest of this month. Manual control still works — nothing you tuned is lost.",
   unknown_library: "The agent doesn't know this library yet.",
+  too_many_images: "Up to 4 images per message.",
+  image_too_large: "That image is too large. Try a smaller one.",
+  invalid_image: "That file isn't an image the agent can read. Use PNG, JPEG, WebP or GIF.",
 };
 
 export interface ChatTurn {
   role: "user" | "agent";
   text: string;
+}
+
+/** A reference image as the API takes it: base64 without the data: prefix. */
+export interface AgentImage {
+  media_type: string;
+  data: string;
 }
 
 export async function streamAgentTurn(
@@ -71,6 +83,8 @@ export async function streamAgentTurn(
     coreError?: string;
     /** false = the user opted out of anonymous prompt analytics. */
     analytics?: boolean;
+    /** Images attached to the newest message. */
+    images?: AgentImage[];
     signal?: AbortSignal;
   },
   handlers: AgentEventHandlers
@@ -84,7 +98,9 @@ export async function streamAgentTurn(
       body: JSON.stringify({
         library: args.library,
         params: args.params,
-        messages: args.messages,
+        messages: args.images?.length
+          ? args.messages.map((m, i) => (i === args.messages.length - 1 ? { ...m, images: args.images } : m))
+          : args.messages,
         coreSource: args.coreSource,
         coreError: args.coreError,
         analytics: args.analytics,
@@ -133,7 +149,9 @@ export async function streamAgentTurn(
         continue;
       }
 
-      if (event.type === "text") {
+      if (event.type === "status") {
+        handlers.onStatus?.(String(event.text ?? ""), event.meta ? String(event.meta) : undefined);
+      } else if (event.type === "text") {
         handlers.onText(String(event.text ?? ""));
       } else if (event.type === "params") {
         const patch = (event.patch ?? {}) as Record<string, unknown>;
