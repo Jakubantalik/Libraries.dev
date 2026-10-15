@@ -380,6 +380,11 @@
       .st-main .pg > .pg-stage,
       .st-main .pg > .st-stage-panel,
       .st-main .pg > .pg-snippet { position: relative; z-index: 1; }
+      /* The bar holds the Presets menu, which drops over the stage: it has
+         to sit above the stage, not level with it. */
+      .st-main .pg > .st-stage-bar { z-index: 3; }
+      /* Copy prompt as the transitions.dev Studio pill: 10px before the icon, 12px after the label. */
+      .st-main .st-stage-bar .detail-prompt { padding: 0 12px 0 10px; }
       .st-main .st-stage-bar {
         min-height: 55px;
         box-sizing: border-box;
