@@ -237,17 +237,20 @@ function MetalPlayground() {
   const [paused, setPaused] = useState(true);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
-  // v2 only: the ring lights the pointer (macOS sprite). Global config, so
-  // it is applied as an effect and restored when the page unmounts.
-  const [noCursor, setNoCursor] = useState(false);
+  // v2 only: the ring lights the pointer (macOS sprite). Off by default on
+  // this page, an opt-in option: the pointer sprite is a lot of motion to
+  // meet before you've touched anything. Global config, so it is applied as
+  // an effect and the library default (on) is restored when the page
+  // unmounts.
+  const [cursorReflection, setCursorReflection] = useState(false);
   useEffect(() => {
-    setCursorLightConfig({ cursor: family === "v2" && !noCursor });
+    setCursorLightConfig({ cursor: family === "v2" && cursorReflection });
     return () => setCursorLightConfig({ cursor: true });
-  }, [family, noCursor]);
+  }, [family, cursorReflection]);
   const playPauseRef = useRef<HTMLButtonElement>(null);
 
   const snippet = family === "v2"
-    ? buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection, noCursor)
+    ? buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection, !cursorReflection)
     : buildSnippetV1(variant, PRESET, STRENGTH / 100, disableGlow, disableReflection);
 
   return (
@@ -320,11 +323,11 @@ function MetalPlayground() {
               <button
                 type="button"
                 className="pg-toggle"
-                aria-pressed={noCursor}
-                data-active={noCursor}
-                onClick={() => setNoCursor((c) => !c)}
+                aria-pressed={cursorReflection}
+                data-active={cursorReflection}
+                onClick={() => setCursorReflection((c) => !c)}
               >
-                No Cursor Reflection
+                Cursor Reflection
               </button>
             )}
           </div>
