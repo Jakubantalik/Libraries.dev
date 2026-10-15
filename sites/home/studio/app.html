@@ -354,6 +354,51 @@
       background: var(--stage-bg);
     }
     .st-main .pg-stage::after { content: none; }
+    /* ── Preview column as one card (the transitions.dev Studio layout) ──
+       The bar, the stage and the code sit on a single panel-coloured card
+       that runs the panel's full height: the bar is the card's header (9px
+       inset, a rule under it, like the panel head), and the stage and code
+       are inset 12px on the card's 4% tint at a 12px radius. The card is the
+       grid's ::before, spanning the left column, so no markup changes. */
+    @media (min-width: 981px) {
+      .st-main .pg {
+        position: relative;
+        grid-template-rows: auto 1fr auto;
+        min-height: calc(100dvh - 68px - 24px);
+      }
+      .st-main .pg::before {
+        content: "";
+        grid-column: 1;
+        grid-row: 1 / 4;
+        align-self: stretch;
+        border-radius: 16px;
+        background: var(--pg-panel-bg);
+        box-shadow: var(--pg-panel-shadow);
+        pointer-events: none;
+      }
+      .st-main .pg > .st-stage-bar,
+      .st-main .pg > .pg-stage,
+      .st-main .pg > .st-stage-panel,
+      .st-main .pg > .pg-snippet { position: relative; z-index: 1; }
+      .st-main .st-stage-bar {
+        min-height: 55px;
+        box-sizing: border-box;
+        padding: 9px 11px 9px 9px;
+        border-bottom: 1px solid var(--pg-rule);
+      }
+      .st-main .pg-stage,
+      .st-main .st-stage-panel {
+        margin-inline: 12px;
+        border-radius: 12px;
+      }
+      .st-main .pg-stage { align-self: stretch; }
+      .st-main .pg-snippet { margin: 0 12px 12px; width: auto; min-width: 0; border-radius: 12px; }
+      .st-main .pg-snippet .code-block { border-radius: 12px; }
+      /* In the code view the panel is the last thing in the card. */
+      .st-main .st-stage-bar:not([data-view="preview"]) ~ .st-stage-panel { margin-bottom: 12px; }
+      /* Both columns run the same height, as in transitions.dev. */
+      .st-main .pg-controls { height: calc(100dvh - 68px - 24px); }
+    }
     .st-main .pg-controls {
       grid-column: 2;
       grid-row: 1 / 4;
