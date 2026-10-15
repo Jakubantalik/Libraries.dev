@@ -7,6 +7,7 @@ dist-playground
 *.log
 .wrangler
 ports/ios/MetalFxDemo/build
+ports/ios/MetalFxDemo/build-device
 ports/ios/**/*.xcodeproj
 ports/react-native/example/ios
 ports/react-native/example/android

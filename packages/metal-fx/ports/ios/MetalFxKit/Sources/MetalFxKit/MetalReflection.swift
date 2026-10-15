@@ -29,9 +29,15 @@ struct MetalReflectionModifier: ViewModifier {
 
     @ObservedObject private var store = MetalFrameStore.shared
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.metalMaskPass) private var maskPass
     @State private var frame: CGRect = .zero
 
     func body(content: Content) -> some View {
+        if maskPass { content } else { reflected(content) }
+    }
+
+    @ViewBuilder
+    private func reflected(_ content: Content) -> some View {
         content
             .background {
                 GeometryReader { g in

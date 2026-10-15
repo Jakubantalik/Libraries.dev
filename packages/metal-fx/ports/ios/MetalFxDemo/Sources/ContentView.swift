@@ -1,10 +1,10 @@
 import SwiftUI
 import MetalFxKit
 
-/// The metal-fx v2 demo page's cards, on the phone: the composer with its
-/// send button (reflecting onto the Auto chip), "Plan Pro", "Live mode · New",
-/// and a button parked at the screen edge for the edge halo. Tilt the phone
-/// to bend the rings; in the Simulator, drag the tilt pad.
+/// The metal-fx v2 demo page's cards, on the phone: the magnet demos, the
+/// composer with its send button (reflecting onto the Auto chip), "Plan Pro"
+/// and "Live mode · New". Tilt the phone to bend the rings; in the
+/// Simulator, drag the tilt pad.
 struct ContentView: View {
     @State private var strength = 0.9
     @State private var preset: MetalPreset = .chromatic
@@ -13,6 +13,8 @@ struct ContentView: View {
     @State private var glowGain = 1.0
     /// Launch arguments for headless checks: `-focus edge -holdTilt YES -glowGain 2`.
     @State private var focus = UserDefaults.standard.string(forKey: "focus") ?? "all"
+    @State private var showFerro = false
+    @State private var showEmail = false
 
     private let page = Color(hex: 0x0F0F0F)
     private let card = Color(hex: 0x171717)
@@ -21,20 +23,30 @@ struct ContentView: View {
     private let secondary = Color(hex: 0x999999)
 
     var body: some View {
+        if focus == "ferro" {
+            FerrofluidView()
+        } else if focus == "email" {
+            MagnetEmailView()
+        } else {
+            page_
+                .fullScreenCover(isPresented: $showFerro) { FerrofluidView(onClose: { showFerro = false }) }
+                .fullScreenCover(isPresented: $showEmail) { MagnetEmailView(onClose: { showEmail = false }) }
+        }
+    }
+
+    private var page_: some View {
         ScrollView {
             VStack(spacing: 12) {
-                if focus == "edge" {
-                    edgeCard
-                    controls
-                } else if focus == "composer" {
+                if focus == "composer" {
                     composerCard
                     controls
                 } else {
                     header
+                    ferroCard
+                    emailCard
                     composerCard
                     planProCard
                     liveModeCard
-                    edgeCard
                     controls
                 }
                 Spacer(minLength: 24)
@@ -47,7 +59,6 @@ struct ContentView: View {
             let d = UserDefaults.standard
             if d.object(forKey: "glowGain") != nil { glowGain = d.double(forKey: "glowGain") }
             if d.bool(forKey: "holdTilt") { holdTilt = true; MetalTiltSource.shared.override = CGVector(dx: 0.45, dy: 0.3) }
-            if d.bool(forKey: "haloDebug") { MetalEdgeHaloDebug.enabled = true }
         }
     }
 
@@ -57,6 +68,42 @@ struct ContentView: View {
             Text("metal-fx v2 · SwiftUI").font(.system(size: 15)).foregroundStyle(secondary)
         }
         .padding(.vertical, 24)
+    }
+
+    /// Entry to the magnet demo.
+    private var ferroCard: some View {
+        Button { showFerro = true } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Ferrofluid").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                    Text("Bring a magnet close — the ring bends toward it").font(.system(size: 13)).foregroundStyle(secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(secondary)
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 84)
+            .background(card, in: RoundedRectangle(cornerRadius: 26))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Entry to the Continue button demo (the Figma screen with the metal arrow).
+    private var emailCard: some View {
+        Button { showEmail = true } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Continue button").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                    Text("The arrow button follows a magnet").font(.system(size: 13)).foregroundStyle(secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(secondary)
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 84)
+            .background(card, in: RoundedRectangle(cornerRadius: 26))
+        }
+        .buttonStyle(.plain)
     }
 
     private var composerCard: some View {
@@ -119,31 +166,6 @@ struct ContentView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 170)
         .background(card, in: RoundedRectangle(cornerRadius: 36))
-    }
-
-    /// A ring parked against the right edge of the screen.
-    private var edgeCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Edge halo").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                Text("Light leaves through the glass edge").font(.system(size: 13)).foregroundStyle(secondary)
-            }
-            Spacer()
-            MetalFx(variant: .circle, preset: preset, theme: .dark, strength: strength, innerShadow: true, id: "edge") {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color(hex: 0xF8F8F8))
-                    .frame(width: 40, height: 40)
-            }
-            .padding(.trailing, -4)
-        }
-        .padding(.leading, 24)
-        .frame(maxWidth: .infinity)
-        .frame(height: 120)
-        .background(card, in: RoundedRectangle(cornerRadius: 30))
-        .padding(.trailing, -12)
-        // The card touches the screen edge, so it hosts the halo.
-        .metalEdgeHalo()
     }
 
     private var controls: some View {

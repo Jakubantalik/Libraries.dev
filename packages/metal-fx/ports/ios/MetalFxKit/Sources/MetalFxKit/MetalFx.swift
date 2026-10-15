@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Per-instance state that outlives view updates: the pause clock, the bend
 /// simulation, the glow state machine, and the last-known geometry that
-/// reflections and the edge halo read from.
+/// reflections read from.
 public final class MetalFxModel: ObservableObject {
     let clock = MetalInstanceClock()
     let bend = MetalBendModel()
@@ -20,6 +20,7 @@ public final class MetalFxModel: ObservableObject {
     /// Text / badge anchors: the whole box is metal (a masked sheet), not a band.
     var isSheet = false
     var tiltAttached = false
+    var magnetAttached = false
     var registeredID: String?
 
     public init() {}
@@ -30,7 +31,7 @@ public final class MetalFxModel: ObservableObject {
 }
 
 /// Registry of on-screen anchors (rings, text, badges) by id — what
-/// `.metalReflection(of:)` and `.metalEdgeHalo()` look up.
+/// `.metalReflection(of:)` looks up.
 public final class MetalFrameStore: ObservableObject {
     public static let shared = MetalFrameStore()
     @Published private(set) var anchors: [String: MetalFxModel] = [:]
@@ -101,6 +102,31 @@ extension MetalMaterial {
 /// screen edge glow from it.
 public enum MetalFxVariant: Sendable { case button, circle }
 
+/// What bends the ring.
+public enum MetalBendSource {
+    /// Nothing: the ring holds its shape.
+    case none
+    /// The phone's tilt (CoreMotion gravity).
+    case tilt
+    /// A real magnet near the phone (the magnetometer): the magnet plays the
+    /// desktop cursor — the web's hover bend toward it.
+    case magnet
+    /// A finger, exactly like the desktop hover. Needs `.metalPointerTracking()` on a root view.
+    case pointer
+    /// Any field you feed — audio, a game, a recording.
+    case manual(MetalMagnetDriver)
+
+    var key: Int {
+        switch self {
+        case .none: return 0
+        case .tilt: return 1
+        case .magnet: return 2
+        case .pointer: return 3
+        case .manual(let d): return 4 + ObjectIdentifier(d).hashValue
+        }
+    }
+}
+
 public struct MetalFx<Content: View>: View {
     public typealias Variant = MetalFxVariant
 
@@ -120,37 +146,59 @@ public struct MetalFx<Content: View>: View {
     public var glow: Bool = true
     public var glowGain: Double = 1
     public var paused: Bool = false
-    /// Bend with the phone's tilt.
+    /// Bend with the phone's tilt (when `source` is `.tilt`).
     public var tilt: Bool = true
+    /// What bends the ring: tilt (default), a magnet, a finger, or a driver.
+    public var source: MetalBendSource = .tilt
     public var bendConfig: MetalBendConfig = .default
     public var glowConfig: MetalGlowConfig = .default
     /// Surface colour under the content; defaults to the theme's.
     public var fill: Color? = nil
-    /// Anchor id for `.metalReflection(of:)` / the edge halo.
+    /// How strongly this ring reflects onto the surfaces around it inside a
+    /// `.metalReflections()` scope (0 = not at all).
+    public var reflection: Double = 1
+    /// Anchor id for `.metalReflection(of:)`.
     public var id: String? = nil
     public var content: () -> Content
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.metalMaskPass) private var maskPass
     @StateObject private var model = MetalFxModel()
 
     public init(variant: Variant = .button, preset: MetalPreset = .chromatic, theme: MetalTheme = .auto,
                 strength: Double = 1, shaderScale: Double? = nil, ringWidth: Double? = nil, cornerRadius: Double? = nil,
                 innerShadow: Bool = false, glow: Bool = true, glowGain: Double = 1, paused: Bool = false,
-                tilt: Bool = true, bendConfig: MetalBendConfig = .default, glowConfig: MetalGlowConfig = .default,
-                fill: Color? = nil, id: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+                tilt: Bool = true, source: MetalBendSource = .tilt,
+                bendConfig: MetalBendConfig = .default, glowConfig: MetalGlowConfig = .default,
+                fill: Color? = nil, reflection: Double = 1, id: String? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.variant = variant; self.preset = preset; self.theme = theme; self.strength = strength
         self.shaderScale = shaderScale; self.ringWidth = ringWidth; self.cornerRadius = cornerRadius
         self.innerShadow = innerShadow; self.glow = glow; self.glowGain = glowGain; self.paused = paused
-        self.tilt = tilt; self.bendConfig = bendConfig; self.glowConfig = glowConfig; self.fill = fill; self.id = id
+        self.tilt = tilt; self.source = source
+        self.bendConfig = bendConfig; self.glowConfig = glowConfig; self.fill = fill; self.reflection = reflection; self.id = id
         self.content = content
     }
 
     private var resolvedTheme: MetalResolvedTheme { theme.resolved(colorScheme) }
+    private var resolvedSource: MetalBendSource {
+        if case .tilt = source, !tilt { return .none }
+        return source
+    }
     private var resolvedRing: CGFloat { CGFloat(ringWidth ?? (variant == .circle ? 2 : 1)) }
     private var resolvedScale: Float { Float(shaderScale ?? (variant == .circle ? 1.3 : 1.6)) }
 
     public var body: some View {
+        if maskPass {
+            // A reflection scope learning where surfaces are: no metal here.
+            content()
+        } else {
+            metal
+                .preference(key: MetalReflectorsKey.self, value: reflection > 0 ? [MetalReflector(model: model, strength: reflection)] : [])
+        }
+    }
+
+    private var metal: some View {
         content()
             .background {
                 GeometryReader { g in
@@ -160,7 +208,8 @@ public struct MetalFx<Content: View>: View {
                             variant: variant, material: .preset(preset, theme: resolvedTheme), theme: resolvedTheme,
                             strength: strength, shaderScale: resolvedScale, ringWidth: resolvedRing,
                             cornerRadius: cornerRadius.map { CGFloat($0) }, innerShadow: innerShadow,
-                            glow: glow, glowGain: glowGain, tilt: tilt, bendConfig: bendConfig, glowConfig: glowConfig,
+                            glow: glow, glowGain: glowGain, source: resolvedSource,
+                            bendConfig: bendConfig, glowConfig: glowConfig,
                             fill: fill, displayScale: displayScale
                         )
                     }
@@ -169,15 +218,38 @@ public struct MetalFx<Content: View>: View {
             }
             .background { MetalFrameReporter(id: id, model: model) }
             .onChange(of: paused, initial: true) { _, p in model.clock.setPaused(p, now: Date().timeIntervalSinceReferenceDate) }
-            .onChange(of: tilt, initial: true) { _, on in
-                if on, !model.tiltAttached { MetalTiltSource.shared.attach(); model.tiltAttached = true }
-                if !on, model.tiltAttached { MetalTiltSource.shared.detach(); model.tiltAttached = false; model.bend.reset() }
+            .onChange(of: resolvedSource.key, initial: true) { _, _ in attachSources() }
+            .onAppear {
+                if let id { model.registeredID = id; MetalFrameStore.shared.register(id, model: model) }
+                attachSources()
             }
-            .onAppear { if let id { model.registeredID = id; MetalFrameStore.shared.register(id, model: model) } }
             .onDisappear {
                 if let id = model.registeredID { MetalFrameStore.shared.unregister(id, model: model) }
                 if model.tiltAttached { MetalTiltSource.shared.detach(); model.tiltAttached = false }
+                if model.magnetAttached { MetalMagnetSource.shared.detach(); model.magnetAttached = false }
             }
+    }
+}
+
+extension MetalFx {
+    /// Start / stop the sensors the current source needs.
+    private func attachSources() {
+        let src = resolvedSource
+        let wantTilt: Bool, wantMagnet: Bool
+        switch src {
+        case .tilt: wantTilt = true; wantMagnet = false
+        case .magnet: wantTilt = false; wantMagnet = true
+        default: wantTilt = false; wantMagnet = false
+        }
+        if wantTilt != model.tiltAttached {
+            if wantTilt { MetalTiltSource.shared.attach() } else { MetalTiltSource.shared.detach() }
+            model.tiltAttached = wantTilt
+        }
+        if wantMagnet != model.magnetAttached {
+            if wantMagnet { MetalMagnetSource.shared.attach() } else { MetalMagnetSource.shared.detach() }
+            model.magnetAttached = wantMagnet
+        }
+        model.bend.reset()
     }
 }
 
@@ -198,7 +270,7 @@ struct MetalFxFrame: View {
     let innerShadow: Bool
     let glow: Bool
     let glowGain: Double
-    let tilt: Bool
+    let source: MetalBendSource
     let bendConfig: MetalBendConfig
     let glowConfig: MetalGlowConfig
     let fill: Color?
@@ -210,9 +282,8 @@ struct MetalFxFrame: View {
         let t = model.time(now: now)
         let box = CGRect(origin: .zero, size: size)
 
-        // Bend: tilt → field → outline displacement.
-        let tiltV = tilt ? MetalTiltSource.shared.tilt(now: now) : .zero
-        let field = tilt ? model.bend.step(now: now, tilt: tiltV, size: size, radius: radius, cfg: bendConfig) : nil
+        // Bend: tilt / magnet / finger → field → outline displacement.
+        let field = bend(radius: radius)
         let deform: MetalDeform? = field.map { f in { f.deform($0) } }
 
         let outer = MetalGeometry.roundRectOutline(box, radius: radius, deform: deform)
@@ -230,7 +301,7 @@ struct MetalFxFrame: View {
         let surface = fill ?? (theme == .dark ? Color(red: 0x27 / 255.0, green: 0x27 / 255.0, blue: 0x27 / 255.0) : .white)
         let rimColor = theme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.06)
 
-        // Keep the anchor snapshot current for reflections / the edge halo.
+        // Keep the anchor snapshot current for reflections.
         let _ = {
             model.size = size; model.cornerRadius = radius; model.ringWidth = ringWidth; model.kind = kind
             model.material = material; model.opacityMul = opacityMul; model.shaderScale = shaderScale; model.isSheet = false
@@ -254,6 +325,25 @@ struct MetalFxFrame: View {
             }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
+    }
+
+    /// Step whichever simulation the source drives.
+    private func bend(radius: CGFloat) -> MetalBendField? {
+        switch source {
+        case .none:
+            return nil
+        case .tilt:
+            let tiltV = MetalTiltSource.shared.tilt(now: now)
+            return model.bend.step(now: now, tilt: tiltV, size: size, radius: radius, cfg: bendConfig)
+        case .magnet:
+            let s = MetalMagnetSource.shared.sample(center: model.frame.mfxCenter, now: now)
+            return model.bend.stepMagnet(now: now, sample: s, size: size, radius: radius, cfg: bendConfig)
+        case .pointer:
+            let local = MetalPointerSource.shared.location.map { CGPoint(x: $0.x - model.frame.minX, y: $0.y - model.frame.minY) }
+            return model.bend.stepPointer(now: now, pointer: local, pressed: false, size: size, radius: radius, cfg: bendConfig)
+        case .manual(let driver):
+            return model.bend.stepMagnet(now: now, sample: driver.sample, size: size, radius: radius, cfg: bendConfig)
+        }
     }
 
     @ViewBuilder

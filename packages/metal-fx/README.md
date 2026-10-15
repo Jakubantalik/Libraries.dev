@@ -176,8 +176,8 @@ The v2 effect is also available for the phone, in `ports/`:
 
 - **SwiftUI** — `ports/ios/MetalFxKit` (iOS 17+, Metal shader via SwiftUI
   `colorEffect` / `layerEffect`). `MetalFx`, `MetalText`, `MetalBadge`,
-  `.metalReflection(of:)`, tilt-driven bend, glow, inner shadow, and a
-  screen-edge liquid lens (`.metalEdgeHalo()`). Demo app in
+  `.metalReflection(of:)` / `MetalReflectionScope`, tilt- and
+  magnet-driven bend, glow and inner shadow. Demo app in
   `ports/ios/MetalFxDemo` (`./run.sh`).
 - **React Native** — `ports/react-native/metal-fx-native` (react-native-skia +
   Reanimated 4, everything on the UI thread). Same components; `<MetalReflection>`,

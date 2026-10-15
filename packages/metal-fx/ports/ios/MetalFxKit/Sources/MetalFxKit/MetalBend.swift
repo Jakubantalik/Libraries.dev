@@ -37,8 +37,40 @@ public struct MetalBendConfig: Equatable, Sendable {
     /// Tilt below which nothing moves.
     public var tiltDeadzone: Double = 0.025
 
+    // Pointer (the desktop hover bend; also what a magnet drives).
+    /// How far beyond the edge the pointer is still felt, pt.
+    public var reach: Double = 36
+    /// Displacement per 100 pt/s of pointer speed — a transient kick.
+    public var gain: Double = 0.6
+    /// Dent per pt the pointer sits inside the edge.
+    public var pressGain: Double = 0.55
+    /// Bulge per pt the pointer sits outside the edge (within `reach`).
+    public var pullGain: Double = 0.49
+    /// Extra dent toward the centre while pressed, pt.
+    public var press: Double = 5
+    /// Distance from the edge over which the liquid pressure fades, pt.
+    public var liquidReach: Double = 8
+
+    // Magnet → virtual pointer.
+    /// Multiplier on the pull the magnet's virtual pointer produces.
+    public var magnetGain: Double = 3
+    /// Where the virtual pointer ends up, as a fraction of `reach` outside
+    /// the edge (~0.3 is where the hover pull, felt at the edge, peaks).
+    public var magnetPeak: Double = 0.3
+    /// Pull at which the virtual pointer arrives there.
+    public var magnetFull: Double = 0.85
+
     public init() {}
     public static let `default` = MetalBendConfig()
+
+    /// The same bend for a bigger shape: every length × `k`. The web's
+    /// numbers are tuned for a 40-pt button.
+    public func scaled(_ k: Double) -> MetalBendConfig {
+        var c = self
+        c.blob *= k; c.liquidBlob *= k; c.maxDisp *= k; c.liquid *= k
+        c.reach *= k; c.press *= k; c.liquidReach *= k
+        return c
+    }
 }
 
 /// The evaluated field for one frame.
@@ -73,7 +105,7 @@ public final class MetalTiltSource {
     /// Interface orientation used to map device axes onto the screen.
     public var orientation: UIInterfaceOrientation = .portrait
 
-    private let motion = CMMotionManager()
+    private var motion: CMMotionManager { MetalMotion.shared.manager }
     private var subscribers = 0
     private var baseline: CGVector?
     private var lastSampleTime: TimeInterval = 0
@@ -82,14 +114,13 @@ public final class MetalTiltSource {
 
     public func attach() {
         subscribers += 1
-        guard subscribers == 1, motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive else { return }
-        motion.deviceMotionUpdateInterval = 1.0 / 60.0
-        motion.startDeviceMotionUpdates()
+        if subscribers == 1 { MetalMotion.shared.retainDeviceMotion() }
     }
 
     public func detach() {
-        subscribers = max(0, subscribers - 1)
-        if subscribers == 0, motion.isDeviceMotionActive { motion.stopDeviceMotionUpdates(); baseline = nil }
+        guard subscribers > 0 else { return }
+        subscribers -= 1
+        if subscribers == 0 { MetalMotion.shared.releaseDeviceMotion(); baseline = nil }
     }
 
     private var cachedNow: TimeInterval = -1
@@ -136,10 +167,145 @@ final class MetalBendModel {
     private var env = 0.0
     private var active = false
     private var last: TimeInterval = 0
+    // Pointer velocity (pt/s, smoothed) and the last pointer position.
+    private var svx = 0.0, svy = 0.0
+    private var lastPointer: CGPoint?
     private(set) var field: MetalBendField?
 
     func reset() {
         ax = 0; ay = 0; vax = 0; vay = 0; la = 0; vla = 0; stx = 0; sty = 0; stl = 0; env = 0; active = false; field = nil
+        svx = 0; svy = 0; lastPointer = nil
+    }
+
+    /// The desktop hover bend — the web's `useMetalBend` step, line for line.
+    /// `pointer` is in box-local points (nil = gone). `gain` scales the
+    /// position-based press / pull (the magnet's virtual pointer uses it).
+    @discardableResult
+    func stepPointer(now: TimeInterval, pointer: CGPoint?, pressed: Bool, size: CGSize, radius: CGFloat,
+                     cfg: MetalBendConfig, gain: Double = 1) -> MetalBendField? {
+        let dt = last > 0 ? min(0.032, max(0.001, now - last)) : 1.0 / 60.0
+        last = now
+        let W = Double(size.width), H = Double(size.height)
+        let ecx = W / 2, ecy = H / 2
+
+        // Pointer velocity: ~40 ms time constant, then the web's decay.
+        if let p = pointer, let lp = lastPointer {
+            let a = 1 - exp(-dt / 0.04)
+            svx += ((Double(p.x - lp.x)) / dt - svx) * a
+            svy += ((Double(p.y - lp.y)) / dt - svy) * a
+        }
+        lastPointer = pointer
+
+        var tx = 0.0, ty = 0.0
+        var pressure = 0.0
+        if cfg.enabled, let p = pointer {
+            let lx = Double(p.x), ly = Double(p.y)
+            let ddx = lx - ecx, ddy = ly - ecy
+            let d = hypot(ddx, ddy)
+            // The edge's distance from the centre toward the pointer (the web
+            // uses min(W,H)/2 — the same for a circle, right for a pill).
+            let b = MetalGeometry.boundaryPoint(size: size, radius: radius, dir: CGVector(dx: ddx, dy: ddy))
+            let R = d > 0.001 ? hypot(Double(b.x) - ecx, Double(b.y) - ecy) : min(W, H) / 2
+            let reach = max(W, H) / 2 + cfg.reach
+            let wasActive = active
+            active = d < reach
+            let u = max(0, 1 - abs(d - R) / max(1, cfg.liquidReach))
+            pressure = u * u * (3 - 2 * u)
+            if active {
+                if !wasActive { cx = lx; cy = ly }
+                let fa = 1 - pow(1 - min(0.999, cfg.follow), dt * 60)
+                cx += (lx - cx) * fa
+                cy += (ly - cy) * fa
+                let edgeFade = 1 - max(0, (d - (reach - cfg.reach)) / cfg.reach)
+                tx = svx * (cfg.gain / 100) * edgeFade
+                ty = svy * (cfg.gain / 100) * edgeFade
+                let ux = d > 0.001 ? ddx / d : 0, uy = d > 0.001 ? ddy / d : 0
+                let pen = R - d
+                if pen > 0 {
+                    let m = pen * cfg.pressGain * gain
+                    tx -= ux * m; ty -= uy * m
+                } else {
+                    let out = -pen
+                    let f = max(0, 1 - out / max(1, cfg.reach))
+                    let m = out * cfg.pullGain * (f * f * (3 - 2 * f)) * gain
+                    tx += ux * m; ty += uy * m
+                }
+                let tm = hypot(tx, ty)
+                if tm > cfg.maxDisp { tx *= cfg.maxDisp / tm; ty *= cfg.maxDisp / tm }
+            }
+        } else {
+            active = false
+        }
+        svx *= exp(-dt * 12); svy *= exp(-dt * 12)
+
+        let sa = 1 - exp(-(dt * 1000) / max(1, cfg.smoothMs))
+        stx += (tx - stx) * sa
+        sty += (ty - sty) * sa
+
+        let mass = max(0.05, cfg.mass)
+        vax += ((-cfg.stiffness * (ax - stx) - cfg.damping * vax) / mass) * dt
+        vay += ((-cfg.stiffness * (ay - sty) - cfg.damping * vay) / mass) * dt
+        ax += vax * dt; ay += vay * dt
+
+        let pressAmt = pressed && active && cfg.enabled ? cfg.press : 0
+        let tl = active && cfg.enabled ? cfg.liquid * (pressure + (pressed ? 0.5 : 0)) : 0
+        stl += (tl - stl) * sa
+        vla += ((-cfg.liquidStiffness * (la - stl) - cfg.liquidDamping * vla) / mass) * dt
+        la += vla * dt
+
+        let envTarget = active && cfg.enabled ? 1.0 : 0.0
+        let tauMs = max(1, envTarget > 0 ? cfg.fadeInMs : cfg.fadeOutMs) / 3
+        env += (envTarget - env) * (1 - exp(-(dt * 1000) / tauMs))
+        if env < 0.002 && envTarget == 0 { env = 0 }
+
+        let amp = hypot(ax, ay)
+        let idle = !active && env == 0 && amp < 0.05 && hypot(vax, vay) < 1 && abs(la) < 0.05 && pressAmt == 0
+        if idle {
+            ax = 0; ay = 0; vax = 0; vay = 0; la = 0; vla = 0; stx = 0; sty = 0; stl = 0
+            field = nil
+            return nil
+        }
+
+        let k = max(0, cfg.strength) * env
+        var pdx = ecx - cx, pdy = ecy - cy
+        let pl = hypot(pdx, pdy) > 0 ? hypot(pdx, pdy) : 1
+        pdx /= pl; pdy /= pl
+        let sb = max(0.5, cfg.blob), sl = max(0.5, cfg.liquidBlob)
+        let reachPx = CGFloat(ceil((cfg.maxDisp + cfg.liquid * 1.5) * max(1, cfg.strength)) + 4)
+        field = MetalBendField(cx: cx, cy: cy, dirX: (ax + pdx * pressAmt) * k, dirY: (ay + pdy * pressAmt) * k,
+                               radK: (la / sl) * k, s2b: 2 * sb * sb, s2l: 2 * sl * sl, reach: reachPx)
+        return field
+    }
+
+    /// A magnet (or any field driver) as the hover pointer: a virtual cursor
+    /// on the line toward the magnet. Attracting, it closes in from `reach`
+    /// outside the edge as the pull rises (the hover pull, × `magnetGain`);
+    /// repelling, it presses in through the edge (the hover press), so the
+    /// metal recoils from the magnet. The springs, liquid term, lag and
+    /// envelope are the hover bend's own.
+    @discardableResult
+    func stepMagnet(now: TimeInterval, sample: MetalMagnetSample, size: CGSize, radius: CGFloat, cfg: MetalBendConfig) -> MetalBendField? {
+        let tl = hypot(Double(sample.toward.dx), Double(sample.toward.dy))
+        guard sample.pull > 0.01, tl > 0.001 else {
+            return stepPointer(now: now, pointer: nil, pressed: false, size: size, radius: radius, cfg: cfg)
+        }
+        let ux = Double(sample.toward.dx) / tl, uy = Double(sample.toward.dy) / tl
+        let b = MetalGeometry.boundaryPoint(size: size, radius: radius, dir: CGVector(dx: ux, dy: uy))
+        let pull = min(1, sample.pull)
+        let p: CGPoint
+        let gain: Double
+        if sample.polarity >= 0 {
+            let t = min(1, pull / max(0.05, cfg.magnetFull))
+            let e = t * (2 - t)   // ease out: most of the travel early
+            let out = cfg.reach * (1 - e * (1 - cfg.magnetPeak))
+            p = CGPoint(x: Double(b.x) + ux * out, y: Double(b.y) + uy * out)
+            gain = cfg.magnetGain
+        } else {
+            let pen = min(1, pull / max(0.05, cfg.magnetFull)) * cfg.maxDisp / max(0.05, cfg.pressGain)
+            p = CGPoint(x: Double(b.x) - ux * pen, y: Double(b.y) - uy * pen)
+            gain = 1
+        }
+        return stepPointer(now: now, pointer: p, pressed: false, size: size, radius: radius, cfg: cfg, gain: gain)
     }
 
     /// Advance the simulation; returns the field for this frame, or nil when idle.

@@ -11,9 +11,11 @@ enum MetalGeometry {
 
     /// Rounded rect sampled clockwise from the end of the top-left corner:
     /// edges every ~1.5 pt, 14 points per arc — the web's `roundRectOutline`.
+    /// Big corners get more arc points (one per ~2.5 pt) so they stay round.
     static func roundRectOutline(_ rect: CGRect, radius: CGFloat, deform: MetalDeform?) -> [CGPoint] {
         let x = rect.minX, y = rect.minY, w = rect.width, h = rect.height
         let r = max(0, min(radius, min(w, h) / 2))
+        let arcN = max(Self.arcN, Int(ceil((.pi / 2) * r / 2.5)))
         var pts: [CGPoint] = []
         pts.reserveCapacity(4 * (arcN + 1) + Int((2 * (w + h)) / edgeStep) + 8)
         func push(_ px: CGFloat, _ py: CGFloat) {
