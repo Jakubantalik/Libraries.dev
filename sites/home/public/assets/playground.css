@@ -2181,7 +2181,7 @@ html[data-theme="light"] .st-chat-composer {
    thumbnails in its bubble. While a turn runs, send becomes Stop. */
 .st-chat-composer {
   flex-wrap: wrap;
-  gap: 0;
+  gap: 8px;
   padding: 0 8px 8px;
 }
 .st-chat-input {
@@ -2242,7 +2242,7 @@ html[data-theme="light"] .st-chat-plus:hover { background: rgba(0, 0, 0, 0.03); 
 .st-chat-send.is-stop svg { width: 16px; height: 16px; }
 
 .st-chat-imgs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.st-chat-composer .st-chat-imgs { flex: 1 0 100%; padding: 8px 4px 0; }
+.st-chat-composer .st-chat-imgs { flex: 1 0 100%; padding-top: 8px; }
 .st-chat-img {
   position: relative;
   flex: none;
