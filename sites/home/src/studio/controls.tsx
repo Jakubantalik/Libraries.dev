@@ -1139,7 +1139,7 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
           <span className="st-chat-grow" />
           {busy ? (
             <button type="button" className="st-chat-send is-stop" onClick={stop} aria-label="Stop">
-              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5" /></svg>
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5" /></svg>
             </button>
           ) : (
             <button type="button" className="st-chat-send" onClick={send} disabled={!canSend} aria-label="Send message">

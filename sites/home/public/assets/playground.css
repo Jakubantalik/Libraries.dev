@@ -2142,7 +2142,6 @@ html[data-theme="light"] .st-chat-thinking { --think-base: #7c7c7c; --think-high
   color: var(--cmp-btn-ink-on);
   cursor: pointer;
 }
-.st-chat-send:not(:disabled):hover { background: #ffffff; }
 .st-chat-send:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
 
 /* Light (1434:39739): the field reads white-4% over the panel on a soft
@@ -2200,25 +2199,47 @@ html[data-theme="light"] .st-chat-composer {
 .st-chat-foot { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .st-chat-grow { flex: 1 1 auto; min-width: 0; }
 .st-chat-foot .st-chat-send { margin: 0; }
+/* The transitions.dev Studio's buttons: round, 28px. The + is the quiet
+   one (secondary ink, a faint fill that deepens on hover); send rests on the
+   field's tint and turns solid once there is something to send: ink on
+   light, white on dark, with the CTA's soft drop. */
+.st-chat-composer {
+  --cmp-btn-bg-on: #17181c;
+  --cmp-btn-ring-on: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --cmp-btn-ink-on: #ffffff;
+}
+html[data-theme="dark"] .st-chat-composer,
+html:not([data-theme="light"]) .st-chat-composer {
+  --cmp-btn-bg-on: rgba(255, 255, 255, 0.95);
+  --cmp-btn-ring-on: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --cmp-btn-ink-on: #151515;
+}
+html[data-theme="light"] .st-chat-composer {
+  --cmp-btn-bg-on: #17181c;
+  --cmp-btn-ring-on: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --cmp-btn-ink-on: #ffffff;
+}
+.st-chat-send { border-radius: 50%; }
 .st-chat-plus {
   flex: none;
   width: 28px; height: 28px;
   display: inline-grid; place-items: center;
-  padding: 0; border: 0; border-radius: 8px;
-  background: var(--cmp-btn-bg);
-  box-shadow: var(--cmp-btn-ring);
+  padding: 0; border: 0; border-radius: 54px;
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 140ms ease, color 140ms ease, transform 160ms var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: background 140ms ease, color 140ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
   -webkit-tap-highlight-color: transparent;
 }
+html[data-theme="light"] .st-chat-plus { background: rgba(255, 255, 255, 0.2); }
 .st-chat-plus svg { width: 16px; height: 16px; display: block; }
-.st-chat-plus:hover { color: var(--text); background: var(--cmp-bg-lift); }
+.st-chat-plus:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+html[data-theme="light"] .st-chat-plus:hover { background: rgba(0, 0, 0, 0.03); }
 .st-chat-plus:active { transform: scale(0.95); }
 .st-chat-plus:disabled { opacity: 0.4; cursor: default; }
 .st-chat-plus:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
 .st-chat-send.is-stop { background: var(--cmp-btn-bg-on); box-shadow: var(--cmp-btn-ring-on); color: var(--cmp-btn-ink-on); cursor: pointer; }
-.st-chat-send.is-stop svg { width: 14px; height: 14px; }
+.st-chat-send.is-stop svg { width: 16px; height: 16px; }
 
 .st-chat-imgs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .st-chat-composer .st-chat-imgs { flex: 1 0 100%; padding: 8px 4px 0; }
