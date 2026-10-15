@@ -701,10 +701,15 @@
 }
 .mx-dots svg { width: 20px; height: 20px; opacity: 0.7; transition: opacity 200ms; }
 .mx-dots:hover svg { opacity: 1; }
+/* The toolbar and its card backdrop move as one. The offsets reproduce
+   the original 686px-panel composition (toolbar 125px in from the card's
+   left edge, 21px below its top) at any row width — the backdrop used to
+   be pinned to the row, so wider panels slid the toolbar off its card. */
+.mx-toolbar-wrap { position: relative; }
 .mx-toolbar-backdrop {
   position: absolute;
-  left: -22px;
-  top: 144px;
+  left: -125px;
+  top: -21px;
   width: 663px;
   height: 234px;
   border-radius: 20px;

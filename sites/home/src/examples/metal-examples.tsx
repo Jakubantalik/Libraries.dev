@@ -103,6 +103,9 @@ export function MetalExamples({ strength = 1 }: { strength?: number }) {
 
       {/* Toolbar row */}
       <div className="example-row-full mx-row mx-row--toolbar">
+        {/* The card backdrop is anchored to the toolbar, not the row, so the
+            composition holds at any panel width. */}
+        <div className="mx-toolbar-wrap">
         <div className="mx-toolbar-backdrop" aria-hidden="true" />
         <div className="mx-toolbar" role="group" aria-label="Hero toolbar">
           <label className="mx-search" ref={searchRef}>
@@ -130,6 +133,7 @@ export function MetalExamples({ strength = 1 }: { strength?: number }) {
           <button className="mx-dots" type="button" ref={dotsRef} aria-label="More options">
             <DotsIcon />
           </button>
+        </div>
         </div>
       </div>
     </div>
