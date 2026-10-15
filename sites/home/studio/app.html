@@ -354,6 +354,59 @@
       background: var(--stage-bg);
     }
     .st-main .pg-stage::after { content: none; }
+    /* ── Preview column as one card (the transitions.dev Studio layout) ──
+       The bar, the stage and the code sit on a single panel-coloured card
+       that runs the panel's full height: the bar is the card's header (9px
+       inset, a rule under it, like the panel head), and the stage and code
+       are inset 12px on the card's 4% tint at a 12px radius. The card is the
+       grid's ::before, spanning the left column, so no markup changes. */
+    @media (min-width: 981px) {
+      .st-main .pg {
+        position: relative;
+        grid-template-rows: auto 1fr auto;
+        min-height: calc(100dvh - 68px - 24px);
+      }
+      .st-main .pg::before {
+        content: "";
+        grid-column: 1;
+        grid-row: 1 / 4;
+        align-self: stretch;
+        border-radius: 16px;
+        background: var(--pg-panel-bg);
+        box-shadow: var(--pg-panel-shadow);
+        pointer-events: none;
+      }
+      .st-main .pg > .st-stage-bar,
+      .st-main .pg > .pg-stage,
+      .st-main .pg > .st-stage-panel,
+      .st-main .pg > .pg-snippet { position: relative; z-index: 1; }
+      .st-main .st-stage-bar {
+        min-height: 55px;
+        box-sizing: border-box;
+        padding: 9px 11px 9px 9px;
+        border-bottom: 1px solid var(--pg-rule);
+      }
+      .st-main .pg-stage,
+      .st-main .st-stage-panel {
+        margin-inline: 12px;
+        border-radius: 12px;
+      }
+      .st-main .pg-stage { align-self: stretch; }
+      /* The stage and the code keep the colour they had on the page ground
+         (4% white over #070707): on the lighter card that tint reads grey. */
+      html[data-theme="dark"] .st-main .pg-stage,
+      html:not([data-theme="light"]) .st-main .pg-stage,
+      html[data-theme="dark"] .st-main .pg-snippet,
+      html:not([data-theme="light"]) .st-main .pg-snippet,
+      html[data-theme="dark"] .st-main .st-stage-panel,
+      html:not([data-theme="light"]) .st-main .st-stage-panel { background: #111111; }
+      .st-main .pg-snippet { margin: 0 12px 12px; width: auto; min-width: 0; border-radius: 12px; }
+      .st-main .pg-snippet .code-block { border-radius: 12px; }
+      /* In the code view the panel is the last thing in the card. */
+      .st-main .st-stage-bar:not([data-view="preview"]) ~ .st-stage-panel { margin-bottom: 12px; }
+      /* Both columns run the same height, as in transitions.dev. */
+      .st-main .pg-controls { height: calc(100dvh - 68px - 24px); }
+    }
     .st-main .pg-controls {
       grid-column: 2;
       grid-row: 1 / 4;
@@ -365,6 +418,9 @@
          under it either way. */
       max-height: calc(100dvh - 68px - 24px);
       overflow: hidden;
+      /* The transitions.dev Studio panel's insets: 12px at the sides and
+         foot, the header pulled up to 9px from the top (see the head rule). */
+      padding: 16px 12px 12px;
     }
     /* Only the knob list scrolls — the mode tabs and the actions row stay put. */
     /* Only the knob list scrolls, and only vertically. The section rules are
@@ -376,8 +432,8 @@
       overflow-y: auto;
       overflow-x: hidden;
       min-height: 0;
-      padding-inline: 16px;
-      margin-inline: -16px;
+      padding-inline: 12px;
+      margin-inline: -12px;
       /* The scroll box starts AT the header's rule (the panel's 16px gap is
          cancelled and re-added as padding), so scrolling content is clipped
          by the line itself instead of 16px under it — which read as a header
@@ -388,25 +444,23 @@
          edge, so scrolling content was cut 16px above the card and read as
          cropped. Now it clips at the card's own edge, and the 16px comes
          back as padding so the last row still has air at the end. */
-      margin-bottom: -16px;
-      padding-bottom: 16px;
+      margin-bottom: -12px;
+      padding-bottom: 12px;
     }
     /* The rules run the card's full width: the scroll box carries the
        panel's 16px inset as its own padding, so -16px lands exactly on the
        card's edge — inside the box, so it neither clips nor scrolls. */
     .st-main .pg-controls .st-panel-body > .pg-field::before {
-      left: -16px;
-      right: -16px;
+      left: -12px;
+      right: -12px;
     }
     /* The head is the panel's sticky header: it sits outside the scroll box,
        so it holds while the knobs scroll under it. The rule that used to be
        drawn by the body's ::before now belongs to the head — the body clips
        its own overflow, and a line drawn above its content box would be cut. */
     .st-main .pg-controls .st-panel-head {
-      padding-inline: 16px;
-      margin-inline: -16px;
-      padding-bottom: 16px;
-      margin-bottom: 0;
+      padding: 0 9px 9px;
+      margin: -7px -12px 0;
       border-bottom: 1px solid var(--pg-rule);
     }
     .st-main .pg-controls > .st-panel-body::before { content: none; }

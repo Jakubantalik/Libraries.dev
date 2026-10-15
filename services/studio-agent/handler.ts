@@ -170,6 +170,52 @@ const HISTORY_TURNS = 8;
 interface ClientMessage {
   role: "user" | "agent";
   text: string;
+  /** Reference images, only on the newest user turn (the browser scales them
+      to 1568px and re-encodes as JPEG). Older turns are sent as text. */
+  images?: Array<{ media_type?: string; data?: string }>;
+}
+
+/* Images a designer attaches as a visual reference: "match this", "these
+   colours". Same limits as the transitions.dev Studio: four per message,
+   each at most 1.6M base64 characters, and the declared type must match the
+   file's own magic bytes so nothing but an image reaches the model. */
+const MAX_IMAGES = 4;
+const MAX_IMAGE_CHARS = 1_600_000;
+const IMAGE_MAGIC: Record<string, (b: Uint8Array) => boolean> = {
+  "image/jpeg": (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  "image/png": (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47,
+  "image/gif": (b) => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46,
+  "image/webp": (b) => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45,
+};
+type ImageBlock = { type: "image"; source: { type: "base64"; media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; data: string } };
+
+function readImages(raw: unknown): ImageBlock[] | { error: string } {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) return { error: "invalid_image" };
+  if (raw.length > MAX_IMAGES) return { error: "too_many_images" };
+  const out: ImageBlock[] = [];
+  for (const im of raw) {
+    const type = typeof im?.media_type === "string" ? im.media_type : "";
+    const data = typeof im?.data === "string" ? im.data : "";
+    if (!IMAGE_MAGIC[type] || !data || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return { error: "invalid_image" };
+    if (data.length > MAX_IMAGE_CHARS) return { error: "image_too_large" };
+    let head: Uint8Array;
+    try {
+      head = Uint8Array.from(atob(data.slice(0, 16)), (c) => c.charCodeAt(0));
+    } catch {
+      return { error: "invalid_image" };
+    }
+    if (!IMAGE_MAGIC[type](head)) return { error: "invalid_image" };
+    out.push({ type: "image", source: { type: "base64", media_type: type as ImageBlock["source"]["media_type"], data } });
+  }
+  return out;
+}
+
+/* Status lines the panel shows while a turn works, sent as they happen so
+   they say what the agent is actually doing rather than cycling on a timer. */
+function readingLine(images: number): string {
+  const img = images === 1 ? " and the image" : images > 1 ? ` and the ${images} images` : "";
+  return `Reading your request${img}`;
 }
 
 /** The core param, if this library lets the agent rewrite its core. */
@@ -223,6 +269,8 @@ function sysPrompt(spec: LibrarySpec): string {
     core
       ? "- Only if a request is genuinely outside both the parameters and a core rebuild (changing the card's content, adding unrelated UI) say so plainly in one sentence and do not call the tool."
       : "- Only if a request is genuinely outside these parameters (adding a new effect, changing the card's content) say so plainly in one sentence and do not call the tool.",
+    "",
+    "- When the user attaches an image, treat it as a visual reference: read its colours, contrast, mood, shapes and motion cues, and translate them into the parameters above (and a core rebuild only if the parameters cannot get there). Do not describe the image back; tune toward it.",
     "",
     "Then reply in one short sentence saying what you changed and why it serves what they asked. No preamble, no lists, no restating the parameter values — the panel already shows those.",
     "",
@@ -307,9 +355,13 @@ export async function handleStudioChat(
 
   const history = Array.isArray(body.messages) ? body.messages : [];
   const latest = history[history.length - 1];
-  if (!latest || latest.role !== "user" || !latest.text.trim()) {
+  const images = latest ? readImages(latest.images) : [];
+  if (!Array.isArray(images)) return json({ error: images.error }, 400);
+  if (!latest || latest.role !== "user" || typeof latest.text !== "string" || (!latest.text.trim() && !images.length)) {
     return json({ error: "no_message" }, 400);
   }
+  /* An image sent with no words still asks for something. */
+  const latestText = latest.text.trim() || "Tune the effect to match the look of the attached image.";
 
   /* Both caps are keyed by month so they reset on their own without a cron. */
   const month = new Date().toISOString().slice(0, 7);
@@ -339,16 +391,24 @@ export async function handleStudioChat(
   const params = body.params ?? {};
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-  const priorTurns = history.slice(-HISTORY_TURNS - 1, -1).map((m) => ({
-    role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-    content: m.text,
-  }));
+  const priorTurns = history.slice(-HISTORY_TURNS - 1, -1)
+    .filter((m) => typeof m?.text === "string" && m.text.trim())
+    .map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.text,
+    }));
 
   const coreError =
     typeof body.coreError === "string" && body.coreError.trim() ? body.coreError.trim().slice(0, 600) : undefined;
   const messages: Anthropic.MessageParam[] = [
     ...priorTurns,
-    { role: "user", content: `${stateNote(spec, params, coreError)}\n\n${latest.text.trim()}` },
+    {
+      role: "user",
+      content: [
+        ...images,
+        { type: "text", text: `${stateNote(spec, params, coreError)}\n\n${latestText}` },
+      ],
+    },
   ];
 
   /* Second cached system block: the stock core source. It only exists for
@@ -400,8 +460,24 @@ export async function handleStudioChat(
     let cacheReadTokens = 0;
     let cacheWriteTokens = 0;
 
+    /* A comment frame every 8s keeps a long core rebuild from looking idle
+       to Cloudflare (which drops a silent response at 100s); the browser
+       skips anything that is not a data: frame. */
+    const heartbeat = setInterval(() => {
+      void writer.write(new TextEncoder().encode(": ping\n\n")).catch(() => {});
+    }, 8000);
+    let lastStatus = "";
+    const status = (text: string, meta?: string) => {
+      const key = text + "|" + (meta ?? "");
+      if (key === lastStatus) return;
+      lastStatus = key;
+      void writer.write(sse({ type: "status", text, ...(meta ? { meta } : {}) }));
+    };
+
     try {
+      status(readingLine(images.length));
       for (let hop = 0; hop < 4; hop++) {
+        if (hop > 0) status("Checking the result");
         const stream = client.messages.stream({
           model: "claude-opus-5",
           /* A rebuilt core can be the whole of a 600-line shader; knob-only
@@ -419,6 +495,29 @@ export async function handleStudioChat(
 
         stream.on("text", (delta) => {
           void writer.write(sse({ type: "text", text: delta }));
+        });
+        stream.on("streamEvent", (ev) => {
+          if (ev.type !== "content_block_start") return;
+          if (ev.content_block.type === "thinking" || ev.content_block.type === "redacted_thinking") {
+            status("Thinking it through");
+          } else if (ev.content_block.type === "tool_use") {
+            status("Choosing the settings");
+          }
+        });
+        /* A core rebuild is the long part of a turn; name it, with the line
+           count as it grows (throttled, so the panel is not flooded). */
+        let coreLinesAt = 0;
+        stream.on("inputJson", (_partial, snapshot) => {
+          const coreKey = core?.key;
+          const src = coreKey && snapshot && typeof snapshot === "object"
+            ? (snapshot as Record<string, unknown>)[coreKey]
+            : undefined;
+          if (typeof src !== "string" || !src) return;
+          const now = Date.now();
+          if (now - coreLinesAt < 400) return;
+          coreLinesAt = now;
+          const n = src.split("\n").length;
+          status("Rebuilding the core", `${n} line${n === 1 ? "" : "s"}`);
         });
 
         const message = await stream.finalMessage();
@@ -506,7 +605,7 @@ export async function handleStudioChat(
       if (track) {
         recordPrompt(env, {
           library: String(body.library),
-          text: latest.text,
+          text: latestText,
           outcome: coreRebuilt ? "core" : toolCalled ? "applied" : "declined",
           applied: appliedCount,
           rejected: rejectedCount,
@@ -536,7 +635,7 @@ export async function handleStudioChat(
       if (track) {
         recordPrompt(env, {
           library: String(body.library),
-          text: latest.text,
+          text: latestText,
           outcome: "error",
           applied: appliedCount,
           rejected: rejectedCount,
@@ -550,6 +649,7 @@ export async function handleStudioChat(
         sse({ type: "error", message: "The agent hit an error. Try again in a moment." })
       );
     } finally {
+      clearInterval(heartbeat);
       await writer.close();
     }
   })();

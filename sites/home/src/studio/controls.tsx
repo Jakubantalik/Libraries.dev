@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type CSSProperties } from "react";
-import { describePatch, streamAgentTurn, type ChatTurn } from "./agent";
+import { describePatch, streamAgentTurn, type AgentImage, type ChatTurn } from "./agent";
 import type { CoreWiring } from "./core";
 import { useScrollFade } from "../examples/useScrollFade";
 import { ThinkingOrb } from "thinking-orbs";
@@ -524,6 +524,69 @@ interface ChatMessage {
   id: number;
   role: "user" | "agent" | "applied" | "error";
   text: string;
+  /** Data URLs of the images a user turn carried, shown as thumbnails. */
+  images?: string[];
+}
+
+/* ── Image attachments ─────────────────────────────────────────────
+   The transitions.dev Studio's rules: PNG, JPEG, WebP or GIF, up to four
+   per message, scaled to 1568px on the long edge (the most the model reads
+   in detail) and re-encoded as JPEG until it fits 1.5M base64 characters.
+   Transparent areas become white, since JPEG has no alpha. */
+const IMAGE_TYPES = /^image\/(png|jpeg|webp|gif)$/;
+const IMAGE_EDGE = 1568;
+const IMAGE_CHARS = 1_500_000;
+const MAX_IMAGES = 4;
+
+interface Attachment {
+  id: number;
+  name: string;
+  /** Present once encoded. */
+  image?: AgentImage;
+  url?: string;
+}
+
+function readImage(file: File): Promise<{ image: AgentImage; url: string }> {
+  return new Promise((resolve, reject) => {
+    if (!IMAGE_TYPES.test(file.type)) return reject(new Error("Images only: PNG, JPEG, WebP or GIF."));
+    if (file.size > 25 * 1024 * 1024) return reject(new Error("That image is too large. Try a smaller one."));
+    const src = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, IMAGE_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * s));
+      const h = Math.max(1, Math.round(img.naturalHeight * s));
+      const cv = document.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      const g = cv.getContext("2d");
+      if (!g) {
+        URL.revokeObjectURL(src);
+        return reject(new Error("That image couldn't be read."));
+      }
+      g.fillStyle = "#ffffff";
+      g.fillRect(0, 0, w, h);
+      g.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(src);
+      let q = 0.86;
+      let out = cv.toDataURL("image/jpeg", q);
+      while (out.length > IMAGE_CHARS && q > 0.5) {
+        q -= 0.12;
+        out = cv.toDataURL("image/jpeg", q);
+      }
+      if (out.length > IMAGE_CHARS) return reject(new Error("That image is too large. Try a smaller one."));
+      resolve({ image: { media_type: "image/jpeg", data: out.slice(out.indexOf(",") + 1) }, url: out });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(src);
+      reject(new Error("That image couldn't be read."));
+    };
+    img.src = src;
+  });
+}
+
+function hasFiles(e: React.DragEvent): boolean {
+  return Array.prototype.indexOf.call(e.dataTransfer?.types ?? [], "Files") >= 0;
 }
 
 /** What a library must hand over for its Agent tab to actually tune. */
@@ -578,6 +641,68 @@ const THINKING_LINES = [
 const THINK_HOLD = 2000;
 const THINK_SWAP = 150;
 const THINK_GAP = 50;
+
+/* The live turn's status, driven by the server's status events: "Reading
+   your request and the image", "Thinking it through", "Choosing the
+   settings", "Rebuilding the core · 42 lines", "Checking the result". Each
+   line holds at least 700ms before the next swaps in (the transitions.dev
+   Studio's pacing), and a detail that changes on the same line updates in
+   place. Same orb, shimmer and swap as the cycling demo below. */
+const STATUS_HOLD = 700;
+
+function LiveStatus({ text, meta }: { text: string; meta?: string }) {
+  const theme = useContext(StudioThemeContext)?.theme ?? "dark";
+  const [shown, setShown] = useState(text);
+  const [shownMeta, setShownMeta] = useState(meta);
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
+  const lastSwap = useRef(0);
+  const timers = useRef<number[]>([]);
+  const shownRef = useRef(text);
+
+  useEffect(() => {
+    if (text === shownRef.current) {
+      setShownMeta(meta);
+      return;
+    }
+    const wait = Math.max(0, STATUS_HOLD - (Date.now() - lastSwap.current));
+    const t = window.setTimeout(() => {
+      const from = shownRef.current;
+      shownRef.current = text;
+      lastSwap.current = Date.now();
+      setLeaving(from);
+      setShown(text);
+      setShownMeta(meta);
+      setEntering(true);
+      timers.current.push(window.setTimeout(() => setEntering(false), THINK_GAP));
+      timers.current.push(window.setTimeout(() => setLeaving(null), THINK_SWAP + THINK_GAP));
+    }, wait);
+    timers.current.push(t);
+    return () => window.clearTimeout(t);
+  }, [text, meta]);
+  useEffect(() => {
+    lastSwap.current = Date.now();
+    return () => timers.current.forEach((t) => window.clearTimeout(t));
+  }, []);
+
+  return (
+    <div className="st-chat-thinking" role="status" aria-live="polite">
+      <span className="st-think-orb" aria-hidden="true">
+        <ThinkingOrb state="working" size={20} theme={theme} />
+      </span>
+      <span className="st-think-swap">
+        <span className="st-think-sizer" aria-hidden="true">{shown}</span>
+        {leaving !== null && (
+          <span className="st-think-text is-exit" data-text={leaving} aria-hidden="true">{leaving}</span>
+        )}
+        <span className={`st-think-text${entering ? " is-enter-start" : ""}`} data-text={shown} key={shown}>
+          {shown}
+        </span>
+      </span>
+      {shownMeta ? <span className="st-think-meta" aria-hidden="true">{shownMeta}</span> : null}
+    </div>
+  );
+}
 
 export function ThinkingStatus() {
   const theme = useContext(StudioThemeContext)?.theme ?? "dark";
@@ -644,6 +769,13 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  /* What the server says the agent is doing; the first line is ours. */
+  const [status, setStatus] = useState<{ text: string; meta?: string }>({ text: "Sending your request" });
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [dropping, setDropping] = useState(false);
+  const dragDepth = useRef(0);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const attachSeq = useRef(0);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   /* The field takes the height of its text, to the CSS max (seven lines),
      then scrolls inside. Measured again when the tab is shown: a hidden
@@ -710,12 +842,51 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
      the next turn so the model fixes it instead of guessing. */
   const coreErrorRef = useRef<string | undefined>(undefined);
 
+  const say = useCallback((role: ChatMessage["role"], text: string) => {
+    const line: ChatMessage = { id: nextId(), role, text };
+    setMessages((prev) => (prev.some((m) => m.id === line.id) ? prev : [...prev, line]));
+  }, []);
+
+  /* Picked, pasted or dropped images: each shows as a chip right away and
+     fills in once it is scaled and encoded. */
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
+  const addFiles = useCallback((files: FileList | File[] | null) => {
+    const list = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    const room = MAX_IMAGES - attachmentsRef.current.length;
+    if (list.length > room) say("error", "Up to 4 images per message.");
+    if (room <= 0) return;
+    const added = list.slice(0, room).map((file) => ({ id: ++attachSeq.current, name: file.name || "Image", file }));
+    const next = [...attachmentsRef.current, ...added.map(({ id, name }) => ({ id, name }))];
+    attachmentsRef.current = next;
+    setAttachments(next);
+    added.forEach(({ id, file }) => {
+      readImage(file)
+        .then(({ image, url }) => setAttachments((cur) => cur.map((x) => (x.id === id ? { ...x, image, url } : x))))
+        .catch((err: Error) => {
+          setAttachments((cur) => cur.filter((x) => x.id !== id));
+          say("error", err.message);
+        });
+    });
+    inputRef.current?.focus();
+  }, [say]);
+  const removeAttachment = (id: number) => {
+    setAttachments((cur) => cur.filter((a) => a.id !== id));
+    inputRef.current?.focus();
+  };
+  const encoding = attachments.some((a) => !a.image);
+  const ready = attachments.filter((a): a is Attachment & { image: AgentImage; url: string } => !!a.image && !!a.url);
+
   const send = useCallback(() => {
     const text = draft.trim();
-    if (!text || busy) return;
+    if ((!text && !ready.length) || busy || encoding) return;
+    const images = ready.map((a) => a.image);
+    const urls = ready.map((a) => a.url);
     setDraft("");
+    setAttachments([]);
 
-    const userMsg: ChatMessage = { id: nextId(), role: "user", text };
+    const userMsg: ChatMessage = { id: nextId(), role: "user", text, ...(urls.length ? { images: urls } : {}) };
     setMessages((prev) => [...prev, userMsg]);
 
     const active = wiringRef.current;
@@ -746,6 +917,7 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
     abortRef.current = controller;
     setBusy(true);
     setStreaming(false);
+    setStatus({ text: "Sending your request" });
 
     /* Prose arrives as deltas but is written back as the whole accumulated
        string, so a double-invoked updater (StrictMode) is a no-op rather
@@ -764,9 +936,16 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
         coreSource: active.core?.source(),
         coreError,
         analytics: readAnalyticsPref(),
+        images,
         signal: controller.signal,
       },
       {
+        /* A new status after prose means more work below it (a second
+           pass, a check), so the status row comes back under the text. */
+        onStatus: (text, meta) => {
+          setStatus({ text, meta });
+          setStreaming(false);
+        },
         onText: (delta) => {
           setStreaming(true);
           if (bubbleId === null) {
@@ -830,7 +1009,10 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
         }
       })
       .catch((err: unknown) => {
-        if ((err as Error)?.name === "AbortError") return;
+        if ((err as Error)?.name === "AbortError") {
+          say("agent", "Stopped. Changes already applied stay; ask again to continue.");
+          return;
+        }
         const line: ChatMessage = {
           id: nextId(),
           role: "error",
@@ -843,54 +1025,139 @@ function AgentChat({ library, wiring }: { library: string; wiring?: AgentWiring 
         setBusy(false);
         setStreaming(false);
       });
-  }, [draft, busy]);
+  }, [draft, busy, encoding, ready, say]);
+
+  const stop = () => abortRef.current?.abort();
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
     // Enter sends; Shift+Enter keeps the newline, as in every chat composer.
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      send();
+      // Enter never stops a running turn; only the button does.
+      if (!busy) send();
     }
   };
 
+  const canSend = (!!draft.trim() || ready.length > 0) && !encoding;
+
   return (
-    <div className="st-chat">
+    <div
+      className={`st-chat${dropping ? " is-drop" : ""}`}
+      onDragEnter={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current += 1;
+        setDropping(true);
+      }}
+      onDragOver={(e) => {
+        if (hasFiles(e)) e.preventDefault();
+      }}
+      onDragLeave={(e) => {
+        if (!hasFiles(e)) return;
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (!dragDepth.current) setDropping(false);
+      }}
+      onDrop={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDropping(false);
+        addFiles(e.dataTransfer.files);
+      }}
+    >
       <div className="st-chat-log" ref={logRef} role="log" aria-label="Agent conversation" onScroll={updateLogFade}>
         {messages.length === 0 ? (
           <p className="st-chat-empty">
             Describe the look you want and the agent tunes {library} for you: “make the
-            glow slower and cooler”, “tighter corners”, “calmer motion”.
+            glow slower and cooler”, “tighter corners”, or attach an image to match.
           </p>
         ) : (
           messages.map((m) => (
             <div className="st-chat-msg" data-role={m.role} key={m.id}>
+              {m.images?.length ? (
+                <span className="st-chat-imgs st-chat-imgs--sent">
+                  {m.images.map((src, i) => (
+                    <span className="st-chat-img" key={i}>
+                      <img src={src} alt="" />
+                    </span>
+                  ))}
+                </span>
+              ) : null}
               {m.text}
             </div>
           ))
         )}
-        {busy && !streaming && <ThinkingStatus />}
+        {busy && !streaming && <LiveStatus text={status.text} meta={status.meta} />}
       </div>
 
-      <div className="st-chat-composer" data-filled={draft.trim() ? "" : undefined} data-busy={busy ? "" : undefined}>
+      <div className="st-chat-composer" data-filled={canSend ? "" : undefined} data-busy={busy ? "" : undefined}>
+        {attachments.length > 0 && (
+          <div className="st-chat-imgs">
+            {attachments.map((a) => (
+              <span className={`st-chat-img${a.url ? "" : " is-loading"}`} key={a.id}>
+                {a.url ? <img src={a.url} alt="" /> : null}
+                <button
+                  type="button"
+                  className="st-chat-img-x"
+                  aria-label={`Remove ${a.name}`}
+                  onClick={() => removeAttachment(a.id)}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" /></svg>
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         <textarea
           ref={inputRef}
           className="st-chat-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
+          onPaste={(e) => {
+            const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+            if (!files.length) return;
+            e.preventDefault();
+            addFiles(files);
+          }}
           rows={1}
+          maxLength={2000}
           placeholder={`Ask for a change to ${library}…`}
           aria-label={`Ask the agent to change ${library}`}
         />
-        <button
-          type="button"
-          className="st-chat-send"
-          onClick={send}
-          disabled={!draft.trim() || busy}
-          aria-label="Send message"
-        >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7.99967 12.6667V3.33337M12.6663 8.00004L7.99967 3.33337L3.33301 8.00004" /></svg>
-        </button>
+        <div className="st-chat-foot">
+          <button
+            type="button"
+            className="st-chat-plus"
+            onClick={() => fileRef.current?.click()}
+            disabled={attachments.length >= MAX_IMAGES}
+            aria-label="Attach image"
+            title="Attach image"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg>
+          </button>
+          <span className="st-chat-grow" />
+          {busy ? (
+            <button type="button" className="st-chat-send is-stop" onClick={stop} aria-label="Stop">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5" /></svg>
+            </button>
+          ) : (
+            <button type="button" className="st-chat-send" onClick={send} disabled={!canSend} aria-label="Send message">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7.99967 12.6667V3.33337M12.6663 8.00004L7.99967 3.33337L3.33301 8.00004" /></svg>
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          multiple
+          hidden
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
       </div>
     </div>
   );
