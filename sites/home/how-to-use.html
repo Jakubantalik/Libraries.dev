@@ -22,8 +22,8 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>How to use · Libraries.dev</title>
-  <meta name="description" content="Copy a library's prompt, paste it into your coding agent, and make it yours: the three steps to shipping Beam, Orb, Gooey, Metal and Image with Claude Code, Cursor or Codex." />
+  <title>How to use Libraries.dev with your coding agent | Libraries.dev</title>
+  <meta name="description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any of the seven Libraries.dev effects." />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="googlebot" content="index, follow" />
@@ -33,27 +33,27 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/how-to-use.html" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/how-to-use.html" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/how-to-use.html" />
+  <link rel="canonical" href="https://libraries.dev/how-to-use" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/how-to-use" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/how-to-use" />
 
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/how-to-use.html" />
+  <meta property="og:url" content="https://libraries.dev/how-to-use" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="How to use · Libraries.dev" />
-  <meta property="og:description" content="Copy the prompt, paste it in your agent, make it yours: the three steps to shipping any Libraries.dev effect." />
+  <meta property="og:title" content="How to use Libraries.dev with your coding agent" />
+  <meta property="og:description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any of the seven Libraries.dev effects." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
-  <meta name="twitter:title" content="How to use · Libraries.dev" />
-  <meta name="twitter:description" content="Install, drop it in, make it yours: the three steps to shipping any Libraries.dev effect." />
+  <meta name="twitter:title" content="How to use Libraries.dev with your coding agent" />
+  <meta name="twitter:description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any of the seven Libraries.dev effects." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -469,6 +469,8 @@
           <nav class="site-nav-menu" aria-label="Primary">
             <a class="nav-pill" href="/beam.html">Libraries</a>
             <a class="nav-pill nav-pill--active" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -497,13 +499,36 @@
               </svg>
             </button>
             <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
-              <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
-                <span class="tl-menu-item-label">Sign in</span>
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
               </div>
-              <div class="tl-menu-divider"></div>
-              <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
-                <span class="tl-menu-item-label">Support</span>
-              </a>
             </div>
           </div>
           <button
@@ -527,8 +552,9 @@
         <ul class="mobile-menu-list">
           <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
           <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
         </ul>
         <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
       </nav>
@@ -632,7 +658,7 @@
     </div>
 
     <section class="home-section" aria-labelledby="howto-libs-title">
-      <h2 class="home-section-title" id="howto-libs-title">The five libraries</h2>
+      <h2 class="home-section-title" id="howto-libs-title">The seven libraries</h2>
       <div class="howto-table-wrap">
         <table class="howto-table">
           <thead>
@@ -654,6 +680,11 @@
               <td>Thought-orb loading indicators for AI interfaces</td>
             </tr>
             <tr>
+              <td><a href="/bots.html">Avatars</a></td>
+              <td><code>bot-avatars</code></td>
+              <td>Animated bot avatars with living faces for AI agents</td>
+            </tr>
+            <tr>
               <td><a href="/gooey.html">Gooey</a></td>
               <td><code>liquid-gooey</code></td>
               <td>Liquid UI: pieces merge and morph like goo</td>
@@ -667,6 +698,11 @@
               <td><a href="/image.html">Image</a></td>
               <td><code>img-fx</code></td>
               <td>WebGL image-generation loader for cards</td>
+            </tr>
+            <tr>
+              <td><a href="/voice.html">Voice</a></td>
+              <td><code>voice-glow</code></td>
+              <td>Sound-reactive glow along the bottom edge of an input</td>
             </tr>
           </tbody>
         </table>
@@ -682,7 +718,7 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p>React 18 or newer. Each library is a standalone package with zero runtime dependencies, except Image generation which also needs <code>three</code> as a peer dependency. All five together weigh about 83&nbsp;KB gzipped.</p>
+            <p>React 18 or newer. Each library is a standalone package with zero runtime dependencies, except Image generation which also needs <code>three</code> as a peer dependency. All seven together weigh under 110&nbsp;KB gzipped.</p>
           </div></div>
         </div>
 
@@ -747,6 +783,8 @@
             <a href="/beam.html">Beam</a>
             <a href="/orbs.html">Orb</a>
             <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
           </div>

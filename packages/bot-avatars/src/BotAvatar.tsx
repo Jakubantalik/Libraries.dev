@@ -1,0 +1,509 @@
+import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import type { BotAvatarProps, BotAvatarShading, BotAvatarState } from './types';
+import { botAvatarPresets, stateLabels } from './presets';
+import { SHAPE_PATHS, SHAPE_PARTS } from './shapes';
+import { autoInk, richer, shade } from './color';
+import { Sim, restPose } from './engine';
+import { draw, LIGHT_DEFAULTS, OVERSCAN, RISE, type DrawConfig } from './draw';
+import { bakesPending, hurry, onLanded, stockLights, takeMissed, warmPlastic, type FurStyle } from './plastic';
+import { subscribe, pointer } from './ticker';
+
+/* A 0–1 seed from the React id, so two avatars side by side never blink
+   in step unless asked to. */
+function hashSeed(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  return ((h >>> 0) % 1000) / 1000;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : 1));
+
+const pathCache = new Map<string, Path2D>();
+function bodyPath(d: string): Path2D {
+  let p = pathCache.get(d);
+  if (!p) {
+    p = new Path2D(d);
+    pathCache.set(d, p);
+  }
+  return p;
+}
+
+/* the thin parts one piece per subpath, so each rounds on its own */
+const partsCache = new Map<string, Path2D[]>();
+function partPaths(d: string): Path2D[] {
+  let p = partsCache.get(d);
+  if (!p) {
+    p = d.split(/(?=M)/).filter((s) => s.trim()).map((s) => new Path2D(s));
+    partsCache.set(d, p);
+  }
+  return p;
+}
+
+/* the longest an avatar waits for its material before it is shown anyway */
+const SHOW_WITHIN = 4000;
+/* the avatars waiting to be shown, each with whether it is ready: they are
+   shown together, once all are and no bake is under way */
+const waiters = new Map<object, { ready: () => boolean; show: () => void }>();
+function showReady() {
+  if (bakesPending()) return;
+  for (const w of waiters.values()) if (!w.ready()) return;
+  const all = [...waiters.values()];
+  waiters.clear();
+  for (const w of all) w.show();
+}
+
+const reducedMotion = () =>
+  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+export const BotAvatar = forwardRef<HTMLCanvasElement, BotAvatarProps>(function BotAvatar(
+  {
+    type = 'clover',
+    path,
+    face,
+    state = 'default',
+    size = 64,
+    color,
+    ink,
+    brightness: brightnessProp,
+    saturation: saturationProp,
+    speed = 1,
+    paused = false,
+    seed,
+    shading = 'fabric',
+    hat = 'none',
+    glasses = 'none',
+    headphones = false,
+    bowTie = false,
+    accessoryColor = '#27272b',
+    shadow,
+    highlight,
+    depth = 0.65,
+    roundness = 1,
+    furLength = 1,
+    furDensity = 1.6,
+    furFuzz = 0.9,
+    furClumps = 0.4,
+    furCurl = 0.7,
+    furGravity = 0.9,
+    light,
+    rim,
+    spread,
+    backLight,
+    lightFront,
+    shine,
+    sheen,
+    backSoftness,
+    pose: heldPose,
+    interactive = true,
+    turn = 1,
+    theme = 'auto',
+    whirl = 0,
+    whirlSize = 1,
+    whirlWidth = 1,
+    whirlLength = 1,
+    whirlTilt = 1,
+    jumpHeight = 26,
+    jumpTime = 0.68,
+    jumpStretch = 1,
+    jumpSpin = 1,
+    jumpLean = 6,
+    jumpEvery = 8,
+    jumpLand = 0,
+    jumpSquash = 1.15,
+    jumpSquashTime = 0.37,
+    jumpSquashEase = 'pulse',
+    jumpGroundTime = 0.11,
+    jumpGroundEase = 'pulse',
+    jumpRiseTime = 0.33,
+    jumpRiseEase = 'pulse',
+    jumpClickSquashTime = 0.24,
+    className,
+    style,
+    'aria-label': ariaLabel,
+    ...rest
+  },
+  ref
+) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useImperativeHandle(ref, () => canvasRef.current as HTMLCanvasElement);
+  const reactId = useId();
+  const preset = botAvatarPresets[type] ?? botAvatarPresets.clover;
+  const faceKind = face ?? preset.face;
+  const picked = color ?? preset.color;
+  /* the type's own brightness and saturation where the props leave them out */
+  const brightness = brightnessProp ?? preset.brightness ?? 1;
+  const saturation = saturationProp ?? preset.saturation ?? 1.5;
+  /* past 1.5 the colour itself is as saturated as it goes for most of the
+     palette: the rest deepens it and makes the light keep more of it */
+  const vivid = clamp(saturation, 1.5, 2.5) - 1.5;
+  const body = richer(
+    brightness === 1 && saturation === 1
+      ? picked
+      : shade(picked, (Math.min(2, Math.max(0, brightness)) - 1) * 0.35, (Math.min(1.5, Math.max(0, saturation)) - 1) * 0.5),
+    vivid
+  );
+  const inkColor = ink ?? autoInk(body);
+  const seedValue = Math.min(1, Math.max(0, seed ?? hashSeed(reactId)));
+  const stateKey: BotAvatarState = state in stateLabels ? state : 'default';
+  const frozen = paused || !(speed > 0);
+  const shadingMode: BotAvatarShading = shading === true ? 'crisp' : shading === false ? 'flat' : shading;
+  /* A custom outline replaces the type's (and its thin parts); the material
+     caches are keyed by the outline itself, so two avatars with the same
+     path share one bake and a changed path never reuses the old one. */
+  const customPath = typeof path === 'string' && path.trim() ? path.trim() : null;
+  const outlineKey = customPath ? `path:${hashSeed(customPath)}:${customPath.length}` : type;
+  /* the light a material looks its best in, where a prop leaves it */
+  const lit = LIGHT_DEFAULTS[shadingMode === 'fabric' ? 'fabric' : 'other'];
+  /* the pile's style, rounded so a slider does not bake a pile per pixel */
+  const q = (v: number, lo: number, hi: number) => Math.round(clamp(v, lo, hi) * 20) / 20;
+  const fur: FurStyle = {
+    length: q(furLength, 0.3, 2.5),
+    density: q(furDensity, 0.3, 2),
+    fuzz: q(furFuzz, 0, 1),
+    clumps: q(furClumps, 0, 1),
+    curl: q(furCurl, 0, 1),
+    gravity: q(furGravity, 0, 1),
+  };
+  const furId = `${fur.length},${fur.density},${fur.fuzz},${fur.clumps},${fur.curl},${fur.gravity}`;
+
+  /* the sim lives across renders; props reach it through refs */
+  const sim = useRef<Sim | null>(null);
+  const cfg = useRef<DrawConfig | null>(null);
+  const cssSize = useRef(0);
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+  const interactiveRef = useRef(interactive);
+  interactiveRef.current = interactive && !heldPose;
+  const heldRef = useRef(heldPose);
+  heldRef.current = heldPose;
+
+  cfg.current = {
+    path: typeof Path2D === 'undefined' ? (null as unknown as Path2D) : bodyPath(customPath ?? SHAPE_PATHS[type] ?? SHAPE_PATHS.clover),
+    face: faceKind,
+    faceX: preset.faceX,
+    faceY: preset.faceY,
+    faceScale: preset.faceScale,
+    color: body,
+    ink: inkColor,
+    shading: shadingMode,
+    shadow: clamp(shadow ?? lit.shadow, 0, 2),
+    highlight: clamp(highlight ?? lit.highlight, 0, 2),
+    depth: clamp(depth, 0.2, 2),
+    roundness: clamp(roundness, 0, 1),
+    fur: fur,
+    vivid,
+    backLight,
+    lightFront,
+    shine,
+    sheen,
+    backSoftness,
+    light: light ?? lit.light,
+    rim: clamp(rim ?? lit.rim, 0, 2),
+    spread: clamp(spread ?? lit.spread, 0.4, 2.5),
+    typeKey: outlineKey,
+    still: frozen || reducedMotion(),
+    furOnIdle: true,
+    whirl: { strength: clamp(whirl, 0, 2), size: clamp(whirlSize, 0.6, 1.6), width: clamp(whirlWidth, 0.4, 2), length: clamp(whirlLength, 0.4, 1.6), tilt: clamp(whirlTilt, 0.5, 1.8) },
+    parts: typeof Path2D !== 'undefined' && !customPath && SHAPE_PARTS[type] ? partPaths(SHAPE_PARTS[type] as string) : undefined,
+    wear: { hat, glasses, headphones, bowTie, color: accessoryColor, fabric: shadingMode === 'fabric' },
+  };
+
+  /* the surface: an ancestor's say, else the system's */
+  const resolveTheme = (el: HTMLElement | null): 'dark' | 'light' => {
+    if (theme !== 'auto') return theme;
+    const host = el?.closest('[data-theme], .dark, .light') as HTMLElement | null;
+    if (host) {
+      const v = host.getAttribute('data-theme');
+      if (v === 'dark' || v === 'light') return v;
+      if (host.classList.contains('dark')) return 'dark';
+      if (host.classList.contains('light')) return 'light';
+    }
+    return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  };
+
+  /* paint the current pose, sizing the backing store to the element */
+  const paint = () => {
+    const canvas = canvasRef.current;
+    const c = cfg.current;
+    if (!canvas || !c || !c.path) return;
+    /* a hidden ancestor measures 0: keep the last size rather than
+       wiping the backing store */
+    const px = canvas.clientWidth / OVERSCAN || cssSize.current || (typeof size === 'number' ? size : 64);
+    if (!px) return;
+    const dpr = Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+    const want = Math.round(px * OVERSCAN * dpr);
+    if (canvas.width !== want || canvas.height !== want) {
+      canvas.width = want;
+      canvas.height = want;
+    }
+    cssSize.current = px;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.dpr = dpr;
+    /* a held pose: the state's rest with the head turned as given — the
+       body seen from any side, with nothing of a hop or a glance in it */
+    const held = heldRef.current;
+    const rest0 = restPose(stateKey);
+    const pose = held ? { ...rest0, yaw: held.yaw ?? 0, pitch: held.pitch ?? rest0.pitch, roll: held.roll ?? rest0.roll } : sim.current ? sim.current.pose : rest0;
+    draw(ctx, px, pose, c);
+  };
+
+  /* A still avatar's pile bakes on idle time like any other (made at once
+     it would hold the page): while it draws a stand-in it is drawn again
+     each time a bake lands, until a draw needs none — no animation frame
+     will come to show it. */
+  const stillPaint = useRef<(() => void) | null>(null);
+  const waiting = useRef<(() => void) | null>(null);
+  const stopWaiting = () => {
+    if (waiting.current) waiting.current();
+    waiting.current = null;
+  };
+  const settle = (paintNow: () => void) => {
+    takeMissed();
+    paintNow();
+    if (!takeMissed()) stopWaiting();
+    else if (!waiting.current)
+      waiting.current = onLanded(() => {
+        const p = stillPaint.current;
+        if (canvasRef.current && p) settle(p);
+        else stopWaiting();
+      });
+  };
+  useEffect(() => stopWaiting, []);
+
+  /* An avatar in a baked material is not shown until it can be drawn in
+     it: no flat stand-in first and the fur a few seconds later. It waits
+     with its bakes hurried (see plastic.ts), drawn again as each lands,
+     and comes in once it needs no stand-in and no bake is still under way
+     — so a page of them comes in at once — or after SHOW_WITHIN at most. */
+  const material = shadingMode === 'plastic' || shadingMode === 'fabric';
+  const [shown, setShown] = useState(!material);
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  const showPaint = useRef<(() => void) | null>(null);
+  const watch = useRef<(() => void) | null>(null);
+  const stopWatch = () => {
+    if (watch.current) watch.current();
+    watch.current = null;
+  };
+  const me = useRef({});
+  const ready = useRef(false);
+  const showWhenBaked = (paintNow: () => void) => {
+    showPaint.current = paintNow;
+    takeMissed();
+    paintNow();
+    ready.current = !takeMissed();
+    if (ready.current && !bakesPending()) {
+      showReady();
+      return;
+    }
+    if (!watch.current)
+      watch.current = onLanded(() => {
+        const p = showPaint.current;
+        if (canvasRef.current && p && !shownRef.current) showWhenBaked(p);
+        else stopWatch();
+        showReady();
+      });
+  };
+  useEffect(() => {
+    if (shown) return;
+    waiters.set(me.current, { ready: () => ready.current, show: () => setShown(true) });
+    showReady();
+    hurry(true);
+    const t = setTimeout(() => setShown(true), SHOW_WITHIN);
+    return () => {
+      hurry(false);
+      clearTimeout(t);
+      stopWatch();
+      waiters.delete(me.current);
+      showReady();
+    };
+  }, [shown]);
+
+  /* the material's bakes, queued now */
+  const warm = () => {
+    if (!material || !cfg.current?.path) return;
+    const path = cfg.current.path;
+    const dev = (typeof size === 'number' ? size : 64) * Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+    const lightAt = cfg.current.light ?? 295;
+    const a = (lightAt * Math.PI) / 180, b = ((backLight ?? 0) * Math.PI) / 180;
+    const lights = stockLights(Math.sin(a), -Math.cos(a));
+    if (backLight !== undefined) [lights.bx, lights.by] = [Math.sin(b), -Math.cos(b)];
+    if (lightFront !== undefined) lights.front = (Math.min(85, Math.max(0, lightFront)) * Math.PI) / 180;
+    warmPlastic(outlineKey, path, dev, depth, shadingMode === 'fabric', fur, lightAt, lights);
+  };
+
+  /* Shown, a new shape, material or size keeps the picture it has until
+     the new one is made (its bakes hurried), rather than standing in with
+     the flat look meanwhile. The pile's style and light are not held: a
+     slider dragged through them draws as it goes. */
+  const [, redraw] = useState(0);
+  const lookKey = `${shadingMode}|${outlineKey}|${size}`;
+  const lastLook = useRef<string | null>(null);
+  const holding = useRef<(() => void) | null>(null);
+  const hold = () => {
+    warm();
+    if (!bakesPending()) return;
+    hurry(true);
+    const release = () => {
+      if (!holding.current) return;
+      holding.current();
+      redraw((n) => n + 1);
+    };
+    const off = onLanded(() => {
+      if (!bakesPending()) release();
+    });
+    const t = setTimeout(release, SHOW_WITHIN);
+    holding.current = () => {
+      off();
+      clearTimeout(t);
+      hurry(false);
+      holding.current = null;
+    };
+  };
+  useEffect(() => () => holding.current?.(), []);
+
+  /* first paint before the browser shows the frame */
+  useLayoutEffect(() => {
+    if (!sim.current) sim.current = new Sim(seedValue, stateKey);
+    else sim.current.setState(stateKey);
+    sim.current.setTurn(clamp(turn, 0, 2));
+    if (shownRef.current && material && lastLook.current !== null && lastLook.current !== lookKey && !holding.current) hold();
+    lastLook.current = lookKey;
+    sim.current.setJump({ height: jumpHeight, time: Math.max(0.2, jumpTime), stretch: jumpStretch, spin: Math.max(0, Math.round(jumpSpin)), lean: jumpLean, every: jumpEvery, land: jumpLand, squash: jumpSquash, squashTime: Math.max(0.05, jumpSquashTime), squashEase: jumpSquashEase, groundTime: Math.max(0, jumpGroundTime), groundEase: jumpGroundEase, riseTime: Math.max(0.05, jumpRiseTime), riseEase: jumpRiseEase, clickSquashTime: Math.max(0.05, jumpClickSquashTime) });
+    if (holding.current) return;
+    if (reducedMotion()) {
+      /* the still pose of the state, no loop */
+      const still = () => {
+        const canvas = canvasRef.current;
+        if (!canvas || !cfg.current || !cfg.current.path) return;
+        const px = canvas.clientWidth / OVERSCAN || cssSize.current || (typeof size === 'number' ? size : 64);
+        if (!px) return;
+        cssSize.current = px;
+        const dpr = Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+        canvas.width = canvas.height = Math.round(px * OVERSCAN * dpr);
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          cfg.current.theme = resolveTheme(canvas);
+          cfg.current.dpr = dpr;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          draw(ctx, px, restPose(stateKey), cfg.current);
+        }
+      };
+      stillPaint.current = still;
+      if (shownRef.current) settle(still);
+      else showWhenBaked(still);
+      return;
+    }
+    /* the surface's theme, read once per render rather than per frame */
+    if (cfg.current && canvasRef.current) cfg.current.theme = resolveTheme(canvasRef.current);
+    if (!shownRef.current) {
+      stillPaint.current = frozen ? paint : null;
+      showWhenBaked(paint);
+    } else if (frozen) {
+      stillPaint.current = paint;
+      settle(paint);
+    } else {
+      stillPaint.current = null;
+      stopWaiting();
+      paint();
+    }
+  });
+
+  /* plastic bakes its form per type; start that on idle time at mount so
+     the first frames do not stand in with the smooth look for long */
+  useEffect(() => {
+    if (!material || !cfg.current?.path) return;
+    const ric = (typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn: () => void) => setTimeout(fn, 1)) as (fn: () => void) => number;
+    const id = ric(warm);
+    return () => {
+      if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
+      else clearTimeout(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shadingMode, outlineKey, size, depth, furId, light, backLight, lightFront]);
+
+  /* the loop: only while visible, animated and not reduced */
+  useEffect(() => {
+    if (frozen || reducedMotion()) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let onScreen = true;
+    let unsub: (() => void) | null = null;
+    /* how far the pointer's pull reaches, in head widths */
+    const REACH = 3;
+    const tick = (dt: number) => {
+      const s = sim.current;
+      if (!s) return;
+      if (interactiveRef.current && !Number.isNaN(pointer.x)) {
+        const r = canvas.getBoundingClientRect();
+        const box = r.width / OVERSCAN || 1;
+        const dx = (pointer.x - (r.left + r.width / 2)) / box;
+        const dy = (pointer.y - (r.top + r.height / 2 + RISE * box)) / box;
+        const d = Math.hypot(dx, dy);
+        /* full pull up close, gone by REACH */
+        const strength = d < 1 ? 1 : d > REACH ? 0 : 1 - (d - 1) / (REACH - 1);
+        s.setPointer(dx / Math.max(1, d), dy / Math.max(1, d), strength);
+      } else s.setPointer(0, 0, 0);
+      s.update(dt * speedRef.current);
+      /* not drawn while it waits to be shown: the frames go to its bakes */
+      if (shownRef.current && !holding.current) paint();
+    };
+    const run = () => {
+      if (!unsub) unsub = subscribe(tick);
+    };
+    const stop = () => {
+      if (unsub) unsub();
+      unsub = null;
+    };
+    let io: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver === 'function') {
+      io = new IntersectionObserver((entries) => {
+        onScreen = entries[0]?.isIntersecting ?? true;
+        if (onScreen) run();
+        else stop();
+      });
+      io.observe(canvas);
+    } else run();
+    return () => {
+      stop();
+      if (io) io.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frozen]);
+
+  /* The canvas overscans its box (see draw.ts) and pulls itself back in
+     with negative margins, so it lays out at `size` and still has room
+     to hop and flip. */
+  const dim = typeof size === 'number' ? `${size * OVERSCAN}px` : `calc(${size} * ${OVERSCAN})`;
+  const pull = (k: number) => (typeof size === 'number' ? `${-size * k}px` : `calc(${size} * ${-k})`);
+  const side = (OVERSCAN - 1) / 2;
+  const css: CSSProperties = {
+    display: 'inline-block', verticalAlign: 'middle', width: dim, height: dim,
+    marginLeft: pull(side), marginRight: pull(side), marginTop: pull(side + RISE), marginBottom: pull(side - RISE),
+    flex: 'none', opacity: shown ? 1 : 0, transition: 'opacity 0.3s ease-out', ...style,
+  };
+
+  const onClick = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (interactive && !frozen && !heldPose) sim.current?.poke();
+    rest.onClick?.(e);
+  };
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className ? `ba ${className}` : 'ba'}
+      data-bot-avatar={type}
+      data-face={faceKind}
+      data-state={stateKey}
+      role="img"
+      aria-label={ariaLabel ?? `${preset.label} bot, ${stateLabels[stateKey]}`}
+      style={css}
+      {...rest}
+      onClick={onClick}
+    />
+  );
+});
+
+export default BotAvatar;

@@ -1,6 +1,6 @@
 {
   "name": "liquid-gooey",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Liquid UI effects for React: Morph (gooey merge, jelly shape change, contact dissolve), Move (liquid-rubber trails), Melt (two images running molten into each other) and Bend (bodies that bow with velocity). SVG-filter silhouette layer + crisp content layer, real shadows on the merged liquid. Cross-browser, Safari included.",
   "license": "MIT",
   "type": "module",
@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/Jakubantalik/Libraries.dev/issues"
   },
-  "homepage": "https://gooey.jakubantalik.com",
+  "homepage": "https://libraries.dev/gooey",
   "author": "Jakub Antalik",
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",

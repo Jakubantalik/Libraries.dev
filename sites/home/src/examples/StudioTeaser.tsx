@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /* Studio teaser (Figma 1425:38896) — the paywall foot of every detail
    playground panel. A locked replica of the library's real Studio controls
    sits at 20% opacity under a scrim that fades the panel surface in over a
@@ -5,11 +7,32 @@
    Tune-in-Studio rim wash. The replica is presentation only: static
    markup, aria-hidden, pointer-events off. */
 
+/* Someone who already pays does not need selling to: for them the pill
+   opens the Studio instead. pro-client.js resolves /me after the page has
+   mounted and fires "pro:me" on every change, so the button reads the
+   state at mount and again whenever it moves. */
+function useEntitled() {
+  const [entitled, setEntitled] = useState(false);
+  useEffect(() => {
+    const read = () => {
+      const s = window.LibrariesPro?.state;
+      setEntitled(!!(s && s.authenticated && s.pro));
+    };
+    read();
+    document.addEventListener("pro:me", read);
+    return () => document.removeEventListener("pro:me", read);
+  }, []);
+  return entitled;
+}
+
 export type TeaserRow =
   | { kind: "tabs"; label: string; options: string[] }
-  | { kind: "slider"; label: string; value: string; fill: number };
+  | { kind: "slider"; label: string; value: string; fill: number }
+  /** The Studio's colour picker row: a run of swatches, the first selected. */
+  | { kind: "swatches"; label: string; colors: string[] };
 
 export function StudioTeaser({ rows }: { rows: TeaserRow[] }) {
+  const entitled = useEntitled();
   return (
     <div className="pg-teaser">
       <div className="pg-teaser-locked" aria-hidden="true">
@@ -23,6 +46,12 @@ export function StudioTeaser({ rows }: { rows: TeaserRow[] }) {
                     <div className="pg-tab" data-active={i === 0 ? "true" : "false"} key={o}>
                       {o}
                     </div>
+                  ))}
+                </div>
+              ) : row.kind === "swatches" ? (
+                <div className="pg-swatches">
+                  {row.colors.map((c, i) => (
+                    <div className="pg-swatch" data-active={i === 0 ? "true" : "false"} style={{ background: c }} key={c} />
                   ))}
                 </div>
               ) : (
@@ -48,8 +77,8 @@ export function StudioTeaser({ rows }: { rows: TeaserRow[] }) {
             options and AI agent assistance.
           </p>
         </div>
-        <a className="t-pro-btn detail-studio pg-teaser-btn" href="/pro.html">
-          <span className="t-pro-btn-label">Get access</span>
+        <a className="t-pro-btn detail-studio pg-teaser-btn" href={entitled ? "/studio/app.html" : "/pro.html"}>
+          <span className="t-pro-btn-label">{entitled ? "Open Studio" : "Get access"}</span>
         </a>
       </div>
     </div>

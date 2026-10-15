@@ -79,6 +79,10 @@ export interface DrawDst {
   h: number;
   flipX: boolean;
   flipY: boolean;
+  /** Source-rect origin in the anchor canvas, device px. Non-zero while the
+   *  anchor is overscanned (vector bend) so only its CSS box is sampled. */
+  sx?: number;
+  sy?: number;
 }
 
 export function drawSource(
@@ -89,7 +93,7 @@ export function drawSource(
   dst: DrawDst
 ): void {
   if (!dst.flipX && !dst.flipY) {
-    ctx.drawImage(src, 0, 0, sw, sh, dst.x, dst.y, dst.w, dst.h);
+    ctx.drawImage(src, dst.sx ?? 0, dst.sy ?? 0, sw, sh, dst.x, dst.y, dst.w, dst.h);
     return;
   }
   ctx.save();
@@ -103,8 +107,8 @@ export function drawSource(
   }
   ctx.drawImage(
     src,
-    0,
-    0,
+    dst.sx ?? 0,
+    dst.sy ?? 0,
     sw,
     sh,
     dst.flipX ? 0 : dst.x,
@@ -153,9 +157,12 @@ export function maskedFillPasses(
   grad: CanvasGradient,
   dst: DrawDst,
   fillBox: BoxRect,
-  dpr: number
+  dpr: number,
+  /** Override for the edge band the fill is clipped to, device px. Glyph
+   *  targets pass the whole box — letters have no "rim" to hug. */
+  bandDevPxOverride?: number
 ): void {
-  const fillBandDevPx = Math.max(1, Math.round((RANGE_PX + FILL_BLUR_CSS_PX * 3) * dpr));
+  const fillBandDevPx = bandDevPxOverride ?? Math.max(1, Math.round((RANGE_PX + FILL_BLUR_CSS_PX * 3) * dpr));
   let remaining = Math.max(0, totalAlpha);
   let firstChunk = true;
   for (let i = 0; i < 3 && remaining > 1e-4; i++) {

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <meta name="color-scheme" content="dark" />
+  <title>Skill demo | Libraries.dev</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/examples.css" />
+  <style>
+    /* Skill demo page — Figma 1635:1035. Each library applied to a piece
+       of plain agent UI, one prototype per row on the Figma's #070707
+       ground, beside the same UI as a generic AI agent would finish it.
+       Not linked from the site. Motion values come from the
+       transitions.dev tokens in site.css; the shimmer is examples.css's. */
+    :root {
+      --icon-swap-dur: 250ms;
+      --icon-swap-blur: 2px;
+      --icon-swap-start-scale: 0.25;
+      --icon-swap-ease: ease-in-out;
+    }
+    html, body { margin: 0; background: #070707; }
+    body { color: #ebebeb; font-family: Inter, var(--font-sans); }
+    p { margin: 0; }
+
+    .sd {
+      box-sizing: border-box;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      padding: 120px 16px 140px;
+    }
+    /* Two columns, one row per component: generic AI on the left, the
+       library on the right, each pair sharing a row so they line up. */
+    .sd-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 270px);
+      column-gap: 120px;
+      row-gap: 88px;
+      align-items: center;
+      justify-items: start;
+    }
+    .sd-head {
+      margin-bottom: -40px;
+      font-size: 13px;
+      line-height: 16px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    /* Too narrow for the pair: stack each generic above its library. */
+    @media (max-width: 720px) {
+      .sd-grid { grid-template-columns: 270px; }
+      .sd-head { display: none; }
+    }
+
+    /* Input — rotating border beam. */
+    .sd-input {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 270px;
+      height: 58px;
+      padding: 0 10px 0 23px;
+      border: 1px solid rgba(44, 47, 54, 0.52);
+      border-radius: 60px;
+      background: rgba(29, 29, 29, 0.7);
+      box-shadow: inset 0 0 50px 0 rgba(255, 255, 255, 0.02);
+    }
+    .sd-input-field {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #ebebeb;
+      caret-color: #ebebeb;
+      font: 400 14px/16px Inter, var(--font-sans);
+    }
+    .sd-input-field::placeholder { color: #4e4e4e; }
+    .sd-input-send {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 0;
+      border-radius: 36px;
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      transition: background-color var(--duration-quick) var(--ease-out), scale var(--duration-quick) var(--ease-out);
+    }
+    .sd-input-send:hover { background: rgba(255, 255, 255, 0.08); }
+    .sd-input-send:active { scale: 0.96; }
+
+    /* Beam hairlines on pill-shaped hosts. The ring is already shaped by
+       its own border-radius and mask; the library also clips it with a
+       clip-path and the wrapper's rounded overflow, at the very same edge.
+       The ring is a composited layer, and Chrome can draw those extra
+       rounded clips without anti-aliasing, so the curved ends came out
+       stepped. Dropping the redundant clips leaves the smooth edge. */
+    .sd-beam { overflow: visible !important; }
+    .sd-beam::after { clip-path: none !important; }
+
+    /* Studio app — metal "New" badge. */
+    .sd-studio { display: flex; align-items: center; gap: 12px; }
+    .sd-studio-label { font-size: 16px; line-height: 16px; font-weight: 500; color: #cfcfcf; }
+
+    /* Shared pill button (Get Pro, Generate). */
+    .sd-btn {
+      position: relative;
+      box-sizing: border-box;
+      height: 40px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 36px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 50px 0 rgba(255, 255, 255, 0.02);
+      color: #ebebeb;
+      font: 500 14px/14px Inter, var(--font-sans);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background-color var(--duration-quick) var(--ease-out), scale var(--duration-quick) var(--ease-out);
+    }
+    .sd-btn:hover { background: rgba(255, 255, 255, 0.1); }
+    .sd-btn:active { scale: 0.97; }
+
+    .sd-btn:focus-visible,
+    .sd-input-send:focus-visible,
+    .sd-pill-btn:focus-visible,
+    .sd-pm-btn:focus-visible { outline: 2px solid #ededed; outline-offset: 2px; }
+
+    /* Planning next steps — thinking orb. */
+    .sd-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      line-height: 14px;
+      color: #ebebeb;
+    }
+
+    /* Generate → Generating video… The width follows the active label
+       (card resize), the labels swap with a blurred rise, the fill dims.
+       The anchor holds the idle width in the column and centres the
+       button on it, so the pill grows out to both sides. */
+    .sd-gen-anchor { display: flex; justify-content: center; }
+    .sd-gen {
+      flex: none;
+      padding: 0;
+      /* Figma 1209:4827: the collapsed pill is the brighter 16% fill. */
+      background: rgba(255, 255, 255, 0.16);
+      overflow: hidden;
+      transition:
+        width var(--resize-dur) var(--resize-ease),
+        background-color var(--duration-fast) var(--ease-in-out),
+        scale var(--duration-quick) var(--ease-out);
+    }
+    .sd-gen[data-state="idle"]:hover { background: rgba(255, 255, 255, 0.2); }
+    .sd-gen[data-state="busy"] { background: rgba(255, 255, 255, 0.04); }
+    .sd-gen[data-state="busy"]:hover { background: rgba(255, 255, 255, 0.06); }
+    .sd-gen-layer {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      translate: -50% 0;
+      box-sizing: border-box;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      transition:
+        opacity var(--duration-fast) var(--ease-in-out),
+        filter var(--duration-fast) var(--ease-in-out),
+        transform var(--duration-fast) var(--ease-in-out);
+      will-change: opacity, filter, transform;
+    }
+    .sd-gen-layer[data-layer="idle"] { padding: 0 18px; }
+    .sd-gen-layer[data-layer="busy"] {
+      gap: 8px;
+      padding: 0 20px 0 12px;
+      font-weight: 400;
+      color: #caccd2;
+    }
+    .sd-gen[data-state="idle"] [data-layer="busy"] {
+      opacity: 0;
+      filter: blur(var(--blur-small));
+      transform: translateY(var(--distance-micro));
+    }
+    .sd-gen[data-state="busy"] [data-layer="idle"] {
+      opacity: 0;
+      filter: blur(var(--blur-small));
+      transform: translateY(calc(var(--distance-micro) * -1));
+    }
+
+    /* Voice pill — speak opens it into the recording pill. Like Generate,
+       the anchor keeps the closed width in the column and centres the
+       pill on it, so it opens out to both sides. */
+    .sd-pill-anchor { display: flex; justify-content: center; width: 85px; }
+    .sd-pill-anchor > * { flex: none; }
+    .sd-pill {
+      position: relative;
+      box-sizing: border-box;
+      width: 85px;
+      height: 44px;
+      border-radius: 106px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+      transition: width var(--resize-dur) var(--resize-ease);
+    }
+    .sd-pill[data-state="on"] { width: 149px; }
+    .sd-pill-mic { position: absolute; left: 13px; top: 14px; z-index: 5; display: block; }
+    .sd-pill-time {
+      position: absolute;
+      left: 51px;
+      top: 14px;
+      z-index: 5;
+      font: 500 13px/16px Inter, var(--font-sans);
+      color: rgba(255, 255, 255, 0.5);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      transition:
+        opacity var(--duration-fast) var(--ease-in-out),
+        filter var(--duration-fast) var(--ease-in-out);
+    }
+    .sd-pill[data-state="off"] .sd-pill-time {
+      opacity: 0;
+      filter: blur(var(--blur-small));
+      transition-duration: var(--duration-quick);
+    }
+    .sd-pill[data-state="on"] .sd-pill-time { transition-delay: var(--duration-micro); }
+    .sd-pill-btn {
+      position: absolute;
+      right: 7px;
+      top: 7px;
+      z-index: 5;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 70px;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color var(--duration-quick) var(--ease-out), scale var(--duration-quick) var(--ease-out);
+    }
+    .sd-pill-btn:hover { background: rgba(255, 255, 255, 0.14); }
+    .sd-pill-btn:active { scale: 0.94; }
+    .sd-pill-btn .t-icon { display: block; place-self: center; }
+    .sd-pill-stop { width: 11px; height: 11px; border-radius: 2px; background: rgba(217, 217, 217, 0.8); }
+
+    /* transitions.dev — icon swap (09). */
+    .t-icon-swap {
+      position: relative;
+      display: inline-grid;
+    }
+    .t-icon-swap .t-icon {
+      grid-area: 1 / 1;
+      transition:
+        opacity   var(--icon-swap-dur) var(--icon-swap-ease),
+        filter    var(--icon-swap-dur) var(--icon-swap-ease),
+        transform var(--icon-swap-dur) var(--icon-swap-ease);
+      will-change: opacity, filter, transform;
+    }
+    .t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+    .t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+    .t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+    .t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+      opacity: 0;
+      filter: blur(var(--icon-swap-blur));
+      transform: scale(var(--icon-swap-start-scale));
+    }
+
+    /* Plus → three options (liquid-gooey morph). The group reserves the
+       open arc above and beside the button, with the button centred in it;
+       the group sits 30px left of its column's centre, and the negative
+       top margin sets the button 20px lower than the row gap so the open
+       arc clears the pill above. */
+    .sd-pm { position: relative; left: -30px; width: 132px; height: 93px; margin-top: -37px; justify-self: center; }
+    .sd-pm-slot { position: absolute; left: 48px; top: 57px; }
+    .sd-pm-btn {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #d5d5d5;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sd-pm-opt { pointer-events: none; transition: background-color var(--duration-quick) var(--ease-out); }
+    .sd-pm.is-open .sd-pm-opt { pointer-events: auto; }
+    .sd-pm.is-open .sd-pm-opt:hover { background: rgba(255, 255, 255, 0.06); }
+    /* Icons hold back while the blob is merged, then resolve as it pulls clear. */
+    .sd-pm-icon {
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      filter: blur(var(--blur-small));
+      transition: opacity 120ms ease, filter 120ms ease;
+    }
+    .sd-pm.is-open .sd-pm-icon { opacity: 1; filter: blur(0); transition-duration: 180ms; }
+    .sd-pm-plus {
+      display: grid;
+      place-items: center;
+      transition: transform var(--duration-fast) var(--ease-in-out);
+    }
+    .sd-pm.is-open .sd-pm-plus { transform: rotate(45deg); }
+    @keyframes sd-pm-anticipate {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(5px); }
+      100% { transform: translateY(0); }
+    }
+    /* Longhands: WebKit mis-parses var() inside the `animation` shorthand. */
+    .sd-pm.is-anticipating [data-gooey-svg],
+    .sd-pm.is-anticipating .sd-pm-main {
+      animation-name: sd-pm-anticipate;
+      animation-duration: 700ms;
+      animation-timing-function: var(--ease-smooth-out);
+      animation-fill-mode: both;
+    }
+
+    /* Personal assistant — bot avatar. */
+    .sd-agent { display: flex; align-items: center; gap: 14px; }
+    /* The avatar hops and turns on click, so it reads as clickable. */
+    .sd-agent [data-bot-avatar] { cursor: pointer; }
+    .sd-agent-text {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 14px;
+      line-height: 14px;
+      color: #caccd2;
+    }
+
+    /* ── Generic AI column ────────────────────────────────────────
+       What an agent writes without the libraries: stock spin / pulse /
+       ping keyframes, a violet-to-pink gradient, and state changes that
+       jump rather than move. Same base components as the right column. */
+
+    /* Input: the "glowing input" — a purple outer glow that breathes. */
+    .gx-input-glow {
+      border-radius: 60px;
+      animation: gx-glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes gx-glow {
+      from { box-shadow: 0 0 12px rgba(168, 85, 247, 0.25); }
+      to { box-shadow: 0 0 28px rgba(168, 85, 247, 0.55); }
+    }
+
+    /* Badge: flat white pill with a shine sweep (a soft gray band, so it
+       reads on white). */
+    .gx-badge {
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #fff;
+      color: #323232;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .gx-badge::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 30%, rgba(0, 0, 0, 0.12) 50%, transparent 70%);
+      transform: translateX(-100%);
+      animation: gx-shine 2.5s ease-in-out infinite;
+    }
+    @keyframes gx-shine { 60%, 100% { transform: translateX(100%); } }
+
+    /* Get Pro: Generate's 16% fill, and Tailwind's ping as a spreading
+       violet ring. */
+    .gx-ping {
+      background: rgba(255, 255, 255, 0.16);
+      animation: gx-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    .gx-ping:hover { background: rgba(255, 255, 255, 0.2); }
+    @keyframes gx-ping {
+      0% {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+          0 0 0 0 rgba(139, 92, 246, 0.6);
+      }
+      100% {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+          0 0 0 12px rgba(139, 92, 246, 0);
+      }
+    }
+
+    /* Loading: a border spinner and Tailwind's opacity pulse. */
+    .gx-spinner {
+      flex: none;
+      box-sizing: border-box;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-top-color: rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+      animation: gx-spin 1s linear infinite;
+    }
+    .gx-spinner--sm { width: 14px; height: 14px; }
+    @keyframes gx-spin { to { transform: rotate(360deg); } }
+    .gx-pulse { animation: gx-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes gx-pulse { 50% { opacity: 0.5; } }
+
+    /* Voice pill: a red ping stands in for the voice glow. */
+    .gx-pill.is-rec { animation: gx-rec 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+    @keyframes gx-rec {
+      0% {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+          0 0 0 0 rgba(239, 68, 68, 0.55);
+      }
+      100% {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+          0 0 0 10px rgba(239, 68, 68, 0);
+      }
+    }
+
+    /* Plus menu: solid circles scale and fade out of the button. */
+    .gx-pm-opt,
+    .gx-pm-main {
+      position: absolute;
+      left: 48px;
+      top: 57px;
+      background: #2f2f2f;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+    }
+    .gx-pm-main { z-index: 1; }
+    .gx-pm-opt {
+      opacity: 0;
+      transform: translate(0, 0) scale(0.5);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    .gx-pm.is-open .gx-pm-opt {
+      opacity: 1;
+      transform: translate(var(--x), var(--y)) scale(1);
+      pointer-events: auto;
+    }
+    .gx-pm.is-open .gx-pm-opt:hover { background: #383838; }
+
+    /* Assistant: emoji on a gradient circle. */
+    .gx-avatar {
+      position: relative;
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      margin: 0 4px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sd-gen, .sd-gen-layer, .sd-pill, .sd-pill-time, .sd-pm-plus, .sd-pm-icon { transition: none !important; }
+      .t-icon-swap .t-icon { transition: none !important; }
+      .gx-input-glow, .gx-badge::after, .gx-ping, .gx-spinner, .gx-pulse, .gx-pill.is-rec { animation: none !important; }
+      .gx-pm-opt { transition: none !important; }
+      .sd-pm.is-anticipating [data-gooey-svg],
+      .sd-pm.is-anticipating .sd-pm-main { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/skill-demo.tsx"></script>
+</body>
+</html>

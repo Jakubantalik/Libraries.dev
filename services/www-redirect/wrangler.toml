@@ -1,0 +1,8 @@
+name = "libraries-www-redirect"
+main = "index.js"
+compatibility_date = "2026-09-01"
+workers_dev = false
+
+routes = [
+  { pattern = "www.libraries.dev/*", zone_name = "libraries.dev" },
+]

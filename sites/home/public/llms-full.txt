@@ -1,0 +1,1856 @@
+# Libraries.dev: full library references
+
+<!-- Border Beam (border-beam). Live playground: https://libraries.dev/beam. npm: https://www.npmjs.com/package/border-beam -->
+
+# Border beam
+
+An animated glow that rides the border of a card, button or input. It is a React wrapper component, pure CSS layers plus a small shared rAF loop for the pulse types. npm package `border-beam`.
+
+## When to use
+
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Loading that lasts longer than 3 seconds**: wrap the element doing the work (the prompt input, the result card) and set `active` from the real loading flag. Shorter waits get no beam.
+- **Highlighting a component**, such as a prompt input or a CTA button, uses a Pulse type:
+  - a **button**: `size="pulse-inner"` (the glow breathes inside the button);
+  - an **input**: `size="pulse-outside"` (the glow blooms outside the field).
+- **An input that loads after the user submits text** (search, ask, command bar): `size="line"`, active from submit until results arrive.
+
+More situations it fits:
+
+- An AI chat input or composer while the model is streaming or an agent is working: `size="md"` with `active={isStreaming}`.
+
+The two families:
+
+| Family | Types (`size`) | Motion |
+| --- | --- | --- |
+| Rotate | `md` (Large), `line`, `sm` | A beam travels around the border (`line`: along the bottom edge) |
+| Pulse | `pulse-inner`, `pulse-outside` | No travel; the glow breathes in place |
+
+### When not to use
+
+- Static emphasis that never changes state. A plain border or shadow says the same thing with no paint cost.
+- Many instances on one screen (every row of a list or table). Each beam repaints masked, filtered layers every frame.
+- Elements whose content must spill outside their box (open dropdowns, tooltips, focus rings drawn outside). Every type except `pulse-outside` clips the wrapper with `overflow: hidden`.
+- Non-React stacks on the web. The web package is React only.
+
+## Install
+
+```bash
+npm install border-beam
+pnpm add border-beam
+yarn add border-beam
+```
+
+```tsx
+import { BorderBeam } from 'border-beam';
+```
+
+- React component. Peer dependencies: `react >= 18`, `react-dom >= 18`. No runtime dependencies.
+- ESM (`dist/index.es.js`) and CommonJS (`dist/index.cjs`) builds, with types. A default export is also provided.
+- The package ships no `"use client"` directive and uses hooks. In the Next.js App Router, render it from a file that starts with `"use client"`.
+- Server rendering works: instance ids come from `useId`, and the component renders its own `<style>` tag.
+
+The detail page also lists two ports, both local to the repo (not on npm):
+
+- React Native: `border-beam-native` in `packages/border-beam/ports/react-native/border-beam-native`. Needs `@shopify/react-native-skia` and `react-native-reanimated`. Expo needs `expo run:ios` / `run:android` (native modules).
+- SwiftUI: `BorderBeamKit` in `packages/border-beam/ports/ios/BorderBeamKit`, installed from GitHub through the repo's root `Package.swift`. Build through Xcode; the Metal shader is compiled by Xcode's build system, not SwiftPM alone.
+
+## Basic usage
+
+React (the detail page's Install & Usage tab):
+
+```tsx
+import { BorderBeam } from 'border-beam';
+
+<BorderBeam>
+  <YourCard>Content</YourCard>
+</BorderBeam>
+```
+
+React Native:
+
+```bash
+npm install border-beam-native @shopify/react-native-skia react-native-reanimated
+```
+
+```tsx
+import { BorderBeam } from 'border-beam-native';
+
+<BorderBeam>
+  <Card />
+</BorderBeam>
+```
+
+SwiftUI:
+
+```swift
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "BorderBeamKit", package: "Libraries.dev")
+```
+
+```swift
+import BorderBeamKit
+
+BorderBeam(
+    borderRadius: 16
+) {
+    Card()
+}
+```
+
+The ports do not auto-detect the child's corner radius, so pass `borderRadius` there. The web component detects it.
+
+The playground's live snippet keeps only non-default props. For example, Line + Mono:
+
+```tsx
+<BorderBeam size="line" colorVariant="mono">
+  <Card>Content</Card>
+</BorderBeam>
+```
+
+## Options (free)
+
+| Prop | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `size` | `"md"`, `"line"`, `"pulse-inner"`, `"pulse-outside"` (tuner); `"sm"` (Copy prompt) | `"md"` | Beam type. `md` full-border travelling beam, `line` bottom-edge travelling glow, `sm` compact beam for button-sized elements, `pulse-inner` breathes inside the border, `pulse-outside` blooms outward |
+| `colorVariant` | `"colorful"`, `"mono"` (tuner); `"ocean"`, `"sunset"` (Copy prompt) | `"colorful"` | Palette. `colorful` full spectrum, `mono` grayscale (always static, softer), `ocean` blues and purples, `sunset` oranges and reds |
+| `active` | `true`, `false` (Play / Pause) | `true` | Runs the effect. Switching fades in (0.6 s) or out (0.5 s); when off, no effect layers render |
+| `strength` | `0` to `1` (Copy prompt) | `1` | Opacity of the beam layers only. Never dims the wrapped content |
+| `theme` | `"dark"`, `"light"` (Copy prompt) | `"dark"` | Tunes glow colours and blending for a dark or light surface. The package types also accept `"auto"`, which follows `prefers-color-scheme` |
+
+Tuner to props: **Family** is not a prop. It only switches which **Type** tabs show (Rotate: Large = `md`, Line = `line`; Pulse: Pulse Inner, Pulse Outside). **Type** sets `size`. **Color** sets `colorVariant`. **Play / Pause** sets `active`. The stage is always `theme="dark"`. The page's "Copy prompt" text adds `sm`, `ocean`, `sunset`, `strength` and `theme`. The web component also forwards any standard `<div>` attribute (`className`, `style`, `id`, `data-*`, `ref`) to the wrapper.
+
+## Recipes
+
+Chat composer while the model streams. Use when an input should show "the assistant is working" without a separate spinner.
+
+```tsx
+import { BorderBeam } from 'border-beam';
+
+function Composer({ isStreaming }: { isStreaming: boolean }) {
+  return (
+    <BorderBeam active={isStreaming} strength={0.8}>
+      <form className="composer" style={{ borderRadius: 16, background: '#1d1d1d' }}>
+        <textarea placeholder="Ask anything" aria-busy={isStreaming} />
+      </form>
+    </BorderBeam>
+  );
+}
+```
+
+Search bar while searching. Use when a single-line field is fetching results.
+
+```tsx
+<BorderBeam size="line" active={isSearching}>
+  <div className="search" style={{ borderRadius: 20, background: '#1d1d1d' }}>
+    <input type="search" placeholder="Search" />
+  </div>
+</BorderBeam>
+```
+
+AI action button. Use for a compact "Generate" or sparkle button that should read as AI-powered.
+
+```tsx
+<BorderBeam size="sm" colorVariant="ocean" style={{ display: 'inline-block' }}>
+  <button className="ai-btn" style={{ borderRadius: 18, background: '#1d1d1d' }}>
+    Generate
+  </button>
+</BorderBeam>
+```
+
+Card awaiting a decision, on a light page. Use for a pending approval or a highlighted item where travelling motion would be too loud.
+
+```tsx
+<BorderBeam size="pulse-inner" colorVariant="mono" theme="light" strength={0.7}>
+  <article className="approval-card" style={{ borderRadius: 12, background: '#fff' }}>
+    Agent wants to send 3 emails. Approve?
+  </article>
+</BorderBeam>
+```
+
+Featured pricing card with an outward halo. Use when one card in a row should stand out.
+
+```tsx
+<BorderBeam size="pulse-outside" colorVariant="sunset">
+  <div
+    className="plan plan--featured"
+    style={{ borderRadius: 16, background: '#1d1d1d', border: '1px solid rgba(255,255,255,0.1)' }}
+  >
+    Pro plan
+  </div>
+</BorderBeam>
+```
+
+## Accessibility & performance
+
+- Rotate types (`md`, `sm`, `line`) do not handle `prefers-reduced-motion`. Handle it yourself by turning the beam off:
+
+```tsx
+import { useEffect, useState } from 'react';
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduced(mq.matches);
+    const on = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return reduced;
+}
+
+// <BorderBeam active={isStreaming && !reduced}>
+```
+
+- Pulse types (`pulse-inner`, `pulse-outside`) ship a `prefers-reduced-motion: reduce` block that sets `animation: none` on every layer, including the fade-in. The glow then never becomes visible, and the breathing loop is not started. Pair it with a non-motion cue if the glow carries meaning.
+- The effect is decorative. Layers are `::before`, `::after` and an empty `<div data-beam-bloom>`, all `pointer-events: none`. The component sets no ARIA. Put state on the real control (`aria-busy`, a visible "Thinking…" label, a live region).
+- Offscreen instances pause. An `IntersectionObserver` (256 px margin) sets `data-paused`, which pauses every CSS animation, and unregisters pulse instances from the loop.
+- Pulse breathing runs on one shared `requestAnimationFrame` loop capped near 30 fps for all instances. Rotate types animate registered CSS custom properties (`@property`).
+- Paint cost comes from masks, conic/radial gradients and blur filters redrawn every frame. Keep a handful of live beams per screen. Set `active={false}` when the state ends; inactive beams render no layers.
+- `@property` is needed for smooth motion (Chrome 85+, Safari 15.4+, Firefox 128+). Older browsers step instead of interpolating.
+- SSR: with `theme="auto"`, the server renders the dark styles and the client's first render may pick light, which can cause a hydration mismatch. Prefer an explicit `theme` driven by your own theme state.
+
+## Common mistakes
+
+- **The wrapper is a plain block `<div>`.** The beam draws on the wrapper's edge, not the child's. In normal block flow the wrapper stretches to full width while a button or fixed-width card stays narrow. Place it in a flex or grid parent, give it `style={{ display: 'inline-block' }}` or `width: 'fit-content'`, or make the child fill the wrapper.
+- **Most types clip.** `md`, `sm`, `line` and `pulse-inner` set `overflow: hidden` and the border radius on the wrapper. A child's `box-shadow`, an open dropdown, or an outside focus ring gets cut. Put the shadow on the wrapper (`className` or `style`), and portal popovers out.
+- **Corner radius comes from the first child.** The component reads `border-top-left-radius` of the wrapper's first element child. If that element is not the rounded one, or has no radius, the beam falls back to 16 px (`sm`: 32 px) and the corners do not line up. Put the rounded element directly inside `<BorderBeam>`.
+- **Copying the playground while paused.** The playground starts paused, so its snippet contains `active={false}`, which renders nothing. Drop that prop or drive it from state.
+- **Transparent child with `pulse-outside`.** Its core and halo sit behind the content (`z-index: -1`) and spill outward (`overflow: visible`). The child needs an opaque background, a 1 px border (it rides the child's own edge), and ancestors that do not clip the halo.
+- **Wrong theme on light surfaces.** The default is `"dark"`. On a white card, set `theme="light"`. The dark tuning looks washed out there.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+| --- | --- |
+| Chat composers where the reply takes more than 3 s (streamed model replies, agent runs): `<textarea` next to `onSubmit`, `ChatInput`, `Composer`, `PromptInput`, `useChat`, `isStreaming`, `isLoading`, `status === 'streaming'` | `md` beam around the composer with `active={isStreaming}` |
+| Copy like `Thinking…`, `Generating`, `Working…`, `Agent is running`, `aria-busy` on a card | `md` or `pulse-inner` on that card while the state holds |
+| Search inputs: `type="search"`, `SearchBar`, `CommandMenu`, `cmdk`, `isSearching`, `isFetching` | `line` beam with `active={isSearching}` |
+| CTA or AI action buttons to highlight: `Sparkles`, `Wand` icons, "Generate", "Ask AI", "Get started" labels | `pulse-inner` around the button |
+| A prompt input to highlight while idle (the main field on an empty state or landing) | `pulse-outside` around the input |
+| Featured cards: `featured`, `recommended`, `popular`, `highlight` classes on pricing or plan cards | `pulse-outside` on the featured card |
+| Pending or selected states: `needsApproval`, `pendingReview`, `isSelected` on a card | `pulse-inner`, `colorVariant="mono"` for restraint |
+| Hand-rolled beams: `conic-gradient` with `@keyframes` rotate, `animate-border`, `border-beam`, `shine-border`, `magic-border` | Replace with `<BorderBeam>` |
+| Light-mode UI: `bg-white` cards, `data-theme="light"`, `prefers-color-scheme: light` | Set `theme="light"` on those beams |
+
+## Go further (Pro)
+
+- Four more palettes (Forest, Candy, Ice, Gold) and the full Type set in one bench, in dark and light.
+- Motion and glow styling: duration, corner radius, glow size, brightness, saturation, per-layer stroke / inner glow / bloom, hue range and hue shift, line spikes, pulse glow spread and boost.
+- An Agent tab that tunes the beam from a description and can rewrite the beam's stylesheet itself.
+- Saved presets per theme, and exported React, React Native and SwiftUI snippets that match the tuning.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Thinking Orbs (thinking-orbs). Live playground: https://libraries.dev/orbs. npm: https://www.npmjs.com/package/thinking-orbs -->
+
+# Thinking orbs
+
+`ThinkingOrb` from `thinking-orbs`: a small dotted 3D orb on a 2D canvas that shows what an AI agent is doing, with nine hand-tuned animated states.
+
+## When to use
+
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Any loading state**, usually beside a text label ("Thinking…", "Searching the web…"), or on its own where there is no room for text.
+- **Not for loading under 2 seconds.** A flash of an orb reads as a glitch; show nothing or the result directly.
+- Pick the `state` that names the activity (see the table under Options).
+
+More situations it fits:
+
+- Assistant avatar while a chat reply is being generated (`breathing`, `composing`).
+- Inline status next to an agent step or tool call: "Searching the web…", "Running code…", "Reading files…" (size 20).
+- Web search, retrieval or lookup in progress (`searching`).
+- Code execution, math or a multi-step solve (`solving`, `working`).
+- Voice input or dictation while the mic is open (`listening`).
+- Connecting to a service, an MCP server, or wiring data sources (`connecting`).
+- Planning steps before an agent acts (`weaving`; the page's example chip labels it "planning").
+- Replacing a generic spinner, `Loader2 animate-spin` icon or three-dot typing indicator in an AI UI.
+
+### When not to use
+
+- Determinate progress (uploads, known step counts). Use a progress bar; the orb has no progress value.
+- Page or route skeletons. The orb says "an agent is busy", not "layout is loading".
+- Large hero visuals. The tuned sizes are 64 and 20 CSS px; scaling the canvas up with CSS blurs it.
+- Many simultaneous orbs in a long list (dozens of canvases animating). Show one per active step.
+
+## Install
+
+```bash
+npm install thinking-orbs
+pnpm add thinking-orbs
+yarn add thinking-orbs
+```
+
+```tsx
+import { ThinkingOrb } from 'thinking-orbs';
+```
+
+- React component rendering a `<canvas>`. Peer dependency: `react >= 18`. No other runtime dependencies.
+- ESM and CJS builds, TypeScript types included.
+- SSR: the canvas renders empty on the server and paints on the client in effects. The package does not ship a `"use client"` directive, so in the Next.js App Router import it from a file marked `"use client"`.
+- React Native and SwiftUI ports exist in the repo (see Basic usage). They are not on npm.
+
+## Basic usage
+
+React (the detail page's Install & Usage tab):
+
+```tsx
+import { ThinkingOrb } from 'thinking-orbs';
+<ThinkingOrb state="searching" size={64} />
+```
+
+The playground's live snippet has the same shape:
+
+```tsx
+import { ThinkingOrb } from 'thinking-orbs';
+
+<ThinkingOrb state="listening" size={64} />
+```
+
+With Cursor gravity switched on, the playground snippet becomes:
+
+```tsx
+import { ThinkingOrb } from 'thinking-orbs';
+// A raster of the platform's own pointer — see the Gravity docs.
+import { macArrow } from './cursors';
+
+<ThinkingOrb state="listening" size={64} gravity={{ sprite: macArrow }} />
+```
+
+`./cursors` is your own file. The package does not ship a pointer image (see Cursor gravity below).
+
+React Native tab (package lives in the repo at `packages/thinking-orbs/ports/react-native/thinking-orbs-native`, not on npm; Expo needs `expo run:ios` / `run:android`):
+
+```bash
+npm install thinking-orbs-native @shopify/react-native-skia react-native-reanimated
+```
+
+```tsx
+import { ThinkingOrb } from 'thinking-orbs-native';
+<ThinkingOrb state="searching" size={64} />
+```
+
+SwiftUI tab (Swift package from GitHub):
+
+```swift
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "ThinkingOrbsKit", package: "Libraries.dev")
+```
+
+```swift
+import ThinkingOrbsKit
+ThinkingOrb(state: .searching, size: .px64)
+```
+
+## Options (free)
+
+| Prop | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `state` | `"working"`, `"searching"`, `"solving"`, `"listening"`, `"connecting"`, `"composing"`, `"breathing"` (tuner tabs); `"weaving"`, `"shaping"` (shown in the page's examples and Copy prompt) | `"working"` | Which animation plays. Each state is its own design, not a variation. |
+| `size` | `64`, `20` | `64` | Tuned size preset in CSS px. 64 is chat-avatar scale, 20 is inline-text scale. Each has its own dot count, dot size and speed. |
+| `gravity` | off, or `{ sprite }` | off | Cursor gravity: near the orb, the pointer's body bends and trails toward it. Needs a pointer raster (`sprite`). |
+| `paused` | `true`, `false` | `false` | Freezes the animation on the current frame (the playground's Play / Pause button). |
+| `theme` | `"auto"`, `"dark"`, `"light"` | `"auto"` | Ink for the background. `dark` draws light dots for dark backgrounds, `light` draws dark dots for light ones. |
+
+What each state looks like (from the package types):
+
+| State | Animation | Fits |
+| --- | --- | --- |
+| `working` | particles on tilted orbits | generic agent work, tool running |
+| `searching` | a scan meridian sweeps a dotted globe | web search, retrieval, lookup |
+| `solving` | bands scramble in quarter turns, then click back | code execution, math, debugging |
+| `listening` | a waveform rolls through latitude rings | mic open, dictation, voice mode |
+| `connecting` | a constellation wires itself, packets on the edges | connecting services, linking sources |
+| `weaving` | three strands plait around the sphere | planning, combining results |
+| `composing` | an undulating multi-band sash | writing, drafting, generating text |
+| `breathing` | a face-on ring slowly morphing | idle "Thinking…", reasoning |
+| `shaping` | a dotted outline morphs circle, triangle, square | designing, building layouts |
+
+Tuner to props: the "State" tabs set `state`, the "Size" tabs (64px / 20px) set `size={64}` / `size={20}`, "Cursor gravity" On adds `gravity={{ sprite: macArrow }}`, and the stage's Play / Pause button maps to `paused`. The page's Copy prompt lists a `dark: boolean` prop; that prop does not exist. Use `theme="dark"` or `theme="light"`. The component also passes through every `<canvas>` prop (`className`, `style`, `aria-label`, `data-*`).
+
+`theme="auto"` resolves in order: an ancestor `data-theme="dark|light"` attribute or a `dark` / `light` class (Tailwind and shadcn convention, watched live), then `prefers-color-scheme` (subscribed live).
+
+### Cursor gravity
+
+`gravity` takes `{ sprite }`, where `sprite` is a `CursorSprite` exported as a type from the package:
+
+```ts
+import type { CursorSprite } from 'thinking-orbs';
+
+// cursors.ts: a raster of YOUR platform's real arrow pointer.
+// Size and hotspot below are the macOS arrow's (17x23 pt, hotspot 4,4).
+export const macArrow: CursorSprite = {
+  src: '/cursors/arrow@2x.png', // image URL or data: URL
+  width: 17,  // CSS px
+  height: 23, // CSS px
+  hotX: 4,    // click point, CSS px
+  hotY: 4,
+};
+```
+
+- The raster must match the OS pointer pixel for pixel, or the swap is visible. Without a sprite the effect stays off.
+- The detail page only ships a macOS arrow, so its toggle only shows on a Mac ("Draws the macOS pointer, so it only shows on a Mac."). Gate it the same way: turn it on only where your sprite is the platform pointer.
+- Off by default. Only the plain arrow is replaced; over buttons and text fields the OS cursor is left alone.
+
+## Recipes
+
+Assistant avatar while a reply streams. Use when: a chat message is pending and the assistant row needs a live indicator.
+
+```tsx
+import type { ReactNode } from 'react';
+import { ThinkingOrb } from 'thinking-orbs';
+
+function AssistantAvatar({ pending, avatar }: { pending: boolean; avatar: ReactNode }) {
+  return pending ? <ThinkingOrb state="breathing" size={64} aria-label="Assistant is thinking" /> : <>{avatar}</>;
+}
+```
+
+Inline agent-step chip. Use when: a tool call or agent step renders as a line of text.
+
+```tsx
+import { ThinkingOrb, type OrbState } from 'thinking-orbs';
+
+const STEP_STATE: Record<string, OrbState> = {
+  web_search: 'searching',
+  run_code: 'solving',
+  read_files: 'working',
+  connect: 'connecting',
+  plan: 'weaving',
+  write: 'composing',
+};
+
+function StepChip({ tool, label }: { tool: string; label: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      {/* the text already says what is happening, so hide the canvas from screen readers */}
+      <ThinkingOrb state={STEP_STATE[tool] ?? 'working'} size={20} aria-hidden="true" />
+      <span>{label}</span>
+    </span>
+  );
+}
+```
+
+Pill with a 56px orb. Use when: a status pill needs a slightly smaller orb than 64. This is how the detail page's example pills are built: render the 64 preset and set the CSS box.
+
+```tsx
+<span className="pill">
+  <ThinkingOrb state="composing" size={64} theme="dark" style={{ width: 56, height: 56 }} />
+  <span>Thinking…</span>
+</span>
+```
+
+Mic open. Use when: a voice input is recording.
+
+```tsx
+function MicStatus({ isRecording }: { isRecording: boolean }) {
+  return <ThinkingOrb state="listening" size={20} paused={!isRecording} aria-label="Listening" />;
+}
+```
+
+Pinned theme on a fixed dark surface. Use when: the orb sits on a dark panel inside an otherwise light app, so `auto` would pick the wrong ink.
+
+```tsx
+<div className="bg-neutral-900 rounded-xl p-3">
+  <ThinkingOrb state="searching" size={64} theme="dark" />
+</div>
+```
+
+## Accessibility & performance
+
+- The canvas gets `role="img"` and a default `aria-label` per state: "Working…", "Searching…", "Solving…", "Listening…", "Connecting…", "Weaving…", "Composing…", "Thinking…" (breathing), "Shaping…". Pass `aria-label` to describe the real task, or `aria-hidden="true"` when adjacent text already says it.
+- It is not a live region. If the status change must be announced, put the text in your own `role="status"` element.
+- `prefers-reduced-motion: reduce`: one static frame, no animation loop. It still follows the live theme.
+- Each instance pauses its `requestAnimationFrame` loop when offscreen (`IntersectionObserver`) and when the tab is hidden. All instances share one clock, so they resume in phase.
+- Plain 2D canvas arcs only: no WebGL, no `ctx.filter`, no SVG filters. Device pixel ratio is capped at 2.
+- Gravity turns itself off under reduced motion, forced colors, coarse or touch pointers, and page zoom. It hides the OS cursor while the pointer is near an orb. A user with an enlarged accessibility pointer sees it swap to the stock size, so offer a way to turn gravity off.
+
+## Common mistakes
+
+- Wrong ink for the background. `auto` reads ancestor `data-theme` / `.dark` / `.light` first, then the OS setting. An orb on a dark card in a light app renders dark dots on dark. Pin `theme`.
+- Sizing with CSS instead of `size`. The canvas backing store is sized from `size`, so `style={{ width: 200 }}` on a 64 orb blurs it. Stay within a few px of the preset (the page uses 56 on a 64 orb). Only `64` and `20` are offered here.
+- Passing `dark`. It is not a prop (the page's Copy prompt says it is). Use `theme`.
+- Gravity without a sprite, or with a sprite that is not the platform's pointer. No sprite means nothing happens; a mismatched raster makes the cursor visibly change shape. The page's arrow is macOS only.
+- Next.js App Router: importing it into a Server Component fails because it uses hooks. Wrap it in a `"use client"` file.
+- Leaving an orb mounted and animating after the work finishes. Unmount it or set `paused` when the step completes.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+| --- | --- |
+| Waits under 2 s: optimistic updates, cached or local reads, quick toggles | Nothing. Do not add an orb |
+| `Thinking…`, `Thinking...`, `isThinking`, `reasoning` in chat components | `breathing` at 64 in the assistant avatar slot |
+| `Loader2` with `animate-spin`, `<Spinner`, `CircularProgress` near chat or agent code | the orb state that names the activity, size 20 inline |
+| Typing indicators: `TypingIndicator`, `typing-dots`, three bouncing dots CSS | `composing` or `breathing` |
+| Vercel AI SDK `useChat` with `status === 'submitted'` or `'streaming'`, `isLoading` | orb while pending, removed on first token or on finish |
+| Tool call rendering: `toolInvocations`, `tool-call`, `part.type === 'tool-...'`, `web_search`, `browse` | `searching` for search tools, `solving` for code tools, `working` otherwise |
+| `Searching`, `Browsing`, `Retrieving`, RAG or vector search calls | `searching` |
+| `Connecting`, MCP client setup, OAuth "linking" steps | `connecting` |
+| `Planning`, `plan` steps in agent traces | `weaving` |
+| `getUserMedia`, `MediaRecorder`, `SpeechRecognition`, mic buttons | `listening` while recording |
+| `Generating`, `Writing`, `Drafting` labels | `composing` |
+
+## Go further (Pro)
+
+- The 32px size, a speed control, and all nine states in the tuner.
+- Ink colour swatches or any hex, dot density and dot size.
+- Per-state effect settings (orbit paths, scan, wiring, plait, sash, a held shape) and the full Cursor gravity tuning.
+- Rebuilding a state's geometry with the Studio agent.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Gooey (liquid-gooey). Live playground: https://libraries.dev/gooey. npm: https://www.npmjs.com/package/liquid-gooey -->
+
+# Gooey (liquid-gooey)
+
+Liquid UI for React: touching pieces merge like goo, stretch and bow like liquid, while text, icons and images stay crisp.
+
+## When to use
+
+- Floating action / plus button that splits into satellite actions (speed dial, "New file / Add image / New folder"). Effect: `morph`.
+- Toolbar, avatar group or chip cluster whose pieces should read as one merged surface. Effect: `morph`.
+- Slider thumb, segmented-control or tab indicator that should trail and stretch as it moves. Effect: `move`.
+- Draggable card, list row or dropdown pill that should bow while it is dragged. Effect: `bend`.
+- Two draggable photo cards that run molten into each other where they touch (before/after, "combine" gestures). Effect: `melt`.
+
+### When not to use
+
+- Static layouts with nothing moving or touching. The liquid only shows while pieces meet or move.
+- Dense lists or grids of many items. Every group runs an SVG filter; WebKit rasterises it on the CPU.
+- Non-React stacks. The package is React-only (no vanilla build, no custom element).
+- Pieces with opaque backgrounds you cannot remove. The liquid is the surface; an opaque child hides it.
+
+## Install
+
+```bash
+npm install liquid-gooey
+pnpm add liquid-gooey
+yarn add liquid-gooey
+```
+
+```tsx
+import { Liquid } from 'liquid-gooey'
+```
+
+- React component only: `<Liquid>` (the group) and `<Liquid.Item>` (each piece).
+- Peer dependencies: `react >=18`, `react-dom >=18`. No runtime dependencies.
+- ESM and CJS builds, TypeScript types included.
+- The dist has no `"use client"` directive. In the Next.js App Router, put the component that renders `<Liquid>` in a file that starts with `"use client"`.
+- Cross-browser, Safari included: the filters run on SVG content, never CSS `url()` filters on HTML.
+
+## Basic usage
+
+The detail page's Install & Usage tab (React is the only platform):
+
+```tsx
+import { Liquid } from 'liquid-gooey'
+<Liquid blur={6} contrast={18} fill="#fff" shadow="0 2px 6px rgba(0,0,0,.08)">
+  <Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition="bouncy">
+    <button className="round-btn">…</button>
+  </Liquid.Item>
+  <Liquid.Item x={0} y={open ? -64 : 0} transition="bouncy" delay={40}>
+    <button className="round-btn">…</button>
+  </Liquid.Item>
+</Liquid>
+```
+
+The playground under the examples also renders a live "Copy Studio code" snippet for the selected effect. At its defaults (dark page) it produces:
+
+```tsx
+// Effect: Morph
+import { Liquid } from 'liquid-gooey'
+
+<Liquid fill="#202020">
+  <Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition={{ duration: 550, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+    <button className="round-btn">…</button>
+  </Liquid.Item>
+  <Liquid.Item x={0} y={open ? -64 : 0} transition={{ duration: 550, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }} delay={40}>
+    <button className="round-btn">…</button>
+  </Liquid.Item>
+  <Liquid.Item>
+    <button className="round-btn">+</button>
+  </Liquid.Item>
+</Liquid>
+```
+
+```tsx
+// Effect: Move
+<Liquid fill="#525252">
+  <Liquid.Item effect="move" move={{ stretch: 0.6, trail: 0.35 }}>
+    <div className="thumb" style={{ transform: `translateX(${x}px)` }} />
+  </Liquid.Item>
+</Liquid>
+```
+
+```tsx
+// Effect: Bend
+<Liquid fill="#202020">
+  <Liquid.Item effect="bend">
+    <div className="card" style={{ transform: `translate(${x}px, ${y}px)` }}>…</div>
+  </Liquid.Item>
+</Liquid>
+```
+
+```tsx
+// Effect: Melt
+<Liquid>
+  <Liquid.Item effect="melt">
+    <img src="/photo-a.jpg" style={{ width: 84, height: 84, borderRadius: 16 }} />
+  </Liquid.Item>
+  <Liquid.Item effect="melt">
+    <img src="/photo-b.jpg" style={{ width: 84, height: 84, borderRadius: 16 }} />
+  </Liquid.Item>
+</Liquid>
+```
+
+`blur` and `contrast` are omitted from the live snippet while they sit at their defaults (6 and 18).
+
+## Options (free)
+
+| Option / prop | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `Liquid.Item effect` | `"morph"`, `"move"`, `"bend"`, `"melt"` | `"morph"` | Morph: pieces merge and split. Move: the surface trails a moving element with a droplet tail. Bend: the body bows with drag velocity. Melt: two images run molten into each other. |
+| `Liquid blur` | 0 to 16, step 0.5 | `6` | Goo blur in px. Higher bridges pieces from farther apart and reads softer. Not used by `melt`. |
+| `Liquid contrast` | 4 to 40, step 1 | `18` | Sharpness of the liquid edge. Higher is crisper and beadier; lower is hazier. Not used by `melt`. |
+| `Liquid fill` | any CSS colour | `'#fff'` | Colour of the liquid surface. Page snippets use `"#fff"`, `"#202020"` (morph, bend) and `"#525252"` (move). |
+| `Liquid shadow` | `box-shadow` syntax, multi-layer | none | Shadow drawn on the merged silhouette, so it follows every merge and split. |
+| `Liquid.Item x`, `y` | number (px) | `0` | Morph position offset. The library animates the element and its liquid together. |
+| `Liquid.Item transition` | `"snappy"`, `"smooth"`, `"bouncy"`, or `{ duration, ease }` | `"smooth"` | Timing for `x`/`y` changes. |
+| `Liquid.Item delay` | ms | `0` | Delay before an `x`/`y` transition starts. Use it to stagger. |
+| `Liquid.Item move` | `{ stretch: 0.6, trail: 0.35 }` in the page snippet | library tuning | Move-only tuning object. The page shows these values; it does not expose sliders for them. |
+
+The playground tuner has three controls: the Effect tabs (Morph / Move / Bend / Melt) set `effect`, "Goo blur" sets `blur`, and "Contrast" sets `contrast`. Blur and contrast are hidden for Melt, which carries its own surface tuning. Fill, shadow, `x`/`y`, `transition` and `delay` come from the Install & Usage snippet and the Copy prompt text, not from tuner controls.
+
+Rule of thumb from the package docs: neighbours bridge once `blur` is roughly as large as the gap between them. Items 8px apart barely bridge at `blur={5}` and merge cleanly at `blur={12}`.
+
+## Recipes
+
+### Plus menu that splits into actions (morph)
+
+Use when: a floating "+" button should bloom into two or three action buttons.
+
+```tsx
+import { useState } from 'react'
+import { Liquid } from 'liquid-gooey'
+
+const ACTIONS = [
+  { label: 'New file', x: -54, y: -34 },
+  { label: 'Add image', x: 0, y: -64 },
+  { label: 'New folder', x: 54, y: -34 },
+]
+
+export function PlusMenu() {
+  const [open, setOpen] = useState(false)
+  return (
+    // Sized to hold the open footprint; items stack at one slot.
+    <Liquid fill="#202020" shadow="0 2px 6px rgba(0,0,0,.08)" style={{ width: 200, height: 140 }}>
+      {ACTIONS.map((a, i) => (
+        <Liquid.Item
+          key={a.label}
+          style={{ position: 'absolute', left: 80, top: 80 }}
+          x={open ? a.x : 0}
+          y={open ? a.y : 0}
+          transition="bouncy"
+          delay={i * 40}
+        >
+          <button className="round-btn" aria-label={a.label} tabIndex={open ? 0 : -1}>…</button>
+        </Liquid.Item>
+      ))}
+      <Liquid.Item style={{ position: 'absolute', left: 80, top: 80 }}>
+        <button className="round-btn" aria-expanded={open} aria-label={open ? 'Close menu' : 'Open menu'} onClick={() => setOpen(o => !o)}>+</button>
+      </Liquid.Item>
+    </Liquid>
+  )
+}
+```
+
+`.round-btn` is 40x40, `border-radius: 50%`, `background: transparent`.
+
+### Liquid slider thumb (move)
+
+Use when: a custom range control should feel like a drop of liquid being dragged.
+
+```tsx
+<Liquid fill="#525252" style={{ position: 'relative', width: 240, height: 80 }}>
+  <div className="track" aria-hidden="true" style={{ zIndex: -2 }} />
+  <Liquid.Item effect="move" move={{ stretch: 0.6, trail: 0.35 }}>
+    <div
+      className="thumb"
+      role="slider"
+      aria-label="Volume"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={value}
+      tabIndex={0}
+      style={{ transform: `translateX(${x}px)` }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+    />
+  </Liquid.Item>
+</Liquid>
+```
+
+The thumb has a size and `border-radius: 50%` but no background. The track uses `z-index: -2` so the liquid paints over it.
+
+### Tab indicator that stretches between tabs (move)
+
+Use when: a segmented control or tab bar has a sliding highlight.
+
+```tsx
+<Liquid fill="#e9e9e9" style={{ position: 'relative' }}>
+  <Liquid.Item effect="move" move={{ stretch: 0.6, trail: 0.35 }}>
+    <div
+      className="indicator"
+      style={{ transform: `translateX(${active * 96}px)`, transition: 'transform 300ms ease' }}
+    />
+  </Liquid.Item>
+  {tabs}
+</Liquid>
+```
+
+You animate the element however you like. The liquid follows its rendered rect.
+
+### Draggable card that bows (bend)
+
+Use when: a card, list row or pill is dragged and should feel soft.
+
+```tsx
+<Liquid fill="#202020" style={{ position: 'relative', height: 210 }}>
+  <Liquid.Item effect="bend">
+    <div
+      className="card"
+      style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+    >
+      Gooey Project
+    </div>
+  </Liquid.Item>
+</Liquid>
+```
+
+### Two photos that melt together (melt)
+
+Use when: two image cards are dragged into each other (compare, merge, combine).
+
+```tsx
+<Liquid style={{ position: 'relative', width: 420, height: 200 }}>
+  <Liquid.Item effect="melt">
+    <img src={a} alt="" style={{ position: 'absolute', left: ax, top: ay, width: 84, height: 84, borderRadius: 16 }} />
+  </Liquid.Item>
+  <Liquid.Item effect="melt">
+    <img src={b} alt="" style={{ position: 'absolute', left: bx, top: by, width: 84, height: 84, borderRadius: 16 }} />
+  </Liquid.Item>
+</Liquid>
+```
+
+## Accessibility & performance
+
+- The liquid layer is an `<svg aria-hidden="true" focusable="false">` with `pointer-events: none`. Your content stays real DOM: focus, hit targets and ARIA are yours to set. The demos use `aria-label` on icon buttons, `aria-expanded` on the toggle, `tabIndex={-1}` on hidden actions, and `role="slider"` with `aria-valuenow` on the thumb.
+- Reduced motion: `x`/`y` transitions (morph) snap instantly under `prefers-reduced-motion: reduce`. Move, bend and melt follow motion you drive, so gate your own drag or CSS animation for reduced-motion users.
+- Cost: every group runs an SVG filter. WebKit rasterises SVG filters on the CPU. Blurred outer shadows are moved to CSS `drop-shadow()` on the svg (GPU). Keep groups small and few.
+- Move and bend share one measuring loop per group. It sleeps after about 30 still frames and wakes on style/class changes, transitions, animations, pointerdown and scroll. There is no offscreen (IntersectionObserver) pause.
+- Melt polls its pair's rects every animation frame for as long as two melt items are mounted. Unmount it when not visible.
+- SSR: content renders on the server; the liquid appears after hydration once the group is measured. Layout effects are guarded for the server.
+
+## Common mistakes
+
+- Giving items an opaque background. The liquid below is the surface; item backgrounds should be transparent. An opaque round photo that covers its own liquid is fine.
+- Group too small. The filter region is the group's box plus padding. Size `<Liquid>` to contain the full travel of its items, like a menu reserving its open footprint.
+- Rendering `<Liquid.Item>` outside `<Liquid>`. It throws `<Gooey.Item> must be rendered inside a <Gooey> group.`
+- Setting `transform` or a CSS transition on a morph item's wrapper. With `x`/`y`, the library owns the wrapper's transform. For move and bend, put the transform on the child element instead.
+- Expecting pieces 10px apart to merge at `blur={6}`. Raise `blur` or close the gap.
+- Decorative layers under the liquid. The svg sits at `z-index: -1` inside an isolated group; a track or backdrop must use `z-index: -2` or it will cover the liquid.
+- Melt with more than two items or no image. Only the first two melt items pair, and each needs an `<img>` inside.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+| --- | --- |
+| FAB, speed dial, "plus menu", `aria-expanded` on a round "+" button with action buttons | `morph` plus menu |
+| Avatar stacks, chip groups, toolbars with rounded buttons touching | `morph` group with a shared `fill` |
+| `input type="range"`, `role="slider"`, custom slider thumbs | `move` thumb |
+| Segmented controls, tab bars with a sliding indicator (`layoutId`, `translateX` on an indicator) | `move` indicator |
+| Drag libraries (`@dnd-kit`, `react-beautiful-dnd`, `framer-motion` `drag`), sortable cards or rows | `bend` on the dragged item |
+| Before/after or image-compare components, two draggable image cards | `melt` pair |
+| Hand-rolled goo: `feColorMatrix` with `0 0 0 18 -7`, `filter: url(#goo)`, "metaball" | Replace with `<Liquid>` to keep text crisp and Safari correct |
+
+## Go further (Pro)
+
+- Surface waviness and fill swatches, with dark and light surface themes.
+- Morph choreography: open and close durations, staggers, spread, anticipation and icon timing.
+- Move, bend and melt physics knobs (springiness, wobble, bow, content bend, reach, marbling and more).
+- Core customization: rebuild the liquid's SVG filter chain with the agent.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Voice Glow (voice-glow). Live playground: https://libraries.dev/voice. npm: https://www.npmjs.com/package/voice-glow -->
+
+# Voice
+
+A sound-reactive glow for React (`voice-glow`, component `VoiceBeam`): a colorful beam along the bottom edge of the element it wraps that rises with a voice, then gathers into a travelling beam while the reply is processed.
+
+## When to use
+
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Anything voice or recording related**: mic buttons, dictation, voice mode, recording chips, call UIs, and the processing step right after speech.
+
+More situations it fits:
+
+- Voice mode in an AI chat composer: the input glows while the user speaks into the mic.
+- The bottom of a full-screen voice assistant on a phone (`type="mobile"`).
+- "Transcribing…" or "Thinking…" right after the user stops talking: `processing` sweeps a beam side to side.
+- Visualising the assistant's own speech (TTS playback) by feeding a level getter.
+- A voice or video call UI that should light up with the remote side's voice (any `MediaStream` with an audio track).
+
+### When not to use
+
+- Pure loading states with no voice in the flow. Use a border beam or a thinking indicator instead.
+- As the only sign that the mic is live. The glow is decorative; keep a text status and a visible mic button state.
+- Inside dense lists or many simultaneous instances. Each instance runs blurred layers and a canvas.
+- Precise audio metering (dB, peak hold). The level is gated, saturated and smoothed on purpose.
+
+## Install
+
+```bash
+npm install voice-glow
+pnpm add voice-glow
+yarn add voice-glow
+```
+
+```tsx
+import { VoiceBeam, useMicrophone } from 'voice-glow';
+```
+
+- React component only. No vanilla or custom-element build. Peer deps: `react` and `react-dom` >= 18.
+- ESM and CJS builds with types. No runtime dependencies.
+- The package has no `"use client"` directive and uses hooks. In the Next.js App Router, import it from a file marked `'use client'`.
+- The microphone needs a secure context (`https` or `localhost`) and `mic.start()` called from a user gesture.
+
+## Basic usage
+
+The page's Install & Usage tab:
+
+```tsx
+import { VoiceBeam, useMicrophone } from 'voice-glow';
+
+const mic = useMicrophone();
+
+<VoiceBeam stream={mic.stream}>
+  <ChatInput />
+</VoiceBeam>
+
+<button onClick={mic.start}>Listen</button>
+```
+
+The same thing as a complete component, with the start/stop toggle and `processing` from the page's Copy prompt:
+
+```tsx
+'use client';
+import { VoiceBeam, useMicrophone } from 'voice-glow';
+
+export function VoiceComposer({ thinking }: { thinking: boolean }) {
+  const mic = useMicrophone();
+  const live = mic.state === 'live';
+  return (
+    <>
+      <VoiceBeam stream={mic.stream} processing={thinking}>
+        <div style={{ borderRadius: 20, padding: 24, background: '#1d1d1d' }}>
+          <textarea placeholder="Ask anything" />
+        </div>
+      </VoiceBeam>
+      <button onClick={live ? mic.stop : mic.start} aria-pressed={live}>
+        {live ? 'Stop' : 'Listen'}
+      </button>
+    </>
+  );
+}
+```
+
+Playground snippets (what "Copy playground code" produces per Source):
+
+```tsx
+// Source: Demo voice (the stage starts paused, so `paused` is included until you press Play)
+<VoiceBeam
+  level={() => yourLevel}
+  paused
+>
+  <ChatInput />
+</VoiceBeam>
+
+// Type: Mobile, Source: Processing
+<VoiceBeam
+  type="mobile"
+  processing
+>
+  <VoiceScreen />
+</VoiceBeam>
+```
+
+### How audio input is wired
+
+There are two inputs. `stream` wins when it is usable.
+
+1. `stream={MediaStream}`. The component creates one shared `AudioContext` for the page, one `MediaStreamAudioSourceNode` per stream (reference-counted, so several beams can share one mic) and one `AnalyserNode` per instance. Nothing is connected to the speakers: audio is analysed, never played. Each frame it reads the RMS level and three voice bands (80-300, 300-2000, 2000-6000 Hz).
+2. `level={number | () => number}`. Used when there is no `stream`, or when the stream has no audio track or the browser has no Web Audio. Values are clamped to 0-1. A number updates on re-render. A getter is called once per animation frame, with no re-render. Use a getter for anything that changes many times a second.
+3. `useMicrophone()` is a convenience that produces the `stream`. It calls `getUserMedia` with echo cancellation, noise suppression and auto gain turned off, so the glow sees the real dynamics of the voice.
+
+`useMicrophone(options?)`:
+
+| Field | Type | Notes |
+|---|---|---|
+| `stream` | `MediaStream \| null` | Pass to `<VoiceBeam stream>`. |
+| `state` | `'idle' \| 'requesting' \| 'live' \| 'denied' \| 'unsupported' \| 'error'` | `denied` on `NotAllowedError` / `SecurityError`. Falls back to `idle` if the track ends (device unplugged, permission revoked). |
+| `error` | `Error \| null` | The error behind `denied` / `error`. |
+| `supported` | `boolean` | `navigator.mediaDevices.getUserMedia` exists. |
+| `start()` | `() => Promise<MediaStream \| null>` | Call from a click. Also creates and resumes the shared `AudioContext` inside the gesture. |
+| `stop()` | `() => void` | Stops every track and drops the stream. |
+| `options.constraints` | `MediaTrackConstraints` | Merged over the defaults above. Pass `{}` to keep the browser's own processing. |
+| `options.autoStart` | `boolean` | Request on mount. Default `false`. |
+
+The hook stops the tracks on unmount.
+
+## Options (free)
+
+What the detail page's playground exposes:
+
+| Prop | Values | Default | What it does |
+|---|---|---|---|
+| `type` | `"default"`, `"mobile"` | `"default"` | Host preset. `default` is tuned for a ~350px chat input; `mobile` for the bottom of a phone screen (wider range, taller rise). |
+| `stream` | `MediaStream \| null` | `null` | Live audio to react to. Wins over `level`. |
+| `level` | `number` 0-1, or `() => number` | `0` | Manual drive when there is no stream. |
+| `processing` | `boolean` | `false` | Gathers the glow into one beam that travels the range and back, held lit. Blends in and out smoothly. |
+| `paused` | `boolean` | `false` | Freezes the glow, the band and the audio analysis on their last frame, without fading out. |
+
+Tuner to prop mapping:
+
+- **Type**: Chat input = `type="default"` (omitted from the snippet), Mobile = `type="mobile"`. A third tab, Recording pill, is shown locked.
+- **Source**: Demo voice = `level={() => yourLevel}`, Microphone = `stream={mic.stream}` plus `useMicrophone()` and a Listen button, Processing = `processing`. Manual drive is shown locked.
+- **Play / Pause** = `paused`. The stage starts paused.
+
+The page's Copy prompt also names these props, without values: `type="pill"` (a ~150x44 recording pill), `colorVariant` (`"colorful" | "mono" | "ocean" | "sunset" | "forest" | "candy" | "ice" | "gold"`), `colors` (up to 7 lobe colours), `bandColors` (`{ core, above, mid, below }`), `sensitivity`, `threshold`, `attack`, `release` (the input chain: gain, gate, envelope), `reach`, `spread`, `flow`, `bend`, `idle` (the shape of the reaction), `theme` (`"dark" | "light" | "auto"`), `strength` (0-1 effect opacity), `active`, `paused`, `scale`. Tuning them is a Studio job.
+
+## Recipes
+
+Voice mode in a chat composer: listen, then process.
+Use when: a chat input has a mic button and a transcription or model step after it.
+
+```tsx
+const mic = useMicrophone();
+const [transcribing, setTranscribing] = useState(false);
+
+async function finish() {
+  mic.stop();
+  setTranscribing(true);
+  await sendAudioForTranscription();
+  setTranscribing(false);
+}
+
+<>
+  <VoiceBeam stream={mic.stream} processing={transcribing}>
+    <ChatInput />
+  </VoiceBeam>
+  <button onClick={mic.state === 'live' ? finish : mic.start}>
+    {mic.state === 'live' ? 'Done' : 'Speak'}
+  </button>
+</>
+```
+
+Phone voice screen driven by your own meter.
+Use when: a full-screen mobile voice assistant already computes a level (a speech SDK volume event, your own analyser).
+
+```tsx
+const meter = useRef(0); // write 0-1 into meter.current from your audio code
+
+<VoiceBeam type="mobile" level={() => meter.current}>
+  <VoiceScreen />
+</VoiceBeam>
+```
+
+The assistant's speech (TTS playback).
+Use when: the glow should follow the model's audio reply, not the user's mic.
+
+```tsx
+import { VoiceBeam, getAudioContext } from 'voice-glow';
+
+const analyserRef = useRef<AnalyserNode | null>(null);
+const buf = useRef(new Float32Array(1024));
+
+// Call from a click. createMediaElementSource works once per <audio> element.
+function playReply(audio: HTMLAudioElement) {
+  const ctx = getAudioContext(); // the page's shared context, exported by voice-glow
+  if (!ctx) return;
+  const src = ctx.createMediaElementSource(audio);
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 1024;
+  src.connect(analyser);
+  analyser.connect(ctx.destination); // keep it audible
+  analyserRef.current = analyser;
+  void audio.play();
+}
+
+const level = () => {
+  const a = analyserRef.current;
+  if (!a) return 0;
+  a.getFloatTimeDomainData(buf.current);
+  let sum = 0;
+  for (const v of buf.current) sum += v * v;
+  return Math.min(1, Math.sqrt(sum / buf.current.length) * 8);
+};
+
+<VoiceBeam level={level}>
+  <AssistantCard />
+</VoiceBeam>
+```
+
+A call with the remote voice.
+Use when: a WebRTC call tile should glow when the other side talks.
+
+```tsx
+const [remote, setRemote] = useState<MediaStream | null>(null);
+useEffect(() => {
+  pc.ontrack = (e) => setRemote(e.streams[0] ?? null);
+}, [pc]);
+
+<VoiceBeam stream={remote}>
+  <CallTile />
+</VoiceBeam>
+```
+
+Freeze while a modal covers the composer.
+Use when: the voice UI is visible but not the focus.
+
+```tsx
+<VoiceBeam stream={mic.stream} paused={settingsOpen}>
+  <ChatInput />
+</VoiceBeam>
+```
+
+## Accessibility & performance
+
+- The glow layers are `pointer-events: none`. The band canvases are `aria-hidden`. The glow adds no roles or labels. Screen readers get nothing from it.
+- Give the mic button `aria-pressed` and an accessible name, and announce the state in text (`role="status"`), for example from `mic.state`: "Waiting for permission…", "Listening.", "Microphone blocked".
+- `prefers-reduced-motion: reduce` stops the idle breathing, the sideways colour flow, the hue drift, the distortion warp and the processing sweep (the beam stays centred). The reaction to sound stays, since it is a meter.
+- One shared `requestAnimationFrame` loop drives every instance, capped at about 60 fps. On a device that cannot hold 60 it drops to every other frame and probes full rate again every 4 s.
+- An instance scrolled offscreen (IntersectionObserver, 256px margin) unregisters from the loop and releases its analyser.
+- The soft layers render at half resolution and are scaled up. The distortion warp is an SVG filter; on Safari/WebKit it is switched off automatically for hosts larger than about 60,000 px² (a phone screen), and it is always dropped while `processing`.
+- SSR: the component renders on the server, but two things can differ on the client. Safari renders an extra halo canvas, and `theme="auto"` starts as dark on the server. If you see hydration warnings, mount it client-only.
+
+## Common mistakes
+
+- Calling `mic.start()` outside a click, or relying on `autoStart`. Browsers only grant the mic inside a user gesture, and Safari only starts the `AudioContext` inside one.
+- Passing a new number to `level` from React state 60 times a second. Pass a getter instead: `level={() => meter.current}`.
+- Expecting `level` to work while `stream` is set. A stream with an audio track always wins.
+- Wrapping something without its own radius. The wrapper reads the first child's `border-top-left-radius` (16px if none) and clips with `overflow: hidden`. Wrap exactly one element that carries the radius. Popovers or menus inside that element get clipped too, so portal them out.
+- Content hidden under the bloom. The glow layers stack at `z-index` 1-4 above plain children. Put text and controls that must stay crisp at `position: relative; z-index: 5`, as the libraries.dev mocks do.
+- Using the chat-input tuning on a much bigger or smaller host. The glow is authored in px for ~350px. The page shrinks it on narrow screens with `scale={Math.min(1, width / 371)}`, and uses `type="mobile"` for a phone screen.
+- Leaving the mic open. The hook only stops tracks on unmount; call `mic.stop()` when the voice UI closes.
+- Styling the wrapper's `::before` / `::after`. The effect uses them.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+|---|---|
+| `getUserMedia`, `MediaRecorder`, `new AudioContext`, `createAnalyser` | Wrap the recording UI in `<VoiceBeam stream={stream}>`. |
+| `SpeechRecognition`, `webkitSpeechRecognition`, `isListening`, `isRecording` | Voice-mode composer recipe; `useMicrophone` for the stream. |
+| Speech SDKs: `@deepgram`, `assemblyai`, `openai` realtime / `gpt-4o-transcribe`, `whisper`, `elevenlabs`, `@livekit`, `vapi`, `retell` | Glow on the input while listening, `processing` while transcribing. |
+| Copy like "Listening…", "Recording", "Tap to speak", "Hold to talk", "Transcribing…" | `stream` while listening, `processing` after. |
+| Mic icons: `Mic`, `MicOff` (lucide), `MicrophoneIcon` next to a chat `<textarea>` | Wrap the composer; keep the button as the control. |
+| Waveform or bar visualizers (`wavesurfer`, `react-audio-visualizer`, custom `<canvas>` meters) | Replace or pair with the glow, driven by the same level getter. |
+| `RTCPeerConnection`, `ontrack`, call tiles | `stream={remoteStream}` on the tile. |
+| Full-screen voice route on mobile (`/voice`, `VoiceMode`, `VoiceScreen`) | `type="mobile"` on the screen container. |
+
+## Go further (Pro)
+
+- Palettes and per-lobe colours, band colours, and a light theme tuning.
+- The input chain (sensitivity, noise gate, attack, release) and the reaction's shape (reach, spread, flow, bend, idle breathing).
+- The band, the distortion warp, the glow's geometry, and the processing sweep's timing.
+- The recording-pill host, and rebuilding the effect's stylesheet with the Studio agent.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Bot Avatars (bot-avatars). Live playground: https://libraries.dev/bots. npm: https://www.npmjs.com/package/bot-avatars -->
+
+# Bot avatars
+
+Animated 3D bot avatars for AI agents: a plush, furry body (or glossy plastic) with a living face that looks around, blinks and hops while it works. React, drawn on a 2D canvas (no WebGL, no runtime dependencies). npm package `bot-avatars`.
+
+## When to use
+
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **Anything avatar related for a bot or agent**: assistant avatars in a thread, agent lists and sidebars, agent pickers, job headers and empty-state mascots.
+- The state follows the agent's real status (see the status mapping under Common mistakes).
+
+More situations it fits:
+
+- The avatar next to an assistant's reply in a chat thread: `working` while the model streams, idle once the answer lands.
+- A roster or sidebar of agents, one body shape per agent, each showing whether it is busy.
+- A status chip or header for a background job or agent run ("Booking the venue…").
+- An agent picker or onboarding step where the user chooses a bot.
+- Empty states and "your agent is on it" screens that need a small character instead of a spinner.
+
+### When not to use
+
+- Human user avatars. Use a photo or initials; these are bots.
+- Places that must render with no JavaScript (emails, static OG images). The avatar paints on the client only.
+- Dense tables with hundreds of rows animating at once. Each visible avatar is a live canvas.
+- A plain loading indicator with no agent behind it. A spinner or skeleton says less and costs less.
+
+## Install
+
+```bash
+npm install bot-avatars
+pnpm add bot-avatars
+yarn add bot-avatars
+```
+
+```tsx
+import { BotAvatar } from 'bot-avatars';
+```
+
+- React component only (`<BotAvatar>` renders a `<canvas>`). Peer dependency: `react >= 18`.
+- ESM (`dist/index.es.js`) and CommonJS (`dist/index.cjs`) builds, with types.
+- No `"use client"` directive ships in the package. In the Next.js App Router, import it from a file that starts with `"use client"`.
+- Server rendering works: the server emits an empty canvas, the avatar paints on the client after mount.
+
+The detail page also has two ports, both local to the repo (not on npm):
+
+- React Native: `bot-avatars-native` in `packages/bot-avatars/ports/react-native/bot-avatars-native`, needs `@shopify/react-native-skia react-native-reanimated react-native-worklets`. Expo needs `expo run:ios` / `run:android`.
+- SwiftUI (iOS 17+): `BotAvatarsKit` in `packages/bot-avatars/ports/ios/BotAvatarsKit`, installed from GitHub through the repo's root `Package.swift`.
+
+Neither port has the fur or the things to wear: both draw the glossy `plastic` look by default.
+
+## Basic usage
+
+React, as the page's Install & Usage tab gives it:
+
+```tsx
+import { BotAvatar } from 'bot-avatars';
+
+<BotAvatar type="clover" state={busy ? 'working' : 'default'} />
+```
+
+React Native:
+
+```bash
+npm install @shopify/react-native-skia react-native-reanimated react-native-worklets
+```
+
+```tsx
+import { BotAvatar } from 'bot-avatars-native';
+
+<BotAvatar type="clover" state={busy ? 'working' : 'default'} size={64} />
+```
+
+SwiftUI:
+
+```swift
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "BotAvatarsKit", package: "Libraries.dev")
+```
+
+```swift
+import BotAvatarsKit
+
+BotAvatar(type: .clover, state: busy ? .working : .default)
+```
+
+The playground's live snippet has this shape (only non-default props are written):
+
+```tsx
+import { BotAvatar } from 'bot-avatars';
+
+<BotAvatar type="star" state="working" size={96} />
+```
+
+## Options (free)
+
+| Prop | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `type` | `"clover"`, `"flower"`, `"star"`, `"ghost"`, `"mech"`, `"circle"`, `"hexagon"`, `"square"` | `"clover"` | Body shape. Each type has its own body colour. |
+| `state` | `"default"`, `"working"` | `"default"` | `default` is idle: looks from corner to corner, blinks, a jump with a full turn now and then. `working` hops, spins every third hop, smiles and laughs now and then. |
+| `size` | `96`, `64`, `32` (px) | `64` | Layout size of the avatar box. Also accepts any CSS length string. |
+| `shading` | `"fabric"`, `"plastic"` | `"fabric"` | The body's material. `fabric` is a plush faux fur, like a toy's, under a studio light: a soft pile, a bright rim from a light behind, a fuzzy silhouette and glossy bead eyes. `plastic` is a glossy material shaded per pixel, with a hot spot, a sheen and a rim (the default before 0.2.0). |
+| `paused` | `true` / `false` | `false` | Freezes the animation on its current frame. |
+
+Tuner to props: the Type, State, Size and Shading tabs set `type`, `state`, `size` and `shading`. The State tab label "Idle" is the value `"default"`. Fabric is the default, so the snippet drops it; Plastic writes `shading="plastic"`. Crisp, Smooth and Flat are shown on the Shading tab but locked. The Hat and Glasses rows show every choice locked except None, so they change nothing. The Play / Pause button on the stage toggles `paused`; the playground loads paused, so its snippet carries `paused` until you press Play. The playground starts at 96 px; the snippet drops `size` at 64 because 64 is the package default, and drops `state` at `"default"`.
+
+State changes are cross-animated: the rig eases from the old pose to the new one, so toggling `state` on every token or tool call is safe.
+
+## Recipes
+
+Thinking state in a chat reply. Use when an assistant message streams in.
+
+```tsx
+import { BotAvatar } from 'bot-avatars';
+
+function AssistantMessage({ streaming, children }: { streaming: boolean; children: React.ReactNode }) {
+  return (
+    <div className="msg msg--bot">
+      <BotAvatar type="clover" state={streaming ? 'working' : 'default'} size={32} />
+      <div className="msg-body">{streaming ? 'Thinking…' : children}</div>
+    </div>
+  );
+}
+```
+
+Agent roster. Use when a sidebar lists several agents and shows which ones are running.
+
+```tsx
+import { BotAvatar, type BotAvatarType } from 'bot-avatars';
+
+type Agent = { id: string; name: string; avatar: BotAvatarType; busy: boolean; status: string };
+
+function Roster({ agents }: { agents: Agent[] }) {
+  return (
+    <ul className="roster">
+      {agents.map((a) => (
+        <li key={a.id}>
+          <BotAvatar type={a.avatar} state={a.busy ? 'working' : 'default'} size={32} />
+          <span>{a.name}</span>
+          <span className="muted">{a.status}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+Each instance offsets its blink timing from its React id, so a row never blinks in unison.
+
+Wake on hover. Use for a team row or agent picker where the hovered bot comes alive.
+
+```tsx
+import { useState } from 'react';
+import { BotAvatar, type BotAvatarType } from 'bot-avatars';
+
+const TEAM: BotAvatarType[] = ['clover', 'flower', 'ghost', 'square'];
+
+function Team() {
+  const [hot, setHot] = useState<BotAvatarType | null>(null);
+  return (
+    <div className="team">
+      {TEAM.map((t) => (
+        <button key={t} onPointerEnter={() => setHot(t)} onPointerLeave={() => setHot(null)}>
+          <BotAvatar type={t} state={hot === t ? 'working' : 'default'} size={96} />
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+Still avatar in a settings card. Use when the bot identifies an agent but should not move (profile, config page).
+
+```tsx
+<BotAvatar type="hexagon" size={96} paused />
+```
+
+Job header. Use for the header of a long-running agent task.
+
+```tsx
+<header className="job">
+  <BotAvatar type="mech" state={job.status === 'running' ? 'working' : 'default'} size={64} />
+  <h2>{job.title}</h2>
+</header>
+```
+
+## Accessibility & performance
+
+- The canvas has `role="img"` and a per-state `aria-label` by default: "Clover bot, idle", "Clover bot, working". Pass your own `aria-label` (for example the agent's name and status) and it replaces the default.
+- Every other prop is passed straight to the `<canvas>`: `className`, `style`, `data-*`, `aria-*`, event handlers. When the agent's name and status are already shown as text beside the avatar, make it decorative with `aria-hidden` so screen readers do not read them twice.
+- `prefers-reduced-motion: reduce`: no animation loop runs; the still pose of the current state is drawn. The media query is checked when the component renders, not watched live.
+- `paused` stops the loop entirely (no per-frame cost).
+- One shared `requestAnimationFrame` loop serves every avatar on the page. Each avatar leaves it when scrolled offscreen (IntersectionObserver), and the loop stops while the tab is hidden.
+- Device pixel ratio is capped at 2.
+- The default look (`fabric`) is a fur pile over a per-pixel material. The first time a body type appears, its form is baked (a few ms) and then its pile (30–50 ms, in small steps), both on idle time and shared by every avatar of that type; a softer look stands in for those frames. A paused or reduced-motion avatar shows the softer look too and is redrawn once its pile lands. `plastic` bakes the form only.
+- Clicking an avatar makes it hop and turn round, and its eyes follow a nearby pointer. This is on by default; your own `onClick` still runs.
+- Hydration: the server output is an empty `<canvas>` with the same attributes, so there is no mismatch. Nothing paints until JavaScript runs.
+
+## Common mistakes
+
+- Clipping the hop. The canvas is drawn 1.5x the `size` box and pulls itself back with negative margins, so the layout stays exactly `size` square while a hop or flip goes outside it. A tight parent with `overflow: hidden` crops the jump. Leave room above the avatar.
+- Sizing with CSS. Set `size`, not `width`/`height`/`margin` in `style` or a class. Those override the overscan box and the negative margins, and the avatar shifts or crops.
+- Importing it into a React Server Component. The component uses hooks; put it behind a `"use client"` file.
+- Passing an unknown `state` string. It falls back to `"default"` silently. Map your app's statuses yourself:
+
+  | App status | Free props |
+  | --- | --- |
+  | `running`, `streaming`, `pending`, `busy` | `state="working"` |
+  | `idle`, `ready`, `online` | `state="default"` |
+  | `offline`, `away`, `disabled` | `state="default"` with `paused` (a still bot) |
+
+  A dedicated `sleeping` state for offline agents exists in the Pro options.
+- Expecting the glossy look of 0.1. Since 0.2.0 the default is `fabric`, the plush fur; pass `shading="plastic"` for a glossy body. Leave the light props unset when you switch: each shading has its own default light (`fabric`: `shadow` 1.15, `highlight` 1.45, `light` 295, `rim` 0.6, `spread` 1.6; the others 0.35, 1.3, 300, 0.5, 1.55), and `rim` and `spread` mean different things in each (the back light and how far the light wraps in `fabric`, the Fresnel rim and the highlight's width in `plastic`).
+- Putting the avatar inside a clickable row and being surprised by the hop. A click on the avatar itself triggers it; clicks on the row around it do not.
+- Expecting a state to hold a loop: `working` shows while the prop says so. Drive it from your real status (streaming flag, job status), not from a timer.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+| --- | --- |
+| `role === 'assistant'`, `message.role`, `AssistantMessage`, `BotMessage` | A `BotAvatar` next to assistant turns, `working` while `isStreaming` / `isLoading`. |
+| Copy like `Thinking…`, `Working…`, `Generating`, `typing indicator`, three-dot loaders | Pair the text with `state="working"` on the reply's avatar. |
+| Icon imports: `Bot` / `BotIcon` (lucide-react), `FaRobot`, `RiRobotLine`, `CpuChipIcon`, `Sparkles` as an assistant avatar, the robot emoji (U+1F916) | Replace the static icon with `<BotAvatar size={32} />`. |
+| `agents.map(`, `AgentList`, `AgentCard`, `workers`, `assistants` arrays | A roster with one `type` per agent and `state` from each agent's status. |
+| `status === 'running'`, `job.status`, `isPending`, `inProgress` next to an agent or task header | `state={running ? 'working' : 'default'}` in the header. |
+| `<Avatar` components fed a placeholder for bots (`src="/bot.png"`, `fallback="AI"`) | Swap in `BotAvatar` for the bot case only. |
+| Empty states for agent pages ("No runs yet", "Your agent is ready") | A 96 px idle avatar as the illustration. |
+
+## Go further (Pro)
+
+- The Studio unlocks the other ten body types and the `sleeping` state (head down, shut lids, slow breaths) for offline or scheduled agents.
+- Face, body colour, face ink, brightness and saturation (up to 2.5, more vivid than the palette; some types carry their own brightness and saturation), plus the other shading modes (`crisp`, `smooth`, `flat`) and the lighting: shadow, highlight, light angle, depth, rim, spread and `roundness` (a cushion toward a slab).
+- The fur's style (`furLength`, `furDensity`, `furFuzz`, `furClumps`, `furCurl`, `furGravity`) and its studio light (`backLight`, `lightFront`, `shine`, `backSoftness`, `sheen`).
+- Things to wear: `hat` (`beret`, `beanie`, `party`, `crown`), `glasses` (`round`, `square`, `shades`), `headphones` and `bowTie`, in an `accessoryColor`.
+- A body outline of your own (`path`, SVG path data in a 100×100 box) and turning the avatar round by hand (`pose`, usually with `paused`).
+- Motion: speed, blink seed, side turn, pointer following and a whirl ring round a spin.
+- A full Jump group: height, air time, squash and stretch, ground and rise timing with easings.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Liquid Metal (metal-fx). Live playground: https://libraries.dev/metal. npm: https://www.npmjs.com/package/metal-fx -->
+
+# Metal
+
+Real-time WebGL2 liquid metal (`metal-fx` v2) for buttons, circular icon buttons, text and badges, with a wandering halo, reflections on neighbouring elements and a cursor-driven bend.
+
+## When to use
+
+### Where it goes
+
+The author's placement rules. Follow them before the general list below.
+
+- **A large heading**: highlight a hero `h1` or key headline with the Text type, `<MetalText>`.
+- **Badges** such as "New" or "Pro": the Badge type, `<MetalBadge>`.
+- **CTA buttons that sell something**, such as "Get Pro", "Upgrade" or "Start trial": the Button type, `<MetalFx variant="button">`.
+
+All metal on a page shares one colour; keep metal elements apart rather than side by side.
+
+More situations it fits:
+
+- The one premium call to action on a screen: "Upgrade to Pro", "Get Pro", "Start trial".
+- The send button of an AI chat composer (circle variant), with its reflection on a nearby chip such as a model picker.
+- A plan name in a pricing or account card ("Plan **Pro**") where only the word should be metal.
+- A "New" pill next to a feature or menu label.
+- Dark UI surfaces. Reflections run in dark theme only, and the material reads best on dark grounds.
+
+### When not to use
+
+- Several metal elements with different colours on one page. Every instance shares one renderer and one material (see Common mistakes).
+- Dense lists, table rows or repeated cards. Each instance adds a canvas, a glow SVG and per-frame compositing.
+- Anything that must look identical without WebGL2. Unsupported browsers get the plain child, with no ring.
+- Destructive or low-priority actions. The effect pulls the eye; use it where attention is intended.
+
+## Install
+
+```bash
+npm install metal-fx
+pnpm add metal-fx
+yarn add metal-fx
+```
+
+```tsx
+import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } from 'metal-fx';
+```
+
+- React components only. Peer deps: `react` and `react-dom` >= 18. ESM and CJS builds with types.
+- Requires WebGL2. Without it `<MetalFx>` renders the child as-is inside `div.metal-fx-fallback[data-metal-fx-unsupported]`.
+- Styles are injected into `<head>` on import; no CSS file to add.
+- The package ships no `"use client"` directive. In the Next.js App Router, import it from a file marked `"use client"`.
+- Native ports (shown on the detail page, not on npm): React Native `metal-fx-native` (Skia + Reanimated 4) and SwiftUI `MetalFxKit` (iOS 17+), both under `ports/` (in this repo at `packages/metal-fx/ports/`); the SwiftUI one installs from GitHub through the repo's root `Package.swift`.
+
+## Basic usage
+
+React (detail page, Install & Usage):
+
+```tsx
+import { MetalFx, MetalText, MetalBadge } from 'metal-fx';
+<MetalFx preset="chromatic" strength={1}>
+  <button>Upgrade to Pro</button>
+</MetalFx>
+<MetalText font="500 24px/1.2 Inter" color="#E2E2E2">Pro</MetalText>
+<MetalBadge>New</MetalBadge>
+// v1 engine: npm install metal-fx@1
+```
+
+React Native (not on npm yet; lives at `ports/react-native/metal-fx-native`; Expo needs `expo run:ios` / `run:android`):
+
+```bash
+npm install metal-fx-native @shopify/react-native-skia react-native-reanimated react-native-worklets
+```
+
+```tsx
+import { MetalFx, MetalText, MetalBadge, MetalReflection, MetalEdgeHalo } from 'metal-fx-native';
+<MetalFx variant="circle" preset="chromatic" strength={0.9} innerShadow id="send">
+  <View style={{ width: 40, height: 40 }}><ArrowUp /></View>
+</MetalFx>
+<MetalReflection of="send"><Chip label="Auto" /></MetalReflection>
+<MetalText fontSize={24} fontWeight="500">Pro</MetalText>
+<MetalBadge>New</MetalBadge>
+<MetalEdgeHalo style={styles.card}>…a ring with an id…</MetalEdgeHalo>
+```
+
+SwiftUI (iOS 17+, build through Xcode so the Metal shader compiles):
+
+```swift
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "MetalFxKit", package: "Libraries.dev")
+```
+
+```swift
+import MetalFxKit
+MetalFx(variant: .circle, preset: .chromatic, strength: 0.9, innerShadow: true, id: "send") {
+    Image(systemName: "arrow.up").frame(width: 40, height: 40)
+}
+Text("Auto").metalReflection(of: "send")
+MetalText("Pro")
+MetalBadge("New")
+card.metalEdgeHalo()   // on the view touching the screen edge
+```
+
+On phones there is no cursor: device tilt bends the rings.
+
+Playground snippet, type "Circle button" (all toggles off):
+
+```tsx
+import { MetalFx, useMetalBend } from 'metal-fx';
+
+const ref = useRef(null);
+useMetalBend(ref); // cursor-driven liquid dent
+
+<MetalFx ref={ref} preset="chromatic" variant="circle" innerShadow strength={0.90} reflectionTargets={[siblingRef]}>
+  <button aria-label="Send"><ArrowUpIcon /></button>
+</MetalFx>
+```
+
+Playground snippet, type "Text":
+
+```tsx
+import { MetalText, useMetalTextReflection } from 'metal-fx';
+
+const planRef = useRef(null);
+useMetalTextReflection(planRef); // "Plan" catches the metal
+
+<span ref={planRef}>Plan</span>
+<MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2" strength={0.90} reflectionTargets={[{ ref: planRef, strength: 0.64 }]}>
+  Pro
+</MetalText>
+```
+
+## Options (free)
+
+`<MetalFx>`:
+
+| Prop | Values | Default | What it does |
+|---|---|---|---|
+| `variant` | `"button"` \| `"circle"` | `"button"` | `button` is a pill with a 1 px ring; `circle` a round icon button with a 2 px ring. |
+| `preset` | `"chromatic"` \| `"silver"` \| `"gold"` | `"chromatic"` | Metal colour. Each ships a dark and a light tuning. The playground fixes it to `chromatic`. |
+| `theme` | `"auto"` \| `"dark"` \| `"light"` | `"auto"` | Picks the preset's dark or light side. `auto` follows `prefers-color-scheme` live. |
+| `strength` | `0`–`1` | `1` | Multiplies the metal opacity and glow alpha. The playground snippet emits `0.90`. |
+| `innerShadow` | boolean | off | Light rim along the ring's top inside edge. On in the Circle button snippet. |
+| `reflectionTargets` | array of refs, or `{ ref, strength }` | none | Neighbours that catch a mirrored reflection. Dark theme only. |
+| `disableGlow` | boolean | `false` | Removes the wandering halo. The ring still renders. |
+| `glowGain` | number | `1` | Multiplier on the glow only, on top of `strength` (clamped to 0..1 after multiplying). |
+| `paused` | boolean | `false` | Freezes this instance on its current frame. |
+
+`<MetalText>`: `children` (string, required), `font` (CSS `font` shorthand, required), `color` (base text colour, required), `strength`, `reflectionTargets`.
+
+`<MetalBadge>`: `children` (string, default `"New"`).
+
+Hooks and config:
+
+| API | What it does |
+|---|---|
+| `useMetalBend(ref)` | Cursor-driven liquid dent on the ring. `ref` goes on `<MetalFx>`. |
+| `useMetalTextReflection(ref)` | Confines a reflection to the glyphs of a text element that is a `reflectionTargets` entry. |
+| `setCursorLightConfig({ cursor: false })` | Turns off the cursor reflection (the ring lighting the pointer) for the whole page. |
+
+Tuner to code: **Version** v2 / v1 switches engine (v1 = `metal-fx@1`). **Type** "Circle button" = `<MetalFx variant="circle" innerShadow>` + `useMetalBend`; "Text" = `<MetalText>` + `useMetalTextReflection`. "Button" and "Badge" types are shown but locked on the page. **No Glow** adds `disableGlow`. **No Reflection** drops `reflectionTargets`. **No Cursor Reflection** adds `setCursorLightConfig({ cursor: false })`. **Play / Pause** maps to `paused` (the playground starts paused; the snippet does not emit it).
+
+## Recipes
+
+Chat composer send button, reflecting on the model chip. Use when: the send action of an AI prompt box.
+
+```tsx
+import { useMemo, useRef } from 'react';
+import { MetalFx, useMetalBend } from 'metal-fx';
+
+export function Composer() {
+  const chipRef = useRef<HTMLButtonElement>(null);
+  const sendRef = useRef<HTMLDivElement>(null);
+  useMetalBend(sendRef);
+  const targets = useMemo(() => [chipRef], []);
+  return (
+    <div className="composer-bar">
+      <button ref={chipRef} className="chip">Auto</button>
+      <MetalFx ref={sendRef} variant="circle" preset="chromatic" innerShadow strength={0.9} reflectionTargets={targets}>
+        <button type="button" aria-label="Send" style={{ width: 40, height: 40, borderRadius: 999 }}>↑</button>
+      </MetalFx>
+    </div>
+  );
+}
+```
+
+Upgrade pill in the top nav. Use when: one paid-tier CTA per screen.
+
+```tsx
+<MetalFx preset="silver" strength={0.7}>
+  <a href="/pricing" style={{ display: 'inline-flex', alignItems: 'center', height: 36, padding: '0 16px', borderRadius: 999 }}>
+    Upgrade to Pro
+  </a>
+</MetalFx>
+```
+
+Plan name in an account card. Use when: only the tier word should be metal.
+
+```tsx
+import { useMemo, useRef } from 'react';
+import { MetalText, useMetalTextReflection } from 'metal-fx';
+
+export function PlanLine() {
+  const planRef = useRef<HTMLSpanElement>(null);
+  useMetalTextReflection(planRef);
+  const targets = useMemo(() => [{ ref: planRef, strength: 0.64 }], []);
+  return (
+    <div className="plan-line">
+      <span ref={planRef}>Plan</span>
+      <MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2" strength={0.9} reflectionTargets={targets}>
+        Pro
+      </MetalText>
+    </div>
+  );
+}
+```
+
+"New" badge beside a menu item. Use when: flagging a freshly shipped feature.
+
+```tsx
+<li className="menu-item">
+  <span>Live mode</span>
+  <MetalBadge>New</MetalBadge>
+</li>
+```
+
+App-driven theme and reduced motion. Use when: the app has its own theme toggle.
+
+```tsx
+const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+<MetalFx theme={appTheme} paused={reduce} disableGlow={reduce}>
+  <button>Upgrade to Pro</button>
+</MetalFx>
+```
+
+## Accessibility & performance
+
+- The shader does not honour `prefers-reduced-motion` on its own. Pass `paused` (and optionally `disableGlow`) yourself. `useMetalBend` does not check it either.
+- The cursor reflection swaps the OS pointer for a sprite. It turns itself off under `prefers-reduced-motion`, `forced-colors`, touch/pen/coarse pointers and pinch-zoom, and it needs a sprite registered with `setCursorSprite` (none ships in the package). Without a sprite it stays off.
+- Canvases, glow and rim layers are `aria-hidden`. The wrapped child keeps its semantics and stays interactive; give icon-only children an `aria-label`.
+- `MetalText` and `MetalBadge` set `aria-label` to their text on the inner span.
+- One shared WebGL2 context and one `requestAnimationFrame` loop drive every instance. The main loop composites at about 15 fps.
+- An `IntersectionObserver` (64 px margin) skips offscreen instances; the loop stops when the tab is hidden.
+- Reflections do no work in light theme.
+- SSR: on the server the component renders the fallback markup (no WebGL there), and the client renders the canvas version. Render it client-only (for example `next/dynamic` with `ssr: false`, or a mounted gate) to avoid a hydration mismatch.
+
+## Common mistakes
+
+- Mixing presets or themes on one page. All instances share one renderer and one material; the last preset/theme applied wins. `MetalText` and `MetalBadge` always set `chromatic`.
+- Styling the child's background. With default settings the wrapper strips the child's background, border, outline and box-shadow and paints its own fill (`#272727` dark, `#ffffff` light). Put a custom fill on `<MetalFx style={{ background }}>` instead.
+- Passing more than one child, or a child with no size. The wrapper is `inline-flex` and sizes to the child; give icon buttons explicit width and height. The ring radius comes from the child's computed `border-radius` (`circle` always uses a true circle).
+- Inline `reflectionTargets={[ref]}` arrays. A new array each render tears down and re-adds reflections. Memoise it. Targets with `position: static` get `position: relative` and `isolation: isolate` set inline.
+- `useMetalBend` or `useMetalTextReflection` with a ref that is not mounted yet (a conditional render inside the same component). Put each metal element in its own component so the hook runs against a mounted node.
+- Expecting reflections in light theme. They only render when the resolved theme is `dark`.
+- The wrapper, child included, stays invisible until the first metal frame is painted. Do not measure or animate the child before then.
+- React StrictMode: the Libraries.dev playground mounts without it because the simulated double mount froze the shared renderer in development.
+
+## Detecting a fit in a codebase
+
+| Signal to grep | Suggest |
+|---|---|
+| `Upgrade to Pro`, `Get Pro`, `Go Pro`, `Upgrade`, `/pricing` links in nav or sidebars | `<MetalFx>` button variant around that one CTA |
+| Chat composer: `<textarea` with `placeholder="Ask`/`Message`/`Build anything`, `aria-label="Send"`, `ArrowUp`/`SendIcon`/`PaperPlane` icons | `<MetalFx variant="circle" innerShadow>` + `useMetalBend`, reflecting on a sibling chip |
+| Model or mode pickers next to the send button (`Auto`, `Agent`, `model-select`) | Use them as `reflectionTargets` |
+| Hero or page headline: the `<h1>` on a landing, pricing or launch page, a key display heading | `<MetalText>` on that heading |
+| Pricing/plan UI: `plan`, `tier`, `Pro`, `Premium`, `Plus` labels | `<MetalText>` on the tier word, `useMetalTextReflection` on the label before it |
+| `New` / `Beta` badges, `badge--new`, `<Badge>New</Badge>` | `<MetalBadge>New</MetalBadge>` |
+| Hand-rolled shine: `shimmer`, `shine`, `conic-gradient` borders, `animate-border`, `gradient-border` on a button | Replace with `<MetalFx>` |
+
+## Go further (Pro)
+
+- Button and Badge types with their own tuned baselines, and a Color switch for the ring types.
+- Shader scale, ring width and metal opacity sliders, and the badge's layer controls (white core, gradient, inner glow).
+- Engine-wide tuning: glow intensity and timing, cursor bend strength and reach, cursor reflection distance and falloff.
+- React Native and SwiftUI snippets generated from the same tuned values.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Image FX (img-fx). Live playground: https://libraries.dev/image. npm: https://www.npmjs.com/package/img-fx -->
+
+# Image
+
+A React WebGL loader: a churning pixel-mosaic shader fills a card while an image is generated, then dissolves into the real image (npm `img-fx`).
+
+## When to use
+
+- Placeholder for an AI image generation result (text-to-image, image edit, avatar or thumbnail generation) while the request runs.
+- A "Regenerate" flow: the shown image breaks back into pixels, churns, and the next image dissolves in.
+- Gallery or grid tiles that wait on generated or slow-loading media, where a static skeleton reads too flat.
+- Hero or marketing cards that loop between sample outputs to show "this product makes images" (`autoReveal`).
+- A reveal moment after a long job completes (render, upscale, export preview).
+
+### When not to use
+
+- Ordinary photo lazy-loading on content pages. A blur-up or plain skeleton is cheaper and quieter.
+- Text or list loading states. The effect is a square/rectangular media surface, not a line skeleton.
+- Many dozens of tiles animating at once. All cards share one WebGL context and render one after another each frame.
+- Non-React stacks. The package ships a React component only (the engine is exported, but there is no vanilla or custom-element wrapper).
+
+## Install
+
+```bash
+npm install img-fx three
+pnpm add img-fx three
+yarn add img-fx three
+```
+
+```tsx
+import { ImageGeneration } from 'img-fx';
+```
+
+- React component only. Peer dependencies: `react` >= 18, `react-dom` >= 18, `three` >= 0.149.0.
+- ESM and CJS builds with types (`dist/index.es.js`, `dist/index.cjs.js`, `dist/index.d.ts`).
+- The bundle has no `"use client"` directive. In the Next.js App Router, render it from your own file that starts with `"use client"`.
+- The component uses `useLayoutEffect`, WebGL, `ResizeObserver` and `IntersectionObserver`. Everything GPU-side starts after mount, so server rendering outputs only the wrapper and the child.
+
+## Basic usage
+
+Install & Usage tab on the detail page:
+
+```tsx
+import { ImageGeneration } from 'img-fx';
+
+<ImageGeneration
+  preset="pixels-organic"
+  images={['/img/a.jpg', '/img/b.jpg']}
+  autoReveal
+>
+  <div className="card" style={{ width: 320, height: 320, borderRadius: 20 }} />
+</ImageGeneration>
+```
+
+Snippet the playground builds from its controls (strength is only written when it is not 100%):
+
+```tsx
+import { ImageGeneration } from 'img-fx';
+
+<ImageGeneration
+  preset="pixels-mechanic"
+  strength={0.60}
+  images={['/images/gen-1.jpg', '/images/gen-2.jpg']}
+>
+  <div style={{ width: 280, height: 280, borderRadius: 20 }} />
+</ImageGeneration>
+```
+
+The wrapped child is the card. The wrapper sizes itself to it, and takes its corner radius from the child's computed `border-top-left-radius`.
+
+## Options (free)
+
+| Prop | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `preset` | `'pixels-organic'` \| `'pixels-mechanic'` \| `'sweep-gradient'` | `'pixels-organic'` | The effect. Organic: soft, cloud-like mosaic. Mechanic: sharper, grid-locked mosaic. Gradient Sweep: diagonal band sweeping top-left to bottom-right with per-cell flicker. |
+| `strength` | `0` to `1` (tuner: 0-100%, step 1%) | `1` | Opacity of the effect canvas. The shader keeps animating at full speed; only its alpha scales. |
+| `images` | `string` \| `string[]` | `[]` | Reveal pool. A random pick per reveal that never repeats the previous one. |
+| `autoReveal` | `boolean` | `false` | Runs the loop on its own: shader, random 2-4 s wait, reveal, hold 2 s, fade back, repeat. |
+| `paused` | `boolean` | `false` | Freezes the shader and the reveal scheduler (the playground's Play / Pause). |
+
+Imperative actions (the playground's buttons), through a `ref` typed `ImageGenerationHandle`:
+
+| Method | What it does |
+| --- | --- |
+| `triggerReveal()` | One pass: reveal, hold 2 s, hide. No-op while a reveal is running or `images` is empty. |
+| `triggerReveal({ hold: 'manual' })` | Reveal and stay visible until `triggerHide()`. The playground's "Reveal image". |
+| `triggerHide()` | Fade the revealed image back to the shader. No-op if nothing is revealed. |
+| `triggerRegenerate({ durationMs })` | Only while an image is showing: it breaks into cells, churns for `durationMs` (default 4000, the playground uses 3000), then the next image dissolves in and stays. The churn is recoloured from the outgoing image. |
+| `isImageActive()` | `true` while an image is revealing, visible or hiding. Use it to pick the button label. |
+
+Tuner to prop mapping: "Type" tabs Organic / Mechanic / Gradient Sweep map to `preset` values `pixels-organic` / `pixels-mechanic` / `sweep-gradient`. The "Strength" slider shows percent; the prop is that value divided by 100 (`60%` becomes `strength={0.60}`). "Play" / "Pause" maps to `paused`. "Reveal image" / "Hide image" and "Regenerate" are ref calls, not props.
+
+## Recipes
+
+Loading flag with a known image. Use when: your app has a boolean such as `generating` or `loading`, and the image URL is already known (or arrives before the flag turns off).
+
+```tsx
+import { useEffect, useRef } from 'react';
+import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
+
+function ResultCard({ generating, src }: { generating: boolean; src: string }) {
+  const ref = useRef<ImageGenerationHandle>(null);
+  const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  useEffect(() => {
+    // Generating: fade any shown image back to the shader.
+    // Done: reveal the image and keep it until the next run.
+    if (generating) ref.current?.triggerHide();
+    else ref.current?.triggerReveal({ hold: 'manual' });
+  }, [generating, src]);
+  return (
+    <ImageGeneration
+      ref={ref}
+      images={[src]}
+      paused={reduced && generating}
+      role="img"
+      aria-label={generating ? 'Generating image' : 'Result'}
+      aria-busy={generating}
+    >
+      <div style={{ width: 320, height: 200, borderRadius: 12 }} />
+    </ImageGeneration>
+  );
+}
+```
+
+How the calls behave, so this stays correct:
+
+- `triggerReveal()` and `triggerHide()` do nothing while `paused` is true. Pause only while waiting (`reduced && generating`), never for the whole lifetime, or the image never reveals.
+- `triggerReveal()` does nothing while a reveal, hold or hide is already running, and with an empty `images` list. `triggerHide()` only acts while an image is revealing or shown.
+- Calling them from an effect in the parent is safe on the first render: the component sets itself up in its own effect, which runs before the parent's.
+
+Generated image result. Use when: a text-to-image request is in flight and the URL arrives later.
+
+```tsx
+import { useEffect, useRef } from 'react';
+import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
+
+export function GeneratedImage({ src }: { src: string | null }) {
+  const ref = useRef<ImageGenerationHandle>(null);
+  useEffect(() => {
+    if (src) ref.current?.triggerReveal({ hold: 'manual' });
+  }, [src]);
+  return (
+    <ImageGeneration ref={ref} preset="pixels-organic" images={src ? [src] : []}>
+      <div style={{ width: 384, height: 384, borderRadius: 16 }} />
+    </ImageGeneration>
+  );
+}
+```
+
+Regenerate button. Use when: the user can ask for another take on a shown image.
+
+```tsx
+import { useRef } from 'react';
+import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
+
+export function Variants({ variants }: { variants: string[] }) {
+  const ref = useRef<ImageGenerationHandle>(null);
+  return (
+    <>
+      <ImageGeneration ref={ref} preset="pixels-mechanic" images={variants}>
+        <div style={{ width: 320, height: 320, borderRadius: 20 }} />
+      </ImageGeneration>
+      <button onClick={() => ref.current?.triggerReveal({ hold: 'manual' })}>Show</button>
+      <button onClick={() => ref.current?.triggerRegenerate({ durationMs: 3000 })}>Regenerate</button>
+    </>
+  );
+}
+```
+
+Quiet tile placeholder. Use when: a grid of media tiles waits on data and should not shout.
+
+```tsx
+<ImageGeneration preset="sweep-gradient" strength={0.5}>
+  <div style={{ width: 240, height: 160, borderRadius: 12 }} />
+</ImageGeneration>
+```
+
+Looping showcase card. Use when: a landing page hero should demo generated outputs on its own.
+
+```tsx
+<ImageGeneration preset="pixels-organic" images={['/samples/1.jpg', '/samples/2.jpg', '/samples/3.jpg']} autoReveal>
+  <div style={{ width: 480, height: 320, borderRadius: 24 }} />
+</ImageGeneration>
+```
+
+Only animate while working. Use when: the card stays mounted after the job ends.
+
+```tsx
+<ImageGeneration preset="pixels-mechanic" paused={!isGenerating}>
+  <div style={{ width: 320, height: 320, borderRadius: 20 }} />
+</ImageGeneration>
+```
+
+## Accessibility & performance
+
+- Both canvases are `aria-hidden="true"`. The wrapper `<div>` has no role. It forwards any HTML attribute, so add `role="img"` and an `aria-label` (for example "Generating image"), or `aria-busy={isGenerating}`, on `<ImageGeneration>` itself.
+- The revealed image is painted into a canvas, not an `<img>`. It has no alt text. If the result matters to screen readers, render a visually hidden description or an `<img>` elsewhere.
+- No `prefers-reduced-motion` handling in the package. Do it yourself with `paused`, but only while waiting: `paused={reduced && generating}`. A paused card ignores `triggerReveal()`, so pausing it for good means the image never appears (see the loading flag recipe).
+- One shared `THREE.WebGLRenderer` and one WebGL context for the whole page. Each card copies its frame into its own 2D canvas.
+- Frame rate is capped at 10 fps. The GL canvas renders at a device-pixel-ratio cap of 1.25; the visible canvas is capped at 2.
+- Cards pause when offscreen (`IntersectionObserver`, 64px margin). When no card is active the animation loop stops completely.
+- WebGL context loss is handled: the loop stops and resumes on restore.
+- Decoded images are cached by URL across all cards. Images draw like `object-fit: cover`, centre-cropped.
+- `strength` below 1 is a CSS opacity change on the canvas: no shader cost difference.
+
+## Common mistakes
+
+- Child without a size. The wrapper is `inline-block` and sizes to the child. A child with no width or height gives a 1px card and nothing visible.
+- Forgetting `three`. It is a peer dependency: install `img-fx three` together.
+- Calling `triggerReveal()` with an empty `images` list. It is a silent no-op. Set `images` first; the example above triggers from an effect after `src` changes.
+- Expecting `triggerRegenerate()` to work from the idle shader. It only runs while an image is revealed.
+- Per-corner radii. One radius is read from the child's top-left corner and applied to all four.
+- Cross-origin images without CORS headers. They still reveal, but Regenerate cannot sample their colours and falls back to the preset palette. Serve images same-origin or with CORS.
+- Server rendering in light mode. The effect follows the page theme (`<html data-theme>`, `.dark` / `.light` class, `color-scheme`, then the OS setting) and assumes dark on the server. On light pages, render the card client-only to avoid a dark first frame and attribute mismatch.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+| --- | --- |
+| Image generation APIs: `images.generate`, `dall-e`, `gpt-image`, `replicate`, `fal.ai`, `@fal-ai`, `stability`, `flux`, `midjourney` | Wrap the result slot in `<ImageGeneration>` and `triggerReveal({ hold: 'manual' })` when the URL arrives. |
+| Copy like "Generating image", "Creating your image", "Rendering…", `isGenerating`, `status === 'generating'` | The generated-image recipe, `paused={!isGenerating}` if the card persists. |
+| Buttons labelled "Regenerate", "Try again", "Variations", "Reroll" next to an image | `triggerRegenerate({ durationMs: 3000 })` on that button. |
+| `animate-pulse`, `<Skeleton`, `shimmer`, `aspect-square bg-muted` on image containers | Replace the skeleton with `preset="sweep-gradient"` and `strength={0.5}` for a quieter loader. |
+| Spinners (`<Spinner`, `Loader2`, `animate-spin`) centred over an image or canvas area | Replace with the mosaic on the image box itself. |
+| Hero sections cycling sample outputs, carousels of "made with" images | `autoReveal` with those samples in `images`. |
+| Avatar, thumbnail or cover generators (`generateAvatar`, `generateThumbnail`, `cover-art`) | Same as the generated-image recipe, sized to the avatar or cover box. |
+
+## Go further (Pro)
+
+- Animation speed and pixel-cell size.
+- Palette re-tints (Ocean, Ember, Mono) and the card background colour the shader reasons against.
+- A stronger-than-default intensity range.
+- Rebuilding the effect's shader (cell shape, mosaic layout, colour field) through the agent.
+
+Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.

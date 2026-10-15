@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type CSSProperties } from "react";
 import { describePatch, streamAgentTurn, type ChatTurn } from "./agent";
 import type { CoreWiring } from "./core";
 import { useScrollFade } from "../examples/useScrollFade";
@@ -173,38 +173,9 @@ export function PgGroup({ label, children }: { label: string; children: ReactNod
   );
 }
 
-export function PgTabs<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: ReadonlyArray<{ value: T; label: string }>;
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="pg-field" role="radiogroup" aria-label={label}>
-      <span className="pg-label">{label}</span>
-      <div className="pg-tabs">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            className="pg-tab"
-            role="radio"
-            aria-checked={value === o.value}
-            data-active={value === o.value ? "true" : undefined}
-            onClick={() => onChange(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+/* The pill radio tabs live with the detail pages now, so the Studio
+   and the public playgrounds share one component. */
+export { PgTabs } from "../examples/PgTabs";
 
 /** Value slider + input (Figma 1418:38136): the fill grows inside a 32px
     block, the label rides the fill, the value sits at the right. The
@@ -505,7 +476,7 @@ export function PgSwatches({
             aria-checked={value === o.value}
             aria-label={o.label}
             data-active={value === o.value ? "true" : undefined}
-            style={{ background: o.swatch ?? o.value }}
+            style={{ "--swatch": o.swatch ?? o.value } as CSSProperties}
             onClick={() => onChange(o.value)}
           />
         ))}
@@ -514,7 +485,7 @@ export function PgSwatches({
             type="button"
             className="pg-swatch pg-swatch--custom"
             data-active={isCustom ? "true" : undefined}
-            style={isCustom ? { background: value } : undefined}
+            style={isCustom ? ({ "--swatch": value } as CSSProperties) : undefined}
             title="Custom color"
             aria-label="Custom color"
             aria-expanded={pickerOpen}
@@ -968,6 +939,20 @@ function readPresets(libraryId: string): StoredPreset[] {
   }
 }
 
+/* The preset a link asked for ("#beam&preset=Name"), if the link is for
+   this library. */
+function linkedPreset(libraryId: string): string | null {
+  const parts = window.location.hash.replace("#", "").split("&");
+  if (parts[0] !== libraryId) return null;
+  const p = parts.find((x) => x.startsWith("preset="));
+  if (!p) return null;
+  try {
+    return decodeURIComponent(p.slice(7));
+  } catch {
+    return null;
+  }
+}
+
 function accountPresets() {
   const LP = window.LibrariesPro;
   return LP && LP.state?.authenticated && LP.presets ? LP.presets : null;
@@ -1102,6 +1087,8 @@ export function StageBar({
   const defaultsRef = useRef<Record<string, unknown> | null>(agent ? { ...agent.params } : null);
   const libraryId = agent?.libraryId ?? "";
   const theme: PresetTheme = useContext(StudioThemeContext)?.theme ?? "dark";
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   const [presets, setPresets] = useState<StoredPreset[]>(() => (libraryId ? readPresets(libraryId) : []));
 
   /* Account presets replace the local list once the session is known —
@@ -1124,7 +1111,18 @@ export function StageBar({
           setPresets(readPresets(libraryId));
           return;
         }
-        setPresets(r.presets.map((x) => ({ name: x.name, values: x.values as PresetValues, savedAt: x.updated_at })));
+        const list: StoredPreset[] = r.presets.map((x) => ({ name: x.name, values: x.values as PresetValues, savedAt: x.updated_at }));
+        setPresets(list);
+        /* Open a linked preset once, then drop it from the URL so a reload
+           or a later sign-in doesn't undo the user's own tuning. */
+        const wanted = linkedPreset(libraryId);
+        const hit = wanted ? list.find((x) => x.name === wanted) : null;
+        if (hit) {
+          const t = themeRef.current;
+          const side = hit.values[t] ?? hit.values[t === "dark" ? "light" : "dark"];
+          agentRef.current?.onApply({ ...side });
+          history.replaceState(null, "", `#${libraryId}`);
+        }
       }).catch(() => {
         if (live) setPresets(readPresets(libraryId));
       });

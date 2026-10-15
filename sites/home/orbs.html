@@ -22,14 +22,14 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Orb: thinking-orbs playground | Libraries.dev</title>
+  <title>Thinking Orbs: AI thinking indicator for React | Libraries.dev</title>
   <meta
     name="description"
-    content="Thought-orb loading indicators for AI interfaces. Nine hand-tuned animated states on a 2D canvas. Try them live and install thinking-orbs from npm."
+    content="Thinking Orbs (thinking-orbs) are animated AI thinking and loading indicators for React: nine hand-tuned states like thinking, searching and listening. Free, MIT, live playground."
   />
   <meta
     name="keywords"
-    content="react, effects, webgl, border beam, thinking orb, gooey, liquid metal, image loader, UI libraries"
+    content="ai thinking indicator, ai loading animation, thinking animation react, chatbot typing indicator, agent status indicator, loading orb, thinking-orbs"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -40,27 +40,29 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/orbs.html" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/orbs.html" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/orbs.html" />
+  <link rel="canonical" href="https://libraries.dev/orbs" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/orbs" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/orbs" />
 
+  <!-- The same docs as markdown, for coding agents (see /llms.txt). -->
+  <link rel="alternate" type="text/markdown" href="/llms/thinking-orbs.md" title="thinking-orbs reference" />
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/orbs.html" />
+  <meta property="og:url" content="https://libraries.dev/orbs" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Orb: thinking-orbs playground | Libraries.dev" />
-  <meta property="og:description" content="Thought-orb loading indicators for AI interfaces. Nine hand-tuned animated states on a 2D canvas. Try them live and install thinking-orbs from npm." />
+  <meta property="og:title" content="Thinking Orbs: AI thinking and loading indicator for React" />
+  <meta property="og:description" content="Thinking Orbs (thinking-orbs) are animated AI thinking and loading indicators for React: nine hand-tuned states like thinking, searching and listening. Free, MIT, live playground." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
-  <meta name="twitter:title" content="Orb: thinking-orbs playground | Libraries.dev" />
-  <meta name="twitter:description" content="Thought-orb loading indicators for AI interfaces. Nine hand-tuned animated states on a 2D canvas. Try them live and install thinking-orbs from npm." />
+  <meta name="twitter:title" content="Thinking Orbs: AI thinking and loading indicator for React" />
+  <meta name="twitter:description" content="Thinking Orbs (thinking-orbs) are animated AI thinking and loading indicators for React: nine hand-tuned states like thinking, searching and listening. Free, MIT, live playground." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -110,6 +112,53 @@
     #playground { margin-top: 0; scroll-margin-top: 24px; }
     .pg { row-gap: 16px; }
   </style>
+  <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://libraries.dev/orbs#library",
+        "name": "Thinking Orbs (thinking-orbs)",
+        "description": "Thinking Orbs (thinking-orbs) are animated AI thinking and loading indicators for React: nine hand-tuned states like thinking, searching and listening. Free, MIT, live playground.",
+        "url": "https://libraries.dev/orbs",
+        "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
+        "programmingLanguage": [
+          "TypeScript",
+          "JavaScript"
+        ],
+        "runtimePlatform": "React",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "author": {
+          "@type": "Person",
+          "name": "Jakub Antalik",
+          "url": "https://x.com/jakubantalik"
+        },
+        "sameAs": [
+          "https://www.npmjs.com/package/thinking-orbs"
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Libraries.dev",
+            "item": "https://libraries.dev/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Thinking Orbs",
+            "item": "https://libraries.dev/orbs"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#playground">Skip to content</a>
@@ -128,6 +177,8 @@
           <nav class="site-nav-menu" aria-label="Primary">
             <a class="nav-pill nav-pill--active" href="/beam.html">Libraries</a>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -156,13 +207,36 @@
               </svg>
             </button>
             <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
-              <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
-                <span class="tl-menu-item-label">Sign in</span>
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
               </div>
-              <div class="tl-menu-divider"></div>
-              <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
-                <span class="tl-menu-item-label">Support</span>
-              </a>
             </div>
           </div>
           <button
@@ -186,8 +260,9 @@
         <ul class="mobile-menu-list">
           <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
           <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
         </ul>
         <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
       </nav>
@@ -206,6 +281,8 @@
             <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
             <a class="docs-link is-active" href="/orbs.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
             <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link" href="/bots.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
             <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
             <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
           </nav>
@@ -224,7 +301,7 @@
 
         <header class="detail-head">
           <div class="detail-titles">
-            <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/tile-orbs.png" alt="" width="46" height="46" decoding="async" /></span>
+            <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter1_ii_1580_45651)"><path d="M13.4277 22.9951C14.3264 22.9684 15.0767 23.6756 15.1035 24.5742C15.1302 25.4729 14.4231 26.2233 13.5244 26.25C13.3927 26.2539 13.2605 26.2559 13.1279 26.2559C12.9953 26.2559 12.8632 26.2539 12.7314 26.25C11.8327 26.2233 11.1256 25.4729 11.1523 24.5742C11.1791 23.6756 11.9295 22.9684 12.8281 22.9951C12.9276 22.9981 13.0276 23 13.1279 23C13.2283 23 13.3282 22.9981 13.4277 22.9951ZM3.6377 19.8252C4.29226 19.2088 5.32306 19.24 5.93945 19.8945C6.07582 20.0393 6.21652 20.18 6.36133 20.3164C7.01589 20.9328 7.04706 21.9636 6.43066 22.6182C5.81427 23.2724 4.78436 23.3027 4.12988 22.6865C3.93753 22.5054 3.75047 22.3183 3.56934 22.126C2.95313 21.4715 2.98344 20.4416 3.6377 19.8252ZM20.3164 19.8945C20.9328 19.24 21.9636 19.2088 22.6182 19.8252C23.2724 20.4416 23.3027 21.4715 22.6865 22.126C22.5054 22.3183 22.3183 22.5054 22.126 22.6865C21.4715 23.3027 20.4416 23.2724 19.8252 22.6182C19.2088 21.9636 19.24 20.9328 19.8945 20.3164C20.0393 20.18 20.18 20.0393 20.3164 19.8945ZM0 13.1279C0 12.9953 0.00194292 12.8632 0.00585938 12.7314C0.0325843 11.8327 0.782928 11.1256 1.68164 11.1523C2.58028 11.1791 3.28746 11.9295 3.26074 12.8281C3.25778 12.9276 3.25586 13.0276 3.25586 13.1279C3.25586 13.2283 3.25778 13.3282 3.26074 13.4277C3.28746 14.3264 2.58028 15.0767 1.68164 15.1035C0.782928 15.1302 0.0325845 14.4231 0.00585938 13.5244C0.00194287 13.3927 0 13.2605 0 13.1279ZM23 13.1279C23 13.0276 22.9981 12.9276 22.9951 12.8281C22.9684 11.9295 23.6756 11.1791 24.5742 11.1523C25.4729 11.1256 26.2233 11.8327 26.25 12.7314C26.2539 12.8632 26.2559 12.9953 26.2559 13.1279C26.2559 13.2605 26.2539 13.3927 26.25 13.5244C26.2233 14.4231 25.4729 15.1302 24.5742 15.1035C23.6756 15.0767 22.9684 14.3264 22.9951 13.4277C22.9981 13.3282 23 13.2283 23 13.1279ZM4.12988 3.56934C4.78436 2.95313 5.81427 2.98344 6.43066 3.6377C7.04706 4.29226 7.01589 5.32306 6.36133 5.93945C6.21652 6.07582 6.07582 6.21652 5.93945 6.36133C5.32306 7.01589 4.29226 7.04706 3.6377 6.43066C2.98344 5.81427 2.95313 4.78436 3.56934 4.12988C3.75047 3.93753 3.93753 3.75047 4.12988 3.56934ZM19.8252 3.6377C20.4416 2.98344 21.4715 2.95313 22.126 3.56934C22.3183 3.75047 22.5054 3.93753 22.6865 4.12988C23.3027 4.78436 23.2724 5.81427 22.6182 6.43066C21.9636 7.04706 20.9328 7.01589 20.3164 6.36133C20.18 6.21652 20.0393 6.07582 19.8945 5.93945C19.24 5.32306 19.2088 4.29226 19.8252 3.6377ZM13.5244 0.00585938C14.4231 0.0325843 15.1302 0.782928 15.1035 1.68164C15.0767 2.58028 14.3264 3.28746 13.4277 3.26074C13.3282 3.25778 13.2283 3.25586 13.1279 3.25586C13.0276 3.25586 12.9276 3.25778 12.8281 3.26074C11.9295 3.28746 11.1791 2.58028 11.1523 1.68164C11.1256 0.782928 11.8327 0.0325845 12.7314 0.00585938C12.8632 0.00194287 12.9953 0 13.1279 0C13.2605 0 13.3927 0.00194292 13.5244 0.00585938Z" fill="url(#paint0_linear_1580_45651)" fill-opacity="0.7"/></g><defs><filter id="filter1_ii_1580_45651" x="0" y="0" width="26.2559" height="26.2559" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_1580_45651"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_1580_45651" result="effect2_innerShadow_1580_45651"/></filter><linearGradient id="paint0_linear_1580_45651" x1="5.6980" y1="26.6705" x2="18.2151" y2="-19.4041" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
             <h1 class="detail-title">Thinking orbs</h1>
             <p class="detail-sub">Thought-orb loading indicators for AI interfaces, with nine hand-tuned animated states.</p>
           </div>
@@ -340,8 +417,10 @@
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
-              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: &quot;packages/thinking-orbs/ports/ios/ThinkingOrbsKit&quot;)</pre>
+              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: &quot;https://github.com/Jakubantalik/Libraries.dev&quot;, branch: &quot;main&quot;)
+// …and in your target&#x27;s dependencies:
+.product(name: &quot;ThinkingOrbsKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
               <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -418,6 +497,8 @@ Docs: https://libraries.dev/orbs.html
             <a href="/beam.html">Border beam</a>
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
           </div>

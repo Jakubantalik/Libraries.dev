@@ -17,7 +17,7 @@
        every local sheet has loaded (script below); a 1.5s timeout reveals it
        regardless, so a failed sheet can never leave the page blank. -->
   <style>
-    html { background: #121212; }
+    html { background: #070707; }
     html:not(.css-ready) body { visibility: hidden; }
   </style>
   <meta name="color-scheme" content="dark" />
@@ -27,7 +27,7 @@
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="noindex, follow" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta name="theme-color" content="#121212" />
+  <meta name="theme-color" content="#070707" />
 
   <link rel="canonical" href="https://libraries.dev/studio/app.html" />
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
@@ -100,6 +100,11 @@
     .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
 
     /* ── App shell ─────────────────────────────────────────────── */
+    /* The workbench sits on a deeper ground than the rest of the site
+       (site.css --bg is #121212), so the stages and panels read as
+       surfaces above it. Dark only; light keeps the site's paper. */
+    html[data-theme="dark"] body { background: #070707; }
+
     .st-app {
       min-height: 100dvh;
       display: flex;
@@ -167,6 +172,28 @@
       box-shadow: none;
     }
     .st-top-right { display: flex; align-items: center; gap: 8px; }
+    /* Dev-only stage-fill toggle: a small chip, dim when the fill is off. */
+    .st-dev-btn {
+      height: 26px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 40px;
+      background: var(--pg-control-bg, rgba(255, 255, 255, 0.06));
+      color: var(--icon-color-muted);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 26px;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.15s ease, color 0.15s ease;
+    }
+    .st-dev-btn[aria-pressed="true"] { opacity: 1; color: var(--icon-color); }
+    .st-dev-btn:hover { opacity: 1; }
+    /* With the fill off the stage cards sit on the bare ground; the panel
+       and snippet keep theirs. */
+    html[data-stage-fill="off"] .st-main .pg-stage,
+    html[data-theme="dark"][data-stage-fill="off"] .st-main .pg-stage { background: transparent; }
     /* Theme toggle sits with the avatar; same 36px chip as the nav icons. */
     .st-theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; }
     .st-theme-btn { color: var(--icon-color-muted); }
@@ -308,7 +335,14 @@
       background: var(--stage-bg);
       gap: 17px;
     }
-    html[data-theme="dark"] .st-main .st-stage-panel { background: #171717; }
+    /* The workbench's surfaces are a 4% white tint over the app's own
+       #070707 ground rather than the detail pages' flat #171717, so stage,
+       snippet and panel all sit on the same translucent step above it. */
+    html[data-theme="dark"] .st-main .st-stage-panel,
+    html[data-theme="dark"] .st-main .pg-stage,
+    html[data-theme="dark"] .st-main .code-block {
+      background: rgba(255, 255, 255, 0.04);
+    }
     .st-main .st-stage-panel > .st-platform-tabs { margin-bottom: 8px; }
     .st-main .st-stage-bar:not([data-view="preview"]) ~ .pg-stage,
     .st-main .st-stage-bar:not([data-view="preview"]) ~ .pg-snippet { display: none; }

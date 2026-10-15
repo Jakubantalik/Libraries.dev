@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+/// <reference types="vite/client" />
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BeamStudio } from "./beam";
 import { OrbStudio } from "./orb";
 import { GooeyStudio } from "./gooey";
 import { MetalStudio } from "./metal";
 import { ImageStudio } from "./image";
+import { VoiceStudio } from "./voice";
+import { AvatarsStudio } from "./avatars";
 import { StudioThemeContext } from "./controls";
 
 /* Studio app — Pro-gated workbench for all five libraries.
@@ -109,17 +112,124 @@ function useProGate(): { gate: GateState; email: string | null; entitled: boolea
    (Figma 1425:38996). The Studio is Pro-gated, so whenever the workbench
    shows there is a signed-in user — the avatar renders whenever an email
    is known. Same tl-menu / t-dropdown classes as the site nav menu. */
+/* Feedback from the avatar menu — the site's ⋮-menu page (site.js) done
+   in React: page two of the menu behind a back button, a message, an
+   optional address (the signed-in one filled in), sent to the API with
+   the mailto fallback. */
+const FEEDBACK_API = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) ? "http://localhost:8787" : "https://api.libraries.dev";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MenuChevron = () => (
+  <span className="tl-menu-chevr" aria-hidden="true">
+    <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fillRule="evenodd" clipRule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg>
+  </span>
+);
+
+function FeedbackPage({ email, onBack, onSent }: { email: string; onBack: () => void; onSent: () => void }) {
+  const [message, setMessage] = useState("");
+  const [address, setAddress] = useState(email.includes("@") ? email : "");
+  const [note, setNote] = useState<{ kind: "ok" | "err"; html: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [shake, setShake] = useState<"message" | "email" | null>(null);
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
+
+  const send = () => {
+    if (sending) return;
+    const text = message.trim();
+    if (!text) {
+      setShake("message");
+      setNote({ kind: "err", html: "Write a few words first." });
+      messageRef.current?.focus();
+      return;
+    }
+    const addr = address.trim();
+    if (addr && !EMAIL_RE.test(addr)) {
+      setShake("email");
+      setNote({ kind: "err", html: "That email doesn't look right." });
+      emailRef.current?.focus();
+      return;
+    }
+    setSending(true);
+    setNote(null);
+    fetch(FEEDBACK_API + "/feedback", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, page: window.location.href, email: addr || undefined }),
+    })
+      .then((r) => { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+      .then(() => {
+        setMessage("");
+        setNote({ kind: "ok", html: "Sent. Thank you!" });
+        window.setTimeout(onSent, 1400);
+      })
+      .catch(() => {
+        const subject = encodeURIComponent("Feedback on Libraries.dev");
+        const body = encodeURIComponent(text + "\n\nFrom " + window.location.href);
+        setNote({ kind: "err", html: `Could not send. <a href="mailto:jakubja@gmail.com?subject=${subject}&body=${body}">Email it instead</a>.` });
+      })
+      .then(() => setSending(false));
+  };
+
+  const errClass = (which: "message" | "email") =>
+    (note?.kind === "err" && shake === which ? " is-error" : "") + (shake === which ? " is-shaking" : "");
+
+  return (
+    <>
+      <button type="button" className="tl-set-back" onClick={onBack}>
+        <span className="tl-set-back-ic" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fillRule="evenodd" clipRule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg>
+        </span>
+        <span className="tl-set-back-title">Feedback</span>
+      </button>
+      <div className="tl-menu-divider" />
+      <form className="pm-feedback" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
+        <textarea
+          ref={messageRef}
+          className={`pm-feedback-input${errClass("message")}`}
+          rows={6}
+          maxLength={2000}
+          placeholder="Share your feedback, idea or comment"
+          aria-label="Your feedback"
+          value={message}
+          onChange={(e) => { setMessage(e.target.value); if (note?.kind === "err") setNote(null); setShake(null); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
+          onAnimationEnd={() => setShake(null)}
+        />
+        <input
+          ref={emailRef}
+          type="email"
+          className={`pm-feedback-email${errClass("email")}`}
+          maxLength={200}
+          placeholder="Email (optional)"
+          aria-label="Your email (optional)"
+          autoComplete="email"
+          spellCheck={false}
+          value={address}
+          onChange={(e) => { setAddress(e.target.value); if (note?.kind === "err") setNote(null); setShake(null); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
+          onAnimationEnd={() => setShake(null)}
+        />
+        {note && <p className="pm-feedback-note" role="status" data-kind={note.kind} dangerouslySetInnerHTML={{ __html: note.html }} />}
+        <button type="submit" className="pm-feedback-btn" disabled={sending}>{sending ? "Sending…" : "Send feedback"}</button>
+      </form>
+    </>
+  );
+}
+
 function AvatarMenu({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [page, setPage] = useState<"1" | "2">("1");
   const anchorRef = useRef<HTMLDivElement | null>(null);
+  const slideRef = useRef<HTMLDivElement | null>(null);
   const closeTimer = useRef<number | undefined>(undefined);
 
   const close = () => {
     setOpen(false);
     setClosing(true);
     window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => setClosing(false), 150);
+    closeTimer.current = window.setTimeout(() => { setClosing(false); setPage("1"); }, 150);
   };
 
   useEffect(() => {
@@ -138,6 +248,20 @@ function AvatarMenu({ email }: { email: string }) {
     };
   }, [open]);
 
+  /* The slide's height follows the active page (site.js does the same). */
+  useLayoutEffect(() => {
+    const slide = slideRef.current;
+    if (!slide) return;
+    const sync = () => {
+      const active = slide.querySelector<HTMLElement>(`.t-page[data-page-id="${page}"]`);
+      if (active) slide.style.height = active.offsetHeight + "px";
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    slide.querySelectorAll<HTMLElement>(".t-page").forEach((el) => ro.observe(el));
+    return () => ro.disconnect();
+  }, [page, open]);
+
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   const onSignOut = () => {
@@ -151,6 +275,7 @@ function AvatarMenu({ email }: { email: string }) {
       window.location.href = "/studio.html";
     }
   };
+  const openFeedback = () => setPage("2");
 
   return (
     <div className="pm-anchor" ref={anchorRef}>
@@ -168,21 +293,32 @@ function AvatarMenu({ email }: { email: string }) {
         <span className="nav-avatar-initial" aria-hidden="true">{email.charAt(0)}</span>
       </button>
       <div
-        className={`tl-menu t-dropdown${open ? " is-open" : ""}${closing ? " is-closing" : ""}`}
+        className={`tl-menu t-dropdown${open ? " is-open" : ""}${closing ? " is-closing" : ""}${page === "2" ? " is-feedback" : ""}`}
         data-origin="top-right"
         role="menu"
         aria-label="Account"
       >
-        <a className="tl-menu-item" href="/account.html" role="menuitem">
-          <span className="tl-menu-item-label">Account</span>
-        </a>
-        <div className="tl-menu-item" role="menuitem" tabIndex={0} onClick={onSignOut} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSignOut(); }}>
-          <span className="tl-menu-item-label">Sign out</span>
+        <div className="tl-set-slide" data-page={page} ref={slideRef}>
+          <div className="t-page" data-page-id="1">
+            <a className="tl-menu-item" href="/account.html" role="menuitem">
+              <span className="tl-menu-item-label">Account</span>
+            </a>
+            <div className="tl-menu-item" role="menuitem" tabIndex={0} onClick={onSignOut} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSignOut(); }}>
+              <span className="tl-menu-item-label">Sign out</span>
+            </div>
+            <div className="tl-menu-divider" />
+            <div className="tl-menu-item" role="menuitem" tabIndex={0} onClick={openFeedback} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFeedback(); } }}>
+              <span className="tl-menu-item-label">Feedback</span>
+              <span className="tl-menu-trail"><MenuChevron /></span>
+            </div>
+            <a className="tl-menu-item" href="mailto:jakubja@gmail.com" role="menuitem">
+              <span className="tl-menu-item-label">Support</span>
+            </a>
+          </div>
+          <div className="t-page" data-page-id="2">
+            {page === "2" && <FeedbackPage email={email} onBack={() => setPage("1")} onSent={close} />}
+          </div>
         </div>
-        <div className="tl-menu-divider" />
-        <a className="tl-menu-item" href="mailto:jakubja@gmail.com" role="menuitem">
-          <span className="tl-menu-item-label">Support</span>
-        </a>
       </div>
     </div>
   );
@@ -222,6 +358,43 @@ function useStudioTheme(): [StudioTheme, () => void] {
   return [theme, toggle];
 }
 
+/* Dev only (`?dev` on localhost): a top-bar toggle that drops the fill of
+   the stage cards the examples sit on, so a mock can be judged on the bare
+   ground. Stored under ldev:studio-stage-fill ("off"); flips the root's
+   data-stage-fill, which the Studio's CSS reads. */
+const STAGE_FILL_KEY = "ldev:studio-stage-fill";
+
+function StageFillToggle() {
+  const [filled, setFilled] = useState(() => {
+    try {
+      return localStorage.getItem(STAGE_FILL_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    if (filled) document.documentElement.removeAttribute("data-stage-fill");
+    else document.documentElement.setAttribute("data-stage-fill", "off");
+    try {
+      if (filled) localStorage.removeItem(STAGE_FILL_KEY);
+      else localStorage.setItem(STAGE_FILL_KEY, "off");
+    } catch {
+      /* storage may be unavailable; the attribute still applies */
+    }
+  }, [filled]);
+  return (
+    <button
+      type="button"
+      className="st-dev-btn"
+      aria-pressed={filled}
+      title="Dev: toggle the stage cards' fill"
+      onClick={() => setFilled((f) => !f)}
+    >
+      Fill
+    </button>
+  );
+}
+
 function TopBar({ email, pro }: { email: string | null; pro: boolean }) {
   return (
     <div className="st-top">
@@ -244,6 +417,7 @@ function TopBar({ email, pro }: { email: string | null; pro: boolean }) {
       {/* The address itself belongs on the account page — here the avatar
           (and its Account item) is the identity. */}
       <div className="st-top-right">
+        {DEV_UNLOCK && <StageFillToggle />}
         {/* TEMP: signed-out fallback initial so the avatar is visible for
             testing before the auth Worker is deployed. */}
         <AvatarMenu email={email ?? "j"} />
@@ -252,26 +426,43 @@ function TopBar({ email, pro }: { email: string | null; pro: boolean }) {
   );
 }
 
+/* The rail follows the site's order: Bot avatars sits after Voice. */
 const LIBS = [
   { id: "beam", label: "Border beam", icon: "/assets/icons/figma-beam.png" },
   { id: "orb", label: "Thinking orbs", icon: "/assets/icons/figma-orbs.svg" },
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
+  { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
+  { id: "avatars", label: "Bot avatars", icon: "/assets/icons/figma-avatars.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
-] as const;
+  ...Object.values(
+    import.meta.glob<{ bench: PrivateBench }>("./private/*.tsx", { eager: true })
+  ).map((m) => m.bench),
+];
 
-type LibId = (typeof LIBS)[number]["id"];
+/* A bench kept out of the repo: any module in ./private (untracked, see
+   .gitignore) that exports `bench` joins the sidebar after the five. */
+interface PrivateBench {
+  id: string;
+  label: string;
+  icon: string;
+  Component: (props: { visible: boolean; theme: StudioTheme }) => JSX.Element;
+}
+
+type LibId = string;
 
 function Workbench({ theme }: { theme: StudioTheme }) {
   const [lib, setLib] = useState<LibId>(() => {
-    const wanted = window.location.hash.replace("#", "");
+    /* "#beam&preset=Name" (a link from the team MCP) opens the bench; the
+       bench's StageBar applies the preset. */
+    const wanted = window.location.hash.replace("#", "").split("&")[0];
     return (LIBS.some((l) => l.id === wanted) ? wanted : "gooey") as LibId;
   });
 
   /* Deep-linkable: #beam .. #image select the library. */
   useEffect(() => {
     const onHash = () => {
-      const wanted = window.location.hash.replace("#", "");
+      const wanted = window.location.hash.replace("#", "").split("&")[0];
       if (LIBS.some((l) => l.id === wanted)) setLib(wanted as LibId);
     };
     window.addEventListener("hashchange", onHash);
@@ -304,14 +495,21 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         ))}
       </nav>
 
-      {/* All five stay mounted so tuning survives switching; the hidden
+      {/* All benches stay mounted so tuning survives switching; the hidden
           ones render no stage content (WebGL / canvas / rAF all stop). */}
       <div className="st-main">
         <div hidden={lib !== "beam"}><BeamStudio visible={lib === "beam"} theme={theme} /></div>
         <div hidden={lib !== "orb"}><OrbStudio visible={lib === "orb"} theme={theme} /></div>
+        <div hidden={lib !== "avatars"}><AvatarsStudio visible={lib === "avatars"} theme={theme} /></div>
         <div hidden={lib !== "gooey"}><GooeyStudio visible={lib === "gooey"} theme={theme} /></div>
         <div hidden={lib !== "metal"}><MetalStudio visible={lib === "metal"} theme={theme} /></div>
         <div hidden={lib !== "image"}><ImageStudio visible={lib === "image"} theme={theme} /></div>
+        <div hidden={lib !== "voice"}><VoiceStudio visible={lib === "voice"} theme={theme} /></div>
+        {LIBS.map((l) =>
+          "Component" in l ? (
+            <div key={l.id} hidden={lib !== l.id}><l.Component visible={lib === l.id} theme={theme} /></div>
+          ) : null
+        )}
       </div>
     </div>
   );

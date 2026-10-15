@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="color-scheme" content="dark" />
+  <title>Orbs carousel · internal</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/examples.css" />
+  <!-- The gravity dev panel's styles live with the playground's. -->
+  <link rel="stylesheet" href="/assets/playground.css" />
+  <style>
+    /* Internal demo — Figma 1480:41011 as a wireframe: the site's ground, a
+       #070707 stage in the middle, and the detail page's large pills
+       (.ex-pill, examples.css) riding an oblique carousel across it. */
+    /* transitions.dev's page side-by-side, forward-only: the slide in view
+       leaves to the left and the next arrives from the right, on the
+       smooth ease-out. 1100ms is this page's own duration — past the token
+       scale (very-slow is 500ms) — so it is named here, not mislabelled. */
+    :root {
+      --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --page-slide-dur: 1100ms;
+      --page-fade-dur: 1100ms;
+      --page-slide-distance: 360px;
+      --page-blur: 3px;
+      --page-stagger: 70ms;
+      --page-slide-ease: var(--ease-smooth-out);
+      --page-fade-ease: var(--ease-smooth-out);
+    }
+    html { background: #121212; }
+    body { margin: 0; min-height: 100dvh; display: grid; place-items: center; font-family: var(--font-sans, Inter, system-ui, sans-serif); }
+
+    .oc-stage {
+      position: relative;
+      /* 920×660 at 70%, 20% down, then 30% up. */
+      width: 670px;
+      height: 481px;
+      background: #070707;
+      overflow: hidden;
+      /* The stack's geometry: sideways step and rise per slot, and the arc
+         (a k² term on the step — positive bows the stack toward the rise,
+         negative the other way). The dev panel tunes these live. */
+      --dx: 60px; --dy: 94px; --arc: 1px;
+    }
+    /* Two slides of four pills, each pill on the stage's centre and moved
+       along the oblique by its slot. A slide is in view (data-phase
+       "active"), gone out to the left, or waiting on the right; the move
+       to "right" is a reset without a transition, so a slide always
+       leaves leftward and arrives from the right. Per pill, the slide's
+       offset, opacity and blur transition together; --page-stagger spaces
+       the four, bottom pill first. */
+    .oc-slide { position: absolute; inset: 0; }
+    .oc-slide[data-phase="active"] { --t-page-x: 0px; --t-page-o: 1; --t-page-b: 0px; }
+    .oc-slide[data-phase="left"] { --t-page-x: calc(var(--page-slide-distance) * -1); --t-page-o: 0; --t-page-b: var(--page-blur); }
+    .oc-slide[data-phase="right"] { --t-page-x: var(--page-slide-distance); --t-page-o: 0; --t-page-b: var(--page-blur); }
+    .oc-slide:not([data-phase="active"]) { pointer-events: none; }
+    .oc-item {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      /* One slot = the pill's 74px plus 20px of air (--dy), stepping
+         sideways by --dx on a near-straight arc (--arc), then the slide's
+         own offset. */
+      transform:
+        translate(-50%, -50%)
+        translate(var(--t-page-x, 0px), 0)
+        translate(calc(var(--k) * var(--dx) + var(--k) * var(--k) * var(--arc)), calc(var(--k) * -1 * var(--dy)));
+      opacity: var(--t-page-o, 1);
+      filter: blur(var(--t-page-b, 0px));
+      transition:
+        opacity   var(--page-fade-dur)  var(--page-fade-ease),
+        transform var(--page-slide-dur) var(--page-slide-ease),
+        filter    var(--page-slide-dur) var(--page-slide-ease);
+      transition-delay: calc(var(--j, 0) * var(--page-stagger));
+      will-change: opacity, transform, filter;
+    }
+    .oc-slide[data-phase="right"] .oc-item { transition: none; }
+    /* Only the pill takes the pointer, so a hover is a hover on the pill.
+       The pill itself is the detail page's, untouched — type, colour and
+       spacing come from examples.css. */
+    .oc-item .ex-pill { cursor: default; white-space: nowrap; }
+    @media (prefers-reduced-motion: reduce) {
+      .oc-item { transition: none !important; }
+    }
+
+    /* Dev panel (localhost / ?dev): the rail's geometry, live. */
+    .ocdev {
+      position: fixed; left: 16px; bottom: 16px; z-index: 2147483000;
+      width: 240px; display: flex; flex-direction: column; gap: 12px;
+      padding: 14px; border-radius: 14px; background: #1b1b1b;
+      box-shadow: 0 4px 42px rgba(0,0,0,.24); color: #fbfbfb; font-size: 12px;
+    }
+    .ocdev-head { display: flex; align-items: center; justify-content: space-between; font-weight: 500; font-size: 13px; }
+    .ocdev-btn { height: 26px; padding: 0 10px; border: 0; border-radius: 60px; background: rgba(255,255,255,.06); color: #fbfbfb; font: 500 12px/16px inherit; cursor: pointer; }
+    .ocdev-btn:hover { background: rgba(255,255,255,.1); }
+    .ocdev-row { display: flex; flex-direction: column; gap: 4px; }
+    .ocdev-row-head { display: flex; justify-content: space-between; color: #b1b1b1; }
+    .ocdev-val { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .ocdev-row input[type="range"] { width: 100%; accent-color: #8ab4ff; }
+    .ocdev-hint { color: #8a8a8a; font-size: 11px; line-height: 15px; }
+    .ocdev-code { display: block; flex: 1 1 auto; min-width: 0; padding: 8px 10px; border-radius: 8px; background: rgba(127,127,127,.12); font: 11px/16px ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; }
+    .ocdev-code-row { display: flex; gap: 6px; align-items: flex-start; }
+    .ocdev-actions { display: flex; gap: 4px; }
+    .ocdev-btn[data-on="true"] { background: #fbfbfb; color: #111; }
+    .ocdev-check { display: flex; gap: 8px; align-items: center; color: #b1b1b1; cursor: pointer; }
+    .ocdev-check input { accent-color: #8ab4ff; margin: 0; }
+    .ocdev-select, .ocdev-text {
+      width: 100%; box-sizing: border-box; height: 26px; padding: 0 8px; border: 0; border-radius: 8px;
+      background: rgba(255,255,255,.06); color: #fbfbfb; font: 11px/26px ui-monospace, monospace;
+    }
+    .ocdev-select { font-family: inherit; }
+    .ocdev-text::placeholder { color: #6f6f6f; }
+  </style>
+</head>
+<body>
+  <div id="carousel-root"></div>
+  <script type="module" src="/src/orbs-carousel.tsx"></script>
+</body>
+</html>

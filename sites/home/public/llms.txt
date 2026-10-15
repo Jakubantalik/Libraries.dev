@@ -1,0 +1,27 @@
+# Libraries.dev
+
+> Seven open-source (MIT) React UI effect libraries for AI interfaces, each an npm package with one component: animated borders, thinking indicators, liquid effects, voice visualizers, bot avatars, liquid metal and image-generation loaders. Built to be added by coding agents.
+
+Install a library with `npm install <package>` and read its reference before writing code; never guess a prop. Placement rules: no effect for waits under 2 seconds; Thinking Orbs for waits of 2 seconds or more; add Border Beam on the working element for waits over 3 seconds; never put two effects on the same or neighbouring elements.
+
+## Libraries
+
+- [Border Beam (border-beam)](https://libraries.dev/llms/border-beam.md): Animated glowing border for any React card, button or input: a light beam that travels the edge, or a soft pulse. Use for AI inputs, active cards and highlighted CTAs. Playground: https://libraries.dev/beam
+- [Thinking Orbs (thinking-orbs)](https://libraries.dev/llms/thinking-orbs.md): Animated AI thinking and loading indicators: small dot-orbs with states like thinking, searching, writing and listening. Use for agent status and waits over 2 seconds. Playground: https://libraries.dev/orbs
+- [Gooey (liquid-gooey)](https://libraries.dev/llms/liquid-gooey.md): Liquid, gooey effects for React: menus whose pieces merge like goo, blob morphs and image melts. Playground: https://libraries.dev/gooey
+- [Voice Glow (voice-glow)](https://libraries.dev/llms/voice-glow.md): Audio-reactive glow for voice input, dictation and voice agents; reacts to a microphone stream. Playground: https://libraries.dev/voice
+- [Bot Avatars (bot-avatars)](https://libraries.dev/llms/bot-avatars.md): Animated avatars for AI agents and chatbots: plush 3D characters with idle, working and sleeping states. Playground: https://libraries.dev/bots
+- [Liquid Metal (metal-fx)](https://libraries.dev/llms/metal-fx.md): Real-time WebGL liquid metal material for buttons, badges, icons and headline text. Playground: https://libraries.dev/metal
+- [Image FX (img-fx)](https://libraries.dev/llms/img-fx.md): WebGL loading and reveal effect for AI image generation, uploads and lazy-loaded images. Playground: https://libraries.dev/image
+
+## For coding agents
+
+- [Agent skill](https://libraries.dev/skill): teaches Claude Code, Cursor, Codex and other agents all seven libraries and where each fits. Install with `npx libraries-dev skill` or `npx skills add Jakubantalik/Libraries.dev`.
+- [How to use](https://libraries.dev/how-to-use): copy a library's prompt into your agent and tune it.
+- [All references in one file](https://libraries.dev/llms-full.txt)
+
+## Optional
+
+- [Studio and Libraries Pro](https://libraries.dev/pro): live tuning of every option with a built-in AI agent, Pro presets and variants, the Pro skill. Business adds a team MCP server.
+- [Source on GitHub](https://github.com/Jakubantalik/Libraries.dev)
+- [Accessibility](https://libraries.dev/accessibility)

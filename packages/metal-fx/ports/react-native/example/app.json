@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Liquid metal",
+    "slug": "metal-fx-native-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f0f"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jakubantalik.metalfxexample"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0f0f"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.jakubantalik.metalfxexample"
+    }
+  }
+}

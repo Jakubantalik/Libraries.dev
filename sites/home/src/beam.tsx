@@ -8,6 +8,7 @@ import {
 } from "./examples/beam-mocks";
 import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser } from "./examples/StudioTeaser";
+import { PgTabs } from "./examples/PgTabs";
 
 /* Beam detail page — one React island rendering the whole playground grid
    (stage + controls) plus the live-updating snippet below it. Controls
@@ -32,38 +33,6 @@ function CheckIcon() {
 /* Same markup as the static blocks' copy buttons; wired in React because
    the page-level script only binds [data-copy-static] buttons that exist
    before the island mounts. */
-function PgTabs<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: ReadonlyArray<{ value: T; label: string }>;
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="pg-field" role="radiogroup" aria-label={label}>
-      <span className="pg-label">{label}</span>
-      <div className="pg-tabs">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            className="pg-tab"
-            role="radio"
-            aria-checked={value === o.value}
-            data-active={value === o.value ? "true" : undefined}
-            onClick={() => onChange(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 type BeamFamily = "rotate" | "pulse";
 
@@ -83,16 +52,23 @@ const SIZE_OPTIONS_BY_FAMILY: Record<BeamFamily, ReadonlyArray<{ value: BorderBe
   ],
 };
 
+/* The small rotate beam is a Studio size; it shows here, locked. */
+const SIZES_LOCKED_BY_FAMILY: Record<BeamFamily, readonly string[]> = {
+  rotate: ["Small"],
+  pulse: [],
+};
+
 const DEFAULT_SIZE_BY_FAMILY: Record<BeamFamily, BorderBeamSize> = {
   rotate: "md",
   pulse: "pulse-inner",
 };
 
-/* Two palettes here; the rest of the set lives in the Studio. */
+/* Two palettes here; the other six live in the Studio and show locked. */
 const COLOR_OPTIONS = [
   { value: "colorful", label: "Colorful" },
   { value: "mono", label: "Mono" },
 ] as const;
+const COLORS_LOCKED = ["Ocean", "Sunset", "Forest", "Candy", "Ice", "Gold"];
 
 /* Tuned CSS vars for the pulse-outside preview — same values the live beam
    site applies so the outward bloom reads right on a dark stage. */
@@ -196,8 +172,20 @@ function BeamPlayground() {
 
         <div className="pg-controls" id="playground-controls">
           <PgTabs label="Family" options={FAMILY_OPTIONS} value={family} onChange={handleFamilyChange} />
-          <PgTabs label="Type" options={SIZE_OPTIONS_BY_FAMILY[family]} value={size} onChange={setSize} />
-          <PgTabs label="Color" options={COLOR_OPTIONS} value={colorVariant} onChange={setColorVariant} />
+          <PgTabs
+            label="Type"
+            options={SIZE_OPTIONS_BY_FAMILY[family]}
+            value={size}
+            onChange={setSize}
+            extra={SIZES_LOCKED_BY_FAMILY[family]}
+          />
+          <PgTabs
+            label="Color"
+            options={COLOR_OPTIONS}
+            value={colorVariant}
+            onChange={setColorVariant}
+            extra={COLORS_LOCKED}
+          />
           <StudioTeaser
             rows={[
               { kind: "slider", label: "Duration", value: "1.96s", fill: 27 },

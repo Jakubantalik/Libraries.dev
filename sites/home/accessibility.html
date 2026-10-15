@@ -29,13 +29,13 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#121212" />
 
-  <link rel="canonical" href="https://libraries.dev/accessibility.html" />
+  <link rel="canonical" href="https://libraries.dev/accessibility" />
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/accessibility.html" />
+  <meta property="og:url" content="https://libraries.dev/accessibility" />
   <meta property="og:title" content="Accessibility · Libraries.dev" />
   <meta property="og:description" content="How the Libraries.dev effect libraries handle reduced motion, semantics, keyboard use and performance." />
   <meta name="twitter:card" content="summary_large_image" />
@@ -86,6 +86,8 @@
           <nav class="site-nav-menu" aria-label="Primary">
             <a class="nav-pill nav-pill--active" href="/beam.html">Libraries</a>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -114,13 +116,36 @@
               </svg>
             </button>
             <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
-              <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
-                <span class="tl-menu-item-label">Sign in</span>
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
               </div>
-              <div class="tl-menu-divider"></div>
-              <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
-                <span class="tl-menu-item-label">Support</span>
-              </a>
             </div>
           </div>
           <button
@@ -144,8 +169,9 @@
         <ul class="mobile-menu-list">
           <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
           <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
         </ul>
         <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
       </nav>
@@ -164,6 +190,8 @@
             <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
             <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
             <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link" href="/bots.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
             <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
             <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
           </nav>
@@ -174,7 +202,7 @@
         <header class="detail-head">
           <div class="detail-titles">
             <h1 class="detail-title">Accessibility</h1>
-            <p class="detail-sub">Effects that respect the people using them</p>
+            <p class="detail-sub">Effects that respect the people using them.</p>
           </div>
         </header>
 
@@ -259,6 +287,8 @@
             <a href="/beam.html">Border beam</a>
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
           </div>

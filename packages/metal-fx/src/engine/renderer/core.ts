@@ -20,6 +20,38 @@ export const CIRCLE_SHADER_SCALE = 1.3;
 
 export interface ShaderRGB { r: number; g: number; b: number }
 
+/**
+ * Vector deformation hook. Maps a point in the instance's CSS-px box (origin
+ * top-left, before any overscan) to its displaced position, writing into
+ * `out`. When an instance carries one, the ring mask is built from displaced
+ * rounded-rect outlines instead of `roundRect`, so stretch stays anti-aliased
+ * at any magnitude — unlike a pixel displacement filter.
+ */
+export type DeformFn = (x: number, y: number, out: { x: number; y: number }) => void;
+
+/**
+ * Extra layers drawn into the canvas while deforming — things that live on
+ * CSS boxes (root background, `::after` rim, `.metal-fx-inner` hairline) and
+ * therefore can't follow a vector deformation on their own.
+ */
+export interface DeformLayers {
+  /** Fill colour behind the ring (the root background), or null. */
+  fill?: string | null;
+  /** Inset stroke drawn over the ring. `inset` is the band's inner edge from
+   *  the outer outline; `width` the band thickness; CSS px. */
+  rim?: { inset: number; width: number; color: string } | null;
+  /** Thin stroke at `inset` from the outer outline, under the ring. */
+  hairline?: { inset: number; width: number; color: string } | null;
+}
+
+/**
+ * Custom alpha mask. Paints opaque shapes in *device* px onto a context whose
+ * origin is the instance's box top-left; the engine keeps the shader only
+ * where the mask painted (`destination-in`). Replaces the ring punch — use it
+ * for metal-filled text or glyphs.
+ */
+export type MaskFn = (ctx: CanvasRenderingContext2D, w: number, h: number, dpr: number) => void;
+
 export interface MetalFxInstance {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -30,6 +62,9 @@ export interface MetalFxInstance {
   ringCssPx: number;
   shaderScale: number;
   opacityMul: number;
+  /** Extra multiplier on the glow only (halo + catch-light), default 1. Lets
+   *  a dim shader (low `opacityMul`) still carry a visible glow. */
+  glowGain: number;
   visible: boolean;
   /** Per-instance freeze flag. When true the instance's 2D canvas keeps the
    *  last copied frame; the shared GL loop continues for any other unpaused
@@ -39,15 +74,49 @@ export interface MetalFxInstance {
    *  instance that mounts already paused still gets one frame painted before
    *  it freezes (otherwise it would render a blank canvas). */
   everCopied: boolean;
+  /** The shader frame this instance froze on when paused. While paused every
+   *  composite (a bend redraw, a resize) draws from this copy, so the ring
+   *  keeps its still texture while the shared loop runs on for others. */
+  frozen: HTMLCanvasElement | null;
   dpr: number;
   /** Master scale multiplier for absolute-pixel internals (glow stroke
    *  widths/blurs, reflection stroke band, etc.). 1 is the baseline. Set to
    *  2 for a CSS-zoomed 2× hero so glow + reflection grow with the layout. */
   scale: number;
   onAfterFrame?: () => void;
+  /** Fired after every composite, synchronously — for layers that must track
+   *  the ring exactly (the glow's mask while deforming). */
+  onComposite?: () => void;
   /** One-shot callback fired after the very first copyShaderToInstance.
    *  Auto-cleared by the loop so it never fires twice. */
   onFirstCopy?: () => void;
+  /** See `MaskFn`. Takes precedence over the ring punch and over `deform`. */
+  mask: MaskFn | null;
+  /** Unmasked copy of the metal sheet for masked instances — what a mirror
+   *  facing the glyphs would see (the stripes, not three thin letters).
+   *  Allocated on demand when a glyph reflection target asks for it. */
+  rawCanvas: HTMLCanvasElement | null;
+  wantRaw: boolean;
+  /** Ring-only copy while a deform is active. The bend draws the host's
+   *  fill / rim / hairline into the main canvas so they bend along; a
+   *  reflection that mirrored that would jump from "ring" to "filled disc"
+   *  the moment the bend starts. Allocated on demand by reflection targets. */
+  ringCanvas: HTMLCanvasElement | null;
+  wantRing: boolean;
+  /** See `DeformFn`. Null = rigid rounded-rect mask. */
+  deform: DeformFn | null;
+  deformLayers: DeformLayers | null;
+  /** Canvas margin beyond the CSS box, CSS px, so displaced geometry that
+   *  bulges outward isn't clipped. 0 unless deforming. */
+  overscan: number;
+  /** Pointer acting as a light source: the outline point nearest the cursor
+   *  (box-local CSS px) and a 0..1 proximity weight. Set by the cursor-light
+   *  tracker; the glow's hotspot faces it. Null when the pointer is away. */
+  cursorLight: { x: number; y: number; w: number } | null;
+  /** Set by the glow callback when its envelope is mid-fade: the loop then
+   *  ticks the glow every animation frame instead of every shader frame, so
+   *  a 300 ms fade gets ~20 steps rather than 4. */
+  glowFast: boolean;
 }
 
 export interface SharedRenderer {
@@ -79,6 +148,26 @@ export interface SharedRenderer {
 }
 
 export let SHARED: SharedRenderer | null = null;
+
+let _supported: boolean | null = null;
+/**
+ * Whether this browser can run the engine (WebGL2). Cached after the first
+ * call. Consumers get this for free through `<MetalFx>`, which renders its
+ * children plain when unsupported instead of throwing.
+ */
+export function isMetalFxSupported(): boolean {
+  if (_supported !== null) return _supported;
+  if (typeof document === 'undefined') return (_supported = false);
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') as WebGL2RenderingContext | null;
+    _supported = !!gl;
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch {
+    _supported = false;
+  }
+  return _supported;
+}
 
 // Called by ensureSharedRenderer on first init and by the contextrestored
 // listener to rebuild GL state after the browser reclaims the context.

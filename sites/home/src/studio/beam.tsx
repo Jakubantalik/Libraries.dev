@@ -2,6 +2,7 @@ import { useCallback, useState, type CSSProperties } from "react";
 import { BorderBeam, type BorderBeamSize, type BorderBeamColorVariant } from "border-beam";
 import { ControlsPanel, PgTabs, PgSlider, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { checkCss, tpl, type CoreWiring } from "./core";
+import { ChatInputMock } from "../examples/beam-mocks";
 
 /* The stylesheet the library generated for the visible beam, with its
    instance id swapped for the {id} placeholder the `css` prop substitutes —
@@ -100,17 +101,11 @@ const BEAM_PARAM_LABELS: Record<string, string> = {
    the 80x36 button pill (.card-sm), everything else the 348px text card
    (.card-md) — each beam's glow geometry is tuned for that one card, and
    any other pairing smears. */
-function DemoCard({ size }: { size: BorderBeamSize }) {
+function DemoCard({ size, radius }: { size: BorderBeamSize; radius: number }) {
   if (size === "sm") {
     return <div className="beam-card beam-card--btn" />;
   }
-  return (
-    <div className="beam-card" style={{ width: 348 }}>
-      <div className="beam-card-line beam-card-line--title" />
-      <div className="beam-card-line" />
-      <div className="beam-card-line beam-card-line--short" />
-    </div>
-  );
+  return <ChatInputMock radius={radius} />;
 }
 
 export function BeamStudio({ visible = true, theme = "dark" }: { visible?: boolean; theme?: "dark" | "light" }) {
@@ -301,8 +296,8 @@ export function BeamStudio({ visible = true, theme = "dark" }: { visible?: boole
     {
       id: "swift",
       label: "Swift UI",
-      installTitle: "Add BorderBeamKit as a local Swift package (iOS 17+)",
-      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…\n.package(path: "packages/border-beam/ports/ios/BorderBeamKit")`,
+      installTitle: "Add BorderBeamKit from GitHub with Swift Package Manager (iOS 17+)",
+      install: `// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "BorderBeamKit", package: "Libraries.dev")`,
       note: "Build through Xcode: the Metal shader is compiled by Xcode's build system, not by SwiftPM alone.",
       usage: swiftSnippet,
     },
@@ -330,7 +325,7 @@ export function BeamStudio({ visible = true, theme = "dark" }: { visible?: boole
             style={beamStyle}
             css={core || undefined}
           >
-            <DemoCard size={size} />
+            <DemoCard size={size} radius={radius} />
           </BorderBeam>
           )}
           <button

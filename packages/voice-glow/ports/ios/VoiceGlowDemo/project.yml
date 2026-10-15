@@ -1,0 +1,31 @@
+name: VoiceGlowDemo
+options:
+  bundleIdPrefix: com.jakubantalik
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  VoiceGlowKit:
+    path: ../VoiceGlowKit
+
+targets:
+  VoiceGlowDemo:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    dependencies:
+      - package: VoiceGlowKit
+        product: VoiceGlowKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Voice
+        INFOPLIST_KEY_UIUserInterfaceStyle: Automatic
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: The glow follows your voice. Audio is only measured on this device, never recorded or sent.
+        PRODUCT_BUNDLE_IDENTIFIER: com.jakubantalik.VoiceGlowDemo
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"

@@ -1,0 +1,18 @@
+/**
+ * The macOS arrow pointer, rasterised at 2× from `NSCursor.arrow` on the
+ * machine this demo was built on (17×23 pt, hotspot 4,4). Handed to the
+ * engine's cursor-light so the fake pointer it draws is pixel-identical to
+ * the one it hides. Apple artwork — demo use only, not shipped in the package.
+ */
+import type { CursorSprite } from '../../src';
+
+export const MAC_ARROW: CursorSprite = {
+  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAuCAYAAABNhcu5AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAIqADAAQAAAABAAAALgAAAADkQm5vAAAFF0lEQVRYCe2Yy0skRxzH29FkjZsZJ7smu9FNNo4hholMgiG4YVBUfF78D/QQBEGE5CBeVvAiEWW8CMkxB9HdxF3XS8zFqxcRlWD0oosQxQei+JxH5lH5fnu3eru11Z4nBPKD70x1VXX9PvWrX1fXjKL8b/+xCGSBN0sIkcPv10rrFGwmo0vHNoA8HRkZeRt92I9iW0aMjuiQkbgFEBEOh5+3trbexvVbUDaUERg6obNcyE4QWjAYfOH1eu2oY3QyAkMQzpwRuPsK49UnYSoqKhyozwgMl4WO6PC+BDk+PlaLfr9/KlMwBLkFOaGPJEhNTY3INAxBmB93oE8kCMqitrZWD5P2ZdKDFOtBMg2jB3FdBJEwJycnahNyZjJdOXMjCGHq6upEumEsgZjAPE91ZCyDpBsmLhDC1NfX65fpWaoiEzeIhDk9PZUJ/Ky0tDTp10FCICYwE8nCJAxCmIaGBqGLTFIwSYGYwPyWaGSSBiFMY2OjPjIJwaQERMKcnZ3JBP413sikDMQE5mk8MCkFIUxzc7M4Pz+XkbEMkzDIxsaG6uymD7won3g8HnkGpj9TswTS1dUlWlpaBEbQ1NfXdxOD1h4Khcaqq6t57tHOvxdP5AThUTEPcuLOl/hWsrLedOvu7lYGBweVmZkZpampic2q5efnK9vb20peXp4yMDDw/eTk5N/Z2dkRKicnJ5ybmxu02+0Bp9N57nK5/FNTUwcLCwv/4OYoxAkZ7NqI9Pb2ilgsps4sEokIDKhFBKOI8fFxtW19ff0FrqugR9DX0JeQG3JBhdB70DuQ/AGHotGuBOnv79dCe3R09JIX+PFlAMELT+0TjUZPKysrvRj6C+gzqBj6GPoQugvxXcSzsbY0KBvMFGR4eFiDWFpaetLT09PJiv39fWGz2Qwwc3Nzat+VlZU+jEwAOi+AGIV86F2I+cGfLfT3Zt1xIc0URFJgTX9Bx3rq4OBgifWdnZ0GkPb2drU7fgetot8DiAdx6ZxRIACX5EoItKmN8hSvHZ45MiB+Qnsl9C3knZ6e7mX94uKiAQSJLXZ3d9kkZmdnW9CXP004pnQuAUwjgX6qsROpGcaH6mhCxODMh+tvoK+gMsjjcDgeYdaqx6qqKgOMXEqca5m0jAhBmA+WTYJwFg8AEl1eXuZae6DPIRf0ECqBylZXV38m7MTEhAGkqKhIYK/gExby+Xx8Wrg0Vz4haLtkBOE+wqy+t7a29gO+P4UIwPX+AGLi3YdK2traaugsEAiIgoICAwz2GTWgWKYf0ZdJykhzfEvGdWMycUPj8tyDmPUE4DUBuT0zYkWQe2dn5w965OPNJ6ijo0PMz8+rEPzA3xqbhYWFhOe+YXl5CMLOpKdDB8TZEIADMVoU296HSkZHR1vpEE+R2NvbY1EzQOxubW358DrgJsbJcexrkxTtmjF8XE86JBDFssx6CarmEerLcDz8S/OOwuHh4Z9YmsdYrnK0F0PcxGRELIOwI2EoOqVYZr0UoRgVLlkJNrHH2E2Dm5ubvw8NDX2HOu6qhCiFuISElk+OKYhpJW6i6duYiHojHGE4y9tut9tZXl5+Z2xszI9r9g1DQSjwWizLF1wM5Uumd3ap8ZoK3kcQJjZnKvOHgHQUgUIQnVME41uWbRcnhSrjrNUKix8E0cPIbZt1dESndE4gCXAlBPoYws/reIxO9bnEMo0gdCrFaykUzY2DJWO8Xy+OJZ3Kb0vjJwsinejHIUDc9i/TjIAytH96JQAAAABJRU5ErkJggg==',
+  width: 17,
+  height: 23,
+  hotX: 4,
+  hotY: 4,
+};
+
+export const isMacPointer = (): boolean =>
+  typeof navigator !== 'undefined' && /Mac/.test(navigator.platform || '');

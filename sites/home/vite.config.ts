@@ -1,8 +1,9 @@
-import { defineConfig } from "vite";
+import { defineConfig, mergeConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 /* The shared scripts and stylesheets live in public/, so Vite copies them
    through untouched and their URLs never change. Cloudflare serves static
@@ -58,8 +59,13 @@ function stampSharedAssets() {
   };
 }
 
+/* Local-only additions — extra pages, aliases — from an untracked
+   vite.local.mjs beside this file, when one exists (see .gitignore). */
+const localFile = resolve(__dirname, "vite.local.mjs");
+const local = existsSync(localFile) ? (await import(pathToFileURL(localFile).href)).default : {};
+
 // Multi-page static site: every top-level .html file is an entry.
-export default defineConfig({
+export default mergeConfig(defineConfig({
   plugins: [react(), stampSharedAssets()],
   server: {
     // Honour PORT so a busy 5173 reassigns cleanly — several sites in this
@@ -73,13 +79,21 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, "index.html"),
         "how-to-use": resolve(__dirname, "how-to-use.html"),
+        skill: resolve(__dirname, "skill.html"),
+        "skill-example": resolve(__dirname, "skill-example.html"),
         introduction: resolve(__dirname, "introduction.html"),
         accessibility: resolve(__dirname, "accessibility.html"),
         beam: resolve(__dirname, "beam.html"),
         orbs: resolve(__dirname, "orbs.html"),
+        avatars: resolve(__dirname, "bots.html"),
+        "orbs-carousel": resolve(__dirname, "orbs-carousel.html"),
+        "bot-carousel": resolve(__dirname, "bot-carousel.html"),
         gooey: resolve(__dirname, "gooey.html"),
         metal: resolve(__dirname, "metal.html"),
         image: resolve(__dirname, "image.html"),
+        voice: resolve(__dirname, "voice.html"),
+        "voice-phone": resolve(__dirname, "voice-phone.html"),
+        "skill-demo": resolve(__dirname, "skill-demo.html"),
         pro: resolve(__dirname, "pro.html"),
         studio: resolve(__dirname, "studio.html"),
         "studio-app": resolve(__dirname, "studio/app.html"),
@@ -91,4 +105,4 @@ export default defineConfig({
       }
     }
   }
-});
+}), local);

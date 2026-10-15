@@ -25,11 +25,11 @@
   <title>Libraries.dev: High-crafted UI libraries for AI agents</title>
   <meta
     name="description"
-    content="Home of the UI effect libraries Beam, Orb, Gooey, Metal and Image. Production-ready React effects you can install from npm."
+    content="Seven open-source React effects for AI interfaces: animated borders, thinking indicators, voice visualizers, bot avatars, liquid metal and image loaders. Install from npm."
   />
   <meta
     name="keywords"
-    content="react, effects, webgl, border beam, thinking orb, gooey, liquid metal, image loader, UI libraries"
+    content="react ui effects, ai ui components, animated border, ai thinking indicator, voice visualizer, bot avatar, liquid metal, image loader, ui libraries"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -52,7 +52,7 @@
   <meta property="og:url" content="https://libraries.dev/" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Libraries.dev: High-crafted UI libraries for AI agents" />
-  <meta property="og:description" content="Home of the UI effect libraries Beam, Orb, Gooey, Metal and Image." />
+  <meta property="og:description" content="Seven open-source React effects for AI interfaces: animated borders, thinking indicators, voice visualizers, bot avatars, liquid metal and image loaders. Install from npm." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
@@ -60,7 +60,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta name="twitter:title" content="Libraries.dev: High-crafted UI libraries for AI agents" />
-  <meta name="twitter:description" content="Home of the UI effect libraries Beam, Orb, Gooey, Metal and Image." />
+  <meta name="twitter:description" content="Seven open-source React effects for AI interfaces: animated borders, thinking indicators, voice visualizers, bot avatars, liquid metal and image loaders. Install from npm." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -389,11 +389,10 @@
     /* ── Library grid cards (Figma 1413-37519): icon + meta row ── */
     .lib-card-hit { position: absolute; inset: 0; z-index: 6; border-radius: 24px; }
     .lib-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    /* The beam and orb clips are 1.66:1, wider than the small card's 1.17
-       slot, so below the wide grid they crop at the sides. Their subject
-       sits at the left edge - anchor there rather than centring, which was
-       cutting the composer in half. At the wide size nothing crops
-       horizontally, so this is a no-op there. */
+    /* The beam and orb clips are 1.66:1, wider than the card's 1.17 slot,
+       so they crop at the sides. Their subject sits at the left edge -
+       anchor there rather than centring, which was cutting the composer
+       in half. */
     .lib-card[data-lib="beam"] .lib-video,
     .lib-card[data-lib="orb"] .lib-video { object-position: left center; }
     /* 254 leaves 16px between the stage and the icon — the same gap the
@@ -411,10 +410,6 @@
     }
     .lib-ico { flex: none; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden; }
     .lib-ico img { width: 46px; height: 46px; display: block; }
-    /* The image-generation export carries its drop shadow in the bitmap
-       (52px canvas for a 46px tile) — render at natural size, recentered. */
-    .lib-ico img.lib-ico-img--pad { width: 52px; height: 52px; max-width: none; margin: -3px; }
-    .lib-ico:has(.lib-ico-img--pad) { overflow: visible; }
     .lib-meta-text { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
     .lib-name { font-size: 14px; font-weight: 500; line-height: 13px; color: #ededed; }
     .lib-desc {
@@ -425,6 +420,56 @@
 
     /* ── Kind words (styling from transitions.dev/pro testimonials) ── */
     .home-section { width: 100%; max-width: 1008px; margin: 96px auto 0; }
+
+    /* ── Customers (as transitions.dev/pro) ────────────────────────
+       Label + one centred row under the hero. Every logo is a near-black
+       glyph on transparency, sized by height (--logo-h per image) at 60%
+       opacity; dark mode inverts the glyphs to light. Wraps on narrow
+       screens. */
+    /* The hero keeps its 128px of air below; the row then sits 64px above
+       the library cards, so it reads as a coda to the hero rather than a
+       heading for the cards. */
+    .home-customers { width: 100%; max-width: 1008px; margin: -48px auto 64px; }
+    .home-customers-label {
+      margin: 32px 0 24px;
+      font-size: 13px;
+      line-height: 20px;
+      text-align: center;
+      color: #737373;
+      opacity: 0.7;
+    }
+    html[data-theme="light"] .home-customers-label { color: #979797; }
+    .home-customers-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 24px 40px;
+    }
+    .home-customer-logo {
+      height: var(--logo-h, 32px);
+      width: auto;
+      display: block;
+      opacity: 0.55;
+      filter: invert(1);
+    }
+    html[data-theme="light"] .home-customer-logo { filter: none; opacity: 0.6; }
+    /* Six logos on one line, or three and three — never five and a lone
+       one. The break is a zero-height flex line that only exists once the
+       row is too narrow to hold all six. */
+    .home-customers-break { display: none; flex-basis: 100%; height: 0; margin: 0; }
+    @media (max-width: 780px) { .home-customers-break { display: block; } }
+    @media (max-width: 640px) {
+      /* The hero fills the first screen on phones; no pull-up here, so
+         the row starts below the fold. */
+      .home-customers { margin: 24px auto 48px; }
+      .home-customers-row { gap: 18px 28px; }
+      .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.85); }
+    }
+    /* Narrower than this, three logos only fit at a smaller size. */
+    @media (max-width: 380px) {
+      .home-customer-logo { height: calc(var(--logo-h, 32px) * 0.7); }
+    }
     .home-section-title {
       text-align: center; font-family: "Saans", var(--font-sans);
       font-size: 30px; font-weight: 500; letter-spacing: -0.01em;
@@ -642,7 +687,7 @@
       font-weight: 500;
     }
     /* Figma 1292:4277 Button/Small/Select/Primary/Token: both pills share
-       the body; Browse wears the grey token surface, Get Pro access the blue.
+       the body; Browse wears the grey token surface, Get full access the blue.
        The class is doubled so these outrank site.css's theme-scoped
        .skill-btn--* rules, which carry an attribute selector. */
     .skill-cta-row .skill-btn.skill-btn--primary,
@@ -673,6 +718,80 @@
     .skill-cta-row .skill-btn.skill-btn--secondary:hover { background: #1a7dff; }
     .skill-cta-row .skill-btn.skill-btn--secondary:active { background: #0063e0; }
   </style>
+  <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://libraries.dev/#website",
+        "url": "https://libraries.dev/",
+        "name": "Libraries.dev",
+        "description": "Seven open-source React effects for AI interfaces: animated borders, thinking indicators, voice visualizers, bot avatars, liquid metal and image loaders. Install from npm.",
+        "inLanguage": "en"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://libraries.dev/#org",
+        "name": "Libraries.dev",
+        "url": "https://libraries.dev/",
+        "logo": "https://libraries.dev/assets/favicon.svg",
+        "sameAs": [
+          "https://github.com/Jakubantalik/Libraries.dev",
+          "https://x.com/jakubantalik"
+        ]
+      },
+      {
+        "@type": "ItemList",
+        "name": "Libraries.dev effect libraries",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "url": "https://libraries.dev/beam",
+            "name": "Border Beam"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "url": "https://libraries.dev/orbs",
+            "name": "Thinking Orbs"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "url": "https://libraries.dev/gooey",
+            "name": "Gooey"
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "url": "https://libraries.dev/voice",
+            "name": "Voice Glow"
+          },
+          {
+            "@type": "ListItem",
+            "position": 5,
+            "url": "https://libraries.dev/bots",
+            "name": "Bot Avatars"
+          },
+          {
+            "@type": "ListItem",
+            "position": 6,
+            "url": "https://libraries.dev/metal",
+            "name": "Liquid Metal"
+          },
+          {
+            "@type": "ListItem",
+            "position": 7,
+            "url": "https://libraries.dev/image",
+            "name": "Image FX"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#components">Skip to content</a>
@@ -691,6 +810,8 @@
           <nav class="site-nav-menu" aria-label="Primary">
             <a class="nav-pill" href="/beam.html">Libraries</a>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -719,13 +840,36 @@
               </svg>
             </button>
             <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
-              <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
-                <span class="tl-menu-item-label">Sign in</span>
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
               </div>
-              <div class="tl-menu-divider"></div>
-              <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
-                <span class="tl-menu-item-label">Support</span>
-              </a>
             </div>
           </div>
           <button
@@ -749,8 +893,9 @@
         <ul class="mobile-menu-list">
           <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
           <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
         </ul>
         <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
       </nav>
@@ -762,7 +907,7 @@
       <p class="subtitle">UI effects for modern apps, ready to use with your coding agents.</p>
       <div class="skill-cta-row">
         <a class="skill-btn skill-btn--primary" href="#components">Browse</a>
-        <a class="skill-btn skill-btn--secondary" href="/pro.html">Get Pro access</a>
+        <a class="skill-btn skill-btn--secondary" href="/pro.html">Get full access</a>
       </div>
       <div class="hero-tiles-row" id="hero-tiles">
         <div class="hero-tiles-box">
@@ -857,6 +1002,22 @@
       </script>
     </header>
 
+    <!-- ─── Customers ───────────────────────────────────────────────
+         Logos normalized to one near-black glyph on transparency, so a
+         single asset serves both themes: dark mode inverts them. -->
+    <section class="home-customers" aria-label="Companies whose teams use these libraries">
+      <p class="home-customers-label">Used by designers and engineers at companies like</p>
+      <div class="home-customers-row">
+        <img class="home-customer-logo" src="/assets/customers/vercel.svg" alt="Vercel" style="--logo-h: 20px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/google.svg" alt="Google" style="--logo-h: 28px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/zendesk.svg" alt="Zendesk" style="--logo-h: 18px; transform: translateY(-3px)" loading="lazy" decoding="async" />
+            <span class="home-customers-break" aria-hidden="true"></span>
+        <img class="home-customer-logo" src="/assets/customers/sarvam-ai.svg" alt="Sarvam AI" style="--logo-h: 14.5px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/gradial.svg" alt="Gradial" style="--logo-h: 21px" loading="lazy" decoding="async" />
+        <img class="home-customer-logo" src="/assets/customers/gecko-robotics.svg" alt="Gecko Robotics" style="--logo-h: 24px" loading="lazy" decoding="async" />
+      </div>
+    </section>
+
     <section class="cards" id="components" aria-label="Effect libraries" style="scroll-margin-top: 24px;">
       <article class="card lib-card" data-lib="beam">
         <a class="lib-card-hit" href="/beam.html" aria-label="Border beam playground"></a>
@@ -867,7 +1028,7 @@
           <span class="lib-ico"><img src="/assets/icons/tile-beam.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
           <span class="lib-meta-text">
             <span class="lib-name">Border beam</span>
-            <span class="lib-desc">Animated rainbow glow riding any border</span>
+            <span class="lib-desc">A soft glow that rides the border</span>
           </span>
         </div>
       </article>
@@ -881,10 +1042,11 @@
           <span class="lib-ico"><img src="/assets/icons/tile-orbs.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
           <span class="lib-meta-text">
             <span class="lib-name">Thinking orbs</span>
-            <span class="lib-desc">Thought-orb loading states for AI interfaces</span>
+            <span class="lib-desc">Orbs that think while you wait</span>
           </span>
         </div>
       </article>
+
 
       <article class="card lib-card" data-lib="gooey">
         <a class="lib-card-hit" href="/gooey.html" aria-label="Gooey playground"></a>
@@ -895,7 +1057,35 @@
           <span class="lib-ico"><img src="/assets/icons/tile-gooey.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
           <span class="lib-meta-text">
             <span class="lib-name">Gooey</span>
-            <span class="lib-desc">Liquid UI: pieces merge and morph like goo</span>
+            <span class="lib-desc">Pieces that merge like goo</span>
+          </span>
+        </div>
+      </article>
+
+      <article class="card lib-card" data-lib="voice">
+        <a class="lib-card-hit" href="/voice.html" aria-label="Voice playground"></a>
+        <div class="card-stage">
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAMBBv/EAB0QAAMBAAEFAAAAAAAAAAAAAAABAhEhAwQSMVH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5hLfRvi/jE05ep4yl9z1bWVSzM4lLgCQAAAAAAAP/9k=&quot;)"><video class="lib-video" src="/assets/videos/voice-main-card.mp4" poster="/assets/videos/posters/voice-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico"><img src="/assets/icons/tile-voice.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Voice</span>
+            <span class="lib-desc">A glow that rises with your voice</span>
+          </span>
+        </div>
+      </article>
+
+      <article class="card lib-card" data-lib="avatars">
+        <a class="lib-card-hit" href="/bots.html" aria-label="Bot avatars playground"></a>
+        <div class="card-stage">
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAGAABAAMBAAAAAAAAAAAAAAAAAAECAwb/xAAeEAADAQACAgMAAAAAAAAAAAABAgMABBEhMRJRYf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFxEBAAMAAAAAAAAAAAAAAAAAAAEhYf/aAAwDAQACEQMRAD8A5ozdZrQowRiQGI8HS8qIVDoylh2vY9jWbkVbjrBnJkp7C/umnLvWk3ehLSACHr11k4lsnRkYq6lWHggjojNe1qcizVq3ydj2T95is8zMDMzB/9k=&quot;)"><video class="lib-video" src="/assets/videos/bots-main-card.mp4" poster="/assets/videos/posters/bots-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico"><img src="/assets/icons/tile-bots.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Bot avatars</span>
+            <span class="lib-desc">Animated faces for your AI agents</span>
           </span>
         </div>
       </article>
@@ -909,7 +1099,7 @@
           <span class="lib-ico"><img src="/assets/icons/tile-metal.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
           <span class="lib-meta-text">
             <span class="lib-name">Liquid Metal</span>
-            <span class="lib-desc">Real-time chrome ring for buttons and icons</span>
+            <span class="lib-desc">Liquid metal for your buttons</span>
           </span>
         </div>
       </article>
@@ -920,13 +1110,14 @@
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIBBv/EAB0QAQEBAAAHAAAAAAAAAAAAAAABAgMRITFhgfD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5rMlnlU4c+qc2TPts1ARelvIL3AAAAAf/9k=&quot;)"><video class="lib-video" src="/assets/videos/image-main-card.mp4" poster="/assets/videos/posters/image-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
         </div>
         <div class="lib-meta">
-          <span class="lib-ico"><img class="lib-ico-img--pad" src="/assets/icons/tile-image.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-ico"><img src="/assets/icons/tile-image.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
           <span class="lib-meta-text">
             <span class="lib-name">Image generation</span>
-            <span class="lib-desc">WebGL image-generation loader for cards</span>
+            <span class="lib-desc">A loader that becomes the image</span>
           </span>
         </div>
       </article>
+
     </section>
 
 
@@ -1118,6 +1309,8 @@
             <a href="/beam.html">Border beam</a>
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
           </div>

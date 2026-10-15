@@ -22,14 +22,14 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Metal: metal-fx playground | Libraries.dev</title>
+  <title>Liquid Metal: WebGL chrome effect for React | Libraries.dev</title>
   <meta
     name="description"
-    content="A real-time WebGL liquid-metal ring that wraps any button or icon in animated chrome. Try it live and install metal-fx from npm."
+    content="Liquid Metal (metal-fx) is a real-time WebGL liquid metal effect for React: chrome buttons, badges, icons and headline text that move like molten metal. Free, MIT, live playground."
   />
   <meta
     name="keywords"
-    content="react, effects, webgl, border beam, thinking orb, gooey, liquid metal, image loader, UI libraries"
+    content="liquid metal effect, chrome button, metallic text css, webgl button effect, liquid glass, shiny button react, metal-fx"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -40,27 +40,29 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/metal.html" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/metal.html" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/metal.html" />
+  <link rel="canonical" href="https://libraries.dev/metal" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/metal" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/metal" />
 
+  <!-- The same docs as markdown, for coding agents (see /llms.txt). -->
+  <link rel="alternate" type="text/markdown" href="/llms/metal-fx.md" title="metal-fx reference" />
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/metal.html" />
+  <meta property="og:url" content="https://libraries.dev/metal" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Metal: metal-fx playground | Libraries.dev" />
-  <meta property="og:description" content="A real-time WebGL liquid-metal ring that wraps any button or icon in animated chrome. Try it live and install metal-fx from npm." />
+  <meta property="og:title" content="Liquid Metal: WebGL liquid metal effect for React" />
+  <meta property="og:description" content="Liquid Metal (metal-fx) is a real-time WebGL liquid metal effect for React: chrome buttons, badges, icons and headline text that move like molten metal. Free, MIT, live playground." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
-  <meta name="twitter:title" content="Metal: metal-fx playground | Libraries.dev" />
-  <meta name="twitter:description" content="A real-time WebGL liquid-metal ring that wraps any button or icon in animated chrome. Try it live and install metal-fx from npm." />
+  <meta name="twitter:title" content="Liquid Metal: WebGL liquid metal effect for React" />
+  <meta name="twitter:description" content="Liquid Metal (metal-fx) is a real-time WebGL liquid metal effect for React: chrome buttons, badges, icons and headline text that move like molten metal. Free, MIT, live playground." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -136,6 +138,53 @@
     .metal-pill--circle { width: 40px; }
     .metal-pill svg { width: 16px; height: 16px; display: block; }
   </style>
+  <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://libraries.dev/metal#library",
+        "name": "Liquid Metal (metal-fx)",
+        "description": "Liquid Metal (metal-fx) is a real-time WebGL liquid metal effect for React: chrome buttons, badges, icons and headline text that move like molten metal. Free, MIT, live playground.",
+        "url": "https://libraries.dev/metal",
+        "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
+        "programmingLanguage": [
+          "TypeScript",
+          "JavaScript"
+        ],
+        "runtimePlatform": "React",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "author": {
+          "@type": "Person",
+          "name": "Jakub Antalik",
+          "url": "https://x.com/jakubantalik"
+        },
+        "sameAs": [
+          "https://www.npmjs.com/package/metal-fx"
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Libraries.dev",
+            "item": "https://libraries.dev/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Liquid Metal",
+            "item": "https://libraries.dev/metal"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#playground">Skip to content</a>
@@ -154,6 +203,8 @@
           <nav class="site-nav-menu" aria-label="Primary">
             <a class="nav-pill nav-pill--active" href="/beam.html">Libraries</a>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
         </div>
@@ -182,13 +233,36 @@
               </svg>
             </button>
             <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
-              <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
-                <span class="tl-menu-item-label">Sign in</span>
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
               </div>
-              <div class="tl-menu-divider"></div>
-              <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
-                <span class="tl-menu-item-label">Support</span>
-              </a>
             </div>
           </div>
           <button
@@ -212,8 +286,9 @@
         <ul class="mobile-menu-list">
           <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
           <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--3" href="/studio.html">Studio</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--4 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
         </ul>
         <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
       </nav>
@@ -232,6 +307,8 @@
             <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
             <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
             <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link" href="/bots.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
             <a class="docs-link is-active" href="/metal.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
             <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
           </nav>
@@ -240,7 +317,7 @@
 
       <div class="docs-main">
         <div class="detail-topbar">
-          <a class="detail-arrow" href="/gooey.html" aria-label="Previous library — Gooey">
+          <a class="detail-arrow" href="/bots.html" aria-label="Previous library — Bot avatars">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.667 8H3.333M6.667 4.667 3.333 8l3.334 3.333" /></svg>
           </a>
           <a class="detail-arrow" href="/image.html" aria-label="Next library — Image">
@@ -250,9 +327,9 @@
 
         <header class="detail-head">
           <div class="detail-titles">
-            <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/tile-metal.png" alt="" width="46" height="46" decoding="async" /></span>
+            <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="Group"><g id="Vector" filter="url(#filter0_ii_1580_45654)"><path d="M10.1172 3.5H17.8837L18.7587 0H9.24219L10.1172 3.5Z" fill="url(#paint0_linear_1580_45654)" fill-opacity="0.7"/><path d="M3.5 10.115L0 9.23999V18.76L3.5 17.885V10.115Z" fill="url(#paint1_linear_1580_45654)" fill-opacity="0.7"/><path d="M23.2875 6.8127L27.4875 5.7627L22.2375 0.512695L21.1875 4.7127L23.2875 6.8127Z" fill="url(#paint2_linear_1580_45654)" fill-opacity="0.7"/><path d="M7 9.4745V18.5255L9.4745 21H18.5255L21 18.5255V9.4745L18.5255 7H9.4745L7 9.4745Z" fill="url(#paint3_linear_1580_45654)" fill-opacity="0.7"/><path d="M23.2875 21.1873L21.1875 23.2873L22.2375 27.4873L27.4875 22.2373L23.2875 21.1873Z" fill="url(#paint4_linear_1580_45654)" fill-opacity="0.7"/><path d="M24.5 10.115V17.885L28 18.76V9.23999L24.5 10.115Z" fill="url(#paint5_linear_1580_45654)" fill-opacity="0.7"/><path d="M17.8837 24.5H10.1172L9.24219 28H18.7587L17.8837 24.5Z" fill="url(#paint6_linear_1580_45654)" fill-opacity="0.7"/><path d="M6.81172 23.2873L4.71172 21.1873L0.511719 22.2373L5.76172 27.4873L6.81172 23.2873Z" fill="url(#paint7_linear_1580_45654)" fill-opacity="0.7"/><path d="M4.71172 6.8127L6.81172 4.7127L5.76172 0.512695L0.511719 5.7627L4.71172 6.8127Z" fill="url(#paint8_linear_1580_45654)" fill-opacity="0.7"/></g></g><defs><filter id="filter0_ii_1580_45654" x="0" y="0" width="28" height="28" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_1580_45654"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_1580_45654" result="effect2_innerShadow_1580_45654"/></filter><linearGradient id="paint0_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint1_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint2_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint3_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint4_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint5_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint6_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint7_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint8_linear_1580_45654" x1="6.07653" y1="28.4422" x2="19.4251" y2="-20.6931" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
             <h1 class="detail-title">Metal</h1>
-            <p class="detail-sub">A real-time WebGL liquid-metal ring around buttons and icons, with a wandering halo of animated chrome.</p>
+            <p class="detail-sub">Real-time liquid metal for buttons, icons, text and badges — a wandering halo, reflections on neighbours, a cursor that bends the ring. v2 on Paper Shaders; v1 still available.</p>
           </div>
 
           <div class="detail-head-row">
@@ -292,6 +369,16 @@
                together under their own titles, as the Studio's Install & Usage does. -->
           <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
           <div class="st-stage-panel">
+          <!-- Ports, as the Studio's Install & Usage has them: the row swaps
+               the whole install+usage pair rather than a single block. -->
+          <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="react" aria-selected="true" data-active="true">React</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="rn" aria-selected="false">React Native</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="false">Swift UI</button>
+          </div>
+
+          <div class="detail-platform" data-platform="react">
+
           
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
@@ -309,11 +396,16 @@
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
               <div class="code-block">
-              <pre id="usage-code">import { MetalFx } from 'metal-fx';
+              <pre id="usage-code">import { MetalFx, MetalText, MetalBadge } from 'metal-fx';
 
 &lt;MetalFx preset="chromatic" strength={1}&gt;
   &lt;button&gt;Upgrade to Pro&lt;/button&gt;
-&lt;/MetalFx&gt;</pre>
+&lt;/MetalFx&gt;
+
+&lt;MetalText font="500 24px/1.2 Inter" color="#E2E2E2"&gt;Pro&lt;/MetalText&gt;
+&lt;MetalBadge&gt;New&lt;/MetalBadge&gt;
+
+// v1 engine: npm install metal-fx@1</pre>
               <button type="button" class="code-copy" data-copy-target="#usage-code" aria-label="Copy usage example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -323,6 +415,86 @@
               </button>
             </div>
             </div>
+          </div>
+          <div class="detail-platform" data-platform="rn" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>npm install metal-fx-native @shopify/react-native-skia react-native-reanimated react-native-worklets</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">metal-fx-native is not on npm yet — it lives in the metal-fx repo at ports/react-native/metal-fx-native (Skia + Reanimated 4, UI-thread). Expo needs expo run:ios / run:android (native modules). Tilt bends the rings; there is no cursor on a phone.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import { MetalFx, MetalText, MetalBadge, MetalReflection, MetalEdgeHalo } from &#x27;metal-fx-native&#x27;;
+
+&lt;MetalFx variant=&quot;circle&quot; preset=&quot;chromatic&quot; strength={0.9} innerShadow id=&quot;send&quot;&gt;
+  &lt;View style={{ width: 40, height: 40 }}&gt;&lt;ArrowUp /&gt;&lt;/View&gt;
+&lt;/MetalFx&gt;
+&lt;MetalReflection of=&quot;send&quot;&gt;&lt;Chip label=&quot;Auto&quot; /&gt;&lt;/MetalReflection&gt;
+
+&lt;MetalText fontSize={24} fontWeight=&quot;500&quot;&gt;Pro&lt;/MetalText&gt;
+&lt;MetalBadge&gt;New&lt;/MetalBadge&gt;
+&lt;MetalEdgeHalo style={styles.card}&gt;…a ring with an id…&lt;/MetalEdgeHalo&gt;  // the card at the screen edge: the ring is pulled toward it like liquid</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
+          <div class="detail-platform" data-platform="swift" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: &quot;https://github.com/Jakubantalik/Libraries.dev&quot;, branch: &quot;main&quot;)
+// …and in your target&#x27;s dependencies:
+.product(name: &quot;MetalFxKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">iOS 17+. Build through Xcode: the Metal shader is compiled by Xcode&#x27;s build system, not by SwiftPM alone. Tilt bends the rings; the edge halo refracts the card&#x27;s content through the glass edge.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import MetalFxKit
+
+MetalFx(variant: .circle, preset: .chromatic, strength: 0.9, innerShadow: true, id: &quot;send&quot;) {
+    Image(systemName: &quot;arrow.up&quot;).frame(width: 40, height: 40)
+}
+Text(&quot;Auto&quot;).metalReflection(of: &quot;send&quot;)
+
+MetalText(&quot;Pro&quot;)
+MetalBadge(&quot;New&quot;)
+card.metalEdgeHalo()   // on the view touching the screen edge</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+          </div>
           </div>
         </div>
 </div>
@@ -338,20 +510,32 @@ Add the Metal effect from Libraries.dev to my React app.
 Install:
 npm install metal-fx
 
-Usage:
-import { MetalFx } from 'metal-fx';
+Usage (v2):
+import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } from 'metal-fx';
 
 &lt;MetalFx preset="chromatic" strength={1}&gt;
   &lt;button&gt;Upgrade to Pro&lt;/button&gt;
 &lt;/MetalFx&gt;
 
-Props:
+&lt;MetalFx preset="chromatic" variant="circle" innerShadow ref={ref}&gt;   // useMetalBend(ref) for the cursor dent
+  &lt;button aria-label="Send"&gt;&lt;ArrowUpIcon /&gt;&lt;/button&gt;
+&lt;/MetalFx&gt;
+
+&lt;MetalText font="500 24px/1.2 Inter" color="#E2E2E2"&gt;Pro&lt;/MetalText&gt;
+&lt;MetalBadge&gt;New&lt;/MetalBadge&gt;
+
+Props (MetalFx):
 - preset: "chromatic" | "silver" | "gold" — each ships dark and light tunings
+- variant: "button" | "circle"
 - strength: 0-1, multiplies the shader opacity and glow alpha
 - theme: "light" | "dark", picks the preset's matching side
+- innerShadow: light rim on the ring's top inside edge
+- reflectionTargets: refs of neighbours that catch the metal
+- disableGlow, glowGain, paused
 
-Metal wraps a button or icon in a real-time WebGL liquid-metal ring with a
-wandering halo. Needs React 18 or newer.
+Metal wraps a button, icon, text or badge in a real-time WebGL liquid-metal
+effect with a wandering halo. Needs React 18+ and WebGL2 (falls back to the
+plain child). v1 engine: npm install metal-fx@1.
 Docs: https://libraries.dev/metal.html
     </pre>
 
@@ -374,6 +558,8 @@ Docs: https://libraries.dev/metal.html
             <a href="/beam.html">Border beam</a>
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
           </div>

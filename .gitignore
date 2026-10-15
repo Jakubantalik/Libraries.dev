@@ -42,6 +42,10 @@ sites/beam/parity-web/
 sites/beam/parity-diff/
 packages/border-beam/ports/ios/BorderBeamShowcase/build/
 packages/border-beam/ports/ios/BorderBeamShowcase/BorderBeamShowcase.xcodeproj/
+# voice-glow iOS port: build output and the generated demo project
+packages/voice-glow/ports/ios/VoiceGlowKit/.build/
+packages/voice-glow/ports/ios/VoiceGlowDemo/VoiceGlowDemo.xcodeproj/
+packages/voice-glow/ports/ios/VoiceGlowDemo/build/
 
 # Local Worker secrets (never commit)
 .dev.vars
@@ -54,3 +58,12 @@ docs/vc-pitch.md
 
 # Compiled by scripts/posters/build.sh on demand; macOS-only.
 sites/home/scripts/posters/extract
+
+# Unreleased work kept out of the public repo (a library and its site
+# pages); the local build picks it up when present.
+private/
+sites/home/vite.local.mjs
+
+# Root Package.swift (the SwiftUI ports from GitHub): SwiftPM / Xcode output
+/.build/
+/.swiftpm/

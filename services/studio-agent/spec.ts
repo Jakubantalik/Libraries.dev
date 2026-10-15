@@ -39,7 +39,7 @@ export type ParamSpec =
       next turn. */
   | { kind: "code"; lang: CodeLang; describe: string; contract: string; when?: string };
 
-export type CodeLang = "js" | "css" | "glsl" | "svg";
+export type CodeLang = "js" | "css" | "glsl" | "svg" | "path";
 
 export interface LibrarySpec {
   /** Display name, used in the system prompt. */
@@ -78,10 +78,11 @@ export const BEAM_SPEC: LibrarySpec = {
     },
     colorVariant: {
       kind: "enum",
-      values: ["colorful", "mono", "ocean", "sunset"],
+      values: ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"],
       describe:
         "Palette. colorful = full spectrum, mono = single neutral, ocean = blues/teals (reads cool), " +
-        "sunset = oranges/pinks (reads warm).",
+        "sunset = oranges/pinks (reads warm), forest = greens/teals, candy = pinks/magentas, " +
+        "ice = cyans and pale blues (reads crisp), gold = ambers and yellows (reads premium).",
     },
     strength: {
       kind: "number",
@@ -452,6 +453,64 @@ export const ORB_SPEC: LibrarySpec = {
       kind: "boolean",
       describe: "Freeze the animation. Set true only if the user asks to pause or stop it.",
     },
+    gravity: {
+      kind: "boolean",
+      describe:
+        "The orb pulls at the pointer: as the cursor nears, the side of it facing the orb trails toward the " +
+        "orb's centre — the pointer itself stays exactly where it is, nothing rotates or scales. An interaction " +
+        "effect, not a look — turn it on when the request is about the cursor, hover, or the orb feeling " +
+        "physical or magnetic.",
+    },
+    gravityReach: {
+      kind: "number", min: 24, max: 240, step: 4,
+      describe: "How far outside the orb's edge the pull is felt, in px.",
+      when: "gravity is true",
+    },
+    gravityPull: {
+      kind: "number", min: 0, max: 48, step: 1,
+      describe: "How far the pointer trails toward the orb on contact, in px. The pointer itself never moves.",
+      when: "gravity is true",
+    },
+    gravityBend: {
+      kind: "number", min: 0, max: 24, step: 0.5,
+      describe: "How far the pointer's body leans toward the orb on contact, in px. The tip stays pinned.",
+      when: "gravity is true",
+    },
+    gravityTaper: {
+      kind: "number", min: 1, max: 4, step: 0.05,
+      describe: "How the bend is spread along the body: 1 bends evenly from the tip out; higher keeps the tip end firm and bends the far end hardest.",
+      when: "gravity is true",
+    },
+    gravityCurve: {
+      kind: "number", min: 1, max: 4, step: 0.05,
+      describe: "How late the pull builds: higher keeps the pointer free until it is close, then grabs.",
+      when: "gravity is true",
+    },
+    gravityFalloff: {
+      kind: "number", min: 2, max: 120, step: 2,
+      describe: "Width in px of the band across the pointer over which the tail fades from the side facing the orb to the far side: small keeps it to the facing edge, large lets the whole body trail.",
+      when: "gravity is true",
+    },
+    gravityInertia: {
+      kind: "number", min: 0, max: 1, step: 0.05,
+      describe: "How much the pointer lags behind the pull. 0 follows instantly; higher reads heavier.",
+      when: "gravity is true",
+    },
+    gravityHandover: {
+      kind: "number", min: 0, max: 1, step: 0.05,
+      describe: "How slowly the pull swings to the next orb when the nearest changes. 0 flips at once; higher glides.",
+      when: "gravity is true",
+    },
+    gravitySquash: {
+      kind: "number", min: 0, max: 3, step: 0.05,
+      describe: "Extra bend and tail when the orb lies off the pointer tip's side (up-left), where the pull shortens the body and reads weaker than a stretch. 0 leaves both sides equal in pixels; higher evens the feel.",
+      when: "gravity is true",
+    },
+    gravityBlur: {
+      kind: "number", min: 0, max: 24, step: 0.5,
+      describe: "Progressive blur along the pointer's tail, in px: crisp at the pointer, this soft at the far end. 0 keeps the tail sharp.",
+      when: "gravity is true",
+    },
     core: {
       kind: "code",
       lang: "js",
@@ -475,7 +534,8 @@ export const ORB_SPEC: LibrarySpec = {
   },
   relevant(params) {
     const state = String(params.state ?? "working");
-    const keys = ["state", "size", "speed", "ink", "dots", "dotSize", "paused", "core"];
+    const keys = ["state", "size", "speed", "ink", "dots", "dotSize", "paused", "core", "gravity"];
+    if (params.gravity === true) keys.push("gravityReach", "gravityPull", "gravityBend", "gravityTaper", "gravityCurve", "gravityFalloff", "gravityInertia", "gravityHandover", "gravitySquash", "gravityBlur");
     if (state === "shaping") keys.push("shape", "spread");
     if (state === "connecting") keys.push("spread", "linkThreshold", "signals", "lineWidth");
     if (state === "working") keys.push("ghostOpacity", "particles");
@@ -906,12 +966,848 @@ export const GOOEY_SPEC: LibrarySpec = {
   },
 };
 
+export const VOICE_SPEC: LibrarySpec = {
+  label: "Voice",
+  about:
+    "VoiceBeam paints a colourful glow along the bottom edge of the element it wraps — a chat input, a " +
+    "recording pill or a phone screen — that rises and blooms with the voice. Three layers stack inside " +
+    "the box: a 1px edge stroke, a soft inner light, and a blurred bloom, all shaped by the same beam. A " +
+    "thin band of light traces the glow's ceiling and the colours warp underneath it. While the reply is " +
+    "being thought through (the Processing source) the glow gathers into one travelling beam that sweeps " +
+    "the range. The type sets the host it is tuned for; every other prop is a multiplier on that tuning, " +
+    "so reach for the response and shape props for mood words and the styling props for intensity.",
+  params: {
+    type: {
+      kind: "enum",
+      values: ["default", "pill", "mobile"],
+      describe:
+        "Which host the effect is tuned for: default is a chat input, pill a small recording pill, mobile " +
+        "a full phone screen. Changing it re-tunes every other prop to that type's defaults, so set it " +
+        "alone on a turn unless the user asked for both at once.",
+    },
+    look: {
+      kind: "enum",
+      values: ["glow", "dots", "lines"],
+      describe:
+        "How the voice is drawn. glow is coloured light — gradients, a band of light and a blurred bloom. " +
+        "dots is a gently domed sheet of white dots seen in perspective (near-black ink on the light theme), " +
+        "in the dotted language of the Thinking orbs: the voice raises hills out of it, one per spectrum band, " +
+        "and when the voice drops the dots fall back under gravity with a small bounce. lines is the same " +
+        "sheet drawn as lines — rows across it like a ridgeline landscape, columns into the depth, or a grid — " +
+        "solid, so a raised ridge hides the lines behind it. The palette, saturation, hue and band props do " +
+        "nothing in dots or lines. Reach for dots when the request is monochrome, minimal, physical, 3D, " +
+        "textured or 'like the orbs'; for lines when it is graphic, technical, terrain, wireframe or " +
+        "'like a sound wave'.",
+    },
+    dotSize: {
+      kind: "number",
+      min: 0.4,
+      max: 2.5,
+      step: 0.05,
+      describe: "Dot radius, as a multiplier. Larger reads bolder and brighter; smaller finer and more delicate.",
+      when: "look is dots",
+    },
+    dotGap: {
+      kind: "number",
+      min: 0.6,
+      max: 2.5,
+      step: 0.05,
+      describe: "Spacing between dots, as a multiplier. Below 1 is a denser, finer sheet; above 1 sparser and more graphic.",
+      when: "look is dots",
+    },
+    dotShape: {
+      kind: "enum",
+      values: ["round", "square"],
+      describe: "The dots' shape: round, or square for a pixel grid.",
+      when: "look is dots",
+    },
+    lineWidth: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Line width, as a multiplier (the lines thin out into the distance). Higher reads bolder and brighter.",
+      when: "look is lines",
+    },
+    lineGap: {
+      kind: "number",
+      min: 0.5,
+      max: 3,
+      step: 0.05,
+      describe: "Spacing between the lines, rows and columns alike. Below 1 is a dense, fine sheet; above 1 sparse and graphic.",
+      when: "look is lines",
+    },
+    linePattern: {
+      kind: "enum",
+      values: ["rows", "columns", "grid"],
+      describe:
+        "Which way the lines run: rows across the sheet (a ridgeline landscape, the default), columns into the " +
+        "depth (converging with the perspective), or a grid of both (a wireframe terrain).",
+      when: "look is lines",
+    },
+    seeThrough: {
+      kind: "boolean",
+      describe: "Draw the lines as a see-through wireframe: the lines behind a raised ridge show through it instead of being hidden.",
+      when: "look is lines",
+    },
+    texture: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "A slow ripple the flow carries across the sheet, 0–1. 0 is a still sheet only the voice moves.",
+      when: "look is dots or lines",
+    },
+    gravity: {
+      kind: "number",
+      min: 0.2,
+      max: 3,
+      step: 0.05,
+      describe: "How hard the sheet falls when the voice drops. Lower floats down softly; higher drops like sand.",
+      when: "look is dots or lines",
+    },
+    surfaceHeight: {
+      kind: "number",
+      min: 0.4,
+      max: 3,
+      step: 0.05,
+      describe: "How tall the sheet stands along the bottom, as a multiplier: how far back it runs, so how much of the host it covers.",
+      when: "look is dots or lines",
+    },
+    surfaceCurve: {
+      kind: "number",
+      min: -1,
+      max: 3,
+      step: 0.05,
+      describe: "How far the sheet arcs, as a multiplier: its sides and far edge fall away like a horizon. 0 is flat; below 0 it cups upward.",
+      when: "look is dots or lines",
+    },
+    surfaceTail: {
+      kind: "number",
+      min: -1,
+      max: 1.5,
+      step: 0.01,
+      describe:
+        "The sheet's tails: how far its ends rise toward the host's corners, as a share of its height — the ends " +
+        "curl up into the corners instead of running flat into the sides. Below 0 they drop away. 0 is off.",
+      when: "look is dots or lines",
+    },
+    surfaceTailPosition: {
+      kind: "number",
+      min: 0,
+      max: 0.95,
+      step: 0.01,
+      describe: "Where the tails start, as a share of the way from the centre to the side; low is a long gentle curl, high only the very ends.",
+      when: "look is dots or lines and surfaceTail is not 0",
+    },
+    surfaceTailCurve: {
+      kind: "number",
+      min: 1,
+      max: 6,
+      step: 0.1,
+      describe: "The tails' shape: 1 a straight ramp, 2 a parabola, higher a hook that stays low and whips up at the edge.",
+      when: "look is dots or lines and surfaceTail is not 0",
+    },
+    surfaceFade: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How far in from the sides the sheet dissolves, as a share of its half-width. 0 runs it hard into the edges; 1 fades it from the centre out.",
+      when: "look is dots or lines",
+    },
+    colorVariant: {
+      kind: "enum",
+      values: ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"],
+      describe:
+        "The palette. colorful is the full spectrum, mono a neutral grey (the most restrained), ocean cool " +
+        "blues and teals, sunset warm pinks and oranges, forest greens, candy bright pastels, ice pale " +
+        "blues, gold warm ambers. The first lever for 'warmer', 'cooler' or 'calmer'.",
+    },
+    sensitivity: {
+      kind: "number",
+      min: 0.2,
+      max: 4,
+      step: 0.05,
+      describe:
+        "How strongly the incoming level drives the glow. Higher makes a quiet voice bloom; lower needs a " +
+        "loud one. The lever for 'more reactive' or 'less twitchy'.",
+    },
+    threshold: {
+      kind: "number",
+      min: 0,
+      max: 0.3,
+      step: 0.005,
+      describe: "Level below which the glow stays at rest, so room noise does not light it up. Raise it if the effect flickers when nobody is speaking.",
+    },
+    attack: {
+      kind: "number",
+      min: 0,
+      max: 0.5,
+      step: 0.005,
+      describe: "Seconds the glow takes to rise to a new level. Near 0 snaps with the voice; higher reads softer and more considered.",
+    },
+    release: {
+      kind: "number",
+      min: 0.02,
+      max: 1.5,
+      step: 0.01,
+      describe: "Seconds the glow takes to fall back. Long release leaves a trail after a word; short cuts it off with the voice.",
+    },
+    reach: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "How far up the box the glow climbs at full voice. The main lever for a taller or shorter effect.",
+    },
+    spread: {
+      kind: "number",
+      min: 0,
+      max: 1.5,
+      step: 0.05,
+      describe: "How much wider the glow grows with the voice. Higher fills the width as it rises; 0 keeps it the same width throughout.",
+    },
+    scale: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Overall size of the whole effect, as a multiplier. Use it when the host is much larger or smaller than the type assumes.",
+    },
+    glowSize: {
+      kind: "number",
+      min: 0.25,
+      max: 3,
+      step: 0.05,
+      describe: "Size of the soft layers only — the inner light and the bloom — leaving the band and stroke alone. Higher reads hazier.",
+    },
+    idle: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How present the glow stays in silence, 0 to 1. 0 goes dark between words; higher keeps a resting shimmer that breathes.",
+    },
+    breathe: {
+      kind: "number",
+      min: 1,
+      max: 8,
+      step: 0.1,
+      describe: "Seconds of one breath of the resting shimmer. Only visible when idle presence is above 0.",
+      when: "idle is above 0",
+    },
+    flow: {
+      kind: "number",
+      min: -200,
+      max: 200,
+      step: 4,
+      describe: "Sideways drift of the colours in px/s: negative flows left, positive right, 0 holds still.",
+    },
+    bend: {
+      kind: "number",
+      min: 0,
+      max: 80,
+      step: 1,
+      describe: "How far the glow's ceiling humps up at the centre with the voice, in px. 0 is a flat ceiling.",
+    },
+    bandStrength: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "Brightness of the thin band of light tracing the glow's ceiling. 0 removes the line and leaves only the soft glow.",
+    },
+    bandWidth: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Thickness of that band. Thin reads like a filament, thick like a ribbon of light.",
+    },
+    bandPosition: {
+      kind: "number",
+      min: 0.1,
+      max: 1.3,
+      step: 0.01,
+      describe: "Where the band sits on the glow's height, as a fraction. Low keeps it near the edge; high rides the top of the bloom.",
+    },
+    bandAberration: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "Chromatic split of the band: a red fringe above and a blue one below. 0 is a clean line; high reads like a prism.",
+    },
+    distortion: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How much the colours under the band warp sideways, as if seen through moving glass. 0 is smooth; high shimmers. Costly on phones — keep it low when the request is about performance.",
+    },
+    coreLight: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "A white wash at the beam's source, so the centre reads brighter than the band. 0 is off; around 1.8 is the light theme's own default. Use it when the middle should feel hotter.",
+    },
+    coreSize: {
+      kind: "number",
+      min: 0,
+      max: 3,
+      step: 0.05,
+      describe: "Size of the bright core at the base of the beam. 0 removes it.",
+    },
+    softness: {
+      kind: "number",
+      min: 0.6,
+      max: 1.35,
+      step: 0.01,
+      describe: "How soft the glow's edges fade out. Higher is hazier and more diffuse; lower is crisper.",
+    },
+    strength: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 1,
+      describe: "Overall opacity of the whole effect in percent. The blunt lever for 'subtler' or 'stronger'.",
+    },
+    brightness: {
+      kind: "number",
+      min: 0.5,
+      max: 2.2,
+      step: 0.05,
+      describe: "Brightness multiplier on every layer. Above 1 pushes the colours toward white.",
+    },
+    saturation: {
+      kind: "number",
+      min: 0.4,
+      max: 2.2,
+      step: 0.05,
+      describe: "Colour saturation. Below 1 washes toward grey; above 1 makes the palette vivid.",
+    },
+    strokeOpacity: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "Opacity of the 1px edge stroke on its own. 0 removes the lit rim and leaves the glow inside the box.",
+    },
+    innerOpacity: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "Opacity of the soft inner light on its own.",
+    },
+    bloomOpacity: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "Opacity of the blurred halo on its own. Lower it for a tighter effect, raise it for more atmosphere.",
+    },
+    radius: {
+      kind: "number",
+      min: 0,
+      max: 120,
+      step: 1,
+      describe: "Corner radius of the host in px, so the effect follows the element's own corners. Match it to the element you wrap.",
+    },
+    staticColors: {
+      kind: "boolean",
+      describe: "Hold the palette still instead of letting the hue drift. Set true when the request asks for a fixed or calmer colour.",
+    },
+    hueRange: {
+      kind: "number",
+      min: 0,
+      max: 120,
+      step: 1,
+      describe: "How far the hue drifts either way, in degrees. 0 is no drift at all.",
+      when: "staticColors is false",
+    },
+    hueDuration: {
+      kind: "number",
+      min: 2,
+      max: 40,
+      step: 0.5,
+      describe: "Seconds for one full hue cycle. Longer is calmer.",
+      when: "staticColors is false",
+    },
+    hueShift: {
+      kind: "number",
+      min: -180,
+      max: 180,
+      step: 5,
+      describe: "Rotates the whole palette by this many degrees. The lever for shifting a preset's colour without leaving it.",
+      when: "staticColors is false",
+    },
+    processingDuration: {
+      kind: "number",
+      min: 0.3,
+      max: 3,
+      step: 0.05,
+      describe: "Seconds for one pass of the travelling beam while processing. Longer reads more patient.",
+      when: "the Processing source is selected",
+    },
+    processingLevel: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      describe: "How lit the glow is held while processing, 0 to 1, since there is no voice to drive it.",
+      when: "the Processing source is selected",
+    },
+    processingTravel: {
+      kind: "number",
+      min: 0,
+      max: 2,
+      step: 0.05,
+      describe: "How far the travelling beam sweeps across the range. 0 keeps it centred; 2 runs the full width.",
+      when: "the Processing source is selected",
+    },
+    processingCurve: {
+      kind: "number",
+      min: 1,
+      max: 4,
+      step: 0.05,
+      describe: "Ease of the sweep's turn at each end. 1 is linear and mechanical; higher dwells at the edges and reads softer.",
+      when: "the Processing source is selected",
+    },
+    cornerFollow: {
+      kind: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      describe: "How much the travelling beam rides the host's corner arcs rather than being cut off by them.",
+      when: "the Processing source is selected",
+    },
+    paused: {
+      kind: "boolean",
+      describe: "Freeze the effect on its current frame. Set true only if the user asks to pause or stop it.",
+    },
+    core: {
+      kind: "code",
+      lang: "css",
+      describe:
+        "The effect's stylesheet, rebuilt. Use it when the request changes what the glow IS — a different " +
+        "shape of light, a layer the library does not draw, motion the knobs cannot express — while keeping " +
+        "the voice still driving it.",
+      contract:
+        "Write CSS that is appended after the library's generated stylesheet for this instance, so it can " +
+        "override any rule or add new ones. Write {id} wherever the instance id belongs and it is " +
+        "substituted per instance. The root is [data-voice-beam=\"{id}\"], and it carries [data-active] " +
+        "while the effect is on and [data-fading] as it leaves — most rules are written under those. Its " +
+        "layers are, bottom to top: ::after (the 1px edge stroke), ::before (the soft light inside the " +
+        "box), the child [data-voice-beam-bloom] (a blurred halo), [data-voice-beam-warp] mirrors (the " +
+        "distorted copies below the band line), the [data-voice-beam-band] and [data-voice-beam-band-halo] " +
+        "canvases (the band, painted by the driver — style them, do not try to draw them), and " +
+        "[data-voice-beam-core] (the epicentre wash). " +
+        "The driver writes per-instance custom properties on the root every frame, all suffixed -{id}: " +
+        "--vb-level (the shaped voice level, 0-1), --vb-glow (presence), --vb-h / --vb-w (the beam's " +
+        "height and spread), --vb-x0..--vb-x6 and --vb-l0..--vb-l6 (each lobe's offset along the flow and " +
+        "its amplitude), --vb-bh / --vb-bendA (the bend's extra height at the centre and its strength), " +
+        "--vb-cx / --vb-cy / --vb-mw (where the beam sits and how narrow its range is while processing), " +
+        "--vb-hue (the hue drift) and --vb-clip-below / --vb-clip-above (the polygons either side of the " +
+        "band line). Read them with var(--vb-level-{id}) and the glow keeps following the voice; ignore " +
+        "them and it goes static, which is almost never what the user meant. Keep the layers " +
+        "pointer-events: none, inside the root and behind the content (z-index 1-4; the mock sits at 5), " +
+        "and keep to plain CSS: no url(), @import or vendor hacks. Blur and large filters on a layer that " +
+        "covers the whole box are what make this effect expensive on a phone — prefer gradients and " +
+        "transforms.",
+    },
+  },
+  relevant(params) {
+    const surface = params.look === "dots" || params.look === "lines";
+    const keys = [
+      "look",
+      "type", "sensitivity", "threshold", "attack", "release",
+      "reach", "spread", "scale", "idle", "flow", "strength", "radius", "paused",
+    ];
+    // The resting shimmer's breath is invisible when nothing rests.
+    if (Number(params.idle) > 0) keys.push("breathe");
+    if (surface) {
+      // The surface has no palette, no glow layers and no stylesheet to
+      // rebuild: its shape and its own style are the knobs.
+      keys.push("texture", "gravity", "surfaceHeight", "surfaceCurve", "surfaceTail", "surfaceFade");
+      if (Number(params.surfaceTail) !== 0) keys.push("surfaceTailPosition", "surfaceTailCurve");
+      if (params.look === "dots") keys.push("dotSize", "dotGap", "dotShape");
+      else keys.push("lineWidth", "lineGap", "linePattern", "seeThrough");
+    } else {
+      keys.push(
+        "glowSize", "bend", "bandStrength", "bandWidth", "bandPosition", "bandAberration", "distortion",
+        "coreSize", "softness", "brightness", "strokeOpacity", "innerOpacity", "bloomOpacity",
+        "core", "colorVariant", "saturation", "coreLight", "staticColors"
+      );
+      // The hue only drifts when the palette is not held still.
+      if (!params.staticColors) keys.push("hueRange", "hueDuration", "hueShift");
+    }
+    // The travelling beam exists only while processing.
+    if (params.processing) {
+      keys.push("processingDuration", "processingLevel", "processingTravel", "processingCurve", "cornerFollow");
+    }
+    return keys;
+  },
+};
+
+export const AVATARS_SPEC: LibrarySpec = {
+  label: "Bot avatars",
+  about:
+    "BotAvatar draws a small 3D bot like a plush toy: a soft body shape, inflated like a cushion, with a " +
+    "living face (two eyes, optionally a mouth) that blinks, glances, turns side to side, follows the " +
+    "pointer and now and then hops and flips. By default it is made of faux fur (shading fabric): a " +
+    "pillowy form under a studio key light, with a back light rimming the top and far side, fine strands " +
+    "combed down the form and gathered into lit locks, the silhouette breaking into soft tufts and a haze " +
+    "of hairs, and the eyes turned into glossy beads. shading plastic makes the same form a glossy, " +
+    "physical plastic instead. The type picks the body shape and its palette colour; the state is what " +
+    "the bot is doing (idle, working — hopping and spinning — or sleeping); it can wear a hat, glasses, " +
+    "headphones and a bow tie. Perceived character comes from the shape, the colour and what it wears; " +
+    "perceived energy from speed, the side turn and the jump (how high, how often, how much it squashes " +
+    "and stretches); perceived material from the shading — fabric is soft and touchable, and its fur " +
+    "style (length, density, fuzz, clumps, curl, gravity) decides whether it reads as a neat velvety " +
+    "plush or a shaggy, scruffy one; plastic is glossy and physical, crisp a vector-style lit rim, smooth " +
+    "a soft airbrush, flat no lighting at all. A shape the library does not ship — a heart, a robot " +
+    "head, a letter — is a core rebuild: a new body outline.",
+  params: {
+    type: {
+      kind: "enum",
+      values: [
+        "clover", "flower", "triangle", "square", "blob", "ghost", "circle", "drop", "star",
+        "droid", "mech", "alien", "hexagon", "cat", "cloud", "pill", "pebble", "puddle",
+      ],
+      describe:
+        "The body shape, which also brings its own palette colour and face placement, and its own " +
+        "brightness and saturation where it has them (clover, star and cat do) unless those were moved. " +
+        "droid and mech are robot heads with antennae; ghost, cat, alien and cloud are characters; the rest " +
+        "are soft geometric or organic blobs. Changing it drops a custom outline (core). Send color in the " +
+        "same call if the user wants to keep a colour they chose.",
+    },
+    face: {
+      kind: "enum",
+      values: ["eyes", "mouth"],
+      describe: "eyes is the two dot eyes alone; mouth adds a small mouth that changes with the state.",
+    },
+    state: {
+      kind: "enum",
+      values: ["default", "working", "sleeping"],
+      describe: "default is idle (blinks, glances, the odd hop); working hops and spins busily; sleeping closes the eyes and breathes slowly.",
+    },
+    size: { kind: "number", min: 16, max: 200, step: 2, describe: "Rendered size in px." },
+    color: {
+      kind: "color",
+      describe:
+        "Body colour. The palette: #41C4FF sky, #35B8FF blue, #2FCB7A green, #9CD66A lime, #ABC793 sage, " +
+        "#1ED3C6 teal, #DC48FF magenta, #9A62FF violet, #ACAAF3 lavender, #EE8BDB pink, #EB7575 coral, " +
+        "#EAA06F apricot, #EFDB8E pale gold, #F4F2FA white, #D5DBEA silver, #CFD5E4 cloud grey, #95A6C4 " +
+        "steel — but any hex works.",
+    },
+    ink: {
+      kind: "color",
+      describe: "Face ink (eyes and mouth). #1F1B2E dark and #F6F4F0 light are the stock inks; pick whichever reads on the body.",
+    },
+    brightness: {
+      kind: "number",
+      min: 50,
+      max: 150,
+      step: 1,
+      describe: "Lightness of the body colour, in %. 100 is the colour as the palette has it; a few types start a little lighter.",
+    },
+    saturation: {
+      kind: "number",
+      min: 50,
+      max: 250,
+      step: 1,
+      describe:
+        "Saturation of the body colour, in %. 100 is the colour as the palette has it, lower is duller and more " +
+        "muted; most types start at 150. Past 150, where most of the palette is already as saturated as a " +
+        "screen shows it, it gets richer and more vivid: the colour is pushed along its own hue toward its most " +
+        "vivid shade (a sky blue toward an electric one), the shade side and the gaps in the fur grow richer, " +
+        "and fabric and plastic keep more of the colour in the light — highlights, sheen, rim and fur tips stay " +
+        "coloured instead of paling toward white.",
+    },
+    shading: {
+      kind: "enum",
+      values: ["fabric", "plastic", "crisp", "smooth", "flat"],
+      describe:
+        "How the body is lit. fabric (the default): a plush faux fur under a studio light — fine strands " +
+        "gathered into lit locks, a back light rimming the top and far side, a silhouette of soft tufts, the " +
+        "eyes glossy beads; the fur style and the fabric light below apply only here. plastic: the same form " +
+        "as a glossy material — a hot spot and a sheen, a Fresnel rim, a window reflection. crisp: a lit rim " +
+        "with a clean edge, vector-style. smooth: a soft shadow and highlight across the whole form, no edge. " +
+        "flat: the depth alone, no lighting. Switching moves shadow, highlight, light, rim and spread to the " +
+        "new material's own defaults, unless any of them had been moved; values sent in the same call still " +
+        "win. A call that switches cannot yet set what only the new shading uses (the fur style and the " +
+        "fabric light on a switch to fabric; any light knob or roundness the old shading did not have): " +
+        "switch, then set them in a second call.",
+    },
+    shadow: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe: "Strength of the shadow side, in %. 115 on fabric (a strong key against a deep shade side), 35 on the others.",
+      when: "shading is not flat",
+    },
+    highlight: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe: "Strength of the lit side, in %. 145 on fabric, 130 on the others.",
+      when: "shading is not flat",
+    },
+    light: {
+      kind: "number",
+      min: 0,
+      max: 360,
+      step: 5,
+      describe:
+        "Where the key light comes from, degrees clockwise from the top: 90 is from the right, 270 from the " +
+        "left. 295 on fabric and 300 on the others, the upper left like a studio key.",
+      when: "shading is not flat",
+    },
+    lightFront: {
+      kind: "number",
+      min: 0,
+      max: 85,
+      step: 1,
+      describe:
+        "How far round to the front the key light sits, in degrees. 0 grazes the toy from the side (dramatic), " +
+        "85 lights it nearly from the camera (flat and even). Default 32.",
+      when: "shading is fabric",
+    },
+    rim: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe:
+        "Width of the lit rim (crisp), strength of the Fresnel rim (plastic), or strength of the back light " +
+        "(fabric, where the knob is called Back light) — the bright rim it wraps round the top and far side " +
+        "and the glow of the edge's hairs — in %. 60 on fabric, 50 on the others.",
+      when: "shading is fabric, plastic or crisp",
+    },
+    backSoftness: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "How soft the back light is, in %. 0 is a small source caught on single fibres as crisp bright hairs; " +
+        "100 (default) a large one, an even glow reaching further in from the edge and fading out gently.",
+      when: "shading is fabric",
+    },
+    backLight: {
+      kind: "number",
+      min: 0,
+      max: 360,
+      step: 5,
+      describe:
+        "Where the back light comes from, degrees clockwise from the top. While backLightAuto is true this is " +
+        "where it follows the key to (above the toy, toward the side away from light); setting it holds the " +
+        "back light there and turns backLightAuto off.",
+      when: "shading is fabric",
+    },
+    backLightAuto: {
+      kind: "boolean",
+      describe:
+        "true (default) lets the back light follow the key light, moving with light; false holds it at " +
+        "backLight. Send true alone to hand it back to the key; it wins over a backLight in the same call.",
+      when: "shading is fabric",
+    },
+    shine: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe:
+        "Highlights along single fibres where the key grazes the pile, in %. 0 (default) is a soft, matte " +
+        "pile; higher reads silkier, like a glossy faux fur.",
+      when: "shading is fabric",
+    },
+    sheen: {
+      kind: "number",
+      min: 0,
+      max: 200,
+      step: 5,
+      describe:
+        "A smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even " +
+        "gradients, a shine of the material rather than of the fur's own fibres — in %. 0 (default) is matte, " +
+        "only the fibres shine.",
+      when: "shading is fabric",
+    },
+    spread: {
+      kind: "number",
+      min: 40,
+      max: 250,
+      step: 5,
+      describe:
+        "How far the light wraps round the form (fabric), width of the highlight (plastic), or reach of the " +
+        "soft shading (smooth), in %. 160 on fabric, 155 on the others.",
+      when: "shading is fabric, plastic or smooth",
+    },
+    depth: { kind: "number", min: 20, max: 200, step: 5, describe: "Thickness of the body, in %: what shows when it turns or flips. Low reads like a flat sticker, high like a chunky toy." },
+    roundness: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "The body's profile through its depth, in %. 100 (default) is inflated like a cushion or a plush toy — " +
+        "thickest in the middle and rounding off to nothing at the outline, so a turn shows a round side; " +
+        "toward 0 it becomes a slab with soft edges.",
+      when: "shading is fabric or plastic",
+    },
+    furLength: {
+      kind: "number",
+      min: 30,
+      max: 250,
+      step: 5,
+      describe: "Length of the pile — the strands, the locks and the tufts — in %. Default 100; low is a short, velvety plush, high a long shaggy one.",
+      when: "shading is fabric",
+    },
+    furDensity: {
+      kind: "number",
+      min: 30,
+      max: 200,
+      step: 5,
+      describe: "How many fibres, in %. Default 160; lower is a sparser pile.",
+      when: "shading is fabric",
+    },
+    furFuzz: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "Softness of the silhouette — the tufts breaking the edge and the haze of fine hairs standing past " +
+        "it — in %. Default 90; 0 is a clean edge.",
+      when: "shading is fabric",
+    },
+    furClumps: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe: "How much the fibres gather into locks and tufts, in %. Default 40; 0 is an even pile, high shows strong locks.",
+      when: "shading is fabric",
+    },
+    furCurl: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe: "How wavy the fibres are, in %: 0 straight, 100 curly. Default 70.",
+      when: "shading is fabric",
+    },
+    furGravity: {
+      kind: "number",
+      min: 0,
+      max: 100,
+      step: 5,
+      describe:
+        "How much the pile hangs, in %: combed down from a parting at the top, lying over the top edge and " +
+        "hanging off the sides and bottom, rather than standing out evenly all round (0). Default 90.",
+      when: "shading is fabric",
+    },
+    hat: {
+      kind: "enum",
+      values: ["none", "beret", "beanie", "party", "crown"],
+      describe:
+        "A hat on the top of the head, turning with it: beret (pleated felt with a stalk), beanie (knitted, " +
+        "with a ribbed cuff and a pompom), party (a striped paper cone with tinsel), crown (gold, with pearls " +
+        "and stones). none for no hat.",
+    },
+    glasses: {
+      kind: "enum",
+      values: ["none", "round", "square", "shades"],
+      describe: "Glasses over the eyes: round or square acetate frames with clear lenses that reflect, or shades with dark lenses. none for none.",
+    },
+    headphones: { kind: "boolean", describe: "Over-ear headphones, a cup on either side of the head and a padded band over the top." },
+    bowTie: { kind: "boolean", describe: "A bow tie under the face — satin, or felt on a fabric body." },
+    accessoryColor: {
+      kind: "color",
+      describe:
+        "Colour of the beret, the beanie, the party hat, the headphones and the bow tie (the crown stays gold " +
+        "and the glasses keep their own frames). The swatches: #27272b charcoal (default), #f4efe6 cream, " +
+        "#c8323c red, #2f5fd0 blue, #e9a93b mustard, #2e8b57 green — but any hex works. Send it with the item " +
+        "it colours.",
+    },
+    speed: { kind: "number", min: 25, max: 300, step: 5, describe: "Animation speed, in % of normal." },
+    turn: { kind: "number", min: 0, max: 200, step: 5, describe: "How far the head turns side to side while idle, in %. 0 keeps it facing forward." },
+    interactive: { kind: "boolean", describe: "Eyes and head follow a nearby pointer, and a click makes it hop and flip." },
+    whirl: { kind: "boolean", describe: "Draw a motion ring round the bot while it spins." },
+    jumpEvery: { kind: "number", min: 0, max: 20, step: 1, describe: "Seconds between idle jumps (give or take 40%); 0 for none." },
+    jumpHeight: { kind: "number", min: 0, max: 50, step: 1, describe: "How high a jump goes, in body units (the body is 100 tall)." },
+    jumpTime: { kind: "number", min: 40, max: 140, step: 2, describe: "Air time of a jump, in hundredths of a second. Longer reads floatier." },
+    jumpStretch: { kind: "number", min: 0, max: 200, step: 5, describe: "How much the body stretches in the air, in %." },
+    jumpSpin: { kind: "enum", values: ["0", "1", "2"], describe: "Whole turns made in the air." },
+    jumpLean: { kind: "number", min: 0, max: 15, step: 1, describe: "Degrees of lean into a jump." },
+    jumpSquash: { kind: "number", min: 0, max: 200, step: 5, describe: "How much the body squashes on the ground before take-off and on landing, in %. The cartoon weight of the jump." },
+    jumpSquashTime: { kind: "number", min: 100, max: 600, step: 10, describe: "Milliseconds the landing squash takes." },
+    jumpSquashEase: { kind: "enum", values: ["sharp", "pulse", "soft", "bouncy"], describe: "Shape of the landing squash: sharp, pulse (default), soft, or bouncy (overshoots and settles)." },
+    jumpGroundTime: { kind: "number", min: 0, max: 600, step: 10, describe: "Milliseconds the deepest squash is held on the ground. 0 for none." },
+    jumpGroundEase: { kind: "enum", values: ["sharp", "pulse", "soft", "bouncy"], describe: "How the weight settles through that hold.", when: "jumpGroundTime is above 0" },
+    jumpRiseTime: { kind: "number", min: 80, max: 800, step: 10, describe: "Milliseconds to rise from the deepest squash back to shape." },
+    jumpRiseEase: { kind: "enum", values: ["sharp", "pulse", "soft", "bouncy"], describe: "How it rises back to shape." },
+    jumpClickSquashTime: { kind: "number", min: 100, max: 1000, step: 10, describe: "Milliseconds a click's landing squash takes." },
+    jumpLand: { kind: "number", min: -200, max: 150, step: 10, describe: "When the landing squash begins, in ms round touch-down: negative braces early, positive lands late." },
+    paused: { kind: "boolean", describe: "Freeze the animation. Set true only if the user asks to pause or stop it." },
+    core: {
+      kind: "code",
+      lang: "path",
+      describe:
+        "The body outline, redrawn. Use it when the request is for a shape none of the types has — a heart, " +
+        "a letter, a robot head of a particular kind, a mascot silhouette — while keeping the bot's face, " +
+        "material, what it wears and motion. The library inflates, lights, furs and animates whatever outline " +
+        "it is given, and sits the wearables on it.",
+      contract:
+        "Write SVG path data (the d attribute only — no <path> tag, no quotes) for a closed outline in a " +
+        "100×100 box centred on (50, 50), y pointing down. Keep it roughly 70–90 units across so it sits like " +
+        "the stock shapes, and keep it inside 2..98 on both axes. Use absolute commands (M L H V C S Q T A Z); " +
+        "close every subpath with Z. Several subpaths are allowed (ears, antennae, limbs) and are filled " +
+        "non-zero, so wind them the same way and let them overlap the body. The face is drawn at the " +
+        "selected type's face point (given with the stock outline you are shown), about 30 units wide — keep " +
+        "the outline solid round that point. Prefer smooth rounded curves over sharp corners: the plush fur " +
+        "and the glossy plastic both inflate the outline like a cushion and read best on soft forms, and fine " +
+        "points soften under the fur's tufts. Keep it under ~3000 characters.",
+    },
+  },
+  relevant(params) {
+    const shading = String(params.shading ?? "fabric");
+    const keys = [
+      "type", "face", "state", "size", "color", "ink", "brightness", "saturation", "shading", "depth",
+      "hat", "glasses", "headphones", "bowTie", "accessoryColor",
+      "speed", "turn", "interactive", "whirl", "jumpEvery", "jumpHeight", "jumpTime", "jumpStretch",
+      "jumpSpin", "jumpLean", "jumpSquash", "jumpSquashTime", "jumpSquashEase", "jumpGroundTime",
+      "jumpRiseTime", "jumpRiseEase", "jumpClickSquashTime", "jumpLand", "paused", "core",
+    ];
+    if (shading !== "flat") keys.push("shadow", "highlight", "light");
+    if (shading === "fabric" || shading === "plastic" || shading === "crisp") keys.push("rim");
+    if (shading === "fabric" || shading === "plastic" || shading === "smooth") keys.push("spread");
+    if (shading === "fabric" || shading === "plastic") keys.push("roundness");
+    // The fabric light rig and the pile's own style exist only on the plush.
+    if (shading === "fabric") {
+      keys.push(
+        "lightFront", "backLight", "backLightAuto", "backSoftness", "shine", "sheen",
+        "furLength", "furDensity", "furFuzz", "furClumps", "furCurl", "furGravity"
+      );
+    }
+    if (Number(params.jumpGroundTime) > 0) keys.push("jumpGroundEase");
+    return keys;
+  },
+};
+
 export const SPECS: Record<string, LibrarySpec> = {
   beam: BEAM_SPEC,
   orb: ORB_SPEC,
   gooey: GOOEY_SPEC,
   metal: METAL_SPEC,
   image: IMAGE_SPEC,
+  voice: VOICE_SPEC,
+  avatars: AVATARS_SPEC,
 };
 
 /* JSON Schema for the set_params tool.
@@ -959,6 +1855,7 @@ export const CODE_LABEL: Record<CodeLang, string> = {
   css: "stylesheet",
   glsl: "fragment shader",
   svg: "SVG filter primitives",
+  path: "SVG path data",
 };
 
 /* Static hygiene only — the browser is where the code is compiled and run,
@@ -971,6 +1868,7 @@ const CODE_FORBIDDEN: Record<CodeLang, RegExp> = {
   js: /\b(import|require|fetch|XMLHttpRequest|WebSocket|document|window|globalThis|self|eval|Function|localStorage|sessionStorage|indexedDB|navigator|postMessage|setTimeout|setInterval|Promise|async|await)\b|<\s*\/?\s*script/i,
   css: /url\s*\(|@import|expression\s*\(|behavior\s*:|-moz-binding|<\s*\/?\s*script/i,
   glsl: /<\s*\/?\s*script/i,
+  path: /[^MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]/,
   svg: /<\s*script|<\s*\/?\s*(?!fe[A-Z])[a-zA-Z]+[\s>\/]|\son[a-z]+\s*=|href\s*=|xlink:/,
 };
 
@@ -979,6 +1877,7 @@ export function checkCode(lang: CodeLang, code: string): string | null {
   const hit = code.match(CODE_FORBIDDEN[lang]);
   if (hit) return `must not contain ${JSON.stringify(hit[0].trim())}`;
   if (lang === "js" && !/\breturn\b/.test(code)) return "must return a frame";
+  if (lang === "path" && !/^\s*M/i.test(code)) return "must start with a moveto (M)";
   return null;
 }
 

@@ -1,0 +1,30 @@
+export { VoiceBeam } from './VoiceBeam';
+export { default } from './VoiceBeam';
+
+/** Whether this build carries the surface looks (`look="dots"` / `"lines"`) — not released yet. */
+export const VOICE_SURFACE_LOOKS: boolean = __VOICE_SURFACE__;
+
+export { useMicrophone } from './useMicrophone';
+export type { UseMicrophoneOptions, UseMicrophoneResult, MicrophoneState } from './useMicrophone';
+
+export { getAudioContext, isAudioSupported } from './audio';
+export { parseRgb } from './color';
+
+export { voiceDefaults, voiceTypePresets, voiceTypeStyle, resolveVoiceDefaults, resolveVoiceStyle } from './presets';
+export type { VoiceGeometry, VoiceTypeStyle } from './presets';
+
+export type {
+  VoiceBeamProps,
+  VoiceBeamType,
+  VoiceBeamTheme,
+  VoiceBeamLook,
+  VoiceBeamDotShape,
+  VoiceBeamLinePattern,
+  VoiceBeamColorVariant,
+  VoiceBeamLevel,
+  VoiceBeamMotion,
+  VoiceThemeColors,
+} from './types';
+
+export { themePresets, voicePalettes, voiceLobes, LOBE_SPACING, LOBE_SPAN } from './styles';
+export type { VoiceLobe } from './styles';

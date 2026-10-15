@@ -20,10 +20,12 @@
   --c-mock-text: #c0c0c0;
   --c-mock-text-strong: #ffffff;
   --shimmer-band: 400%;
-  --shimmer-base: #6f6c6c;
+  /* The orb demo site's own shimmer ink (sites/orbs/styles.css), so a
+     label reads the same here as on the page these pills come from. */
+  --shimmer-base: rgba(251, 251, 251, 0.5);
   --shimmer-dur: 2000ms;
   --shimmer-ease: linear;
-  --shimmer-highlight: #ededed;
+  --shimmer-highlight: #ffffff;
 }
 
 /* The examples block and the playground beneath it. */
@@ -128,6 +130,9 @@
   align-items: center;
   gap: 8px;
   margin-top: auto;
+  /* Above the effect's layers (z 1–4). */
+  position: relative;
+  z-index: 5;
 }
 
 .mock-chat .tag {
@@ -234,6 +239,33 @@
 
 @media (prefers-reduced-motion: reduce) {
   .t-shimmer::before { animation: none !important; }
+}
+
+/* transitions.dev — Streaming text: each word resolves through opacity
+   and a small blur, one every --stream-gap, so the answer arrives the way
+   a streamed one does. The spans rest visible; the replay wipes them with
+   the transition off, flushes a reflow, then adds .is-in word by word. */
+:root {
+  --stream-gap: 60ms;
+  --stream-fade: 350ms;
+  --stream-blur: 1px;
+  --stream-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t-stream-w {
+  opacity: 0;
+  filter: blur(var(--stream-blur));
+  transition:
+    opacity var(--stream-fade) var(--stream-ease),
+    filter var(--stream-fade) var(--stream-ease);
+}
+.t-stream-w.is-in {
+  opacity: 1;
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stream-w { transition: none !important; filter: none !important; opacity: 1 !important; }
 }
 
 .mock-working-list {
@@ -362,6 +394,11 @@
    these are the same mocks rebuilt in plain CSS rather than a verbatim
    port: the status pills and chat chrome those pages show, on the
    example chrome above. */
+/* Figma 1480:40970: a translucent dark fill with a cool-grey border,
+   rather than the white-tint-plus-inset-ring the other example chrome
+   uses. The border is drawn as a ring rather than a real border so the
+   pill's height and padding stay as authored, and at 1px rather than the
+   frame's 2px — the frame is drawn at 2x. */
 .ex-pill {
   display: inline-flex;
   align-items: center;
@@ -369,14 +406,13 @@
   height: 74px;
   padding: 0 32px 0 9px;
   border-radius: 50px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+  background: rgba(29, 29, 29, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(44, 47, 54, 0.22);
   color: #ededed;
   font-size: 18px;
   line-height: 24px;
 }
+/* Same surface as the pill above. */
 .ex-chip {
   display: inline-flex;
   align-items: center;
@@ -384,10 +420,8 @@
   height: 36px;
   padding: 0 14px 0 8px;
   border-radius: 50px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+  background: rgba(29, 29, 29, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(44, 47, 54, 0.22);
   color: #cfcfcf;
   font-size: 13px;
   line-height: 14px;
@@ -753,3 +787,712 @@
   cursor: pointer;
   padding: 0;
 }
+
+/* ── Metal v2 examples: the two 170px cards + the composer tweaks ── */
+.mx-chat-input--short { width: 70%; }
+.mx-circle--send { cursor: default; }
+.mx-row--card {
+  height: 170px;
+  border-radius: 36px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 40px;
+}
+.mx-card-line { display: flex; align-items: center; gap: 12px; }
+.mx-card-line--plan { align-items: baseline; gap: 6px; }
+.mx-plan {
+  font: 500 24px/1.2 Inter, var(--font-sans), sans-serif;
+  color: rgba(153, 153, 153, 0.6);
+  white-space: nowrap;
+}
+.mx-live {
+  font: 400 20px/1.2 Inter, var(--font-sans), sans-serif;
+  color: #999999;
+  white-space: nowrap;
+}
+.metal-pill--send { cursor: default; }
+
+
+/* ── Chat mock (Studio) ─────────────────────────────────────────────── */
+
+/* Shared mock icons: the mic and chevron are masks so each theme
+   paints them; the plus is two 1.5px bars (Figma's export of the glyph
+   collapsed to a 1px path), and the close is the same plus turned 45°. */
+.mk-ico {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.mk-ico-mic {
+  -webkit-mask: url("/assets/icons/mic-16.svg") center / 16px 16px no-repeat;
+  mask: url("/assets/icons/mic-16.svg") center / 16px 16px no-repeat;
+}
+.mk-ico-chevron {
+  transform: rotate(90deg);
+  -webkit-mask: url("/assets/icons/chevron-16.svg") center / 16px 16px no-repeat;
+  mask: url("/assets/icons/chevron-16.svg") center / 16px 16px no-repeat;
+}
+.mk-ico-plus::before,
+.mk-ico-plus::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 1.5px;
+  margin: -0.75px 0 0 -5px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.mk-ico-plus::after { transform: rotate(90deg); }
+.mk-ico-x { transform: rotate(45deg); }
+
+/* Chat input — Figma 1561:44249 (dark) / 1567:44998 (light). */
+.mock-vchat {
+  position: relative;
+  width: 371px;
+  max-width: 100%;
+  height: 104px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(48, 48, 48, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(44, 47, 54, 0.52),
+    inset 0 0 50px 0 rgba(255, 255, 255, 0.02);
+  font-family: Inter, var(--font-sans);
+}
+/* The field: the design's placeholder text (14px at 14 / 20), typable;
+   a transparent box so the glow shows through it. Above the beam layers
+   like the buttons. */
+.mock-vchat-input {
+  position: absolute;
+  left: 14px;
+  top: 20px;
+  right: 14px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #eaeaea;
+  caret-color: #eaeaea;
+  z-index: 5;
+}
+.mock-vchat-input::placeholder {
+  color: #4e4e4e;
+  opacity: 1;
+}
+.mock-vchat-row {
+  position: absolute;
+  left: 11px;
+  right: 13px;
+  bottom: 13px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  /* Above the effect's layers (z 1–4). */
+  z-index: 5;
+}
+.mock-vchat-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mock-vchat-btn {
+  height: 36px;
+  min-width: 36px;
+  padding: 0 10px;
+  border-radius: 36px;
+  /* The recording pill's stop button (Figma 1561:44277): a 10% white
+     fill with a hairline ring and a brighter top edge, no drop. */
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #eaeaea;
+  box-sizing: border-box;
+  /* Real buttons: reset the UA look, keep the design's, and give a press.
+     Hover is a 2% wash over the fill (white on dark, black on light). */
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mock-vchat-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.15s ease;
+  pointer-events: none;
+}
+.mock-vchat-btn:hover::after { background: rgba(255, 255, 255, 0.02); }
+.mock-vchat-btn:active { transform: scale(0.96); }
+.mock-vchat-btn:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.35); outline-offset: 2px; }
+.mock-vchat-agent {
+  padding: 0 10px 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+  color: #caccd2;
+  white-space: nowrap;
+}
+.mock-vchat .mk-ico-mic { background: #b2b2b2; }
+.mock-vchat .mk-ico-chevron {
+  background: rgba(255, 255, 255, 0.4);
+  /* The chat chip's chevron is the design's 1.5px stroke (the phone's is 2px). */
+  -webkit-mask-image: url("/assets/icons/chevron-15.svg");
+  mask-image: url("/assets/icons/chevron-15.svg");
+}
+
+/* ── Chat mock — light theme (Studio) ───────────────────────────────── */
+/* The chat input mock's tokens are dark-only (the beam demo page ships
+   dark); the Studio's light theme flips them here so the beam is judged
+   on a white card. */
+html[data-theme="light"] .mock-chat {
+  --c-mock-bg: #ffffff;
+  --c-mock-border: rgba(0, 0, 0, 0.08);
+  --c-mock-chip-bg: rgba(0, 0, 0, 0.04);
+  --c-mock-chip-line: rgba(0, 0, 0, 0.03);
+  --c-mock-chip-top: rgba(255, 255, 255, 0.6);
+  --c-mock-glow: rgba(0, 0, 0, 0.015);
+  --c-mock-placeholder: #9a9a9a;
+  --c-mock-search-text: #7a7a7a;
+  --c-mock-square: rgba(0, 0, 0, 0.35);
+  --c-mock-tag-text: #3f434a;
+  --c-mock-text: #303030;
+  --c-mock-text-strong: #111111;
+}
+
+html[data-theme="light"] .mock-vchat {
+  background: #ffffff;
+  box-shadow:
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .mock-vchat-input {
+  left: 15px;
+  top: 21px;
+  right: 15px;
+  color: #1a1a1a;
+  caret-color: #1a1a1a;
+}
+html[data-theme="light"] .mock-vchat-input::placeholder {
+  color: #4e4e4e;
+  opacity: 0.5;
+}
+html[data-theme="light"] .mock-vchat-btn:hover::after { background: rgba(0, 0, 0, 0.02); }
+html[data-theme="light"] .mock-vchat-btn:focus-visible { outline-color: rgba(0, 0, 0, 0.25); }
+html[data-theme="light"] .mock-vchat-row {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+}
+html[data-theme="light"] .mock-vchat-btn {
+  border-radius: 54px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  color: #3c3c3c;
+}
+html[data-theme="light"] .mock-vchat-agent { color: #252525; }
+html[data-theme="light"] .mock-vchat-close { color: #3d3d3d; }
+html[data-theme="light"] .mock-vchat .mk-ico-mic { background: #515151; }
+html[data-theme="light"] .mock-vchat .mk-ico-chevron { background: rgba(17, 17, 17, 0.4); }
+
+/* The card shadow's outer half, on the beam root that hosts the mock
+   (the root clips its children, so drops can't live on the card); the
+   inset ring and bottom line sit on the card itself above. */
+html[data-theme="light"] .pg-stage [data-beam]:has(> .mock-vchat) {
+  box-shadow:
+    0 2px 6px 0 rgba(0, 0, 0, 0.02),
+    0 4px 42px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* ── Voice mocks (Studio and the detail page) ───────────────────────── */
+
+/* Sidebar / docs icon in the light theme. */
+html[data-theme="light"] .docs-link-icon[src*="figma-voice"],
+html[data-theme="light"] .st-lib-ico img[src*="figma-voice"] { content: url("/assets/icons/figma-voice-light.png"); }
+
+/* Studio bench colour rows: nine discs (eight variants + the picker)
+   on one line inside the 273px panel — 24px discs at a 5px gap. */
+.vb-colors .pg-swatches { flex-wrap: nowrap; gap: 5px; }
+.vb-colors .pg-swatch { width: 24px; height: 24px; flex: 0 0 24px; }
+
+/* Recording pill — Figma 1561:44248 (dark) / 1567:44991 (light). */
+.mock-pill {
+  position: relative;
+  width: 149px;
+  height: 44px;
+  border-radius: 106px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  font-family: Inter, var(--font-sans);
+}
+.mock-pill-mic {
+  position: absolute;
+  left: 13px;
+  top: 14px;
+  background: #b2b2b2;
+  z-index: 5;
+}
+.mock-pill-time {
+  position: absolute;
+  left: 51px;
+  top: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #878787;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  z-index: 5;
+}
+.mock-pill-stop {
+  position: absolute;
+  left: 111px;
+  top: 7px;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  border-radius: 70px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mock-pill-stop::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: #d9d9d9;
+  opacity: 0.6;
+}
+
+/* Phone screen — Figma 1561:44294, 402×874. The stage shows the bottom
+   60% of it (the top 40% is cropped away), scaled 0.68 so the crop fills
+   the stage: 402×524 → 273×357. The scale and crop sit OUTSIDE the beam,
+   so the glow layers still measure the full screen. */
+.mock-phone-scale {
+  width: 273px;
+  height: 357px;
+  position: relative;
+  overflow: hidden;
+}
+/* The beam wraps the crop, not the screen behind it: its layers raster
+   273×357 instead of 402×874, 3.6× fewer pixels, with \`scale\` 0.68 of the
+   phone's own so the glow is the same picture. Its root is the flex item:
+   flush with the stage's top edge (the stage pads 48px; the crop reads as
+   the screen running on past the card) with room below for Play. The
+   crop's top is mid-screen, so only the bottom corners round — the
+   screen's own, at 66 × 0.68. */
+.mock-phone-host {
+  align-self: flex-start;
+  margin-top: -48px;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+.mock-phone-scale-inner {
+  width: 402px;
+  transform: translateY(-237.7px) scale(0.68);
+  transform-origin: top left;
+}
+.mock-phone {
+  position: relative;
+  width: 402px;
+  height: 874px;
+  border-radius: 66px;
+  overflow: hidden;
+  /* The chat input's dark card (Figma 1561:44249) — its hairline ring and
+     wide soft inner glow — over a solid screen fill. */
+  background: #111111;
+  box-shadow:
+    inset 0 0 0 1px rgba(44, 47, 54, 0.52),
+    inset 0 0 50px 0 rgba(255, 255, 255, 0.02);
+  font-family: Inter, var(--font-sans);
+}
+/* Both text layers share the prompt's spot (design y = 664, baseline
+   kept; longer transcripts grow upward). They cross-blur: 5px of blur
+   and out, over 320 ms on the smooth ease-out. */
+.mock-phone-text {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  bottom: 194px;
+  transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), filter 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mock-phone-text[data-hidden] {
+  opacity: 0;
+  filter: blur(5px);
+  pointer-events: none;
+}
+.mock-phone-prompt {
+  margin: 0;
+  text-align: center;
+  /* Greedy wrapping: the site's `text-wrap: pretty` re-flows earlier
+     words to avoid a short last line, which bounces a word between
+     lines as the transcript grows. */
+  text-wrap: wrap;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #b2b2b2;
+  opacity: 0.6;
+}
+.mock-phone-prompt--live {
+  color: #e6e6e6;
+  opacity: 0.9;
+}
+.mock-word {
+  display: inline-block;
+  animation: mock-word-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+/* A word arrives by fade and blur only; the only movement is the slide
+   a settled word makes when a new one lands (an inline `transform`,
+   see BlurWords), which this animation leaves alone. */
+@keyframes mock-word-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mock-word { animation: none; }
+}
+.mock-phone-row {
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  top: 781px;
+  height: 44px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* Figma 1561:44299 / 1561:44344: a plain rgba(255,255,255,0.08) fill,
+   radius 70. Dark adds the site's secondary-button shadow: a 0.5px ring,
+   a short drop, and a soft white edge light inset on all four sides. */
+html[data-theme="dark"] .mock-phone-agent,
+html[data-theme="dark"] .mock-phone-btn {
+  box-shadow:
+    0 2px 2px -2px rgba(0, 0, 0, 0.04),
+    0 2px 6px -1px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 2px 1px -2px rgba(255, 255, 255, 0.24) inset,
+    1px 2px 1px -2px rgba(255, 255, 255, 0.24) inset,
+    -1px -2px 1px -2px rgba(255, 255, 255, 0.24) inset,
+    0 -2px 1px -2px rgba(255, 255, 255, 0.24) inset;
+}
+
+.mock-phone-agent {
+  height: 44px;
+  padding: 0 16px 0 20px;
+  border-radius: 70px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 14px;
+  color: #caccd2;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+.mock-phone-chevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: block;
+  transform: rotate(90deg);
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-mask: url("/assets/icons/chevron-16.svg") center / 16px 16px no-repeat;
+  mask: url("/assets/icons/chevron-16.svg") center / 16px 16px no-repeat;
+}
+.mock-phone-actions {
+  display: flex;
+  gap: 18px;
+}
+.mock-phone-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 70px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mock-phone-btn img {
+  display: block;
+}
+.mock-phone-close {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  transform: rotate(45deg);
+}
+.mock-phone-close::before,
+.mock-phone-close::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 2px;
+  margin: -1px 0 0 -7px;
+  border-radius: 1px;
+  background: #efefef;
+}
+.mock-phone-close::after {
+  transform: rotate(90deg);
+}
+
+/* Light chat and pill sit on white cards with the design's outer
+   shadow. The card itself is the beam's root (it clips its children, so
+   the shadow must live on it): see the [data-voice-type] rules below. */
+html[data-theme="light"] .mock-pill {
+  background: #ffffff;
+  box-shadow:
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .mock-pill-mic { background: #676767; }
+html[data-theme="light"] .mock-pill-time { color: rgba(29, 29, 29, 0.7); }
+html[data-theme="light"] .mock-pill-stop {
+  border-radius: 54px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .mock-pill-stop::after {
+  background: #0f0f0f;
+  opacity: 0.8;
+}
+
+/* The card shadow's outer half, on the beam root that hosts the mock
+   (the root clips its children, so drops can't live on the card); the
+   inset ring and bottom line sit on the card itself. */
+html[data-theme="light"] .pg-stage [data-voice-type="default"],
+html[data-theme="light"] .pg-stage [data-voice-type="pill"] {
+  box-shadow:
+    0 2px 6px 0 rgba(0, 0, 0, 0.02),
+    0 4px 42px 0 rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="light"] .mock-phone {
+  background: #fbfbfc;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+html[data-theme="light"] .mock-phone-prompt { color: #6a6a6a; }
+html[data-theme="light"] .mock-phone-prompt--live { color: #1f1f1f; }
+/* Figma 1567:44762 / 1567:44767: an #fcfcfc button at 30% so the glow
+   reads through, with the same secondary-button shadow as dark (0.5px
+   ring, short drop, white edge light inset); near-black text and icons,
+   the chevron at 40% black (dark uses 40% white). */
+html[data-theme="light"] .mock-phone-agent,
+html[data-theme="light"] .mock-phone-btn {
+  background: rgba(252, 252, 252, 0.3);
+  box-shadow:
+    0 2px 2px -2px rgba(0, 0, 0, 0.04),
+    0 2px 6px -1px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 2px 1px -2px rgba(255, 255, 255, 0.24) inset,
+    1px 2px 1px -2px rgba(255, 255, 255, 0.24) inset,
+    -1px -2px 1px -2px rgba(255, 255, 255, 0.24) inset,
+    0 -2px 1px -2px rgba(255, 255, 255, 0.24) inset;
+}
+html[data-theme="light"] .mock-phone-agent { color: #0d0d0d; }
+html[data-theme="light"] .mock-phone-chevron { background: rgba(0, 0, 0, 0.4); }
+html[data-theme="light"] .mock-phone-btn img { filter: invert(1) brightness(0.15); }
+html[data-theme="light"] .mock-phone-close::before,
+html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
+
+/* The phone is scaled with a transform, which makes it its own stacking
+   context: the effect's layers paint over all of it, buttons included. For
+   the surface looks (dots, lines), the screen's fill moves onto the host and
+   the phone's content rises above the surface canvas (z 4), so the surface
+   runs between the screen and its controls — and the frosted buttons below
+   have it to blur. */
+:is([data-voice-look="dots"], [data-voice-look="lines"]).mock-phone-host {
+  background: #111111;
+}
+html[data-theme="light"] :is([data-voice-look="dots"], [data-voice-look="lines"]).mock-phone-host {
+  background: #fbfbfc;
+}
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-scale {
+  z-index: 5;
+}
+/* html-prefixed to outrank the light theme's own fill. */
+html :is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone {
+  background: transparent;
+}
+
+/* Over the surface the controls are frosted: a backdrop blur (10px unless
+   the host sets --mock-btn-blur — the Studio's Button blur knob) softens the
+   dots or lines passing behind them. The glow look keeps them clear. */
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-vchat-btn,
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-pill-stop,
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-agent,
+:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-btn {
+  -webkit-backdrop-filter: blur(var(--mock-btn-blur, 10px));
+  backdrop-filter: blur(var(--mock-btn-blur, 10px));
+}
+
+/* ── Bot avatars ── */
+/* The team row: four large seats, wrapping on a narrow card. */
+.example-row-full--team { height: auto; min-height: 280px; padding: 40px 32px; }
+.ex-avatars-team {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px 18px;
+  width: 100%;
+}
+.ex-avatars-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 126px;
+  cursor: default;
+}
+.ex-avatars-name { font-size: 12px; line-height: 14px; color: #767676; }
+
+/* Dev switches (localhost / ?dev): shoot the demos without their card or
+   their labels. Nothing here reaches the shipped page — the attributes
+   are only ever written by the dev panel. */
+html[data-demo-fill="off"] .detail-examples .example-row-full,
+html[data-demo-fill="off"] .detail-examples .example-cell {
+  background: transparent;
+  box-shadow: none;
+}
+html[data-demo-names="off"] .ex-avatars-name { display: none; }
+/* Arrange mode: the seats become draggable, so a shot can put the team
+   wherever it wants. The transform rides on top of the layout. */
+.ex-avatars-team[data-arrange="true"] .ex-avatars-seat {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.ex-avatars-team[data-arrange="true"] .ex-avatars-seat:active { cursor: grabbing; }
+
+.example-row-split--avatars { grid-template-columns: 1fr 1fr; }
+.example-row-split--avatars .example-cell { padding: 32px 28px; }
+@media (max-width: 740px) {
+  .example-row-split--avatars { grid-template-columns: 1fr; }
+}
+
+/* The roster: a compact agent list. */
+.mock-bots {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 16px;
+  background: var(--c-mock-bg);
+  box-shadow: inset 0 0 0 1px var(--c-mock-border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.mock-bots-head {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--c-mock-placeholder);
+  padding: 6px 10px 8px;
+}
+.mock-bots-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.mock-bots-row:hover { background: var(--c-mock-chip-bg); }
+.mock-bots-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mock-bots-name { font-size: 13px; font-weight: 500; line-height: 16px; color: var(--c-mock-text-strong); }
+.mock-bots-status {
+  font-size: 12px;
+  line-height: 15px;
+  /* the site's secondary text, so a status reads as secondary here too */
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The working row is the thinking state: the same grey as every other
+   status, with a bright band sweeping across it. Left to the shimmer's
+   own tokens the base turns half-white and that row reads brighter than
+   its neighbours. */
+.mock-bots-status.t-shimmer {
+  display: inline-block;
+  --shimmer-base: var(--text-muted);
+  --shimmer-highlight: #f5f5f5;
+}
+
+/* The thread: a question and the bot's answer. */
+.mock-thread {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mock-thread-user {
+  align-self: flex-end;
+  max-width: 82%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--c-mock-chip-bg);
+  box-shadow: inset 0 0 0 1px var(--c-mock-border);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--c-mock-text-strong);
+}
+.mock-thread-bot { display: flex; align-items: flex-start; gap: 10px; }
+/* The body is the answer's size at all times: a hidden copy of the reply
+   sets it, and what is actually showing — the shimmer or the streaming
+   text — sits on top. Nothing above it moves when the state changes. */
+.mock-thread-body { position: relative; min-height: 32px; padding-top: 1px; }
+.mock-thread-ghost { visibility: hidden; }
+.mock-thread-live { position: absolute; inset: 1px 0 0; display: flex; align-items: flex-start; }
+.mock-thread-body .t-shimmer { font-size: 13px; line-height: 18px; }
+.mock-thread-reply { margin: 0; font-size: 13px; line-height: 18px; color: var(--c-mock-text); }

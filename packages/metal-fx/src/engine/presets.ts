@@ -117,7 +117,7 @@ const CHROMATIC: Preset = {
     // Cool blue burn with the dispersion pushed well past Paper's default —
     // the R/B channel split is the only knob that produces colour separation
     // in this shader, so it carries what the 5-stop palette used to do.
-    dark: { ...BASE, colorTint: '#88ccffcc', shiftRed: 0.75, shiftBlue: 0.75, shaderOpacity: 1 },
+    dark: { ...BASE, colorTint: '#88ccff2e', shiftRed: 0.75, shiftBlue: 0.75, repetition: 2, softness: 0.09, shaderOpacity: 1 },
     light: { ...BASE, colorTint: '#66b0ff99', shiftRed: 0.6, shiftBlue: 0.6, shaderOpacity: 1 },
   },
 };

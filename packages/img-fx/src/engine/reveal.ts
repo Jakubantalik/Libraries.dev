@@ -99,12 +99,30 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
   if (entry) return entry;
   entry = new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
+    const done = (): void => resolve(img);
     img.onerror = (e) => {
       IMAGE_CACHE.delete(src);
       reject(e);
     };
-    img.src = src;
+    // Prefer `decode()`: it resolves once the bitmap is decoded off the main
+    // thread. With plain `onload` the first `drawImage` of a multi-megapixel
+    // photo triggers a synchronous decode on the main thread (tens to
+    // hundreds of ms per image) — one visible hitch per new image, on every
+    // card, which read as the page "freezing" during auto-cycles.
+    if (typeof img.decode === 'function') {
+      img.src = src;
+      img.decode().then(done, () => {
+        // `decode()` can reject for reasons other than a load failure (e.g.
+        // the browser dropped the decoded bitmap under memory pressure). Fall
+        // back to the classic onload path; a real load failure still rejects
+        // via `onerror` above.
+        if (img.complete && img.naturalWidth > 0) done();
+        else img.onload = done;
+      });
+    } else {
+      img.onload = done;
+      img.src = src;
+    }
   });
   IMAGE_CACHE.set(src, entry);
   return entry;
@@ -220,6 +238,69 @@ interface RevealInternals {
   pixDropPatternW: number;
   pixDropPatternH: number;
   pixDropRevealStart: number;
+
+  /** Cover-fit copies of the reveal image(s) at the output canvas size,
+   *  resampled ONCE (high quality) per image × size instead of on every
+   *  frame. Every per-frame `drawImage` of the photo now reads from one of
+   *  these instead of the multi-megapixel source, so the browser's
+   *  multi-pass "high" downsample runs once per reveal, not 10×/s × 2-3
+   *  draws × cards. Slot `a` is the current image, slot `b` the incoming
+   *  (pending) image during a boil handoff. */
+  coverA: CoverBitmap | null;
+  coverB: CoverBitmap | null;
+  /** What the `hold` phase last painted, so the fully-revealed image is
+   *  drawn once and then left alone (it was repainted every tick). */
+  holdPaintedImg: HTMLImageElement | null;
+  holdPaintedW: number;
+  holdPaintedH: number;
+  /** GPU-backed maskSize×maskSize intermediate for the shader sample: the
+   *  WebGL frame is downscaled into this (stays on the GPU) and only this
+   *  small canvas is read back into the CPU-side `sampleCanvas`. Drawing the
+   *  GL canvas straight into a `willReadFrequently` (CPU) canvas forced a
+   *  full iw×ih GPU→CPU readback per sample. */
+  sampleGpuCanvas: HTMLCanvasElement | null;
+  sampleGpuCtx: CanvasRenderingContext2D | null;
+}
+
+interface CoverBitmap {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  img: HTMLImageElement | null;
+  w: number;
+  h: number;
+}
+
+/** Return `img` cover-fitted into a `w × h` canvas, resampling only when the
+ *  image or the size changed since the last call for that slot. */
+function getCoverBitmap(
+  state: RevealInternals,
+  slot: 'a' | 'b',
+  img: HTMLImageElement,
+  w: number,
+  h: number
+): HTMLCanvasElement {
+  let cb = slot === 'a' ? state.coverA : state.coverB;
+  if (!cb) {
+    const canvas = document.createElement('canvas');
+    const c = canvas.getContext('2d');
+    if (!c) throw new Error('img-fx: 2D context unavailable for cover bitmap');
+    cb = { canvas, ctx: c, img: null, w: 0, h: 0 };
+    if (slot === 'a') state.coverA = cb;
+    else state.coverB = cb;
+  }
+  if (cb.img !== img || cb.w !== w || cb.h !== h) {
+    cb.canvas.width = w;
+    cb.canvas.height = h;
+    cb.w = w;
+    cb.h = h;
+    cb.img = img;
+    const { sx, sy, sw, sh } = computeCoverSourceRect(img, w, h);
+    cb.ctx.clearRect(0, 0, w, h);
+    cb.ctx.imageSmoothingEnabled = true;
+    cb.ctx.imageSmoothingQuality = 'high';
+    cb.ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  }
+  return cb.canvas;
 }
 
 function getMaskSize(p: EnginePresetMode): number {
@@ -320,8 +401,23 @@ function sampleShaderField(
   const iw = Math.max(1, Math.floor(inst.cssWidth * inst.dpr));
   const ih = Math.max(1, Math.floor(inst.cssHeight * inst.dpr));
   const sy = Math.max(0, s.glCanvas.height - ih);
+  // Two-stage copy: GL → small GPU-backed canvas (stays on the GPU), then
+  // that maskSize² canvas → the CPU-side scratch. Only the tiny intermediate
+  // is read back, instead of the full iw×ih framebuffer sub-rect.
+  if (!state.sampleGpuCanvas) {
+    state.sampleGpuCanvas = document.createElement('canvas');
+    state.sampleGpuCtx = state.sampleGpuCanvas.getContext('2d');
+  }
+  const gpuCanvas = state.sampleGpuCanvas;
+  const gpuCtx = state.sampleGpuCtx as CanvasRenderingContext2D;
+  if (gpuCanvas.width !== maskSize || gpuCanvas.height !== maskSize) {
+    gpuCanvas.width = maskSize;
+    gpuCanvas.height = maskSize;
+  }
+  gpuCtx.clearRect(0, 0, maskSize, maskSize);
+  gpuCtx.drawImage(s.glCanvas, 0, sy, iw, ih, 0, 0, maskSize, maskSize);
   scratchCtx.clearRect(0, 0, maskSize, maskSize);
-  scratchCtx.drawImage(s.glCanvas, 0, sy, iw, ih, 0, 0, maskSize, maskSize);
+  scratchCtx.drawImage(gpuCanvas, 0, 0);
   // Restore uniforms; the next instance / tick re-uploads its own values
   // before rendering so we don't need to re-render the GL canvas here.
   s.uniforms.u_dotMode.value = origDotMode;
@@ -404,7 +500,7 @@ function paintMaskedFrame(
   if (progress >= 1) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+    ctx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0);
     return;
   }
 
@@ -652,7 +748,7 @@ function paintMaskedFrame(
       // photo for the revealed region.
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+      ctx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0);
     }
     ctx.globalCompositeOperation = 'destination-in';
     // Mask upscale strategy depends on the sampling source:
@@ -778,7 +874,7 @@ function paintPixelatedDropLayer(
   pixCtx.clearRect(0, 0, gridX, gridY);
   pixCtx.imageSmoothingEnabled = true;
   pixCtx.imageSmoothingQuality = 'high';
-  pixCtx.drawImage(img, sx, sy, sw, sh, 0, 0, gridX, gridY);
+  pixCtx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0, targetW, targetH, 0, 0, gridX, gridY);
   // 2. Drop cells whose random threshold has fallen below `fadeT` — those
   //    cells go transparent and the smooth base painted at step 3 shows
   //    through.
@@ -791,7 +887,7 @@ function paintPixelatedDropLayer(
   //    has already dropped out.
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  ctx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0);
   // 4. Chunky pixelated cells (with drops applied) composited on top.
   //    Nearest-neighbour upscale keeps the dot grid blocks crisp.
   ctx.imageSmoothingEnabled = false;
@@ -912,7 +1008,7 @@ function paintPixelMasked(
   pixCtx.clearRect(0, 0, gridX, gridY);
   pixCtx.imageSmoothingEnabled = true;
   pixCtx.imageSmoothingQuality = 'high';
-  pixCtx.drawImage(img, sx, sy, sw, sh, 0, 0, gridX, gridY);
+  pixCtx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0, targetW, targetH, 0, 0, gridX, gridY);
   // 2. Apply per-cell drop mask so dropped cells go transparent.
   //    Mirrors image.html step 2 (line 2671).
   pixCtx.globalCompositeOperation = 'destination-in';
@@ -925,7 +1021,7 @@ function paintPixelMasked(
   //    Mirrors image.html step 3 (line 2678).
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  ctx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0);
   // 4. Composite the still-present pixelated cells on top with crisp blocks
   //    (nearest-neighbour upscale → chunky cells).
   //    Mirrors image.html step 4 (line 2681).
@@ -1247,12 +1343,11 @@ function paintBoilFrame(
   pixCtx.imageSmoothingEnabled = true;
   pixCtx.imageSmoothingQuality = 'high';
   if (blendT < 1) {
-    pixCtx.drawImage(img, sx, sy, sw, sh, 0, 0, gridX, gridY);
+    pixCtx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0, targetW, targetH, 0, 0, gridX, gridY);
   }
   if (pending && blendT > 0) {
-    const n = computeCoverSourceRect(pending.image, targetW, targetH);
     pixCtx.globalAlpha = blendT;
-    pixCtx.drawImage(pending.image, n.sx, n.sy, n.sw, n.sh, 0, 0, gridX, gridY);
+    pixCtx.drawImage(getCoverBitmap(state, 'b', pending.image, targetW, targetH), 0, 0, targetW, targetH, 0, 0, gridX, gridY);
     pixCtx.globalAlpha = 1;
   }
   pixCtx.globalCompositeOperation = 'destination-in';
@@ -1270,17 +1365,16 @@ function paintBoilFrame(
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.globalAlpha = pixInBaseAlpha;
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+    ctx.drawImage(getCoverBitmap(state, 'a', img, targetW, targetH), 0, 0);
     ctx.globalAlpha = 1;
   } else if (resolving && pending && baseT > 0) {
     // Smooth base of the incoming image fades in underneath — visible
     // immediately through the churn gaps (cross-fading the shader away) and
     // wherever a chunky cell has already melted.
-    const n = computeCoverSourceRect(pending.image, targetW, targetH);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.globalAlpha = baseT;
-    ctx.drawImage(pending.image, n.sx, n.sy, n.sw, n.sh, 0, 0, targetW, targetH);
+    ctx.drawImage(getCoverBitmap(state, 'b', pending.image, targetW, targetH), 0, 0);
     ctx.globalAlpha = 1;
   }
   ctx.imageSmoothingEnabled = false;
@@ -1293,6 +1387,7 @@ function paintBoilFrame(
     state.image = pending.image;
     state.pendingReveal = null;
     state.boilHandoffStartMs = 0;
+    state.holdPaintedImg = null;
     state.phase = 'hold';
     shaderCanvas.style.opacity = '0';
     state.onRevealComplete?.();
@@ -1346,7 +1441,14 @@ export function createReveal(opts: CreateRevealOptions): RevealState {
     pixDropPattern: null,
     pixDropPatternW: 0,
     pixDropPatternH: 0,
-    pixDropRevealStart: -1
+    pixDropRevealStart: -1,
+    coverA: null,
+    coverB: null,
+    holdPaintedImg: null,
+    holdPaintedW: 0,
+    holdPaintedH: 0,
+    sampleGpuCanvas: null,
+    sampleGpuCtx: null
   };
 
   const shaderCanvas = opts.shaderCanvas;
@@ -1367,6 +1469,7 @@ export function createReveal(opts: CreateRevealOptions): RevealState {
     // a previous reveal/boil and would be visually misaligned.
     state.sampleFrameCounter = 0;
     state.sampleDataCache = null;
+    state.holdPaintedImg = null;
     ctx!.canvas.style.opacity = '1';
   }
 
@@ -1402,19 +1505,28 @@ export function createReveal(opts: CreateRevealOptions): RevealState {
         // Image fully visible. Re-paint a final stable frame so resizes are
         // honored without re-running the dissolve.
         ctx.canvas.style.filter = 'none';
-        if (
-          ctx.canvas.width !== inst.canvas.width ||
-          ctx.canvas.height !== inst.canvas.height
-        ) {
-          ctx.canvas.width = inst.canvas.width;
-          ctx.canvas.height = inst.canvas.height;
-        }
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const img = state.image;
-        const { sx, sy, sw, sh } = computeCoverSourceRect(img, ctx.canvas.width, ctx.canvas.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, ctx.canvas.width, ctx.canvas.height);
+        const w = inst.canvas.width;
+        const h = inst.canvas.height;
+        if (ctx.canvas.width !== w || ctx.canvas.height !== h) {
+          ctx.canvas.width = w;
+          ctx.canvas.height = h;
+          state.holdPaintedImg = null;
+        }
+        // Paint once per image × size; the held frame is static, so
+        // repainting it every tick was pure waste (a full-canvas
+        // high-quality resample per card, 10×/s, for the whole hold).
+        if (state.holdPaintedImg !== img || state.holdPaintedW !== w || state.holdPaintedH !== h) {
+          ctx.clearRect(0, 0, w, h);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(getCoverBitmap(state, 'a', img, w, h), 0, 0);
+          state.holdPaintedImg = img;
+          state.holdPaintedW = w;
+          state.holdPaintedH = h;
+        }
         shaderCanvas.style.opacity = '0';
       } else if (state.phase === 'boil' && state.image) {
         // Handles the whole regeneration lifecycle including the pending
@@ -1472,6 +1584,7 @@ export function createReveal(opts: CreateRevealOptions): RevealState {
       state.boilPattern = null;
       state.sampleFrameCounter = 0;
       state.sampleDataCache = null;
+      state.holdPaintedImg = null;
       ctx.canvas.style.opacity = '1';
     },
     clear() {
@@ -1486,6 +1599,7 @@ export function createReveal(opts: CreateRevealOptions): RevealState {
       state.image = null;
       state.boilHandoffStartMs = 0;
       state.pendingReveal = null;
+      state.holdPaintedImg = null;
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       if (wasActive) {
         ctx.canvas.style.filter = 'none';
@@ -1516,6 +1630,11 @@ export function createReveal(opts: CreateRevealOptions): RevealState {
       state.boilPattern = null;
       state.boilField = null;
       state.pendingReveal = null;
+      state.coverA = null;
+      state.coverB = null;
+      state.holdPaintedImg = null;
+      state.sampleGpuCanvas = null;
+      state.sampleGpuCtx = null;
     }
   };
 

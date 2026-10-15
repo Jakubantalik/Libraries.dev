@@ -1,0 +1,261 @@
+import type { CanvasHTMLAttributes, CSSProperties } from 'react';
+
+/** The eighteen body shapes. */
+export type BotAvatarType =
+  | 'clover'
+  | 'flower'
+  | 'triangle'
+  | 'square'
+  | 'blob'
+  | 'ghost'
+  | 'circle'
+  | 'drop'
+  | 'star'
+  | 'droid'
+  | 'mech'
+  | 'alien'
+  | 'hexagon'
+  | 'cat'
+  | 'cloud'
+  | 'pill'
+  | 'pebble'
+  | 'puddle';
+
+/**
+ * What the face is made of. The eyes alone by default; `mouth` adds a
+ * small mouth that changes with the state.
+ */
+export type BotAvatarFace = 'eyes' | 'mouth';
+
+/** What the bot is doing. Each state is a pose plus its own motion. */
+export type BotAvatarState = 'default' | 'working' | 'sleeping';
+
+/** How the landing squash of a jump plays out. */
+export type BotAvatarSquashEase = 'sharp' | 'pulse' | 'soft' | 'bouncy';
+
+/**
+ * How the body is lit. `fabric` (default): a plush faux fur — a baked
+ * pillow form under a studio light, fine strands combed down the form and
+ * gathered into lit locks, the silhouette breaking into soft tufts with a
+ * haze of hairs; the eyes turn into glossy beads. `plastic`: the same form
+ * as a real glossy material shaded per pixel — a hot spot and a sheen, a
+ * Fresnel rim, a window reflection, saturated shadows. `crisp`: a lit rim with
+ * a clean edge round the front, vector-style. `smooth`: no edge, a soft
+ * shadow and highlight across the whole form. `flat`: the depth alone, no
+ * lighting.
+ */
+export type BotAvatarShading = 'crisp' | 'smooth' | 'plastic' | 'flat' | 'fabric';
+
+/** Something to wear on the head. */
+export type BotAvatarHat = 'none' | 'beret' | 'beanie' | 'party' | 'crown';
+
+/** Something to wear over the eyes. */
+export type BotAvatarGlasses = 'none' | 'round' | 'square' | 'shades';
+
+export interface BotAvatarPreset {
+  /** Display name, for labels and the default `aria-label`. */
+  label: string;
+  /** The type's own body colour. */
+  color: string;
+  /** The face the type ships with. */
+  face: BotAvatarFace;
+  /** Where the face sits, in the 100×100 body box. */
+  faceX: number;
+  faceY: number;
+  /** Face scale: shapes with a small middle wear a smaller face. */
+  faceScale: number;
+  /** The type's own `brightness` and `saturation`, where the props leave
+      them out (otherwise 1 and 1.5). */
+  brightness?: number;
+  saturation?: number;
+}
+
+export interface BotAvatarProps
+  extends Omit<CanvasHTMLAttributes<HTMLCanvasElement>, 'color' | 'ref'> {
+  /** Body shape. Default `clover`. */
+  type?: BotAvatarType;
+  /**
+   * A custom body outline: SVG path data in the 100×100 body box, centred
+   * on (50, 50), replacing the type's own (and its antennae). The type
+   * still sets the face's place, the default colour and the label, so keep
+   * the outline solid round the face. Default: the type's outline.
+   */
+  path?: string;
+  /** Face kind. Defaults to the type's own. */
+  face?: BotAvatarFace;
+  /** What the bot is doing: `default` (idle), `working` (hopping, spinning) or `sleeping`. */
+  state?: BotAvatarState;
+  /** Rendered size in px, or any CSS length. Default `64`. */
+  size?: number | string;
+  /** Body colour. Defaults to the type's palette colour. */
+  color?: string;
+  /** Face ink. Defaults to dark, or light on a dark body. */
+  ink?: string;
+  /**
+   * Lightness of the body colour: 1 as the palette has it, below 1 darker,
+   * above 1 lighter (0.5–1.5 is the useful range). Default `1`, or the
+   * type's own (the star's is `1.1`).
+   */
+  brightness?: number;
+  /**
+   * Saturation of the body colour: 1 as the palette has it, below 1
+   * duller, above 1 more vivid, 0.5–2.5. Past 1.5, where most of the
+   * palette is already as saturated as a screen shows it, the colour is
+   * pushed along its own hue toward its most vivid shade (deepening by at
+   * most 15% where the screen cannot show it brighter), the shade side
+   * grows richer, and `plastic` and `fabric` keep
+   * more of it in the light — highlights, sheen, rim and fur tips stay
+   * coloured rather than paling toward white. Default `1.5`, or the
+   * type's own (the star's is `1.84`).
+   */
+  saturation?: number;
+  /** Multiplier on every animation's speed. Default `1`. */
+  speed?: number;
+  /** Freeze every animation on its current frame. */
+  paused?: boolean;
+  /**
+   * 0–1. Offsets the blink and glance timing so a row of avatars does not
+   * blink in unison. Defaults to a value derived from the instance id.
+   */
+  seed?: number;
+  /** How the body is lit: `fabric` (default), `plastic`, `crisp`, `smooth`
+   * or `flat`. `true` and `false` mean crisp and flat. */
+  shading?: BotAvatarShading | boolean;
+  /** A hat, sitting on the top of the head and turning with it: `beret`,
+   * `beanie`, `party` or `crown`. Default `none`. */
+  hat?: BotAvatarHat;
+  /** Glasses over the eyes: `round`, `square` or `shades`. Default `none`. */
+  glasses?: BotAvatarGlasses;
+  /** Headphones over the head, a cup on either side. Default `false`. */
+  headphones?: boolean;
+  /** A bow tie under the face. Default `false`. */
+  bowTie?: boolean;
+  /** Colour of the hat, the headphones and the bow tie. Default a soft black. */
+  accessoryColor?: string;
+  /** Strength of the shadow side, 0–2. Default `0.35` (`1.15` for `fabric`). */
+  shadow?: number;
+  /** Strength of the lit side, 0–2. Default `1.3` (`1.45` for `fabric`). */
+  highlight?: number;
+  /** Thickness of the body, 0.2–2: what shows when it turns or flips. Default `0.65`. */
+  depth?: number;
+  /**
+   * `plastic` and `fabric`: the body's profile through its depth, 0–1. At
+   * `1` (default) it is inflated like a cushion or a plush toy — thickest in
+   * the middle and rounding off to nothing at the outline all round, so a
+   * turn shows a round side; toward `0` it becomes a slab with soft edges.
+   */
+  roundness?: number;
+  /** `fabric`: length of the pile, 0.3–2.5. Default `1`. */
+  furLength?: number;
+  /** `fabric`: how many fibres, 0.3–2. Default `1.6`. */
+  furDensity?: number;
+  /** `fabric`: softness of the silhouette — the haze of fine hairs standing past it, 0–1. Default `0.9`. */
+  furFuzz?: number;
+  /** `fabric`: how much the fibres gather into tufts, 0–1. Default `0.4`. */
+  furClumps?: number;
+  /** `fabric`: how wavy the fibres are, 0 (straight) – 1. Default `0.7`. */
+  furCurl?: number;
+  /**
+   * `fabric`: how much the pile hangs, 0–1 — combed down from a parting at
+   * the top, lying over the top edge and hanging off the sides and bottom,
+   * rather than standing out evenly all round. Default `0.9`.
+   */
+  furGravity?: number;
+  /** Where the light comes from, in degrees clockwise from the top. Default `300` (`295` for `fabric`): from the upper left, like a studio key light. */
+  light?: number;
+  /** Width of the lit rim in `crisp` shading, strength of the Fresnel rim in `plastic`, of the back light in `fabric` — the bright rim it wraps round the top and sides, and the glow of the edge's hairs — 0–2. Default `0.5` (`0.6` for `fabric`). */
+  rim?: number;
+  /** `fabric`: where the back light comes from, in degrees clockwise from the top. Default: above the toy, toward the side away from `light`. */
+  backLight?: number;
+  /** `fabric`: how far round to the front the key light sits, in degrees — `0` grazes the toy from the side (dramatic), `85` lights it nearly from the camera (flat). Default `32`. */
+  lightFront?: number;
+  /** `fabric`: strength of the highlights along single fibres where the key grazes the pile, 0–2. Default `0` (off: a soft, matte pile). */
+  shine?: number;
+  /** `fabric`: the smooth, satin sheen over the body's edge — the key's sheen and the back light's band as even gradients, a material shine rather than the fur's own — 0 (matte, only the fibres shine) – 2. Default `0`. */
+  sheen?: number;
+  /** `fabric`: how soft the back light is, 0–1 — `0` a small source caught on single fibres as crisp bright hairs, `1` a large one, an even glow reaching further in from the edge and fading out gently. Default `1`. */
+  backSoftness?: number;
+  /** Reach of the soft shading in `smooth`, width of the highlight in `plastic`, how far the light wraps round in `fabric`, 0.4–2.5. Default `1.55` (`1.6` for `fabric`). */
+  spread?: number;
+  /**
+   * Holds the body at this orientation, in radians — `yaw` turns it to the
+   * viewer's right, `pitch` tips it to look up, `roll` tilts it — in the
+   * state's rest pose, overriding the animation's turns, hops and glances
+   * (and pointer play) while it is set. For turning an avatar round by
+   * hand, as a 3D viewer does; usually with `paused`.
+   */
+  pose?: { yaw?: number; pitch?: number; roll?: number };
+  /**
+   * Pointer play: the eyes and head follow a pointer that comes near, and
+   * a click makes the avatar hop and turn right round. Default `true`.
+   */
+  interactive?: boolean;
+  /**
+   * The surface the avatar sits on, for touches that have to read against
+   * it. `auto` (default) reads an ancestor `data-theme` attribute or
+   * `dark` / `light` class, then `prefers-color-scheme`.
+   */
+  theme?: 'auto' | 'dark' | 'light';
+  /**
+   * How far the head turns from side to side while idle, 0–2: `1` as the
+   * library has it, `0` keeps it facing forward. Default `1`.
+   */
+  turn?: number;
+  /** The whirl round a spin: its strength, 0–2. Off by default (`0`); `1` turns it on. */
+  whirl?: number;
+  /** Size of the whirl's ring, 0.6–1.6. Default `1`. */
+  whirlSize?: number;
+  /** Thickness of the whirl's trail, 0.4–2. Default `1`. */
+  whirlWidth?: number;
+  /** Length of the trail round the ring, 0.4–1.6. Default `1`. */
+  whirlLength?: number;
+  /** How flat the ring is seen, 0.5–1.8 (higher is more open). Default `1`. */
+  whirlTilt?: number;
+  /** The jump (an idle flip, a click): how high, in body units — the body is 100 tall. Default `26`. */
+  jumpHeight?: number;
+  /** Seconds the jump spends in the air. Default `0.68`. */
+  jumpTime?: number;
+  /** How much the body stretches in the air, 0–2. Default `1`. */
+  jumpStretch?: number;
+  /** How much the body squashes on the ground, before take-off and on landing, 0–2. Default `1.15`. */
+  jumpSquash?: number;
+  /** Seconds the landing squash takes, from contact to recovered. Default `0.37`. */
+  jumpSquashTime?: number;
+  /**
+   * How the landing squash plays out: `sharp` (all at once, then eases
+   * off), `pulse` (a quick press that recovers without a wobble, the
+   * default), `soft` (eases in and out), `bouncy` (overshoots into a
+   * stretch and settles).
+   */
+  jumpSquashEase?: BotAvatarSquashEase;
+  /** Seconds a jump holds its deepest squash on the ground before recovering. Default `0.11`. */
+  jumpGroundTime?: number;
+  /**
+   * How the weight settles through that hold, in the same shapes as
+   * `jumpSquashEase`: the body presses a little deeper and comes back to
+   * the held depth, `sharp` at once, `pulse` quickly, `soft` in the
+   * middle, `bouncy` with a wobble. Default `pulse`.
+   */
+  jumpGroundEase?: BotAvatarSquashEase;
+  /** Seconds the body takes to rise from its deepest squash back to its own shape. Default `0.33`. */
+  jumpRiseTime?: number;
+  /**
+   * How it rises: `sharp` lets go at once and eases in to rest, `pulse`
+   * leaves quickly with a long settle, `soft` eases out of the squash and
+   * into rest, `bouncy` passes rest into a slight stretch and settles
+   * back. Default `pulse`.
+   */
+  jumpRiseEase?: BotAvatarSquashEase;
+  /** Seconds a click's jump takes for its landing squash (an idle jump's uses `jumpSquashTime`). Default `0.24`. */
+  jumpClickSquashTime?: number;
+  /** Whole turns made in the air, 0–2. Default `1`. */
+  jumpSpin?: number;
+  /** Degrees of lean into a jump. Default `6`. */
+  jumpLean?: number;
+  /** Seconds between idle jumps, give or take 40 %; 0 for none. Default `8`. */
+  jumpEvery?: number;
+  /** When the landing squash begins: seconds before touch-down (negative, bracing for the ground) or after it. Default `0`, the moment of contact. */
+  jumpLand?: number;
+  className?: string;
+  style?: CSSProperties;
+}

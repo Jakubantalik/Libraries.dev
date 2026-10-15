@@ -3,6 +3,14 @@ import { createRoot } from "react-dom/client";
 import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { ThinkingOrb, type OrbSize, type OrbState } from "thinking-orbs";
+import { MAC_ARROW, isMacPointer } from "./examples/macCursor";
+import { GravityDevPanel } from "./examples/GravityDevPanel";
+import { PgTabs } from "./examples/PgTabs";
+
+/* The tuning panel is a dev tool: localhost, or ?dev anywhere. */
+const SHOW_GRAVITY_DEV =
+  typeof location !== "undefined" &&
+  (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has("dev"));
 
 /* Orb detail page — playground island (stage + controls + live snippet).
    Mirrors the live playground at sites/orbs/components/Playground.tsx:
@@ -38,7 +46,8 @@ const LABEL_OVERRIDES: Partial<Record<OrbState, string>> = {
 
 const cap = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
 
-/* Weaving and shaping live in the Studio, not here. */
+/* Weaving and shaping live in the Studio, not here — the page shows them
+   locked rather than leaving them out. */
 const STATES: OrbState[] = [
   "working",
   "searching",
@@ -48,14 +57,27 @@ const STATES: OrbState[] = [
   "composing",
   "breathing",
 ];
+const STATE_OPTIONS = STATES.map((s) => ({ value: s, label: cap(s) }));
+const STATES_LOCKED = ["Weaving", "Shaping"];
+
 /* Two sizes here; 32px and the speed knob live in the Studio. */
 const SIZES: OrbSize[] = [64, 20];
+const SIZE_OPTIONS = SIZES.map((s) => ({ value: String(s), label: `${s}px` }));
+const SIZES_LOCKED = ["32px"];
 
 
-function buildSnippet(state: OrbState, size: OrbSize): string {
+function buildSnippet(state: OrbState, size: OrbSize, gravity: boolean): string {
   const props = [`state="${state}"`, `size={${size}}`];
-  return `import { ThinkingOrb } from 'thinking-orbs';\n\n<ThinkingOrb ${props.join(" ")} />`;
+  if (gravity) props.push("gravity={{ sprite: macArrow }}");
+  const head = gravity
+    ? "import { ThinkingOrb } from 'thinking-orbs';\n// A raster of the platform's own pointer — see the Gravity docs.\nimport { macArrow } from './cursors';\n\n"
+    : "import { ThinkingOrb } from 'thinking-orbs';\n\n";
+  return `${head}<ThinkingOrb ${props.join(" ")} />`;
 }
+
+/* Gravity needs the platform's own pointer raster; the one bundled here
+   is the macOS arrow, so the toggle only does anything on a Mac. */
+const gravityAvailable = isMacPointer();
 
 function CopyIcon() {
   return (
@@ -79,8 +101,9 @@ function OrbPlayground() {
   /* The stage starts paused — Play opts in. The examples above run on
      their own: they are the library introducing itself. */
   const [paused, setPaused] = useState(true);
+  const [gravity, setGravity] = useState(false);
 
-  const snippet = buildSnippet(state, size);
+  const snippet = buildSnippet(state, size, gravity);
 
   return (
     <>
@@ -94,7 +117,7 @@ function OrbPlayground() {
             <div className="ex-orb-cell ex-orb-cell--hero" key={state}>
               <span className="ex-pill">
                 <ThinkingOrb state={state} size={64} theme="dark" style={{ width: 56, height: 56 }} />
-                {label}
+                <span className="t-shimmer" data-text={label}>{label}</span>
               </span>
             </div>
           ))}
@@ -114,12 +137,12 @@ function OrbPlayground() {
                 {large ? (
                   <span className="ex-pill">
                     <ThinkingOrb state={state} size={64} theme="dark" style={{ width: 56, height: 56 }} />
-                    {cap(copy)}….
+                    <span className="t-shimmer" data-text={`${cap(copy)}….`}>{cap(copy)}….</span>
                   </span>
                 ) : (
                   <span className="ex-chip">
                     <ThinkingOrb state={state} size={20} theme="dark" />
-                    Agent {copy}…
+                    <span className="t-shimmer" data-text={`Agent ${copy}…`}>Agent {copy}…</span>
                   </span>
                 )}
               </div>
@@ -133,7 +156,14 @@ function OrbPlayground() {
       <div className="pg">
       <div className="pg-stage">
         {/* key remounts the canvas on state/size change, matching the live playground */}
-        <ThinkingOrb key={`${state}-${size}`} state={state} size={size} paused={paused} theme="dark" />
+        <ThinkingOrb
+          key={`${state}-${size}`}
+          state={state}
+          size={size}
+          paused={paused}
+          theme="dark"
+          gravity={gravity && gravityAvailable ? { sprite: MAC_ARROW } : false}
+        />
         <button
           type="button"
           className="btn-animate pg-play"
@@ -145,49 +175,51 @@ function OrbPlayground() {
       </div>
 
       <div className="pg-controls">
-        <div className="pg-field" role="radiogroup" aria-label="Orb state">
-          <span className="pg-label">State</span>
+        <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} extra={STATES_LOCKED} />
+
+        <PgTabs
+          label="Size"
+          options={SIZE_OPTIONS}
+          value={String(size)}
+          onChange={(v) => setSize(Number(v) as OrbSize)}
+          extra={SIZES_LOCKED}
+        />
+
+        <div className="pg-field" role="radiogroup" aria-label="Cursor gravity">
+          <span className="pg-label">Cursor gravity</span>
           <div className="pg-tabs">
-            {STATES.map((s) => (
+            {([false, true] as const).map((on) => (
               <button
-                key={s}
+                key={String(on)}
                 type="button"
                 className="pg-tab"
                 role="radio"
-                aria-checked={state === s}
-                data-active={state === s}
-                onClick={() => setState(s)}
+                aria-checked={gravity === on}
+                data-active={gravity === on}
+                onClick={() => setGravity(on)}
               >
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {on ? "On" : "Off"}
               </button>
             ))}
           </div>
+          {gravity && !gravityAvailable && (
+            <span className="pg-note">Draws the macOS pointer, so it only shows on a Mac.</span>
+          )}
         </div>
 
-        <div className="pg-field" role="radiogroup" aria-label="Orb size">
-          <span className="pg-label">Size</span>
-          <div className="pg-tabs">
-            {SIZES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="pg-tab"
-                role="radio"
-                aria-checked={size === s}
-                data-active={size === s}
-                onClick={() => setSize(s)}
-              >
-                {s}px
-              </button>
-            ))}
-          </div>
-        </div>
-
+        {/* What the Studio adds past State, Size and Gravity, in its own
+            order: Motion, Dots (the picker and both density knobs), the
+            Gravity sliders, and a state's Effect settings. Values are the
+            Studio's defaults for the listening / working states. */}
         <StudioTeaser
           rows={[
-            { kind: "tabs", label: "Color", options: ["Ink", "Sky", "Mint"] },
-            { kind: "slider", label: "Dots", value: "1\u00d7", fill: 43 },
-            { kind: "slider", label: "Speed", value: "1\u00d7", fill: 31 },
+            { kind: "slider", label: "Speed", value: "1\u00d7", fill: 27 },
+            { kind: "swatches", label: "Color", colors: ["#ededed", "#7cd4ff", "#ffd28f", "#ff9ec9", "#9fe8a8"] },
+            { kind: "slider", label: "Dots amount", value: "207", fill: 37 },
+            { kind: "slider", label: "Dot size", value: "1\u00d7", fill: 33 },
+            { kind: "slider", label: "Reach", value: "160px", fill: 63 },
+            { kind: "slider", label: "Bend", value: "19px", fill: 79 },
+            { kind: "slider", label: "Orbit paths", value: "50%", fill: 50 },
           ]}
         />
       </div>
@@ -195,6 +227,7 @@ function OrbPlayground() {
       </div>
 
       <CodeBlock code={snippet} label="Copy playground snippet" className="pg-snippet" />
+      {SHOW_GRAVITY_DEV && <GravityDevPanel enabled={gravity} onToggle={setGravity} available={gravityAvailable} />}
     </>
   );
 }

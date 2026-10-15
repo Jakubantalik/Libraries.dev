@@ -137,6 +137,10 @@ html[data-theme="light"] .docs-link-icon[src*="figma-metal"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-metal"] { content: url("/assets/icons/figma-metal-light.png"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-image"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-image"] { content: url("/assets/icons/figma-image-light.png"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-avatars"],
+html[data-theme="light"] .st-lib-ico img[src*="figma-avatars"] { content: url("/assets/icons/figma-avatars-light.svg"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-voice"],
+html[data-theme="light"] .st-lib-ico img[src*="figma-voice"] { content: url("/assets/icons/figma-voice-light.png"); }
 
 
 .docs-main { position: relative; min-width: 0; }
@@ -160,6 +164,24 @@ html[data-theme="light"] .st-lib-ico img[src*="figma-image"] { content: url("/as
 /* Effect icon sits above the name, at the tile art's natural 46px. */
 .detail-icon { width: 46px; height: 46px; display: block; }
 .detail-icon img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 12px; }
+/* The tile as code (Figma 1580:45647): a translucent dark square with the
+   hairline ring, top light and bottom shade, holding the glyph as inline
+   SVG at its own size — inline, because an SVG with filter effects in an
+   <img> is rastered at 1x and comes out soft on dense screens. */
+.detail-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(59, 59, 59, 0.7);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+}
+.detail-tile svg { display: block; }
 /* The image-generation export carries its drop shadow in the bitmap (a
    52px canvas for a 46px tile), so scaled into the box it rendered a size
    smaller than its siblings and the 12px clip cut its shadow. Same fix
@@ -876,10 +898,17 @@ html[data-theme="light"] .st-preset-save:active { background: #fafafa; }
   padding: 0 16px 16px;
   min-height: 196px;
 }
+/* The replica is a hint, not a second panel: it lists everything the
+   Studio adds, but only the first rows are ever legible under the scrim,
+   so the stack is clipped to that depth. Without the cap a long list
+   stretches the whole playground — the grid stretches the stage to match
+   this column. */
 .pg-teaser-locked {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  max-height: 200px;
+  overflow: hidden;
   opacity: 0.2;
   pointer-events: none;
   user-select: none;
@@ -889,6 +918,9 @@ html[data-theme="light"] .st-preset-save:active { background: #fafafa; }
 /* The locked rows never react — freeze the vslider's hover chrome. */
 .pg-teaser-locked .pg-vslider:hover { background: rgba(255, 255, 255, 0.06); }
 .pg-teaser-locked .pg-vslider-fill::after { display: none; }
+/* The locked tabs are divs, not buttons, so they don't centre their text
+   on their own: same 32px pill, label on the middle line. */
+.pg-teaser-locked .pg-tab { display: inline-flex; align-items: center; }
 
 /* Scrim: transparent over the tail of the real controls, solid panel by
    two-thirds down (Figma stops 5% -> 69%). The mask ramps the whole
@@ -1114,6 +1146,125 @@ html[data-theme="dark"] {
   background: var(--pg-control-active-bg);
   color: var(--pg-control-active-text);
   box-shadow: var(--pg-control-active-shadow);
+}
+
+/* A tab the plan does not include: still readable, not selectable, and it
+   says why on hover. It keeps its focus ring so a keyboard reader meets
+   the same note. */
+.pg-tab[data-locked="true"] {
+  position: relative;
+  cursor: not-allowed;
+}
+.pg-tab[data-locked="true"] .pg-tab-label { opacity: 0.4; }
+.pg-tab[data-locked="true"]:hover { color: var(--pg-control-text); }
+
+/* The options this plan does not open: the same pills, shown but out of
+   reach, fading into the panel exactly as the Studio teaser does. */
+.pg-tabs-behind {
+  position: relative;
+  margin-top: 4px;
+  user-select: none;
+  cursor: not-allowed;
+}
+.pg-tabs-behind-clip { max-height: 72px; overflow: hidden; }
+.pg-tabs-behind .pg-tabs { pointer-events: none; }
+.pg-tabs-behind .pg-tab-label { opacity: 0.45; }
+/* Locked pills are divs, so they don't centre their own label. */
+.pg-tabs-behind .pg-tab { display: inline-flex; align-items: center; }
+.pg-tabs-scrim {
+  position: absolute;
+  inset: -4px 0 0;
+  /* The fade starts below the first locked row, so those pills read as
+     pills before the panel takes them. */
+  background: linear-gradient(to bottom, transparent 42%, var(--pg-panel-bg) 96%);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 34%, black 72%);
+  mask-image: linear-gradient(to bottom, transparent 34%, black 72%);
+  pointer-events: none;
+}
+
+/* The locked pill's note, on the tooltip transition from transitions.dev
+   (17-tooltip): a scale-and-fade in after a short delay, and an immediate
+   leave — the delay lives only in the hover rule, so leaving snaps it
+   back to zero. The pill's own look is the site's. */
+:root {
+  --tt-in-dur: 150ms;
+  --tt-out-dur: 50ms;
+  --tt-scale: 0.98;
+  --tt-delay: 80ms;
+  --tt-in-ease: ease-out;
+  --tt-out-ease: ease-out;
+  --tt-bg: #ffffff;
+  --tt-fg: #17181c;
+}
+html[data-theme="dark"] {
+  --tt-bg: #181818;
+  --tt-fg: #e3e3e3;
+}
+
+.pg-lock-note {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translate(-50%, 0) scale(var(--tt-scale));
+  transform-origin: 50% 100%;
+  box-sizing: border-box;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 40px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  background: var(--tt-bg);
+  color: var(--tt-fg);
+  box-shadow:
+    0 2px 8px 0 rgba(0, 0, 0, 0.04),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  /* This rule is the LEAVE state: no delay, so it goes at once. */
+  transition:
+    opacity var(--tt-out-dur) var(--tt-out-ease),
+    transform var(--tt-out-dur) var(--tt-out-ease);
+}
+html[data-theme="dark"] .pg-lock-note {
+  box-shadow:
+    0 1px 16px 0 rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+}
+
+.pg-tabs-behind:hover .pg-lock-note--block,
+.pg-tab[data-locked="true"]:hover .pg-lock-note,
+.pg-tab[data-locked="true"]:focus-visible .pg-lock-note {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-duration: var(--tt-in-dur);
+  transition-timing-function: var(--tt-in-ease);
+  transition-delay: var(--tt-delay);
+}
+
+/* The note for a whole locked block is centred on it, not hung above one
+   pill: the block is what the pointer meets. Written after the hover rule
+   so it takes the transform back. */
+.pg-lock-note--block {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%) scale(var(--tt-scale));
+  transform-origin: 50% 50%;
+}
+.pg-tabs-behind:hover .pg-lock-note--block {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-lock-note { transition: none !important; }
 }
 
 /* Value slider + input (Figma 1418:38136): a 32px block the fill grows
@@ -1461,35 +1612,53 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
 .pg-group { gap: 12px; }
 /* Same 16px under a group title — its own 12px gap plus this. */
 .st-panel-body > .pg-group > .pg-label { margin-bottom: 4px; }
-/* A labeled row inside a group (a swatch row, say) gets the same 16px of
-   air under its label as the group title above it. */
-.pg-group .pg-field > .pg-label { margin-bottom: 8px; }
+/* A labeled row inside a group (a swatch row, say) is the panel's second
+   level of title: its own 12px of air above and 6px under, with the
+   group's gap doing the rest. */
+.pg-group .pg-field > .pg-label { padding: 12px 0 6px; margin-bottom: 0; }
 .pg-group .pg-field::before { content: none; }
 
 /* Color swatch row */
 .pg-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+/* A swatch is a panel-coloured disc with the colour painted on its
+   ::before; a second copy on ::after sits behind the button, 2px larger
+   all round. Selecting insets the colour by 2px and shows the copy, so
+   the chosen one reads as a 2px ring, a 2px panel-coloured gap and a dot
+   — all in its own colour (the marker picker in Agentation's settings), switching at once
+   like a radio — animating the swap flashed. The colour comes in through
+   --swatch; the faint inset ring keeps pale colours visible on the panel. */
 .pg-swatch {
+  position: relative;
   width: 26px;
   height: 26px;
   padding: 0;
   border: 0;
   border-radius: 50%;
+  background: var(--pg-panel-bg);
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px var(--pg-swatch-ring);
-  transition: transform 150ms var(--ease-smooth-out), box-shadow 150ms ease;
   -webkit-tap-highlight-color: transparent;
 }
-.pg-swatch:hover { transform: scale(1.1); }
-.pg-swatch[data-active="true"] {
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
-    0 0 0 2px var(--bg),
-    0 0 0 3.5px #ededed;
+.pg-swatch::before,
+.pg-swatch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--swatch);
 }
-.pg-swatch:focus-visible { outline: 2px solid var(--icon-color); outline-offset: 3px; }
+.pg-swatch::before,
+.pg-swatch::after { box-shadow: inset 0 0 0 1px var(--pg-swatch-ring); }
+.pg-swatch::after {
+  z-index: -1;
+  inset: -2px;
+  opacity: 0;
+}
+.pg-swatch[data-active="true"]::before { inset: 2px; }
+.pg-swatch[data-active="true"]::after { opacity: 1; }
+.pg-swatch:focus-visible { outline: 2px solid var(--icon-color); outline-offset: 4px; }
 /* Custom-color swatch: a rainbow disc that opens the panel picker. */
 .pg-swatch--custom {
-  background: conic-gradient(#f66, #fc6, #ce6, #6d8, #6cd, #86e, #e6c, #f66);
+  --swatch: conic-gradient(#f66, #fc6, #ce6, #6d8, #6cd, #86e, #e6c, #f66);
 }
 
 /* ── Color picker panel ─────────────────────────────────────────
@@ -2010,35 +2179,63 @@ html[data-theme="light"] .st-chat-composer {
 /* ── Docs prose: the written pages in the docs shell ──────────
    Same sidebar + main column as a library page; the main column
    carries prose instead of tabs and panels. */
-.docs-prose { max-width: 686px; }
-.docs-prose > * + * { margin-top: 16px; }
-.docs-prose p { font-size: 14px; line-height: 23px; color: var(--text-muted); }
+/* Typography and colour taken from the transitions.dev doc pages: 14px
+   body on a 22px line in near-white ink (not the dimmer muted token),
+   section titles at 16/24 in the sans, 12px inline code in a 6% chip,
+   12px between the blocks of a section and 32px before the next one. */
+.docs-prose {
+  max-width: 686px;
+  --docs-ink: #3f3f3f;
+  --docs-code-bg: rgba(0, 0, 0, 0.05);
+}
+html[data-theme="dark"] .docs-prose {
+  --docs-ink: #cdcdcd;
+  --docs-code-bg: rgba(255, 255, 255, 0.06);
+}
+.docs-prose > * + * { margin-top: 12px; }
+.docs-prose p { font-size: 14px; line-height: 22px; color: var(--docs-ink); }
 .docs-prose h2 {
-  margin-top: 40px;
-  font-family: "Saans", var(--font-sans);
-  font-size: 20px; font-weight: 500; line-height: 28px;
+  margin-top: 32px;
+  font-family: var(--font-sans);
+  font-size: 16px; font-weight: 500; line-height: 24px;
+  letter-spacing: normal;
   color: var(--text);
 }
-.docs-prose h3 { margin-top: 24px; font-size: 15px; font-weight: 500; line-height: 22px; color: var(--text); }
-/* Inline links: a 50% underline at rest that reaches full ink on hover, like transitions.dev. */
-.docs-prose a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); transition: text-decoration-color 180ms ease; }
+.docs-prose h3 {
+  margin-top: 24px;
+  font-size: 14px; font-weight: 500; line-height: 22px;
+  letter-spacing: normal;
+  color: var(--text);
+}
+/* Inline links: the body's own ink with a 30% underline at rest, full on hover. */
+.docs-prose a {
+  color: var(--docs-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  transition: text-decoration-color 180ms ease;
+}
 .docs-prose a:hover { text-decoration-color: currentColor; }
 .docs-prose code {
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 18px;
-  padding: 2px 6px;
+  padding: 1px 4px;
   border-radius: 6px;
-  background: var(--code-chip-bg);
-  box-shadow: inset 0 0 0 1px var(--code-chip-ring);
+  background: var(--docs-code-bg);
+  box-shadow: none;
   color: var(--text);
 }
 .docs-prose ol, .docs-prose ul { padding-left: 20px; }
-.docs-prose li { font-size: 14px; line-height: 23px; color: var(--text-muted); }
+.docs-prose li { font-size: 14px; line-height: 22px; color: var(--docs-ink); }
 .docs-prose li + li { margin-top: 6px; }
 .docs-prose li strong { color: var(--text); font-weight: 500; }
 
 /* Numbered steps and statement cards share the quote-card material. */
+/* On a written page the subtitle is body copy, not a hero line. */
+.docs-main .detail-sub { font-size: 14px; line-height: 22px; color: #3f3f3f; }
+html[data-theme="dark"] .docs-main .detail-sub { color: #cdcdcd; }
+
 .docs-cards { display: grid; gap: 12px; margin-top: 20px; }
 .docs-card {
   padding: 20px 24px;
@@ -2046,7 +2243,7 @@ html[data-theme="light"] .st-chat-composer {
   background: var(--card-bg);
   box-shadow: inset 0 0 0 1px var(--pg-rule), inset 0 -1px 0 0 var(--pg-rule);
 }
-.docs-card h3 { margin: 0 0 6px; font-size: 15px; font-weight: 500; line-height: 22px; color: var(--text); }
+.docs-card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text); }
 .docs-card p { margin: 0; font-size: 14px; line-height: 22px; }
 .docs-card-step {
   display: inline-flex; align-items: center; justify-content: center;
@@ -2087,3 +2284,75 @@ html[data-theme="light"] .st-core-restore {
 .st-core-restore:hover,
 html[data-theme="dark"] .st-core-restore:hover { background: rgba(255, 255, 255, 0.04); }
 html[data-theme="light"] .st-core-restore:hover { background: rgba(0, 0, 0, 0.04); }
+
+/* A one-line aside under a control, for the case it cannot act on. */
+.pg-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pg-label);
+}
+
+/* ── Gravity dev panel (localhost / ?dev only) ─────────────────────── */
+.gdev {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483000;
+  width: 280px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--pg-panel-bg, #1b1b1b);
+  box-shadow: var(--pg-panel-shadow, 0 4px 42px rgba(0,0,0,.24));
+  font-family: var(--font-sans);
+  color: var(--pg-title);
+}
+.gdev-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gdev-title { font-size: 13px; font-weight: 500; }
+.gdev-actions { display: flex; gap: 4px; }
+.gdev-btn, .gdev-fab {
+  height: 26px; padding: 0 10px; border: 0; border-radius: 60px;
+  background: var(--pg-control-bg); color: var(--pg-control-text);
+  font: 500 12px/16px var(--font-sans); cursor: pointer;
+}
+.gdev-btn:hover, .gdev-fab:hover { background: var(--pg-control-bg-hover); color: var(--pg-control-text-hover); }
+.gdev-fab { position: fixed; right: 16px; bottom: 16px; z-index: 2147483000; }
+/* The demo switches' button has to be findable on a dark page, so it
+   carries the panel's surface and a live dot rather than the 4% wash. */
+.gdev-fab--demo {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 30px; padding: 0 13px;
+  background: var(--pg-panel-bg, #1b1b1b);
+  color: var(--pg-title, #fbfbfb);
+  box-shadow: var(--pg-panel-shadow, 0 4px 42px rgba(0, 0, 0, 0.24));
+}
+.gdev-fab--demo::before {
+  content: "";
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #8ab4ff;
+}
+.gdev-fab--demo:hover { background: var(--pg-panel-bg, #1b1b1b); color: var(--pg-title, #fbfbfb); }
+.gdev-hint { font-size: 11px; line-height: 15px; color: var(--pg-label); }
+.gdev-row { display: flex; flex-direction: column; gap: 4px; }
+.gdev-row-head { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; color: var(--pg-label); }
+.gdev-changed { color: var(--pg-title); }
+.gdev-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gdev-row input[type="range"] { width: 100%; accent-color: #8ab4ff; }
+.gdev-code {
+  display: block; padding: 8px 10px; border-radius: 8px;
+  background: rgba(127,127,127,.12); font: 11px/16px var(--font-mono);
+  color: var(--pg-title); white-space: pre-wrap; word-break: break-all;
+}
+.gdev-btn[data-on="true"] { background: var(--pg-control-active-bg); color: var(--pg-control-active-text); box-shadow: var(--pg-control-active-shadow); }
+.gdev-status { margin: -4px 0 0; font-size: 11px; line-height: 15px; color: var(--pg-label); }
+.gdev-status[data-state="active"] { color: #4ade80; }
+.gdev-status[data-state="blocked"], .gdev-status[data-state="off"] { color: #f59e0b; }
+.gdev-link { padding: 0; border: 0; background: none; color: var(--pg-title); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.gdev-code-row { display: flex; gap: 6px; align-items: flex-start; }
+.gdev-code-row .gdev-code { flex: 1 1 auto; min-width: 0; }

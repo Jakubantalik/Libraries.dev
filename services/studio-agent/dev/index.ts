@@ -62,6 +62,16 @@ export default {
       return new Response(response.body, { status: response.status, headers });
     }
 
+    // The site's Feedback form posts here in local dev; the production
+    // route (libraries-pro API) mails it on. Here it is only logged.
+    if (url.pathname === "/feedback" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      console.log("[feedback:dev]", JSON.stringify(body));
+      return new Response(JSON.stringify({ ok: true, dev: true }), {
+        status: 200,
+        headers: { ...cors, "content-type": "application/json" },
+      });
+    }
     if (url.pathname === "/health") {
       return new Response(
         JSON.stringify({ ok: true, hasKey: !!env.ANTHROPIC_API_KEY }),

@@ -5,18 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-llms.mjs && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "llms": "node scripts/build-llms.mjs"
   },
   "dependencies": {
     "border-beam": "*",
+    "bot-avatars": "*",
     "img-fx": "*",
     "liquid-gooey": "*",
+    "metal-fx": "*",
     "metal-fx-v1": "npm:metal-fx@1.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "thinking-orbs": "*",
+    "voice-glow": "*",
     "three": "^0.149.0"
   },
   "devDependencies": {
