@@ -249,11 +249,21 @@ function calibrate() {
   calibrating = true;
   const ov = document.createElement("div");
   ov.className = "mui-cal";
-  ov.innerHTML = '<div class="mui-cal-ring"><i></i></div><p class="mui-cal-msg"></p><button type="button" class="mui-cal-cancel">Cancel</button>';
+  ov.innerHTML = '<div class="mui-cal-ring"><i></i></div><p class="mui-cal-msg"></p><p class="mui-cal-diag"></p><button type="button" class="mui-cal-cancel">Cancel</button>';
   document.body.appendChild(ov);
   const ring = ov.querySelector<HTMLElement>(".mui-cal-ring")!;
   const fill = ring.querySelector<HTMLElement>("i")!;
   const msg = ov.querySelector<HTMLElement>(".mui-cal-msg")!;
+  const diag = ov.querySelector<HTMLElement>(".mui-cal-diag")!;
+  // What the bridge is sending, so a stall says why: no readings, or still zeroing.
+  let frames = 0, lastFrameAt = performance.now(), lastFrame: MagnetFrame | null = null;
+  const watch = window.setInterval(() => {
+    const quiet = performance.now() - lastFrameAt;
+    const f = lastFrame;
+    diag.textContent = frames === 0 || quiet > 2000
+      ? "No readings from the bridge. Open Magnet Bridge and check it says Bridge: on and Pages: 1."
+      : `Bridge: ${f ? f.strength.toFixed(0) : "–"} µT${f?.calibrating ? " · zeroing" : ""}`;
+  }, 300);
   const spots: CalibrationSpot[] = [];
   let i = 0;
   let hold: MagnetFrame[] = [];
@@ -270,6 +280,7 @@ function calibrate() {
     hold = [];
   };
   const finish = (text: string | null) => {
+    clearInterval(watch);
     bridge.onFrame = null;
     ov.remove();
     calibrating = false;
@@ -277,9 +288,11 @@ function calibrate() {
   };
   ov.querySelector(".mui-cal-cancel")!.addEventListener("click", () => { finish(null); refreshStatus(); });
   msg.textContent = "Keep the magnet away for a moment…";
+  msg.style.top = "40%";
   ring.style.opacity = "0";
 
   bridge.onFrame = (f) => {
+    frames++; lastFrameAt = performance.now(); lastFrame = f;
     if (performance.now() < zeroUntil || f.calibrating) return;
     if (ring.style.opacity === "0") { ring.style.opacity = "1"; place(); }
     if (f.strength < 15) { hold = []; fill.style.transform = "scale(0)"; return; }
