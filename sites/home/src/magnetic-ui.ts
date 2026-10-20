@@ -59,7 +59,7 @@ let bodies: Body[] = [];
 
 /* The library chips: on a phone the sidebar is one sideways-scrolling strip,
    which clips anything that moves out of it. While the magnet acts, the strip
-   is lifted (no clip, no fade) and each chip carries the scroll offset itself;
+   is lifted (no clip; its edge fade kept) and each chip carries the scroll offset itself;
    once they have all settled it scrolls again, where it was. */
 const strip = document.querySelector<HTMLElement>(".docs-sidebar");
 const isStrip = () => !!strip && matchMedia("(max-width: 900px)").matches;
@@ -70,8 +70,17 @@ function lift() {
   if (!strip || lifted) return;
   stripScroll = strip.scrollLeft;
   strip.style.overflow = "visible";
-  strip.style.webkitMaskImage = "none";
-  strip.style.maskImage = "none";
+  // Keep the strip's edge fade. A mask only covers the element's own box, so
+  // the box grows up to the top of the screen and down to its bottom (padding,
+  // cancelled by equal negative margins, so nothing moves): chips that leave
+  // the row stay inside the fade, and it never blinks off and back on.
+  const r = strip.getBoundingClientRect();
+  const cs = getComputedStyle(strip);
+  const up = Math.max(0, Math.ceil(r.top)), down = Math.max(0, Math.ceil(innerHeight - r.bottom));
+  strip.style.paddingTop = `${parseFloat(cs.paddingTop) + up}px`;
+  strip.style.marginTop = `${parseFloat(cs.marginTop) - up}px`;
+  strip.style.paddingBottom = `${parseFloat(cs.paddingBottom) + down}px`;
+  strip.style.marginBottom = `${parseFloat(cs.marginBottom) - down}px`;
   // The unclipped strip is wider than the screen; keep the page from scrolling sideways.
   document.documentElement.style.overflowX = "clip";
   // Chips off screen are not bodies; they still need the scroll offset to stay put.
@@ -86,8 +95,7 @@ function unlift() {
   if (!strip || !lifted) return;
   strip.querySelectorAll<HTMLElement>(".docs-link").forEach((el) => { el.style.transform = ""; });
   strip.style.overflow = "";
-  strip.style.webkitMaskImage = "";
-  strip.style.maskImage = "";
+  strip.style.paddingTop = strip.style.marginTop = strip.style.paddingBottom = strip.style.marginBottom = "";
   strip.scrollLeft = stripScroll;
   document.documentElement.style.overflowX = "";
   lifted = false;
