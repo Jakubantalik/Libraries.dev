@@ -134,6 +134,26 @@
     }
     /* Until the clip has a frame, it sits out of the flow behind the
        placeholder, so a missing file leaves the card, not a black box. */
+    /* Pause/play over the clip: shown on hover (and always on touch screens,
+       which have no hover), and while the clip is paused. */
+    .mui-play {
+      position: absolute; right: 16px; bottom: 16px;
+      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; padding: 0; border: 0; border-radius: 999px;
+      background: rgba(18, 18, 18, 0.62); color: #fff; cursor: pointer;
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      opacity: 0; transform: scale(0.92);
+      transition: opacity 180ms ease, transform 180ms ease, background 140ms ease;
+    }
+    .mui-play:hover { background: rgba(30, 30, 30, 0.75); }
+    .mui-stage:hover .mui-play, .mui-play:focus-visible, .mui-stage[data-paused="true"] .mui-play { opacity: 1; transform: none; }
+    @media (hover: none) { .mui-play { opacity: 1; transform: none; } }
+    .mui-stage:not([data-state="ready"]) .mui-play { display: none; }
+    .mui-play svg { position: absolute; width: 16px; height: 16px; fill: currentColor; transition: opacity 150ms ease, transform 150ms ease; }
+    .mui-play[data-playing="true"] .mui-ico-play,
+    .mui-play[data-playing="false"] .mui-ico-pause { opacity: 0; transform: scale(0.6); }
+    @media (prefers-reduced-motion: reduce) { .mui-play, .mui-play svg { transition: none; } }
     .mui-stage:not([data-state="ready"]) video { position: absolute; inset: 0; height: 100%; opacity: 0; }
     .mui-stage[data-state="ready"] { min-height: 0; }
     .mui-stage[data-state="ready"] .mui-stage-empty { display: none; }
@@ -440,6 +460,10 @@
                  load, the card falls back to the placeholder. -->
             <div class="mui-stage" data-state="ready">
               <video src="/assets/videos/magnetic.mp4" poster="/assets/videos/posters/magnetic.jpg" width="1640" height="1062" muted loop playsinline autoplay preload="auto" aria-label="This page in Chrome on an Android phone: a magnet held beside the phone pulls the header and library chips toward it, and they spring back when it leaves" onerror="this.parentNode.setAttribute('data-state','empty')"></video>
+              <button type="button" class="mui-play" data-playing="true" aria-label="Pause video">
+                <svg class="mui-ico-pause" aria-hidden="true" viewBox="0 0 16 16"><rect x="4" y="3" width="2.75" height="10" rx="1" /><rect x="9.25" y="3" width="2.75" height="10" rx="1" /></svg>
+                <svg class="mui-ico-play" aria-hidden="true" viewBox="0 0 16 16"><path d="M5.25 3.6c0-.6.65-.97 1.17-.66l6.3 3.9c.5.3.5 1.02 0 1.32l-6.3 3.9c-.52.31-1.17-.06-1.17-.66V3.6Z" /></svg>
+              </button>
               <div class="mui-stage-empty">
                 <svg aria-hidden="true" viewBox="0 0 28 28" fill="none"><g stroke="currentColor" stroke-width="2.4"><path d="M7.5 9.3V16A6.5 6.5 0 0 0 20.5 16V9.3"/><path d="M7.5 4.1V7.3M20.5 4.1V7.3"/></g></svg>
                 <span>Video coming soon</span>
@@ -902,11 +926,30 @@ Docs: https://libraries.dev/magnetic.html
   <script type="module" src="/src/magnetic-ui.ts"></script>
   <script src="/assets/pro-client.js" defer></script>
   <script>
-    // Reduced motion: the showcase clip waits for a click instead of playing on its own.
+    // Showcase clip: autoplays on a loop; the button pauses and resumes it.
+    // With reduced motion it waits for the button instead of playing on its own.
     (function () {
-      if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      var v = document.querySelector(".mui-stage video");
-      if (v) { v.removeAttribute("autoplay"); v.pause(); v.controls = true; }
+      var stage = document.querySelector(".mui-stage");
+      var v = stage && stage.querySelector("video");
+      var b = stage && stage.querySelector(".mui-play");
+      if (!v || !b) return;
+      if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        v.removeAttribute("autoplay");
+        v.pause();
+      }
+      var sync = function () {
+        var on = !v.paused;
+        b.setAttribute("data-playing", on ? "true" : "false");
+        b.setAttribute("aria-label", on ? "Pause video" : "Play video");
+        stage.setAttribute("data-paused", on ? "false" : "true");
+      };
+      b.addEventListener("click", function () {
+        if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+        else v.pause();
+      });
+      v.addEventListener("play", sync);
+      v.addEventListener("pause", sync);
+      if (!v.hasAttribute("autoplay")) sync();
     })();
   </script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
