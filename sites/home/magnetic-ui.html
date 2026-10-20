@@ -590,16 +590,6 @@ MetalFx(variant: .circle, source: .magnet) {
               </div>
             </div>
 
-            <div class="st-code-group">
-              <span class="st-code-title">What the locator needs</span>
-              <ul class="mui-list">
-                <li><code>sensorPosition</code> Where the magnetometer sits, in window points. Every iPhone model differs; find it by sliding a magnet over the back of the phone and watching for the peak (on an iPhone 15 Pro it is near the top).</li>
-                <li><code>magnetFace</code> <code>+1</code> north toward the user, <code>-1</code> south. Without it, a magnet beside or above the sensor reads the same as a turned-over one on the other side, and the locator assumes "below the sensor".</li>
-                <li><code>magnetStrength</code> The dipole constant, µT·cm³: a 10×8×2 mm N52 ring is ~6,500, a 12×5 mm disc ~65,000. Unknown, only the direction is sure: a magnet twice as far and eight times as strong reads the same.</li>
-                <li><code>locatorMode</code> <code>.network</code> (default) is best over the glass and copes without the face. <code>.dipole</code> solves the physics directly: it needs the face and works over the glass and beside the phone alike.</li>
-                <li><code>MagnetDipole.learn(field:magnetAt:)</code> Measures the face and strength from one reading with the magnet held over a known spot, so it fits a one-second "hold the magnet here" step in your onboarding.</li>
-              </ul>
-            </div>
 
             <div class="st-code-group">
               <span class="st-code-title">Each reading</span>
