@@ -4,3 +4,7 @@
 # anything already linking to the old path lands on the new one.
 /avatars.html  /bots.html  301
 /avatars       /bots.html  301
+
+# The Magnetic UI page moved from /magnetic-ui to /magnetic.
+/magnetic-ui       /magnetic  301
+/magnetic-ui.html  /magnetic  301
