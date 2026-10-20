@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Magnet Bridge: streams the phone's magnetometer to web pages the user
+     approves, over a WebSocket on the loopback interface (ws://127.0.0.1:47613).
+     Chrome's own Magnetometer API is gated behind a switch no setting can turn
+     on, so a page that wants the magnet asks this app instead. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.libraries.magnetbridge"
+    android:versionCode="4"
+    android:versionName="0.4">
+
+    <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:label="Magnet Bridge"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:allowBackup="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".GrabActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
+        <service
+            android:name=".MagnetService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Streams magnetometer readings to web pages the user approves" />
+        </service>
+    </application>
+</manifest>

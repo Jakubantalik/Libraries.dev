@@ -226,7 +226,7 @@ public struct MetalFx<Content: View>: View {
             .onDisappear {
                 if let id = model.registeredID { MetalFrameStore.shared.unregister(id, model: model) }
                 if model.tiltAttached { MetalTiltSource.shared.detach(); model.tiltAttached = false }
-                if model.magnetAttached { MetalMagnetSource.shared.detach(); model.magnetAttached = false }
+                if model.magnetAttached { MagnetSource.shared.detach(); model.magnetAttached = false }
             }
     }
 }
@@ -246,7 +246,7 @@ extension MetalFx {
             model.tiltAttached = wantTilt
         }
         if wantMagnet != model.magnetAttached {
-            if wantMagnet { MetalMagnetSource.shared.attach() } else { MetalMagnetSource.shared.detach() }
+            if wantMagnet { MagnetSource.shared.attach() } else { MagnetSource.shared.detach() }
             model.magnetAttached = wantMagnet
         }
         model.bend.reset()
@@ -336,7 +336,7 @@ struct MetalFxFrame: View {
             let tiltV = MetalTiltSource.shared.tilt(now: now)
             return model.bend.step(now: now, tilt: tiltV, size: size, radius: radius, cfg: bendConfig)
         case .magnet:
-            let s = MetalMagnetSource.shared.sample(center: model.frame.mfxCenter, now: now)
+            let s = MagnetSource.shared.sample(center: model.frame.mfxCenter, now: now)
             return model.bend.stepMagnet(now: now, sample: s, size: size, radius: radius, cfg: bendConfig)
         case .pointer:
             let local = MetalPointerSource.shared.location.map { CGPoint(x: $0.x - model.frame.minX, y: $0.y - model.frame.minY) }

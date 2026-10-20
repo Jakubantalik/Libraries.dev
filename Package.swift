@@ -25,6 +25,7 @@ let package = Package(
         .library(name: "VoiceGlowKit", targets: ["VoiceGlowKit"]),
         .library(name: "BotAvatarsKit", targets: ["BotAvatarsKit"]),
         .library(name: "MetalFxKit", targets: ["MetalFxKit"]),
+        .library(name: "MagnetKit", targets: ["MagnetKit"]),
     ],
     targets: [
         .target(
@@ -52,8 +53,16 @@ let package = Package(
         ),
         .target(
             name: "MetalFxKit",
+            dependencies: ["MagnetKit"],
             path: "packages/metal-fx/ports/ios/MetalFxKit/Sources/MetalFxKit",
             resources: [.process("MetalFxShaders.metal")]
+        ),
+        // The magnet model and the sensor around it (Magnetic UI), a library of
+        // its own; MetalFxKit's `source: .magnet` rings read it.
+        .target(
+            name: "MagnetKit",
+            path: "packages/metal-fx/ports/ios/MagnetKit/Sources/MagnetKit",
+            resources: [.copy("Magnet.mfxl")]
         ),
     ]
 )

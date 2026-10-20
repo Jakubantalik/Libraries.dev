@@ -1,5 +1,6 @@
 import SwiftUI
 import MetalFxKit
+import MagnetKit
 
 /// The Continue button demo (Figma Portfolio "iPhone 16 & 17 Pro - 13"): an email
 /// pill and a round arrow button at the bottom of a dark page. The arrow
@@ -16,6 +17,8 @@ struct MagnetEmailView: View {
     @State private var showSettings = false
     @State private var training = false
     @State private var sent = false
+    @State private var pressed = false
+    @ObservedObject private var gestures = MagnetGestureFeed.shared
     /// The arrow's centre in global points — training is laid out around it.
     @State private var arrowCenter: CGPoint = .zero
     @FocusState private var emailFocused: Bool
@@ -57,6 +60,7 @@ struct MagnetEmailView: View {
             })
             .presentationDetents([.medium, .large])
         }
+        .onChange(of: gestures.seq) { _, _ in react(gestures.last) }
         .onAppear {
             settings.apply(); MagnetLogger.shared.start()
             if UserDefaults.standard.bool(forKey: "reflDebug") { MetalReflectionDebug.enabled = true }
@@ -121,6 +125,8 @@ struct MagnetEmailView: View {
             }
         }
         .buttonStyle(.plain)
+        .scaleEffect(pressed ? 0.88 : 1)
+        .animation(.spring(response: 0.22, dampingFraction: 0.55), value: pressed)
         .accessibilityLabel("Continue")
         .background {
             GeometryReader { g in
@@ -128,6 +134,26 @@ struct MagnetEmailView: View {
                     arrowCenter = CGPoint(x: f.midX, y: f.midY)
                 }
             }
+        }
+    }
+
+    /// Quick magnet moves: a push presses the arrow, a tap "sends", a pull-away lets go.
+    private func react(_ g: MagnetGesture?) {
+        guard let g else { return }
+        switch g {
+        case .push:
+            pressed = true
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { pressed = false }
+        case .tap:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            withAnimation { sent = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { withAnimation { sent = false } }
+        case .pullAway:
+            pressed = false
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.6)
+        case .swipe:
+            break
         }
     }
 

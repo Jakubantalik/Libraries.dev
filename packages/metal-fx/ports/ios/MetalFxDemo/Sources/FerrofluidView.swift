@@ -1,5 +1,6 @@
 import SwiftUI
 import MetalFxKit
+import MagnetKit
 import simd
 
 /// "Magnet follows": a chrome ring that bends toward a real magnet with the
@@ -32,6 +33,7 @@ struct FerrofluidView: View {
     /// Sensitivity, bend, polarity and trained directions, shared with the other magnet demo.
     @ObservedObject private var settings = MagnetSettings.shared
     @State private var training = false
+    @ObservedObject private var gestures = MagnetGestureFeed.shared
 
     private let page = Color(hex: 0x0B0B0B)
     private let card = Color(hex: 0x161616)
@@ -41,7 +43,7 @@ struct FerrofluidView: View {
 
     private static func initialSource() -> Source {
         if let s = UserDefaults.standard.string(forKey: "source"), let v = Source(rawValue: s.capitalized) { return v }
-        return MetalMagnetSource.shared.isSensorAvailable ? .magnet : .puck
+        return MagnetSource.shared.isSensorAvailable ? .magnet : .puck
     }
 
     private static func initialPuck() -> CGPoint? {
@@ -72,15 +74,15 @@ struct FerrofluidView: View {
         .onAppear { apply(); MagnetLogger.shared.start() }
         .onDisappear {
             MagnetLogger.shared.stop()
-            MetalMagnetSource.shared.simulatedField = nil
-            MetalMagnetSource.shared.simulatedAmbient = nil
+            MagnetSource.shared.simulatedField = nil
+            MagnetSource.shared.simulatedAmbient = nil
             MetalPointerSource.shared.location = nil
         }
         .onChange(of: source) { old, new in
             if old == .puck || new == .puck {
-                MetalMagnetSource.shared.simulatedField = new == .puck ? MetalMagnetSimulator.ambient : nil
-                MetalMagnetSource.shared.simulatedAmbient = new == .puck ? MetalMagnetSimulator.ambient : nil
-                MetalMagnetSource.shared.calibrate()
+                MagnetSource.shared.simulatedField = new == .puck ? MagnetSimulator.ambient : nil
+                MagnetSource.shared.simulatedAmbient = new == .puck ? MagnetSimulator.ambient : nil
+                MagnetSource.shared.calibrate()
             }
             apply()
         }
@@ -140,7 +142,7 @@ struct FerrofluidView: View {
 
     private var hud: some View {
         TimelineView(.periodic(from: .now, by: 1.0 / 15.0)) { ctx in
-            let r = MetalMagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
+            let r = MagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
             let pk = peak.update(r.strength)
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
@@ -167,7 +169,7 @@ struct FerrofluidView: View {
         }
     }
 
-    private func compass(_ r: MetalMagnetReading) -> some View {
+    private func compass(_ r: MagnetReading) -> some View {
         let has = r.toward != .zero && r.pull > 0
         let angle = atan2(r.toward.dy, r.toward.dx)
         return ZStack {
@@ -196,14 +198,16 @@ struct FerrofluidView: View {
         .frame(height: 6)
     }
 
-    private func details(_ r: MetalMagnetReading) -> String {
+    private func details(_ r: MagnetReading) -> String {
         let d = r.delta
         let deg = r.toward == .zero ? "—" : "\(Int((atan2(r.toward.dy, r.toward.dx) * 180 / .pi).rounded()))°"
         let dist = r.distance.isFinite && r.pull > 0 ? String(format: "~%.1f cm", r.distance) : "—"
-        return String(format: "Δ %+.0f %+.0f %+.0f µT", d.x, d.y, d.z) + "  ·  \(deg)  ·  \(dist)  ·  pull \(Int((r.pull * 100).rounded()))%"
+        let motion = abs(r.approachSpeed) > 1 ? String(format: "  ·  %@%.0f cm/s", r.approachSpeed > 0 ? "→" : "←", abs(r.approachSpeed)) : ""
+        let g = gestures.label.isEmpty ? "" : "  ·  " + gestures.label
+        return String(format: "Δ %+.0f %+.0f %+.0f µT", d.x, d.y, d.z) + "  ·  \(deg)  ·  \(dist)  ·  pull \(Int((r.pull * 100).rounded()))%" + motion + g
     }
 
-    private func status(_ r: MetalMagnetReading) -> String {
+    private func status(_ r: MagnetReading) -> String {
         if source == .touch { return "Touch near the ring; the finger pulls like a magnet." }
         if !r.available { return "No magnetometer here — use Puck." }
         if r.calibrating { return "Calibrating — keep magnets away" }
@@ -212,7 +216,7 @@ struct FerrofluidView: View {
         return r.polarity >= 0 ? "Attracting" : "Repelling"
     }
 
-    private func statusColor(_ r: MetalMagnetReading) -> Color {
+    private func statusColor(_ r: MagnetReading) -> Color {
         if r.calibrating || r.moving { return Color(hex: 0xF5C451) }
         return r.pull > 0 && r.polarity < 0 ? Color(hex: 0xFF8A8A) : .white
     }
@@ -236,11 +240,11 @@ struct FerrofluidView: View {
                 Text(String(format: "%.1f×", settings.bendStrength)).font(.system(size: 12, design: .monospaced)).foregroundStyle(secondary).frame(width: 64, alignment: .trailing)
             }
             Picker("Polarity", selection: $settings.polarity) {
-                ForEach(MetalMagnetPolarity.allCases) { p in Text(p.rawValue.capitalized).tag(p) }
+                ForEach(MagnetPolarity.allCases) { p in Text(p.rawValue.capitalized).tag(p) }
             }
             .pickerStyle(.segmented)
             HStack(spacing: 10) {
-                Button { MetalMagnetSource.shared.calibrate(); peak.reset() } label: {
+                Button { MagnetSource.shared.calibrate(); peak.reset() } label: {
                     Label("Calibrate", systemImage: "scope").font(.system(size: 13, weight: .medium))
                         .frame(maxWidth: .infinity).frame(height: 36)
                         .background(chip, in: Capsule())
@@ -306,16 +310,16 @@ struct FerrofluidView: View {
 
     private func feedPuck() {
         guard source == .puck else { return }
-        MetalMagnetSource.shared.simulatedAmbient = MetalMagnetSimulator.ambient
+        MagnetSource.shared.simulatedAmbient = MagnetSimulator.ambient
         guard let p = puck, ringCenter != .zero else {
-            MetalMagnetSource.shared.simulatedField = MetalMagnetSimulator.ambient
+            MagnetSource.shared.simulatedField = MagnetSimulator.ambient
             return
         }
         // The ring's centre plays the sensor (so the bearing is exact), unless
         // `-sensorUp N` moves it N pt up, as on a real phone.
         let sensor = CGPoint(x: ringCenter.x, y: ringCenter.y - UserDefaults.standard.double(forKey: "sensorUp"))
-        let b = MetalMagnetSimulator.field(magnet: p, sensor: sensor, northUp: puckNorthUp)
-        MetalMagnetSource.shared.simulatedField = MetalMagnetSimulator.ambient + b
+        let b = MagnetSimulator.field(magnet: p, sensor: sensor, northUp: puckNorthUp)
+        MagnetSource.shared.simulatedField = MagnetSimulator.ambient + b
     }
 }
 

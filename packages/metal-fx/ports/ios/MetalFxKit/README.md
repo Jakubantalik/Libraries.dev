@@ -42,8 +42,10 @@ is held still. Tune with `MetalBendConfig`; drive it by hand (Simulator,
 tests) through `MetalTiltSource.shared.override`.
 
 ### Magnet
-`MetalFx(source: .magnet)` bends the ring toward a real magnet near the
-phone with the desktop hover bend. The iPhone's magnetometer reads how the
+The magnet comes from MagnetKit (`../MagnetKit`), a library of its own —
+the sensor, the zero, the magnet model and gestures live there; `import
+MetalFxKit` brings it along. `MetalFx(source: .magnet)` bends the ring
+toward a real magnet near the phone with the desktop hover bend. The iPhone's magnetometer reads how the
 magnet bends the field (no permission needed); against a baseline taken
 with no magnet near, the change gives a closeness (a log scale from the
 3 µT noise floor up to `fullScale`, 60 µT by default — a small fridge
@@ -63,7 +65,7 @@ trained, see below) and the magnet's face.
   south face up (`invertPolarity` swaps them). Held high above the phone
   the vertical component reverses, so `.auto` flips there too — use
   `.attract` if that matters.
-- **Calibration:** `MetalMagnetSource.shared.calibrate()` with no magnet
+- **Calibration:** `MagnetSource.shared.calibrate()` with no magnet
   near (it also runs on first attach). It re-zeroes by itself once the
   phone settles in a new pose (`autoRecalibrate`). MagSafe accessories,
   steel tables, laptops and speakers shift the baseline: recalibrate there.
@@ -72,7 +74,7 @@ trained, see below) and the magnet's face.
   than the ring (each model differs), so the raw bearing is off by 20–40°
   for a magnet beside the phone. Record what the field looks like with the
   magnet at a few spots around the phone (`config.templates`, one
-  `MetalMagnetTemplate(angle:field:)` per spot; the demo's "Train
+  `MagnetTemplate(angle:field:)` per spot; the demo's "Train
   directions" walks through 8). The reading is matched against the
   trained spots by its field direction (vertical part down-weighted,
   `templateVerticalWeight`) and its log strength (`templateStrengthWeight`)
@@ -104,8 +106,8 @@ trained, see below) and the magnet's face.
 - **Other drivers:** `source: .pointer` is the finger as the desktop cursor
   (install `.metalPointerTracking()` on a root view); `source:
   .manual(driver)` takes any field (`MetalMagnetDriver` — audio bass, a
-  game). `MetalMagnetSource.shared.simulatedField` feeds a raw field, and
-  `MetalMagnetSimulator.field(magnet:sensor:northUp:)` computes a dipole's,
+  game). `MagnetSource.shared.simulatedField` feeds a raw field, and
+  `MagnetSimulator.field(magnet:sensor:northUp:)` computes a dipole's,
   which is how the demo's draggable puck works in the Simulator.
 
 Bigger rings want bigger numbers: `MetalBendConfig.default.scaled(k)`

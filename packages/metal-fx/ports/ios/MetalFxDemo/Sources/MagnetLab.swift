@@ -1,5 +1,6 @@
 import SwiftUI
 import MetalFxKit
+import MagnetKit
 import simd
 
 // Shared by the magnet demos: persisted settings, direction training, and
@@ -8,7 +9,7 @@ import simd
 /// Trained directions as saved: the spots plus the point their angles are measured from.
 struct SavedDirections: Codable, Equatable {
     var origin: CGPoint?
-    var templates: [MetalMagnetTemplate]
+    var templates: [MagnetTemplate]
 }
 
 /// What drives the magnet demos' rings.
@@ -18,7 +19,7 @@ enum MagnetDrive: String, CaseIterable, Identifiable {
 }
 
 /// App-wide magnet settings, persisted in UserDefaults and pushed into
-/// `MetalMagnetSource.shared.config` on every change.
+/// `MagnetSource.shared.config` on every change.
 final class MagnetSettings: ObservableObject {
     static let shared = MagnetSettings()
     private let d = UserDefaults.standard
@@ -27,7 +28,7 @@ final class MagnetSettings: ObservableObject {
     @Published var fullScale: Double { didSet { d.set(fullScale, forKey: "ferroFullScale"); apply() } }
     /// Bend strength multiplier.
     @Published var bendStrength: Double { didSet { d.set(bendStrength, forKey: "ferroBend") } }
-    @Published var polarity: MetalMagnetPolarity { didSet { d.set(polarity.rawValue, forKey: "ferroPolarity"); apply() } }
+    @Published var polarity: MagnetPolarity { didSet { d.set(polarity.rawValue, forKey: "ferroPolarity"); apply() } }
     @Published var invert: Bool { didSet { d.set(invert, forKey: "ferroInvert"); apply() } }
     @Published var drive: MagnetDrive { didSet { d.set(drive.rawValue, forKey: "magnetDrive") } }
     @Published private(set) var directions: SavedDirections? {
@@ -49,13 +50,13 @@ final class MagnetSettings: ObservableObject {
             d.set(true, forKey: "ferroPolarityV2")
             d.removeObject(forKey: "ferroPolarity")
         }
-        polarity = MetalMagnetPolarity(rawValue: d.string(forKey: "ferroPolarity") ?? "") ?? .attract
+        polarity = MagnetPolarity(rawValue: d.string(forKey: "ferroPolarity") ?? "") ?? .attract
         invert = d.bool(forKey: "ferroInvert")
         drive = MagnetDrive(rawValue: d.string(forKey: "magnetDrive") ?? "")
-            ?? (MetalMagnetSource.shared.isSensorAvailable ? .magnet : .touch)
+            ?? (MagnetSource.shared.isSensorAvailable ? .magnet : .touch)
         if let data = d.data(forKey: "ferroDirections"), let s = try? JSONDecoder().decode(SavedDirections.self, from: data) {
             directions = s
-        } else if let data = d.data(forKey: "ferroTemplates"), let t = try? JSONDecoder().decode([MetalMagnetTemplate].self, from: data), t.count >= 3 {
+        } else if let data = d.data(forKey: "ferroTemplates"), let t = try? JSONDecoder().decode([MagnetTemplate].self, from: data), t.count >= 3 {
             directions = SavedDirections(origin: nil, templates: t)   // older, angle-only training
         } else {
             directions = nil
@@ -65,7 +66,7 @@ final class MagnetSettings: ObservableObject {
 
     var trainedCount: Int { directions?.templates.count ?? 0 }
 
-    func save(_ templates: [MetalMagnetTemplate], origin: CGPoint) {
+    func save(_ templates: [MagnetTemplate], origin: CGPoint) {
         guard templates.count >= 3 else { return }
         directions = SavedDirections(origin: origin, templates: templates)
     }
@@ -74,13 +75,13 @@ final class MagnetSettings: ObservableObject {
 
     /// Push the settings into the shared magnet source.
     func apply() {
-        var cfg = MetalMagnetSource.shared.config
+        var cfg = MagnetSource.shared.config
         cfg.fullScale = fullScale
         cfg.polarity = polarity
         cfg.invertPolarity = invert
         cfg.templates = directions?.templates ?? []
         cfg.templateOrigin = directions?.origin
-        MetalMagnetSource.shared.config = cfg
+        MagnetSource.shared.config = cfg
     }
 
     /// The hover bend for a ring `scale` × the web's 40-pt button, at the chosen strength.
@@ -105,7 +106,7 @@ final class DirectionTrainer: ObservableObject {
     struct Target { let point: CGPoint; let angle: Double; let distance: Double }
     let targets: [Target]
     @Published private(set) var step = 0
-    @Published private(set) var recorded: [MetalMagnetTemplate] = []
+    @Published private(set) var recorded: [MagnetTemplate] = []
     @Published private(set) var progress = 0.0
     @Published private(set) var needsMove = false
     @Published private(set) var strength = 0.0
@@ -130,7 +131,7 @@ final class DirectionTrainer: ObservableObject {
     }
 
     /// Returns true when a spot was recorded this tick.
-    func tick(_ r: MetalMagnetReading, now: Double, threshold: Double) -> Bool {
+    func tick(_ r: MagnetReading, now: Double, threshold: Double) -> Bool {
         let dt = lastT > 0 ? min(0.2, now - lastT) : 1.0 / 30.0
         lastT = now
         if abs(strength - r.strength) > 0.5 { strength = r.strength }
@@ -174,7 +175,7 @@ final class DirectionTrainer: ObservableObject {
         for b in buffer { sum += b.raw }
         let mean = sum / Double(buffer.count) - (ambient ?? (sum / Double(buffer.count) - r.delta))
         let t = targets[step]
-        recorded.append(MetalMagnetTemplate(angle: t.angle, field: mean, distance: t.distance, strength: simd_length(mean)))
+        recorded.append(MagnetTemplate(angle: t.angle, field: mean, distance: t.distance, strength: simd_length(mean)))
         lastAz = meanAz
         lastStrength = simd_length(mean)
         step += 1
@@ -217,8 +218,8 @@ struct MagnetTrainingOverlay: View {
             .onAppear { start(frame) }
         }
         .ignoresSafeArea()
-        .onAppear { MetalMagnetSource.shared.holdBaseline = true }
-        .onDisappear { MetalMagnetSource.shared.holdBaseline = false }
+        .onAppear { MagnetSource.shared.holdBaseline = true }
+        .onDisappear { MagnetSource.shared.holdBaseline = false }
     }
 
     private func start(_ frame: CGRect) {
@@ -322,7 +323,7 @@ private struct TrainingCard: View {
         }
         .onReceive(timer) { date in
             let now = date.timeIntervalSinceReferenceDate
-            let r = MetalMagnetSource.shared.reading(now: now)
+            let r = MagnetSource.shared.reading(now: now)
             if t.tick(r, now: now, threshold: threshold) { haptic.notificationOccurred(.success) }
             finishIfDone()
         }
@@ -351,7 +352,7 @@ struct MagnetSettingsSheet: View {
             Form {
                 Section {
                     TimelineView(.periodic(from: .now, by: 0.1)) { ctx in
-                        let r = MetalMagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
+                        let r = MagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(alignment: .firstTextBaseline) {
                                 Text("\(Int(r.strength.rounded()))").font(.title.weight(.semibold)).monospacedDigit()
@@ -368,7 +369,7 @@ struct MagnetSettingsSheet: View {
                 }
 
                 Section {
-                    Button("Calibrate", systemImage: "scope") { MetalMagnetSource.shared.calibrate() }
+                    Button("Calibrate", systemImage: "scope") { MagnetSource.shared.calibrate() }
                     Button(settings.trainedCount > 0 ? "Retrain directions" : "Train directions", systemImage: "location.north.circle") {
                         dismiss()
                         onTrain()
@@ -397,7 +398,7 @@ struct MagnetSettingsSheet: View {
 
                 Section("Polarity") {
                     Picker("Polarity", selection: $settings.polarity) {
-                        ForEach(MetalMagnetPolarity.allCases) { p in Text(p.rawValue.capitalized).tag(p) }
+                        ForEach(MagnetPolarity.allCases) { p in Text(p.rawValue.capitalized).tag(p) }
                     }
                     .pickerStyle(.segmented)
                     Toggle("Flip faces", isOn: $settings.invert)
@@ -411,7 +412,7 @@ struct MagnetSettingsSheet: View {
                 } header: {
                     Text("Source")
                 } footer: {
-                    Text(MetalMagnetSource.shared.isSensorAvailable
+                    Text(MagnetSource.shared.isSensorAvailable
                          ? "Touch makes your finger the cursor — the desktop hover bend."
                          : "No magnetometer here (Simulator): Touch drives the bend instead.")
                 }
@@ -426,7 +427,7 @@ struct MagnetSettingsSheet: View {
         }
     }
 
-    private func status(_ r: MetalMagnetReading) -> String {
+    private func status(_ r: MagnetReading) -> String {
         if !r.available { return "No magnetometer on this device." }
         if r.calibrating { return "Calibrating — keep magnets away." }
         if r.moving { return "Phone moved — re-zeroing when still." }
@@ -445,7 +446,7 @@ struct MagnetCompass: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0 / 15.0)) { ctx in
-            let r = MetalMagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
+            let r = MagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
             let has = r.toward != .zero && r.pull > 0
             VStack(spacing: 4) {
                 ZStack {
@@ -492,7 +493,9 @@ final class MagnetLogger {
     func start() {
         users += 1
         guard users == 1 else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.tick() }
+        // 50 Hz: fast enough to keep a hand's tremor (the presence network's
+        // main clue), so logs can be replayed through it and used for fine-tuning.
+        timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in self?.tick() }
     }
 
     func stop() {
@@ -504,7 +507,7 @@ final class MagnetLogger {
 
     private func tick() {
         let now = Date().timeIntervalSinceReferenceDate
-        let r = MetalMagnetSource.shared.reading(now: now)
+        let r = MagnetSource.shared.reading(now: now)
         guard r.available else { return }
         rows.append([
             "t": now,
@@ -514,13 +517,44 @@ final class MagnetLogger {
             "angle": r.toward == .zero ? 999 : atan2(r.toward.dy, r.toward.dx) * 180 / .pi,
             "polarity": r.polarity, "trained": r.trained ? 1 : 0,
             "calibrating": r.calibrating ? 1 : 0, "moving": r.moving ? 1 : 0,
+            "presence": r.presence, "tooClose": r.tooClose ? 1 : 0,
+            "sx": r.screenPosition.map { Double($0.x) } ?? -1, "sy": r.screenPosition.map { Double($0.y) } ?? -1, "h": r.height ?? -99,
         ])
-        if rows.count > 1200 { rows.removeFirst(rows.count - 1200) }
-        if now - lastWrite > 2 { write(); lastWrite = now }
+        // The last 2 minutes.
+        if rows.count > 6000 { rows.removeFirst(rows.count - 6000) }
+        if now - lastWrite > 3 { write(); lastWrite = now }
     }
 
     private func write() {
         guard let url, let data = try? JSONSerialization.data(withJSONObject: rows) else { return }
         try? data.write(to: url, options: .atomic)
+    }
+}
+
+// MARK: - Gestures
+
+/// The kit's magnet gestures as observable state for SwiftUI.
+final class MagnetGestureFeed: ObservableObject {
+    static let shared = MagnetGestureFeed()
+    @Published private(set) var last: MagnetGesture?
+    @Published private(set) var seq = 0
+    @Published private(set) var lastAt = Date.distantPast
+
+    private init() {
+        MagnetSource.shared.addGestureHandler { [weak self] g in
+            self?.last = g
+            self?.lastAt = Date()
+            self?.seq += 1
+        }
+    }
+
+    var label: String {
+        guard let last, Date().timeIntervalSince(lastAt) < 2.5 else { return "" }
+        switch last {
+        case .push(let s): return String(format: "Push · %.0f cm/s", s)
+        case .pullAway(let s): return String(format: "Pull away · %.0f cm/s", s)
+        case .tap: return "Tap"
+        case .swipe(let d, let s): return String(format: "Swipe %@ · %.0f cm/s", abs(d.dx) > abs(d.dy) ? (d.dx > 0 ? "→" : "←") : (d.dy > 0 ? "↓" : "↑"), s / 60.4)
+        }
     }
 }

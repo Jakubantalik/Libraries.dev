@@ -9,9 +9,15 @@ let package = Package(
     products: [
         .library(name: "MetalFxKit", targets: ["MetalFxKit"])
     ],
+    dependencies: [
+        // The magnet (sensor, zero, model, gestures) is a library of its own;
+        // rings with `source: .magnet` read it.
+        .package(path: "../MagnetKit"),
+    ],
     targets: [
         .target(
             name: "MetalFxKit",
+            dependencies: [.product(name: "MagnetKit", package: "MagnetKit")],
             resources: [
                 // Compiled into the bundle's default.metallib by Xcode's build
                 // system (SwiftPM alone leaves it uncompiled — build the

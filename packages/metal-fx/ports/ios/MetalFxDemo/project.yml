@@ -8,6 +8,8 @@ options:
 packages:
   MetalFxKit:
     path: ../MetalFxKit
+  MagnetKit:
+    path: ../MagnetKit
 
 targets:
   MetalFxDemo:
@@ -18,12 +20,17 @@ targets:
     dependencies:
       - package: MetalFxKit
         product: MetalFxKit
+      - package: MagnetKit
+        product: MagnetKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Liquid metal
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
+        INFOPLIST_KEY_UIFileSharingEnabled: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         PRODUCT_BUNDLE_IDENTIFIER: com.jakubantalik.MetalFxDemo
         SWIFT_VERSION: "5.0"
