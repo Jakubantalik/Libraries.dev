@@ -23,3 +23,10 @@
   Content-Type: text/plain; charset=utf-8
 /llms/*
   Content-Type: text/markdown; charset=utf-8
+
+# The Magnet Bridge app for the Magnetic UI live demo: an Android package,
+# downloaded (not opened) and always the latest build.
+/downloads/*.apk
+  Content-Type: application/vnd.android.package-archive
+  Content-Disposition: attachment
+  Cache-Control: public, max-age=0, must-revalidate

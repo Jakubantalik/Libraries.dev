@@ -1603,11 +1603,9 @@
 
     /* ─── Footer (Figma 2332:3466) ────────────────────────────── */
     .footer {
-      /* Matches the homepage card grid's rendered width (320px × 3 +
-         24px × 2 gaps = 1008px) so the footer's edges line up with the
-         content above it, site-wide. */
+      /* Spans the .app column like .site-nav-inner, so its edges line up
+         with the top bar's brand and actions. */
       width: 100%;
-      max-width: 1008px;
       margin: 112px auto 0;
       padding: 0 0 40px;
       font-family: var(--font-sans);

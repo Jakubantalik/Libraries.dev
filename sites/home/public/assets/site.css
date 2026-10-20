@@ -1692,9 +1692,10 @@ html[data-theme="dark"] .btn-animate:disabled:hover {
 }
 
 /* ─── Footer ──────────────────────────────────────────────── */
+/* Spans the .app column like .site-nav-inner, so its edges line up with
+   the top bar's brand and actions on every page and at every width. */
 .footer {
   width: 100%;
-  max-width: 1008px;
   margin: 112px auto 0;
   padding: 0 0 40px;
   font-family: var(--font-sans);
@@ -1796,7 +1797,6 @@ html[data-theme="dark"] .footer-name:hover {
 @media (max-width: 1100px) {
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 664px; }
   .cards > .lib-card { grid-column: span 1; }
-  .footer { max-width: 664px; }
 }
 @media (max-width: 900px) {
   .nav-search-label, .nav-search-kbd { display: none; }

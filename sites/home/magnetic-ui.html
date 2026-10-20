@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- First-paint guard. Firefox has painted a frame before the stylesheets
+       applied on cached navigations (brand mark at full width, skip link in
+       view, menus open). These few rules make that frame harmless; site.css
+       overrides every one of them once it lands. -->
+  <style>
+    .skip-link { position: absolute; left: -9999px; }
+    .brand-mark svg, .footer-brand-logo svg { width: 22px; height: 14px; }
+    .mobile-menu, .mobile-menu-backdrop, .tl-menu, .t-dropdown { display: none; }
+  </style>
+  <!-- Paint gate. Firefox has painted before the external stylesheets applied
+       on navigation, so the body stays invisible on the site's ground until
+       every local sheet has loaded (script below); a 1.5s timeout reveals it
+       regardless, so a failed sheet can never leave the page blank. -->
+  <style>
+    html { background: #121212; }
+    html:not(.css-ready) body { visibility: hidden; }
+  </style>
+  <meta name="color-scheme" content="dark" />
+
+  <title>Magnetic UI: on-device magnet tracking for SwiftUI | Libraries.dev</title>
+  <meta
+    name="description"
+    content="Magnetic UI: one small on-device model that reads the iPhone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained only on simulated physics."
+  />
+  <meta
+    name="keywords"
+    content="magnet tracking, magnetometer, ios magnet, magnetic ui, on-device model, air tap, swiftui interaction, core motion"
+  />
+  <meta name="author" content="Libraries.dev" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="googlebot" content="index, follow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#121212" />
+  <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
+  <meta name="application-name" content="Libraries.dev" />
+
+  <link rel="canonical" href="https://libraries.dev/magnetic-ui" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/magnetic-ui" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/magnetic-ui" />
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/favicon.svg" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Libraries.dev" />
+  <meta property="og:url" content="https://libraries.dev/magnetic-ui" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Magnetic UI: on-device magnet tracking for SwiftUI" />
+  <meta property="og:description" content="Magnetic UI: one small on-device model that reads the iPhone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained only on simulated physics." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta name="twitter:title" content="Magnetic UI: on-device magnet tracking for SwiftUI" />
+  <meta name="twitter:description" content="Magnetic UI: one small on-device model that reads the iPhone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained only on simulated physics." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="preload"
+    as="font"
+    type="font/woff2"
+    href="/assets/fonts/Saans-Medium.woff2"
+    crossorigin
+  />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/playground.css" />
+  <link rel="stylesheet" href="/assets/examples.css" />
+  <script>
+    (function () {
+      var h = document.documentElement;
+      var links = [].slice.call(document.querySelectorAll('link[rel="stylesheet"][href^="/assets/"]'));
+      var reveal = function () { h.classList.add("css-ready"); };
+      if (!links.length) return reveal();
+      var pending = links.length;
+      var done = function () { if (--pending <= 0) reveal(); };
+      links.forEach(function (l) {
+        if (l.sheet) return done();
+        l.addEventListener("load", done);
+        l.addEventListener("error", done);
+      });
+      setTimeout(reveal, 1500);
+    })();
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* Copy-button icon crossfade, as beam and gooey do it. The older
+       display:none swap lost to playground.css's `.code-block .code-copy svg
+       { display: block }` once these buttons moved onto the Studio's stage
+       card, and both icons showed at once; opacity has nothing to fight. */
+    .code-copy svg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+    }
+    .code-copy .icon-check { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
+    .code-copy[data-copied="true"] .icon-copy { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
+    .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+    #playground { margin-top: 0; scroll-margin-top: 24px; }
+
+    /* Magnetic UI is a model, not a component: no playground, so the
+       preview is the showcase video on the stage card, then the model. */
+    .mui-stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 420px;
+      border-radius: 16px;
+      background: var(--stage-bg);
+      overflow: hidden;
+    }
+    html[data-theme="dark"] .mui-stage { background: #171717; }
+    @media (max-width: 600px) { .mui-stage { min-height: 300px; } }
+    /* Natural aspect, capped by the card: a landscape clip runs edge to
+       edge, a portrait screen recording stands centred on the card. */
+    .mui-stage video {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 760px;
+    }
+    /* Until the clip has a frame, it sits out of the flow behind the
+       placeholder, so a missing file leaves the card, not a black box. */
+    .mui-stage:not([data-state="ready"]) video { position: absolute; inset: 0; height: 100%; opacity: 0; }
+    .mui-stage[data-state="ready"] { min-height: 0; }
+    .mui-stage[data-state="ready"] .mui-stage-empty { display: none; }
+    .mui-stage-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--pg-label);
+      font-size: 13px;
+      line-height: 18px;
+    }
+    .mui-stage-empty svg { width: 40px; height: 40px; opacity: 0.6; }
+
+    /* Below the clip the page reads like the Accessibility doc: one
+       column of prose and stacked statement cards. */
+    .mui-doc .mui-doc-meta { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+    .mui-doc strong { font-weight: 500; color: var(--text); }
+    /* Sub-titles wear the section title's type (The model, Built for the phone). */
+    .mui-doc h3 { font-size: 16px; line-height: 24px; }
+    .mui-list code, .mui-table code {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: var(--code-chip-bg);
+      color: var(--pg-title);
+      white-space: nowrap;
+    }
+
+    /* Install & Usage: reference rows under the code, on the same card. */
+    .mui-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .mui-list li { font-size: 13px; line-height: 20px; color: var(--pg-label); }
+    .mui-list li > code:first-child { margin-right: 4px; }
+    .mui-table-wrap { overflow-x: auto; }
+    .mui-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 20px; }
+    .mui-table th {
+      text-align: left;
+      font-weight: 400;
+      font-size: 12px;
+      color: var(--text-subtle);
+      padding: 0 12px 8px 0;
+    }
+    .mui-table td {
+      vertical-align: top;
+      padding: 8px 12px 8px 0;
+      color: var(--pg-label);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    html[data-theme="light"] .mui-table td { border-top-color: rgba(0, 0, 0, 0.06); }
+    .mui-table td:first-child { width: 1%; white-space: nowrap; }
+
+    /* Real-magnet card and its calibration screen. */
+    .mui-live {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      margin-top: 12px; padding: 16px 20px; border-radius: 16px; background: var(--stage-bg);
+    }
+    .mui-live[hidden] { display: none; }
+    html[data-theme="dark"] .mui-live { background: #171717; }
+    .mui-live-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; line-height: 20px; color: var(--text-muted); }
+    .mui-live-text strong { font-weight: 500; color: var(--text); }
+    .mui-live-actions { display: flex; gap: 8px; }
+    .mui-live-link { color: var(--text); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); }
+    .mui-live-link:hover { text-decoration-color: currentColor; }
+    .mui-live-btn {
+      height: 36px; padding: 0 16px; border: 0; border-radius: 999px;
+      background: var(--chip-bg); color: var(--text); font: 500 13px/1 var(--font-sans); cursor: pointer;
+    }
+    .mui-live-btn[hidden] { display: none; }
+    .mui-cal { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.94); color: #fff; touch-action: none; }
+    .mui-cal-ring {
+      position: absolute; width: 72px; height: 72px; margin: -36px; border-radius: 50%;
+      box-shadow: inset 0 0 0 3px #fff; transition: left 300ms ease, top 300ms ease;
+    }
+    .mui-cal-ring i { position: absolute; inset: 10px; border-radius: 50%; background: #4f9cff; transform: scale(0); }
+    .mui-cal-msg { position: absolute; left: 16px; right: 16px; margin: 0; text-align: center; font: 500 16px/24px var(--font-sans); }
+    .mui-cal-cancel {
+      position: absolute; left: 50%; bottom: 32px; transform: translateX(-50%);
+      height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: #2a2a2a; color: #fff; font: 500 14px/1 var(--font-sans);
+    }
+  </style>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareSourceCode",
+      "@id": "https://libraries.dev/magnetic-ui#model",
+      "name": "Magnetic UI",
+      "description": "Magnetic UI: one small on-device model that reads the iPhone's magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained only on simulated physics.",
+      "url": "https://libraries.dev/magnetic-ui",
+      "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
+      "programmingLanguage": [
+        "Swift"
+      ],
+      "runtimePlatform": "iOS",
+      "license": "https://opensource.org/licenses/MIT",
+      "isAccessibleForFree": true,
+      "author": {
+        "@type": "Person",
+        "name": "Jakub Antalik",
+        "url": "https://x.com/jakubantalik"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Libraries.dev",
+          "item": "https://libraries.dev/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Magnetic UI",
+          "item": "https://libraries.dev/magnetic-ui"
+        }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#playground">Skip to content</a>
+  <main id="main" class="app">
+    <header class="site-nav">
+      <div class="site-nav-inner">
+        <div class="site-nav-left">
+          <a class="brand" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <nav class="site-nav-menu" aria-label="Primary">
+            <a class="nav-pill nav-pill--active" href="/beam.html">Libraries</a>
+            <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill" href="/skill.html">Skill</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
+            <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
+          </nav>
+        </div>
+        <div class="site-nav-right">
+          <a class="nav-get-pro" href="/pro.html"><span class="nav-get-pro-label"><span class="nav-get-pro-word">Get </span>Pro</span></a>
+          <a
+            class="icon-btn-pill"
+            id="gh-stars-btn"
+            href="https://github.com/Jakubantalik/Libraries.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub repository — star count"
+            data-loading="true"
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="pill-label" id="gh-stars-count">—</span>
+          </a>
+          <div class="pm-anchor" id="more-anchor">
+            <button type="button" class="icon-btn" id="more-btn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 8C6.66667 7.26362 7.26362 6.66667 8 6.66667C8.73638 6.66667 9.33333 7.26362 9.33333 8C9.33333 8.73638 8.73638 9.33333 8 9.33333C7.26362 9.33333 6.66667 8.73638 6.66667 8Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 3.33333C6.66667 2.59695 7.26362 2 8 2C8.73638 2 9.33333 2.59695 9.33333 3.33333C9.33333 4.06971 8.73638 4.66667 8 4.66667C7.26362 4.66667 6.66667 4.06971 6.66667 3.33333Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 12.6667C6.66667 11.9303 7.26362 11.3333 8 11.3333C8.73638 11.3333 9.33333 11.9303 9.33333 12.6667C9.33333 13.403 8.73638 14 8 14C7.26362 14 6.66667 13.403 6.66667 12.6667Z" fill="currentColor"/>
+              </svg>
+            </button>
+            <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn nav-burger"
+            id="nav-burger"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="nav-burger-box" aria-hidden="true">
+              <span class="nav-burger-line nav-burger-line--top"></span>
+              <span class="nav-burger-line nav-burger-line--bottom"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+        <ul class="mobile-menu-list">
+          <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+        </ul>
+        <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
+      </nav>
+    </header>
+
+    <div class="docs" id="docs">
+      <aside class="docs-sidebar">
+        <div class="docs-group docs-group--links">
+          <div class="docs-group-label">Getting started</div>
+          <a class="docs-link docs-link--muted" href="/introduction.html">Introduction</a>
+          <a class="docs-link docs-link--muted" href="/accessibility.html">Accessibility</a>
+        </div>
+        <div class="docs-group">
+          <div class="docs-group-label">Libraries</div>
+          <nav class="docs-list" aria-label="Libraries">
+            <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
+            <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
+            <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link" href="/bots.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
+            <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
+            <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
+          </nav>
+        </div>
+        <div class="docs-group">
+          <div class="docs-group-label">Models</div>
+          <nav class="docs-list" aria-label="Models">
+            <a class="docs-link is-active" href="/magnetic-ui.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-magnetic.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Magnetic UI</a>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="docs-main">
+        <div class="detail-topbar">
+          <a class="detail-arrow" href="/image.html" aria-label="Previous library: Image">
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.667 8H3.333M6.667 4.667 3.333 8l3.334 3.333" /></svg>
+          </a>
+          <a class="detail-arrow" href="/beam.html" aria-label="Next library: Beam">
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.333 8h9.334M9.333 4.667 12.667 8l-3.334 3.333" /></svg>
+          </a>
+        </div>
+
+        <header class="detail-head">
+          <div class="detail-titles">
+            <span class="detail-icon" aria-hidden="true"><img src="/assets/icons/tile-magnetic.svg" alt="" width="46" height="46" decoding="async" /></span>
+            <h1 class="detail-title">Magnetic UI</h1>
+            <p class="detail-sub">Interfaces that feel a magnet. One small on-device model reads the iPhone's magnetometer and tells your views where the magnet is, whether it is really there, and when it taps the air. Input for any view or library.</p>
+          </div>
+
+          <div class="detail-head-row">
+            <div class="detail-tabs proto-modal-tabs" data-detail-tabs role="tablist" aria-label="View">
+              <span class="proto-modal-tabs-indicator" aria-hidden="true"></span>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="preview" aria-selected="true">Preview</button>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install &amp; Usage</button>
+            </div>
+
+            <div class="detail-head-actions">
+              <button type="button" class="detail-prompt" data-prompt-target="#agent-prompt" aria-label="Copy agent prompt">
+                <span class="detail-prompt-ico" aria-hidden="true">
+                  <!-- copy-03, exported from Figma 1419:38547. -->
+                  <svg class="icon-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5.6 5.6V3.92C5.6 3.24794 5.6 2.91191 5.73079 2.65521C5.84584 2.42942 6.02942 2.24584 6.25521 2.13079C6.51191 2 6.84794 2 7.52 2H12.08C12.7521 2 13.0881 2 13.3448 2.13079C13.5706 2.24584 13.7542 2.42942 13.8692 2.65521C14 2.91191 14 3.24794 14 3.92V8.48C14 9.15206 14 9.4881 13.8692 9.74479C13.7542 9.97058 13.5706 10.1542 13.3448 10.2692C13.0881 10.4 12.7521 10.4 12.08 10.4H10.4M3.92 14H8.48C9.15206 14 9.48809 14 9.74479 13.8692C9.97058 13.7542 10.1542 13.5706 10.2692 13.3448C10.4 13.0881 10.4 12.7521 10.4 12.08V7.52C10.4 6.84794 10.4 6.51191 10.2692 6.25521C10.1542 6.02942 9.97058 5.84584 9.74479 5.73079C9.48809 5.6 9.15206 5.6 8.48 5.6H3.92C3.24794 5.6 2.91191 5.6 2.65521 5.73079C2.42942 5.84584 2.24584 6.02942 2.13079 6.25521C2 6.51191 2 6.84794 2 7.52V12.08C2 12.7521 2 13.0881 2.13079 13.3448C2.24584 13.5706 2.42942 13.7542 2.65521 13.8692C2.91191 14 3.24794 14 3.92 14Z" />
+                  </svg>
+                  <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+                </span>
+                <span class="detail-prompt-label">Copy prompt</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="detail-body">
+          <div class="detail-panel" id="playground" data-detail-panel="preview">
+            <!-- Showcase clip. Drop the file at public/assets/videos/magnetic-ui.mp4;
+                 until it loads, the card shows the placeholder instead. Run
+                 scripts/posters/build.sh afterwards for its poster. -->
+            <div class="mui-stage" data-state="empty">
+              <video src="/assets/videos/magnetic-ui.mp4" muted loop playsinline autoplay preload="auto" aria-label="Magnetic UI on an iPhone: a wallet screen whose elements are pulled toward a magnet beside the phone, then spring back" onloadeddata="this.parentNode.setAttribute('data-state','ready')"></video>
+              <div class="mui-stage-empty">
+                <svg aria-hidden="true" viewBox="0 0 28 28" fill="none"><g stroke="currentColor" stroke-width="2.4"><path d="M7.5 9.3V16A6.5 6.5 0 0 0 20.5 16V9.3"/><path d="M7.5 4.1V7.3M20.5 4.1V7.3"/></g></svg>
+                <span>Video coming soon</span>
+              </div>
+            </div>
+
+            <!-- Live demo with a real magnet (Android): the Magnet Bridge app runs the
+                 model on the phone and this page pulls its header toward the magnet.
+                 Shown on desktop and Android, hidden on iPhone and iPad. -->
+            <div class="mui-live" id="mui-live" hidden>
+              <div class="mui-live-text">
+                <strong>Try the live demo with this page</strong>
+                <span id="mui-live-status">Android only. Install the <a class="mui-live-link" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app</a>, tap Start bridge, then connect.</span>
+              </div>
+              <div class="mui-live-actions">
+                <button type="button" class="mui-live-btn" id="mui-live-connect">Connect</button>
+                <button type="button" class="mui-live-btn" id="mui-live-calibrate" hidden>Calibrate</button>
+              </div>
+            </div>
+
+            <div class="docs-prose mui-doc">
+              <h2>The model</h2>
+              <p>One model reads the magnetometer every frame and answers three things. It is input only: pair it with any view or library.</p>
+              <p class="mui-doc-meta"><code>Magnet.mfxl</code> · v1.0 · 2 MB · MagnetKit</p>
+
+              <h3>Where the magnet is</h3>
+              <ul>
+                <li><strong>Reads</strong> One magnetometer change, plus the magnet's face and strength when you know them.</li>
+                <li><strong>Answers</strong> Position in screen points, height above the glass, and its own uncertainty, over the screen or beside the phone.</li>
+                <li><strong>Tested</strong> Real iPhone 15 Pro, median error: 1.2 cm over the screen, 2.0–2.7 cm with the magnet 1.5 cm beside the phone.</li>
+              </ul>
+              <h3>Whether it is really there</h3>
+              <ul>
+                <li><strong>Reads</strong> The last 15 s of the field, and whether the phone was overloaded since its last zero.</li>
+                <li><strong>Answers</strong> Presence (0–1) and the phone's own offset, so leftovers are cleared and a resting magnet is kept.</li>
+                <li><strong>Tested</strong> Real iPhone 15 Pro: a magnet taken away after an overload recognised as gone 96–100 % of the time.</li>
+              </ul>
+              <h3>Air taps</h3>
+              <ul>
+                <li><strong>Reads</strong> The last 1.28 s at 50 Hz. In a dip the field barely turns; in a sweep or a flick it does.</li>
+                <li><strong>Answers</strong> A tap, about 0.1 s before the hand is back, with where it landed.</li>
+                <li><strong>Tested</strong> Real iPhone 15 Pro: 11 of 11 taps over the top half, no false tap in 34 near misses.</li>
+              </ul>
+              <p>Inside: three parts in one file, ~990k weights in half precision, run with Accelerate on every frame.</p>
+
+              <h2>Built for the phone</h2>
+              <h3>Trained on physics, not people</h3>
+              <p>The model learned from simulated magnets only: sizes from a small ring to a large N52 block, every tilt and face, with sensor noise, drift and leftovers. Its simulator is fitted to real recordings. No user data.</p>
+              <h3>On the phone, every frame</h3>
+              <p>A 2 MB model in half precision, run with Accelerate. Nothing to download, no server, no network request.</p>
+              <h3>No permission prompt</h3>
+              <p>The magnetometer is open to every app, so the magnet works the moment the screen appears.</p>
+              <h3>Any magnet</h3>
+              <p>A fridge magnet works; a small neodymium ring works best. iPhone, iOS 17 or newer.</p>
+            </div>
+          </div>
+
+          <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
+          <div class="st-stage-panel">
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre id="install-code">// Package.swift, or in Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: &quot;https://github.com/Jakubantalik/Libraries.dev&quot;, branch: &quot;main&quot;)
+// …and in your target&#x27;s dependencies:
+.product(name: &quot;MagnetKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">iOS 17+, iPhone. MagnetKit is a library of its own: the model ships inside it (one 2 MB file) and loads on first use. No other library needed.</span>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre id="usage-code">import SwiftUI
+import MagnetKit
+
+// 1. Tell the model about your phone and magnet (once, e.g. in your App's init).
+let magnet = MagnetSource.shared
+magnet.config.locatorEnabled = true
+magnet.config.sensorPosition = CGPoint(x: 70, y: 86)   // the magnetometer, window points
+magnet.config.magnetFace = 1                            // north face toward the user
+magnet.config.magnetStrength = 6500                     // µT·cm³, optional
+
+// 2. Read it every frame.
+struct MagnetDot: View {
+    var body: some View {
+        TimelineView(.animation) { ctx in
+            let r = MagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
+            if let p = r.screenPosition, r.presence &gt; 0.5 {
+                Circle().fill(.white).frame(width: 24, height: 24).position(p)
+            }
+        }
+        .ignoresSafeArea()
+        .onAppear { MagnetSource.shared.attach() }
+        .onDisappear { MagnetSource.shared.detach() }
+    }
+}
+
+// 3. Air taps, pushes, yanks and swipes.
+MagnetSource.shared.addGestureHandler { gesture in
+    switch gesture {
+    case .tap(let at):         openMenu(at: at)      // at: global points
+    case .pullAway(let speed): flingAway(speed)      // cm/s
+    case .push, .swipe:        break
+    }
+}</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Pair it with any library</span>
+              <div class="code-block">
+              <pre id="pair-code">// A reading is plain values, so anything can follow it:
+// a SwiftUI offset, a spring, a shader uniform.
+let r = MagnetSource.shared.reading(now: now)
+card.offset(x: r.toward.dx * r.pull * 24, y: r.toward.dy * r.pull * 24)
+
+// Metal's liquid rings read it for you:
+import MetalFxKit   // brings MagnetKit along
+MetalFx(variant: .circle, source: .magnet) {
+    Image(systemName: &quot;arrow.right&quot;).frame(width: 52, height: 52)
+}</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy pairing example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+              </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">What the locator needs</span>
+              <ul class="mui-list">
+                <li><code>sensorPosition</code> Where the magnetometer sits, in window points. Every iPhone model differs; find it by sliding a magnet over the back of the phone and watching for the peak (on an iPhone 15 Pro it is near the top).</li>
+                <li><code>magnetFace</code> <code>+1</code> north toward the user, <code>-1</code> south. Without it, a magnet beside or above the sensor reads the same as a turned-over one on the other side, and the locator assumes "below the sensor".</li>
+                <li><code>magnetStrength</code> The dipole constant, µT·cm³: a 10×8×2 mm N52 ring is ~6,500, a 12×5 mm disc ~65,000. Unknown, only the direction is sure: a magnet twice as far and eight times as strong reads the same.</li>
+                <li><code>locatorMode</code> <code>.network</code> (default) is best over the glass and copes without the face. <code>.dipole</code> solves the physics directly: it needs the face and works over the glass and beside the phone alike.</li>
+                <li><code>MagnetDipole.learn(field:magnetAt:)</code> Measures the face and strength from one reading with the magnet held over a known spot, so it fits a one-second "hold the magnet here" step in your onboarding.</li>
+              </ul>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Each reading</span>
+              <div class="mui-table-wrap">
+                <table class="mui-table">
+                  <thead><tr><th>Field</th><th>What it is</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>screenPosition</code></td><td>Where the magnet is, global points (smoothed); nil while the locator is off or unsure.</td></tr>
+                    <tr><td><code>screenSpread</code>, <code>height</code></td><td>The locator's 1-σ uncertainty in points, and the height above the glass in cm.</td></tr>
+                    <tr><td><code>presence</code></td><td>0–1, from the presence network. Fade your effect with it; MagnetKit already fades <code>pull</code>.</td></tr>
+                    <tr><td><code>pull</code>, <code>toward</code></td><td>Closeness on a 0–1 log scale and the unit direction from the sensor toward the magnet. Enough for effects without the locator.</td></tr>
+                    <tr><td><code>distance</code>, <code>approachSpeed</code></td><td>Rough distance in cm and how fast it is closing in (cm/s, + toward the phone).</td></tr>
+                    <tr><td><code>tooClose</code></td><td>The magnet is close enough to the sensor to magnetise the phone. Ask the user to hold it a little farther.</td></tr>
+                    <tr><td><code>calibrating</code></td><td>A new zero is being taken. Show "keep the magnet away".</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Gestures</span>
+              <ul class="mui-list">
+                <li><code>.tap(at:)</code> An air tap from the tap network. <code>at</code> is the bottom of the dip, global points, when the locator is on.</li>
+                <li><code>.push(speed:)</code>, <code>.pullAway(speed:)</code> The magnet darted toward the phone or was yanked away, in cm/s, read from how fast ln|B| changes over the last 0.12 s.</li>
+                <li><code>.swipe(direction:speed:)</code> The located point crossed the screen faster than <code>gestureSwipeSpeed</code> (1,500 pt/s).</li>
+              </ul>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Good to know</span>
+              <ul class="mui-list">
+                <li>Keep the magnet about 2 cm or more from the sensor. Above ~2,000 µT it magnetises parts of the phone and leaves a 50–250 µT offset for minutes; the kit catches that leftover when the magnet is pulled away, and the presence network clears what remains.</li>
+                <li>Calibration runs on the first <code>attach()</code>, so keep magnets away then. <code>calibrate()</code> re-zeros on demand; MagSafe accessories, steel tables and laptops shift the zero.</li>
+                <li>Beside the phone, a magnet held 2–5 cm above the desk is the reliable case. Resting on the desk, its side and distance are sure but its bearing is not, so <code>deskPrior</code> (on by default) places it beside that edge.</li>
+                <li>Air taps far from the sensor barely change the field: they are missed rather than guessed.</li>
+                <li>The Simulator has no magnetometer: feed <code>MagnetSource.shared.simulatedField</code> from <code>MagnetSimulator.field(magnet:sensor:northUp:)</code> to drive it with a draggable puck.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+</div>
+      </div>
+    </div>
+
+    <!-- Agent prompt source for the Copy prompt button. A hidden <pre>
+         rather than a <script>: script content is raw text, so the
+         escaped tags below would reach the clipboard still escaped. -->
+    <pre id="agent-prompt" hidden>
+Add MagnetKit from Libraries.dev to my SwiftUI app: views that react to a
+magnet near the iPhone, using its on-device magnet model.
+
+Install (Swift Package Manager, iOS 17+):
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+.product(name: "MagnetKit", package: "Libraries.dev")
+
+Setup (once):
+import MagnetKit
+let magnet = MagnetSource.shared
+magnet.config.locatorEnabled = true
+magnet.config.sensorPosition = CGPoint(x: 70, y: 86)   // magnetometer spot, window points (iPhone 15 Pro)
+magnet.config.magnetFace = 1                            // +1 north toward the user, -1 south
+magnet.config.magnetStrength = 6500                     // µT·cm³, optional
+MagnetSource.shared.attach()   // on appear; detach() on disappear
+
+Every frame (inside a TimelineView(.animation)):
+let r = MagnetSource.shared.reading(now: ctx.date.timeIntervalSinceReferenceDate)
+- r.screenPosition: CGPoint?: the magnet, global points (locator on)
+- r.screenSpread, r.height: uncertainty (pt) and height above the glass (cm)
+- r.presence: 0-1: is a magnet really there
+- r.pull (0-1), r.toward (unit vector from the sensor): work without the locator
+- r.distance (cm), r.approachSpeed (cm/s), r.tooClose, r.calibrating
+
+Gestures:
+MagnetSource.shared.addGestureHandler { g in
+    switch g {
+    case .tap(let at): break          // air tap: magnet dipped toward the glass and back
+    case .pullAway(let speed): break  // yanked away, cm/s
+    case .push(let speed): break      // darted toward the phone, cm/s
+    case .swipe(let dir, let speed): break
+    }
+}
+
+The model (MagnetModel, Magnet.mfxl v1.0, 2 MB, bundled; trained on simulated
+magnet physics, run on device with Accelerate, no permission prompt) answers
+where the magnet is, whether it is really there, and air taps.
+Config: locatorMode .network (default) or .dipole (physics; needs magnetFace),
+deskPrior, presenceModel, tapModel, gestureSwipeSpeed.
+
+Pairs with any library: a reading is plain values. With MetalFxKit,
+MetalFx(variant: .circle, source: .magnet) bends liquid-metal rings toward it.
+
+Keep the magnet 2 cm+ from the sensor (r.tooClose), calibrate with no magnet
+near, and in the Simulator feed MagnetSource.shared.simulatedField from
+MagnetSimulator.field(magnet:sensor:northUp:).
+Docs: https://libraries.dev/magnetic-ui.html
+    </pre>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="footer-brand-logo" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <p class="footer-tagline">High-crafted UI libraries for AI agents</p>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <p class="footer-col-title">Libraries</p>
+            <a href="/beam.html">Border beam</a>
+            <a href="/orbs.html">Thinking orbs</a>
+            <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/bots.html">Bot avatars</a>
+            <a href="/metal.html">Metal</a>
+            <a href="/image.html">Image</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Product</p>
+            <a href="/">Home</a>
+            <a href="/studio.html">Studio</a>
+            <a href="/how-to-use.html">How to use</a>
+            <a href="/pro.html">Get Pro</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Legal &amp; Account</p>
+            <a href="/pro.html" id="footer-signin">Sign in</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="mailto:jakubja@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-byline">
+        <p class="footer-credit"><span class="footer-muted">Created by</span><a class="footer-name" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer">Jakub Antalik</a></p>
+        <p class="footer-thanks">Made with help from <a href="https://x.com/a_brinza" target="_blank" rel="noopener noreferrer">Alexandr Brinza</a> (Orbs) and <a href="https://x.com/mpetercak" target="_blank" rel="noopener noreferrer">Martin Petercak</a> (Metal)</p>
+      </div>
+    </footer>
+  </main>
+
+  <script src="/assets/site.js" defer></script>
+  <script type="module" src="/src/magnetic-ui.ts"></script>
+  <script src="/assets/pro-client.js" defer></script>
+  <script>
+    // Reduced motion: the showcase clip waits for a click instead of playing on its own.
+    (function () {
+      if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      var v = document.querySelector(".mui-stage video");
+      if (v) { v.removeAttribute("autoplay"); v.pause(); v.controls = true; }
+    })();
+  </script>
+  <!-- GoatCounter: privacy-friendly page views, no cookies. -->
+  <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
