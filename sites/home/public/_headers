@@ -30,3 +30,7 @@
   Content-Type: application/vnd.android.package-archive
   Content-Disposition: attachment
   Cache-Control: public, max-age=0, must-revalidate
+/downloads/*.mfxl
+  Content-Type: application/octet-stream
+  Content-Disposition: attachment
+  Cache-Control: public, max-age=0, must-revalidate

@@ -498,6 +498,12 @@
 
           <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
           <div class="st-stage-panel">
+          <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="true" data-active="true">Swift · MagnetKit</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="android" aria-selected="false">Android</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="model" aria-selected="false">Model only</button>
+          </div>
+          <div class="detail-platform" data-platform="swift">
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
@@ -632,6 +638,169 @@ MetalFx(variant: .circle, source: .magnet) {
                 <li>The Simulator has no magnetometer: feed <code>MagnetSource.shared.simulatedField</code> from <code>MagnetSimulator.field(magnet:sensor:northUp:)</code> to drive it with a draggable puck.</li>
               </ul>
             </div>
+          </div>
+          <div class="detail-platform" data-platform="android" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>// Get the code: clone Libraries.dev (or add it as a git submodule) next to your app.
+git submodule add https://github.com/Jakubantalik/Libraries.dev libraries-dev
+
+// settings.gradle.kts
+include(":magnetkit")
+project(":magnetkit").projectDir = file("libraries-dev/packages/metal-fx/ports/android/magnetkit")
+
+// app/build.gradle.kts
+dependencies { implementation(project(":magnetkit")) }</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install steps">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">Android 10+ (minSdk 29), Kotlin. The same model file as on iPhone (assets/Magnet.mfxl) and the same code around it, ported line by line. It reads the uncalibrated magnetometer, so Android's own calibration can't slowly cancel a nearby magnet. Tested on a Pixel 9a through the Magnet Bridge app.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import dev.libraries.magnetkit.*
+
+// 1. Tell the model about your phone and magnet (once).
+val magnet = MagnetSource.get(context)
+magnet.config.locatorEnabled = true
+magnet.config.screenSize = Pt(411.0, 923.0)        // the screen, dp
+magnet.config.sensorPosition = Pt(205.0, 70.0)     // the magnetometer, dp
+magnet.config.magnetFace = 1                       // north face toward the user
+magnet.config.magnetStrength = 6500.0              // µT·cm³, optional
+
+// 2. Attach while visible, read it every frame.
+override fun onStart() { super.onStart(); magnet.attach() }
+override fun onStop() { magnet.detach(); super.onStop() }
+
+Choreographer.getInstance().postFrameCallback(object : Choreographer.FrameCallback {
+    override fun doFrame(frameTimeNanos: Long) {
+        val r = magnet.reading(frameTimeNanos / 1e9)
+        r.screenPosition?.takeIf { r.presence &gt; 0.5 }?.let { p -&gt; moveDot(p.x, p.y) }   // dp
+        Choreographer.getInstance().postFrameCallback(this)
+    }
+})
+
+// 3. Air taps, pushes, yanks and swipes (main thread).
+magnet.addGestureListener { g -&gt;
+    when (g) {
+        is MagnetGesture.Tap -&gt; openMenu(g.at)
+        is MagnetGesture.PullAway -&gt; flingAway(g.speed)
+        else -&gt; {}
+    }
+}</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">On a website</span>
+              <span class="st-code-note">Browsers can't read the raw magnetometer, so for the web the <a class="mui-live-link" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app</a> runs this model on the phone and serves its answers to pages you approve over <code>ws://127.0.0.1:47613</code>: one JSON frame per reading (position, presence, strength, field) and one per gesture. The live demo on the Preview tab uses it.</span>
+            </div>
+          </div>
+          <div class="detail-platform" data-platform="model" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Download</span>
+              <div class="code-block">
+              <pre>curl -LO https://libraries.dev/downloads/Magnet.mfxl     # 2 MB, model v1.0</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy download command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">One file, three parts: <code>locator</code> (where the magnet is), <code>presence</code> (is it really there) and <code>tap</code> (air taps). Small fully connected networks in half precision; each part's header lists its inputs, outputs and constants.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Run it (Python + NumPy)</span>
+              <div class="code-block">
+              <pre>import json, struct
+import numpy as np
+
+def read_header(b):
+    assert b[:4] == b"MFXL"
+    n = struct.unpack("&lt;I", b[4:8])[0]
+    return json.loads(b[8:8 + n]), 8 + n
+
+data = open("Magnet.mfxl", "rb").read()
+model, start = read_header(data)          # kind "magnet", version, parts
+
+def load(name):
+    p = next(p for p in model["parts"] if p["name"] == name)
+    b = data[start + p["offset"]: start + p["offset"] + p["length"]]
+    head, off = read_header(b)            # inputs, outputs, layers, constants
+    layers = []
+    for L in head["layers"]:
+        n_in, n_out = L["in"], L["out"]
+        w = np.frombuffer(b, np.float16, n_in * n_out, off).astype(np.float32).reshape(n_out, n_in)
+        off += w.size * 2
+        bias = np.frombuffer(b, np.float16, n_out, off).astype(np.float32)
+        off += bias.size * 2
+        layers.append((w, bias, L.get("act") == "silu"))
+    return head, layers
+
+def run(layers, x):
+    for w, bias, silu in layers:
+        x = w @ x + bias
+        if silu:
+            x = x / (1 + np.exp(-x))      # SiLU
+    return x
+
+# Where the magnet is, from one field change (µT, device axes).
+head, locator = load("locator")
+def locate(b, strength=None, face=None):
+    b = np.asarray(b, np.float32)
+    nb = np.linalg.norm(b)
+    u = b / nb
+    if face is not None: u = u * face
+    elif u[2] &lt; 0: u = -u
+    x = np.array([u[0], u[1], u[2],
+                  (np.log(nb) - head["logbMid"]) / 2,
+                  (np.log(strength) - head["logkMid"]) / 1.5 if strength else 0,
+                  1.0 if strength else 0.0, 1.0 if face is not None else 0.0], np.float32)
+    y = run(locator, x)
+    d = y[:3] / np.linalg.norm(y[:3])
+    r = np.exp(y[3] + head["logrMid"])    # cm
+    return d * r                          # magnet relative to the sensor, cm
+
+# A magnet 2 cm right, 3 cm below and 1.5 cm above the sensor, north face up:
+print(locate([64.4, -96.6, -60.8], strength=6500, face=1))   # ≈ [1.94, -3.02, 1.58]</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy Python loader">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">The file</span>
+              <ul class="mui-list">
+                <li><code>Magnet.mfxl</code> "MFXL", a little-endian UInt32 header length, a JSON header (<code>kind</code> "magnet", <code>version</code>, <code>parts</code> with offsets and lengths), then each part as a complete MFXL file of its own.</li>
+                <li><code>part</code> The same layout, its header listing <code>layers</code> (<code>in</code>, <code>out</code>, <code>act</code>), then each layer's weights (out × in, row-major) and biases as float16. Activation SiLU, none on the last layer.</li>
+                <li><code>locator</code> 7 inputs (field direction, log strength, magnet strength and face when known) → 6 outputs: direction, log distance and its uncertainty. Device axes: x right, y toward the top edge, z out of the screen; cm from the magnetometer.</li>
+                <li><code>presence</code> The last 15 s of the field (1.28 s at 50 Hz in detail, a 10 Hz magnitude history, the overload peak) → presence logit and the phone's own offset.</li>
+                <li><code>tap</code> The last 1.28 s at 50 Hz → "a tap just finished" logit.</li>
+              </ul>
+              <span class="st-code-note">The exact presence and tap inputs are in each part's header and in MagnetKit's <code>MagnetPresence</code> and <code>MagnetTap</code> (Swift and Kotlin). Trained only on simulated magnet physics, its simulator fitted to real iPhone 15 Pro recordings.</span>
+            </div>
+          </div>
           </div>
         </div>
 </div>
