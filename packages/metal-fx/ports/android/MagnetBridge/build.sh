@@ -26,7 +26,7 @@ cp "$KIT/assets/Magnet.mfxl" build/assets/
 "$JAVA_HOME/bin/javac" -source 11 -target 11 -Xlint:-options -encoding UTF-8 \
   -classpath "$JAR:$STDLIB:build/classes" -d build/classes $(find src -name '*.java')
 "$BT/d8" --min-api 29 --lib "$JAR" --output build/dex $(find build/classes -name '*.class') "$STDLIB" 2>&1 \
-  | grep -v -e "rewriting of Kotlin metadata" -e "Should never be called" -e "^\s*at " -e "^$" || true
+  | grep -v -e "Kotlin metadata" -e "kotlin metadata" -e "malformed kotlin.Metadata" -e "Should never be called" -e "^\s*at " -e "^$" || true
 cp build/base.apk build/unsigned.apk
 (cd build/dex && zip -q -j ../unsigned.apk classes*.dex)
 "$BT/zipalign" -f -p 4 build/unsigned.apk build/aligned.apk

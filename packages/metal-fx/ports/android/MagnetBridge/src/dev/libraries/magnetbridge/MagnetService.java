@@ -159,7 +159,7 @@ public final class MagnetService extends Service implements SensorEventListener 
     private String hello() {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         return String.format(Locale.ROOT,
-                "{\"type\":\"hello\",\"app\":\"MagnetBridge\",\"version\":4,\"model\":\"%s\",\"manufacturer\":\"%s\",\"sdk\":%d,"
+                "{\"type\":\"hello\",\"app\":\"MagnetBridge\",\"version\":5,\"model\":\"%s\",\"manufacturer\":\"%s\",\"sdk\":%d,"
                         + "\"screenPx\":[%d,%d],\"density\":%.3f,\"sensors\":\"%s\"}",
                 esc(Build.MODEL), esc(Build.MANUFACTURER), Build.VERSION.SDK_INT,
                 dm.widthPixels, dm.heightPixels, dm.density, esc(sensorInfo.trim()));

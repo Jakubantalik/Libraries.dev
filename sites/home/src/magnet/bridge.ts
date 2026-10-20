@@ -41,6 +41,8 @@ export class MagnetBridge {
   frame: MagnetFrame | null = null;
   hello: ModelHello | null = null;
   device = "";
+  /** The app's protocol version (0.5 sends to each page on its own). */
+  version = 0;
   state: "idle" | "connecting" | "open" | "failed" = "idle";
   onFrame: ((f: MagnetFrame) => void) | null = null;
   onGesture: ((g: MagnetGesture) => void) | null = null;
@@ -146,6 +148,7 @@ export class MagnetBridge {
       this.onState?.();
     } else if (d.type === "hello") {
       this.device = `${d.manufacturer} ${d.model}`;
+      this.version = Number(d.version) || 0;
       this.onState?.();
     }
   }

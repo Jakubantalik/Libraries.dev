@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** A minimal RFC 6455 WebSocket server on the loopback interface: text frames
@@ -26,48 +27,75 @@ final class WsServer {
         void onText(Client c, String text);
     }
 
+    /** One page. Each has its own writer thread and a small queue: a page that
+     *  stops reading (a frozen background tab) only drops its own frames, and
+     *  after ~5 s of that it is closed, so it can never stall the others. */
     static final class Client {
         final Socket socket;
         final String origin;
         private final OutputStream out;
+        private final ArrayBlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(64);
+        private final Thread writer;
+        private volatile boolean open = true;
+        private int dropped;
+
         Client(Socket s, String origin) throws IOException {
             this.socket = s;
             this.origin = origin;
             this.out = s.getOutputStream();
+            writer = new Thread(this::drain, "ws-writer");
+            writer.start();
         }
-        synchronized boolean send(String text) {
-            byte[] p = text.getBytes(StandardCharsets.UTF_8);
+
+        private void drain() {
             try {
-                ByteArrayOutputStream f = new ByteArrayOutputStream(p.length + 10);
-                f.write(0x81);
-                if (p.length < 126) {
-                    f.write(p.length);
-                } else if (p.length < 65536) {
-                    f.write(126);
-                    f.write(p.length >>> 8);
-                    f.write(p.length & 0xff);
-                } else {
-                    f.write(127);
-                    for (int i = 7; i >= 0; i--) f.write((int) (((long) p.length >>> (8 * i)) & 0xff));
+                while (open) {
+                    byte[] f = queue.take();
+                    out.write(f);
+                    out.flush();
                 }
-                f.write(p);
-                out.write(f.toByteArray());
-                out.flush();
-                return true;
-            } catch (IOException e) {
-                return false;
+            } catch (Exception e) {
+                close();
             }
         }
-        synchronized void sendRaw(int opcode, byte[] p) {
-            try {
-                out.write(0x80 | opcode);
-                out.write(p.length);
-                out.write(p);
-                out.flush();
-            } catch (IOException ignored) {
-            }
+
+        /** Queue a text frame; false once the page is gone. */
+        boolean send(String text) { return offer(frame(0x1, text.getBytes(StandardCharsets.UTF_8))); }
+
+        void sendRaw(int opcode, byte[] p) { offer(frame(opcode, p)); }
+
+        private synchronized boolean offer(byte[] f) {
+            if (!open) return false;
+            if (queue.offer(f)) { dropped = 0; return true; }
+            // Full: keep the newest, and give up on a page that has stopped reading.
+            queue.poll();
+            queue.offer(f);
+            if (++dropped > 250) { close(); return false; }
+            return true;
         }
+
+        private static byte[] frame(int opcode, byte[] p) {
+            ByteArrayOutputStream f = new ByteArrayOutputStream(p.length + 10);
+            f.write(0x80 | opcode);
+            if (p.length < 126) {
+                f.write(p.length);
+            } else if (p.length < 65536) {
+                f.write(126);
+                f.write(p.length >>> 8);
+                f.write(p.length & 0xff);
+            } else {
+                f.write(127);
+                for (int i = 7; i >= 0; i--) f.write((int) (((long) p.length >>> (8 * i)) & 0xff));
+            }
+            f.write(p, 0, p.length);
+            return f.toByteArray();
+        }
+
+        boolean isOpen() { return open; }
+
         void close() {
+            open = false;
+            writer.interrupt();
             try { socket.close(); } catch (IOException ignored) { }
         }
     }
@@ -116,8 +144,7 @@ final class WsServer {
 
     void broadcast(String text) {
         for (Client c : clients) {
-            if (!c.send(text)) {
-                clients.remove(c);
+            if (!c.send(text) && clients.remove(c)) {
                 c.close();
                 listener.onClose(c);
             }

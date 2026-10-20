@@ -137,7 +137,9 @@ function setStatus(text: string) {
 function refreshStatus() {
   if (bridge.state === "connecting") setStatus("Connecting to Magnet Bridge…");
   else if (bridge.state === "failed") setStatus("Couldn't reach the bridge. Install the {app}, tap Start bridge, then try again.");
-  else if (bridge.state === "open") {
+  else if (bridge.state === "open" && bridge.version > 0 && bridge.version < 5) {
+    setStatus("Connected, but this Magnet Bridge is an older version. Install the {app} again, then tap Start bridge.");
+  } else if (bridge.state === "open") {
     const h = bridge.hello;
     const learned = h && h.grabStage === 2;
     setStatus(
