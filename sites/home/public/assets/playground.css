@@ -188,8 +188,7 @@ html[data-theme="light"] .docs-link-icon[src*="figma-magnetic"] { content: url("
    smaller than its siblings and the 12px clip cut its shadow. Same fix
    the homepage card uses: natural size, recentred, and no clip - its
    corners come rounded already. */
-.detail-icon img[src*="tile-image"],
-.detail-icon img[src*="tile-magnetic"] {
+.detail-icon img[src*="tile-image"] {
   width: 52px;
   height: 52px;
   max-width: none;
