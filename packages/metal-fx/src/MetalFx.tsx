@@ -43,7 +43,7 @@ const RIM_HOST_STYLE: CSSProperties = { position: 'absolute', inset: 0, pointerE
 
 // Maps each live instance to its SVG glow handles and a theme ref.
 // Keyed by instance (not component) because the same component can be
-// remounted with a new instance after shape/glowEnabled changes.
+// remounted with a new instance after shape changes.
 const glowHandlesMap = new Map<MetalFxInstance, { handles: ReturnType<typeof injectGlow>; themeRef: { current: 'dark' | 'light' } }>();
 // Opt-in introspection for the demo's dev tooling: with
 // `globalThis.__MFX_DEBUG__ = true` the live instance → glow map is exposed
@@ -379,7 +379,7 @@ export const MetalFx = forwardRef<HTMLDivElement, MetalFxProps>(function MetalFx
 
     if (instanceRef.current && glowHandlesRef.current) {
       glowHandlesMap.set(instanceRef.current, { handles: glowHandlesRef.current, themeRef });
-      registerGlowInstance(instanceRef.current);
+      if (glowEnabled) registerGlowInstance(instanceRef.current);
     }
     attachCursorLight();
     exposeGlowDebug();
@@ -404,6 +404,15 @@ export const MetalFx = forwardRef<HTMLDivElement, MetalFxProps>(function MetalFx
       if (glowHost) glowHost.innerHTML = '';
     };
   }, [shape]);
+
+  // Keep the handles for re-enabling glow, but stop updating hidden glow.
+  useEffect(() => {
+    const inst = instanceRef.current;
+    if (!inst || !glowHandlesRef.current) return;
+    if (glowEnabled) registerGlowInstance(inst);
+    else unregisterGlowInstance(inst);
+    return () => unregisterGlowInstance(inst);
+  }, [glowEnabled, shape]);
 
   // strength=1 maps directly to a full-opacity composite (opacityMul=1) for
   // every variant. Per-preset toning lives in `shaderOpacity` inside each
