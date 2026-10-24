@@ -69,7 +69,7 @@ public struct ThinkingOrb: View {
                 canvas(preset: preset, t: frozenTime)
             } else if reduceMotion || paused {
                 // one static, deterministic frame — same instant as the web
-                canvas(preset: preset, t: OrbSpec.reducedMotionT * effSpeed)
+                canvas(preset: preset, t: OrbSpec.reducedMotionT)
             } else {
                 TimelineView(.animation(paused: paused)) { timeline in
                     // One shared clock, so several orbs on screen stay in
