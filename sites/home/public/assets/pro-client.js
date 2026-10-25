@@ -200,8 +200,8 @@
         signout.remove();
       }
 
-      // "Sign up" right below "Sign in" while signed out: a free account
-      // (signup "site"), no purchase needed.
+      // "Join for free" first in the menu, above "Sign in", while signed out:
+      // a free account (signup "site"), no purchase needed.
       var signup = document.getElementById("pm-signup");
       if (!state.authenticated && !signup) {
         signup = document.createElement("div");
@@ -212,9 +212,9 @@
         signup.innerHTML = '<span class="tl-menu-item-label">Join for free</span>';
         signup.addEventListener("click", function (e) {
           e.preventDefault();
-          signIn({ signup: "site", title: "Join for free", sub: "Get model downloads and install guides." });
+          signIn({ signup: "site", title: "Join for free", sub: "Get access to the latest models and libraries." });
         });
-        signin.parentNode.insertBefore(signup, signin.nextSibling);
+        signin.parentNode.insertBefore(signup, signin.parentNode.firstChild);
       } else if (state.authenticated && signup) {
         signup.remove();
       }
@@ -390,13 +390,12 @@
   // to a device-activate flow; inviteToken makes signing in accept a team invite.
   // (Name kept from the magic-link era so existing pages keep working.)
   // `extra.signup` ("model:magnet") lets an address with no plan get a free
-  // account; `extra.newsletter` is the opt-in box, applied once the code verifies.
+  // account.
   function magicLink(email, deviceCode, inviteToken, extra) {
     var body = { email: (email || "").trim() };
     if (deviceCode) body.device_code = deviceCode;
     if (inviteToken) body.invite_token = inviteToken;
     if (extra && extra.signup) body.signup = extra.signup;
-    if (extra && extra.newsletter) body.newsletter = true;
     return apiJSON("/auth/code/request", "POST", body);
   }
   // Exchange email + typed code for a session in THIS browser.
@@ -482,10 +481,6 @@
             '<input class="tp-modal-input" id="tp-modal-email" type="email" name="email" placeholder="you@example.com" autocomplete="email" aria-label="Email address" />' +
             '<p class="tp-modal-error" role="alert" hidden>Please enter a valid email.</p>' +
           '</div>' +
-          '<label class="tp-modal-check" data-tp-newsletter hidden>' +
-            '<input type="checkbox" name="newsletter" />' +
-            '<span>Email me about new models and libraries, a few times a year</span>' +
-          '</label>' +
           '<button class="tp-modal-btn" type="submit">Send code</button>' +
           '<button class="tp-modal-btn tp-modal-btn--ghost" type="button" data-tp-close>Back</button>' +
         '</form>' +
@@ -564,8 +559,7 @@
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setError(true); input.focus(); return; }
       setError(false);
       btn.disabled = true; btn.textContent = "Sending…";
-      var news = modalEl.querySelector("[data-tp-newsletter] input");
-      magicLink(email, null, null, { signup: modalOpts.signup, newsletter: !!(modalOpts.signup && news && news.checked) })
+      magicLink(email, null, null, { signup: modalOpts.signup })
         .then(function (data) {
           // apiJSON resolves on any status, so a refusal arrives here, not in
           // .catch — without this the modal promised an email that was never
@@ -624,16 +618,13 @@
   }
 
   // opts: { email?, step?, signup?, title?, sub?, onSignedIn? }. With `signup`
-  // the box creates a free account (title and sub-line say what for), offers
-  // the newsletter opt-in and drops the "Get Pro" footer.
+  // the box creates a free account (title and sub-line say what for) and
+  // drops the "Get Pro" footer.
   function openAuthModal(opts) {
     var m = ensureAuthModal();
     modalOpts = opts || {};
     lastFocus = document.activeElement;
     setModalNote(m.querySelector(".tp-modal-note"), "", "");
-    var news = m.querySelector("[data-tp-newsletter]");
-    news.hidden = !modalOpts.signup;
-    news.querySelector("input").checked = false;
     m.querySelector(".tp-modal-foot").hidden = !!modalOpts.signup;
     if (opts && opts.email) m.querySelector("#tp-modal-email").value = opts.email;
     if (m.__showStep) m.__showStep(opts && opts.step === "code" ? "code" : "email", opts && opts.email);
@@ -692,11 +683,7 @@
       // An author display rule outranks the UA [hidden] style, so every element
       // this modal toggles needs its own companion rule. Without it the code
       // form was permanently on screen.
-      ".tp-modal-form[hidden],.tp-modal-note[hidden],.tp-modal-error[hidden],.tp-modal-check[hidden],.tp-modal-foot[hidden]{display:none}" +
-      ".tp-modal-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4;color:#4d4d4d;cursor:pointer}" +
-      ".tp-modal-check input{margin:2px 0 0;flex:none;accent-color:#17181c}" +
-      'html[data-theme="dark"] .tp-modal-check{color:#b5b5b5}' +
-      'html[data-theme="dark"] .tp-modal-check input{accent-color:#f2f2f2}' +
+      ".tp-modal-form[hidden],.tp-modal-note[hidden],.tp-modal-error[hidden],.tp-modal-foot[hidden]{display:none}" +
       ".tp-modal-field{display:flex;flex-direction:column;gap:6px}" +
       ".tp-modal-label{font-size:13px;line-height:1.4;color:#4d4d4d}" +
       'html[data-theme="dark"] .tp-modal-label{color:#b5b5b5}' +
