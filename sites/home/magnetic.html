@@ -22,10 +22,10 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Magnetic UI: on-device magnet tracking for SwiftUI | Libraries.dev</title>
+  <title>Magnetic UI: on-device magnet tracking for SwiftUI, React Native and React | Libraries.dev</title>
   <meta
     name="description"
-    content="Magnetic UI: one small on-device model that reads the iPhone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained on magnet physics and real magnet sessions."
+    content="Magnetic UI: one small on-device model that reads the phone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for SwiftUI, Android, React Native and React. Trained on magnet physics and real magnet sessions."
   />
   <meta
     name="keywords"
@@ -51,16 +51,16 @@
   <meta property="og:site_name" content="Libraries.dev" />
   <meta property="og:url" content="https://libraries.dev/magnetic" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Magnetic UI: on-device magnet tracking for SwiftUI" />
-  <meta property="og:description" content="Magnetic UI: one small on-device model that reads the iPhone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained on magnet physics and real magnet sessions." />
+  <meta property="og:title" content="Magnetic UI: on-device magnet tracking for SwiftUI, React Native and React" />
+  <meta property="og:description" content="Magnetic UI: one small on-device model that reads the phone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for SwiftUI, Android, React Native and React. Trained on magnet physics and real magnet sessions." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
-  <meta name="twitter:title" content="Magnetic UI: on-device magnet tracking for SwiftUI" />
-  <meta name="twitter:description" content="Magnetic UI: one small on-device model that reads the iPhone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained on magnet physics and real magnet sessions." />
+  <meta name="twitter:title" content="Magnetic UI: on-device magnet tracking for SwiftUI, React Native and React" />
+  <meta name="twitter:description" content="Magnetic UI: one small on-device model that reads the phone&#x27;s magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for SwiftUI, Android, React Native and React. Trained on magnet physics and real magnet sessions." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -223,6 +223,54 @@
       background: var(--chip-bg); color: var(--text); font: 500 13px/1 var(--font-sans); cursor: pointer;
     }
     .mui-live-btn[hidden] { display: none; }
+    /* Free-account wall over Install & Usage: the docs show blurred and
+       inert under a sign-in card until the visitor has an account. */
+    .detail-panel--code { position: relative; }
+    .detail-panel--code[data-gated] .st-stage-panel {
+      max-height: 420px; overflow: hidden; filter: blur(5px); opacity: 0.5;
+      pointer-events: none; user-select: none;
+      -webkit-mask-image: linear-gradient(#000 40%, transparent);
+      mask-image: linear-gradient(#000 40%, transparent);
+    }
+    /* The site's sign-in modal card (pro-client.js .tp-modal-card), in place. */
+    .mui-gate {
+      position: absolute; top: 72px; left: 50%; transform: translateX(-50%); z-index: 2;
+      width: min(369px, calc(100% - 32px)); box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 24px;
+      padding: 20px; border-radius: 24px; background: #fff; color: #0d0d0d;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+    }
+    html[data-theme="dark"] .mui-gate { background: #1b1b1d; color: #f2f2f2; }
+    .mui-gate[hidden] { display: none; }
+    .mui-gate-title { margin: 0; font-size: 16px; line-height: 24.2px; font-weight: 400; }
+    .mui-gate-sub { display: block; color: #8a8a8a; }
+    .mui-gate-btn {
+      width: 100%; height: 40px; border: 0; border-radius: 26px; background: #17181c; color: #fff;
+      font-family: inherit; font-size: 13px; line-height: 13px; font-weight: 500; cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); transition: scale 120ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .mui-gate-btn:active { scale: 0.96; }
+    html[data-theme="dark"] .mui-gate-btn { background: #f2f2f2; color: #111; }
+    /* Copy prompt while signed out: greyed like a "Coming soon" platform tab,
+       with the same tip (playground.css .detail-platform-tip). */
+    .detail-prompt { position: relative; }
+    .detail-prompt[data-locked],
+    .detail-prompt[data-locked]:hover,
+    .detail-prompt[data-locked]:active,
+    html[data-theme="light"] .detail-prompt[data-locked],
+    html[data-theme="light"] .detail-prompt[data-locked]:hover,
+    html[data-theme="light"] .detail-prompt[data-locked]:active {
+      cursor: default; color: color-mix(in srgb, var(--pg-title) 25%, transparent);
+    }
+    .detail-prompt[data-locked]:hover, .detail-prompt[data-locked]:active { background: rgba(255, 255, 255, 0.06); }
+    html[data-theme="light"] .detail-prompt[data-locked]:hover,
+    html[data-theme="light"] .detail-prompt[data-locked]:active { background: var(--pg-control-active-bg); }
+    .detail-prompt[data-locked]:hover .detail-platform-tip,
+    .detail-prompt[data-locked]:focus-visible .detail-platform-tip {
+      opacity: 1; visibility: visible; filter: blur(0);
+      transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms, filter 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms, visibility 0s linear 50ms;
+    }
     .mui-cal { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.94); color: #fff; touch-action: none; }
     .mui-cal-ring {
       position: absolute; width: 72px; height: 72px; margin: -36px; border-radius: 50%;
@@ -244,7 +292,7 @@
       "@type": "SoftwareSourceCode",
       "@id": "https://libraries.dev/magnetic#model",
       "name": "Magnetic UI",
-      "description": "Magnetic UI: one small on-device model that reads the iPhone's magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for any SwiftUI view or library. Trained on magnet physics and real magnet sessions.",
+      "description": "Magnetic UI: one small on-device model that reads the phone's magnetometer and reports where a magnet is, whether it is really there, and air taps, as input for SwiftUI, Android, React Native and React. Trained on magnet physics and real magnet sessions.",
       "url": "https://libraries.dev/magnetic",
       "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
       "programmingLanguage": [
@@ -436,10 +484,17 @@
             <div class="detail-tabs proto-modal-tabs" data-detail-tabs role="tablist" aria-label="View">
               <span class="proto-modal-tabs-indicator" aria-hidden="true"></span>
               <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="preview" aria-selected="true">Preview</button>
-              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install &amp; Usage</button>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install</button>
             </div>
 
             <div class="detail-head-actions">
+              <!-- Platform: drives Install, the Copy prompt and the phone frame
+                   (site.js). Ports not built yet show greyed with "Coming soon". -->
+              <div class="st-platform-tabs detail-platforms" role="tablist" aria-label="Platform" data-head-platforms>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="react" aria-selected="true" data-active="true">React</button>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="swift" aria-selected="false">SwiftUI</button>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="rn" aria-selected="false">React Native</button>
+              </div>
               <button type="button" class="detail-prompt" data-prompt-target="#agent-prompt" aria-label="Copy agent prompt">
                 <span class="detail-prompt-ico" aria-hidden="true">
                   <!-- copy-03, exported from Figma 1419:38547. -->
@@ -449,6 +504,7 @@
                   <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
                 </span>
                 <span class="detail-prompt-label">Copy prompt</span>
+                <span class="detail-platform-tip" role="tooltip">Sign in to copy the prompt</span>
               </button>
             </div>
           </div>
@@ -487,7 +543,7 @@
             <div class="docs-prose mui-doc">
               <h2>The model</h2>
               <p>One model reads the magnetometer every frame and answers three things. It is input only: pair it with any view or library.</p>
-              <p class="mui-doc-meta"><code>Magnet.mfxl</code> · v1.0 · 2 MB · MagnetKit</p>
+              <p class="mui-doc-meta"><code>Magnet.mfxl</code> · v1.0 · 2 MB · MagnetKit · <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a></p>
 
               <h3>Where the magnet is</h3>
               <ul>
@@ -513,7 +569,7 @@
               <h3>Trained on physics and real magnets</h3>
               <p>The model learned from simulated magnets (sizes from a small ring to a large N52 block, every tilt and face, with sensor noise, drift and leftovers) and from real magnet sessions on an iPhone 15 Pro: a printed mat of known spots and recorded air taps. Those sessions tuned the simulator, retrained the air-tap part and tested every part. No user data.</p>
               <h3>On the phone, every frame</h3>
-              <p>A 2 MB model in half precision, run with Accelerate. Nothing to download, no server, no network request.</p>
+              <p>A 2 MB model in half precision, run with Accelerate. It ships inside your app: no server, no network request at runtime.</p>
               <h3>No permission prompt</h3>
               <p>The magnetometer is open to every app, so the magnet works the moment the screen appears.</p>
               <h3>Any magnet</h3>
@@ -521,14 +577,120 @@
             </div>
           </div>
 
-          <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
+          <div class="detail-panel detail-panel--code" data-detail-panel="code" data-gated hidden>
+          <div class="mui-gate" data-mui-gate>
+            <p class="mui-gate-title">Install Magnetic UI<span class="mui-gate-sub">Install, usage and the model are free with an account.</span></p>
+            <button type="button" class="mui-gate-btn" data-mui-gate-open>Get it for free</button>
+          </div>
           <div class="st-stage-panel">
           <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
-            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="true" data-active="true">SwiftUI + MagnetKit</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="react" aria-selected="true" data-active="true">React</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="false">SwiftUI + MagnetKit</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="rn" aria-selected="false">React Native</button>
             <button type="button" class="st-platform-tab" role="tab" data-platform-tab="android" aria-selected="false">Android</button>
             <button type="button" class="st-platform-tab" role="tab" data-platform-tab="model" aria-selected="false">Model only</button>
           </div>
-          <div class="detail-platform" data-platform="swift">
+          <div class="detail-platform" data-platform="react">
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>npm install magnetkit</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">React 18+. Browsers can't read the raw magnetometer, so on the web the kit talks to the <a class="mui-live-link" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app</a> (Android 10+), which runs the model on the phone and serves its answers to sites you allow. Your site ships no model file. Android Chrome asks once to allow local network access.</span>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import { useRef, useState } from &quot;react&quot;;
+import { MagnetCalibration, useMagnetBridge, useMagnetGestures, useMagneticPull } from &quot;magnetkit&quot;;
+
+export function Header() {
+  const ref = useRef&lt;HTMLElement&gt;(null);
+  const { state, connect, calibrated } = useMagnetBridge();
+  const [calibrating, setCalibrating] = useState(false);
+
+  // 1. Everything marked data-magnetic is pulled toward the magnet and springs back.
+  useMagneticPull(ref);
+
+  // 2. Air taps, pushes, yanks and swipes.
+  useMagnetGestures((g) =&gt; {
+    if (g.g === &quot;tap&quot;) openMenu();
+  });
+
+  return (
+    &lt;header ref={ref}&gt;
+      &lt;a data-magnetic href=&quot;/&quot;&gt;Home&lt;/a&gt;
+      &lt;a data-magnetic href=&quot;/docs&quot;&gt;Docs&lt;/a&gt;
+      {state !== &quot;open&quot; ? (
+        &lt;button onClick={connect}&gt;Connect magnet&lt;/button&gt;
+      ) : !calibrated ? (
+        &lt;button onClick={() =&gt; setCalibrating(true)}&gt;Calibrate&lt;/button&gt;
+      ) : null}
+      {/* 3. Once per phone and magnet: five rings, about 10 s, kept by the app. */}
+      &lt;MagnetCalibration open={calibrating} onClose={() =&gt; setCalibrating(false)} /&gt;
+    &lt;/header&gt;
+  );
+}</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Readings</span>
+              <div class="code-block">
+              <pre>import { getMagnetBridge, useMagnet, useMagnetFrame, simulateMagnetWithPointer } from &quot;magnetkit&quot;;
+
+// The latest reading as state (one render per animation frame)…
+const f = useMagnet();
+const at = f?.pos &amp;&amp; getMagnetBridge().toClient(f.pos);   // page px
+
+// …or every reading without rendering (about 50 a second).
+useMagnetFrame((f) =&gt; {
+  dot.style.opacity = String(f.presence);
+});
+
+// No phone at hand: the pointer plays the magnet (press and hold).
+if (import.meta.env.DEV) simulateMagnetWithPointer();</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy readings example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Good to know</span>
+              <ul class="mui-list">
+                <li>Visitors need the Magnet Bridge app on an Android phone: tap <em>Start bridge</em>, then connect from your page. iPhone browsers can't take part.</li>
+                <li>Positions arrive in screen dp; <code>bridge.toClient(p)</code> turns them into page px, <code>useMagneticPull</code> does it for you.</li>
+                <li><code>useMagneticPull(ref, { selector, stiffness, damping, force, reach })</code> tunes the springs; it stays off with reduced motion.</li>
+                <li>Headless calibration: <code>calibrate(bridge, { onUpdate })</code> hands you each ring to draw in your own style.</li>
+              </ul>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">License</span>
+              <span class="st-code-note">The kit's code is MIT. The model runs inside the Magnet Bridge app, so a website needs no model license of its own.</span>
+            </div>
+          </div>
+          <div class="detail-platform" data-platform="swift" hidden>
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
@@ -544,7 +706,7 @@
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">iOS 17+, iPhone. MagnetKit is a library of its own: the model ships inside it (one 2 MB file) and loads on first use. No other library needed.</span>
+            <span class="st-code-note">iOS 17+, iPhone. MagnetKit is a library of its own; no other library needed. Then add the model: download <code>Magnet.mfxl</code> from the Model tab and add it to your app target. It loads on first use.</span>
             </div>
 
             <div class="st-code-group">
@@ -654,6 +816,108 @@ MetalFx(variant: .circle, source: .magnet) {
               </ul>
             </div>
           </div>
+          <div class="detail-platform" data-platform="rn" hidden>
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>npx expo install react-native-magnetkit
+
+// app.json: the plugin copies the model into the iOS and Android apps.
+{
+  &quot;expo&quot;: {
+    &quot;plugins&quot;: [[&quot;react-native-magnetkit&quot;, { &quot;model&quot;: &quot;./assets/Magnet.mfxl&quot; }]]
+  }
+}
+
+npx expo run:ios   // or run:android; a development build, not Expo Go</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install steps">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">Expo SDK 52+, iOS 17+ and Android 10+. An Expo module around MagnetKit, the same Swift and Kotlin as the native tabs. Download <code>Magnet.mfxl</code> from the Model tab into <code>assets/</code> first. Bare React Native: run <code>npx install-expo-modules</code>, then add <code>Magnet.mfxl</code> to the iOS target's Copy Bundle Resources and to <code>android/app/src/main/assets</code>.</span>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import { useState } from &quot;react&quot;;
+import { Pressable, Text } from &quot;react-native&quot;;
+import { Magnet, MagnetCalibration, MagneticView, useMagnetGestures } from &quot;react-native-magnetkit&quot;;
+
+export function Home() {
+  const [calibrating, setCalibrating] = useState(false);
+
+  // Air taps, pushes, yanks and swipes.
+  useMagnetGestures((g) =&gt; {
+    if (g.g === &quot;tap&quot;) openMenu(g.at);   // at: window points
+  });
+
+  return (
+    &lt;&gt;
+      {/* 1. Views the magnet pulls. They collide, and spring back when it leaves. */}
+      &lt;MagneticView style={styles.chip}&gt;&lt;Text&gt;Home&lt;/Text&gt;&lt;/MagneticView&gt;
+      &lt;MagneticView style={styles.chip}&gt;&lt;Text&gt;Search&lt;/Text&gt;&lt;/MagneticView&gt;
+
+      {/* 2. Once per phone and magnet: five rings, about 10 s, kept across launches. */}
+      {!Magnet.getMagnet() &amp;&amp; (
+        &lt;Pressable onPress={() =&gt; setCalibrating(true)}&gt;&lt;Text&gt;Calibrate&lt;/Text&gt;&lt;/Pressable&gt;
+      )}
+      &lt;MagnetCalibration visible={calibrating} onClose={() =&gt; setCalibrating(false)} /&gt;
+    &lt;/&gt;
+  );
+}</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Readings</span>
+              <div class="code-block">
+              <pre>import { useMagnet, useMagnetFrame } from &quot;react-native-magnetkit&quot;;
+
+// The latest reading as state (one render per animation frame)…
+const f = useMagnet();
+// f.pos: the magnet, window points · f.presence 0-1 · f.pull 0-1, f.toward
+// f.strength µT · f.distance cm · f.approachSpeed cm/s · f.tooClose · f.calibrating
+
+// …or every reading without rendering, e.g. into an Animated value.
+useMagnetFrame((f) =&gt; glow.setValue(f.pull * f.presence));</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy readings example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">Good to know</span>
+              <ul class="mui-list">
+                <li><code>Magnet.hasModel()</code> tells you the model is in the app. Without it readings still come, but nothing is located and there are no air taps.</li>
+                <li><code>MagneticView</code> runs its physics on the JS thread and moves through Animated values, so nothing re-renders. Tune it with <code>getMagneticField()</code>; it stays put with reduced motion.</li>
+                <li>The sensor runs only while something listens: a hook, a <code>MagneticView</code> or <code>Magnet.addFrameListener</code>.</li>
+                <li><code>Magnet.zero()</code> takes a new zero with no magnet near; MagSafe accessories, steel tables and laptops shift it.</li>
+                <li>A working example app: <code>packages/metal-fx/ports/react-native/magnet-example</code> in the repository.</li>
+              </ul>
+            </div>
+
+            <div class="st-code-group">
+              <span class="st-code-title">License</span>
+              <span class="st-code-note">The kit's code is MIT. The model is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping it in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship the file inside your app only, never in a public repository.</span>
+            </div>
+          </div>
           <div class="detail-platform" data-platform="android" hidden>
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
@@ -675,7 +939,7 @@ dependencies { implementation(project(":magnetkit")) }</pre>
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">Android 10+ (minSdk 29), Kotlin. The same model file as on iPhone (assets/Magnet.mfxl) and the same code around it, ported line by line. It reads the uncalibrated magnetometer, so Android's own calibration can't slowly cancel a nearby magnet. Tested on a Pixel 9a through the Magnet Bridge app.</span>
+            <span class="st-code-note">Android 10+ (minSdk 29), Kotlin. The same model file as on iPhone and the same code around it, ported line by line: download <code>Magnet.mfxl</code> from the Model tab and put it in your app's <code>src/main/assets/</code>. It reads the uncalibrated magnetometer, so Android's own calibration can't slowly cancel a nearby magnet. Tested on a Pixel 9a through the Magnet Bridge app.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
@@ -728,17 +992,14 @@ magnet.addGestureListener { g -&gt;
           <div class="detail-platform" data-platform="model" hidden>
             <div class="st-code-group">
               <span class="st-code-title">Download</span>
-              <div class="code-block">
-              <pre>curl -LO https://libraries.dev/downloads/Magnet.mfxl     # 2 MB, model v1.0</pre>
-              <button type="button" class="code-copy" data-copy-static aria-label="Copy download command">
-                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
-              </button>
+              <div class="mui-live-actions">
+                <button type="button" class="mui-live-btn" id="mui-model-download">Download model</button>
+              </div>
+            <span class="st-code-note"><code>Magnet-1.0.zip</code>: the model (<code>Magnet.mfxl</code>, 2 MB, v1.0) and its license. One file, three parts: <code>locator</code> (where the magnet is), <code>presence</code> (is it really there) and <code>tap</code> (air taps). Small fully connected networks in half precision; each part's header lists its inputs, outputs and constants.</span>
             </div>
-            <span class="st-code-note">One file, three parts: <code>locator</code> (where the magnet is), <code>presence</code> (is it really there) and <code>tap</code> (air taps). Small fully connected networks in half precision; each part's header lists its inputs, outputs and constants.</span>
+            <div class="st-code-group">
+              <span class="st-code-title">License</span>
+              <span class="st-code-note">MagnetKit's code is MIT. The model is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping it in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship the file inside your app only, never in a public repository.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">Run it (Python + NumPy)</span>
@@ -825,7 +1086,7 @@ print(locate([64.4, -96.6, -60.8], strength=6500, face=1))   # ≈ [1.94, -3.02,
     <!-- Agent prompt source for the Copy prompt button. A hidden <pre>
          rather than a <script>: script content is raw text, so the
          escaped tags below would reach the clipboard still escaped. -->
-    <pre id="agent-prompt" hidden>
+    <pre id="agent-prompt-swift" hidden>
 Add MagnetKit from Libraries.dev to my SwiftUI app: views that react to a
 magnet near the iPhone, using its on-device magnet model.
 
@@ -860,9 +1121,14 @@ MagnetSource.shared.addGestureHandler { g in
     }
 }
 
-The model (MagnetModel, Magnet.mfxl v1.0, 2 MB, bundled; trained on magnet
+The model (MagnetModel, Magnet.mfxl v1.0, 2 MB; trained on magnet
 physics and real magnet sessions, run on device with Accelerate, no permission prompt) answers
-where the magnet is, whether it is really there, and air taps.
+where the magnet is, whether it is really there, and air taps. It is NOT in the
+package: ask the user to download Magnet.mfxl from https://libraries.dev/magnetic.html
+(Model tab, free account) and add it to the app target (iOS) or src/main/assets
+(Android); MagnetModel.bundled loads it from there. Never commit it to a public
+repo. Model License: free for development and non-commercial apps; a commercial
+release needs Libraries.dev Pro or Business.
 Config: locatorMode .network (default) or .dipole (physics; needs magnetFace),
 deskPrior, presenceModel, tapModel, gestureSwipeSpeed.
 
@@ -873,6 +1139,79 @@ Keep the magnet 2 cm+ from the sensor (r.tooClose), calibrate with no magnet
 near, and in the Simulator feed MagnetSource.shared.simulatedField from
 MagnetSimulator.field(magnet:sensor:northUp:).
 Docs: https://libraries.dev/magnetic.html
+    </pre>
+    <pre id="agent-prompt" hidden>
+Add Magnetic UI from Libraries.dev to my React website: elements that a real
+magnet beside an Android phone pulls, through the on-device magnet model.
+
+Install: npm install magnetkit   (React 18+)
+
+How it works: browsers can't read the raw magnetometer, so the Magnet Bridge
+app (Android 10+, https://libraries.dev/downloads/MagnetBridge.apk) runs the
+model on the phone and serves readings to allowed sites over
+ws://127.0.0.1:47613. The site ships no model file. Visitors open the app, tap
+Start bridge, then connect from the page (Chrome asks once to allow local
+network access). iPhone browsers can't take part.
+
+import { useRef, useState } from "react";
+import { MagnetCalibration, useMagnetBridge, useMagnetGestures, useMagneticPull } from "magnetkit";
+
+const ref = useRef&lt;HTMLElement&gt;(null);
+const { state, connect, calibrated, bridge } = useMagnetBridge();
+useMagneticPull(ref);            // elements with data-magnetic inside ref get pulled and spring back
+useMagnetGestures((g) =&gt; {});    // g.g: "tap" | "push" | "pullAway" | "swipe"
+&lt;MagnetCalibration open={calibrating} onClose={(ok) =&gt; setCalibrating(false)} /&gt;   // once per phone and magnet
+
+Show a "Connect magnet" button while state !== "open" (connect() opens the
+socket), then "Calibrate" while !calibrated.
+
+Readings: useMagnet() (state, one render per frame) or useMagnetFrame(cb)
+(every reading, ~50/s, no render). Fields: pos (screen dp, null when unsure;
+bridge.toClient(pos) gives page px), spread, height (cm), presence (0-1, is a
+magnet really there), pull (0-1), strength (µT), delta (µT, device axes),
+tooClose, calibrating.
+
+Tuning: useMagneticPull(ref, { selector, enabled, stiffness, damping, force, reach }).
+Off with prefers-reduced-motion. Headless calibration: calibrate(bridge, { onUpdate }).
+Development without a phone: simulateMagnetWithPointer() makes the pointer
+the magnet (press and hold).
+
+License: the kit is MIT; the model runs inside the Magnet Bridge app.
+Docs: https://libraries.dev/magnetic
+    </pre>
+    <pre id="agent-prompt-rn" hidden>
+Add Magnetic UI from Libraries.dev to my React Native (Expo) app: views that a
+real magnet beside the phone pulls, through the on-device magnet model
+(MagnetKit for iOS and Android, as an Expo module).
+
+Install:
+npx expo install react-native-magnetkit
+app.json: "plugins": [["react-native-magnetkit", { "model": "./assets/Magnet.mfxl" }]]
+Then a development build (npx expo run:ios / run:android), not Expo Go.
+Bare React Native: npx install-expo-modules first, then add Magnet.mfxl to the
+iOS target's Copy Bundle Resources and android/app/src/main/assets.
+
+The model (Magnet.mfxl v1.0, 2 MB) is NOT in the npm package: ask the user to
+download it from https://libraries.dev/magnetic (Model tab, free account) into
+assets/. Never commit it to a public repo. Model License: free for development
+and non-commercial apps; a commercial release needs Libraries.dev Pro or
+Business. Magnet.hasModel() checks it is there.
+
+import { Magnet, MagnetCalibration, MagneticView, useMagnet, useMagnetFrame, useMagnetGestures } from "react-native-magnetkit";
+
+&lt;MagneticView style={...}&gt;...&lt;/MagneticView&gt;   // a View the magnet pulls; several collide and spring back
+&lt;MagnetCalibration visible={calibrating} onClose={(ok) =&gt; setCalibrating(false)} /&gt;
+// Calibrate once per phone and magnet (five rings, ~10 s); Magnet.getMagnet() is null until then.
+useMagnetGestures((g) =&gt; {});   // g.g: "tap" (g.at, window points) | "push" | "pullAway" | "swipe"
+const f = useMagnet();          // or useMagnetFrame(cb) for every reading without rendering
+
+Fields: pos (window points, null when unsure), spread, height (cm), presence
+(0-1), pull (0-1), toward (unit vector), strength (µT), distance (cm),
+approachSpeed (cm/s), tooClose, calibrating, zeroed.
+Magnet.zero() re-zeros with no magnet near. getMagneticField() tunes the
+MagneticView physics (stiffness, damping, force, reach). Off with reduced motion.
+Keep the magnet 2 cm+ from the sensor (f.tooClose).
+Docs: https://libraries.dev/magnetic
     </pre>
 
     <footer class="footer">
@@ -925,6 +1264,62 @@ Docs: https://libraries.dev/magnetic.html
   <script src="/assets/site.js" defer></script>
   <script type="module" src="/src/magnetic-ui.ts"></script>
   <script src="/assets/pro-client.js" defer></script>
+  <script>
+    // Free-account wall. Install & Usage, the Copy prompt and the model
+    // download all need an account (any email; it's free). Signed out, the
+    // panel shows blurred under a card and the sign-in box opens in
+    // free-account mode. Once signed in everything unlocks in place.
+    (function () {
+      var panel = document.querySelector('[data-detail-panel="code"]');
+      var gate = document.querySelector("[data-mui-gate]");
+      var content = panel && panel.querySelector(".st-stage-panel");
+      var prompt = document.querySelector(".detail-prompt");
+      var download = document.getElementById("mui-model-download");
+      if (!panel || !gate || !content) return;
+
+      function setGated(on) {
+        if (on) panel.setAttribute("data-gated", ""); else panel.removeAttribute("data-gated");
+        gate.hidden = !on;
+        content.inert = on;
+        content.setAttribute("aria-hidden", on ? "true" : "false");
+        // Copy prompt waits for an account too: greyed, with a tip on hover.
+        if (prompt) {
+          if (on) prompt.setAttribute("data-locked", ""); else prompt.removeAttribute("data-locked");
+          prompt.setAttribute("aria-disabled", on ? "true" : "false");
+        }
+      }
+      // Last known auth (pro-client's cache) so a returning user sees no flash;
+      // /me confirms or re-locks a moment later.
+      try { var c = JSON.parse(localStorage.getItem("ldev:auth") || "null"); setGated(!(c && c.a)); }
+      catch (e) { setGated(true); }
+      document.addEventListener("pro:me", function (e) {
+        if (e.detail && e.detail.resolved) setGated(!e.detail.authenticated);
+      });
+
+      function signedIn() { return !!(window.LibrariesPro && window.LibrariesPro.state.authenticated); }
+      function signIn(then) {
+        if (!window.LibrariesPro) return;
+        window.LibrariesPro.signIn({
+          signup: "model:magnet",
+          title: "Install Magnetic UI",
+          sub: "Free account: we email you a code, no password.",
+          onSignedIn: function () { setGated(false); if (then) then(); }
+        });
+      }
+
+      gate.querySelector("[data-mui-gate-open]").addEventListener("click", function () { signIn(); });
+      // Copy prompt: capture phase, ahead of site.js's copy handler.
+      if (prompt) prompt.addEventListener("click", function (e) {
+        if (!prompt.hasAttribute("data-locked")) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }, true);
+      if (download) download.addEventListener("click", function () {
+        var go = function () { location.href = window.LibrariesPro.apiBase + "/models/magnet"; };
+        if (signedIn()) go(); else signIn(go);
+      });
+    })();
+  </script>
   <script>
     // Showcase clip: autoplays on a loop; the button pauses and resumes it.
     // With reduced motion it waits for the button instead of playing on its own.

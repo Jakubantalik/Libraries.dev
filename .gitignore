@@ -67,3 +67,7 @@ sites/home/vite.local.mjs
 # Root Package.swift (the SwiftUI ports from GitHub): SwiftPM / Xcode output
 /.build/
 /.swiftpm/
+
+# Model weights are licensed separately (LICENSE-MODEL.md) and live in the
+# private libraries-pro repo. Never commit them here.
+*.mfxl

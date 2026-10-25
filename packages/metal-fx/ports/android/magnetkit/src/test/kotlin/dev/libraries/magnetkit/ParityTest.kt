@@ -2,13 +2,20 @@ package dev.libraries.magnetkit
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.File
 
 /** The Android model gives what the trained PyTorch networks give (float16 weights: within ~1e-3). */
 class ParityTest {
-    private val model = MagnetModel.parse(File("src/main/assets/Magnet.mfxl").readBytes())!!
+    // The model is licensed separately and not in the public repo; copy it from
+    // libraries-pro into src/main/assets to run these.
+    private val file = File("src/main/assets/Magnet.mfxl")
+    private val model by lazy { MagnetModel.parse(file.readBytes())!! }
     private val cases = JSONObject(javaClass.getResource("/parity.json")!!.readText())
+
+    @Before fun needModel() = assumeTrue("Magnet.mfxl not in src/main/assets", file.exists())
 
     private fun history(a: org.json.JSONArray) = (0 until a.length()).map { val v = a.getJSONArray(it); Vec3(v.getDouble(0), v.getDouble(1), v.getDouble(2)) }
 

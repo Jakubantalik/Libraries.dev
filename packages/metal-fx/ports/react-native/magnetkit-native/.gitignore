@@ -1,0 +1,6 @@
+# Copied from the MagnetKit ports and the web kit by scripts/sync.mjs.
+ios/MagnetKit/
+android/src/main/java/dev/libraries/magnetkit/*.kt
+src/core/
+build/
+node_modules

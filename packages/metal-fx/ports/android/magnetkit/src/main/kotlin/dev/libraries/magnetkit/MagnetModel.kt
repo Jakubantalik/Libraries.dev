@@ -12,8 +12,13 @@ import kotlin.math.min
  * The magnet model: one on-device model that reads the phone's magnetometer
  * and answers three things — where the magnet is, whether it is really there
  * (or the phone's own magnetised parts are lying), and air taps. The same
- * file as MagnetKit on iOS (assets/Magnet.mfxl, ~2 MB, half precision).
+ * file as MagnetKit on iOS (Magnet.mfxl, ~2 MB, half precision).
  * `MagnetSource` runs it every frame.
+ *
+ * The model is not part of this MIT library: it is licensed separately under
+ * the Libraries.dev Model License (LICENSE-MODEL.md) and downloaded from
+ * libraries.dev. Put Magnet.mfxl in your app's src/main/assets and
+ * `bundled` finds it.
  */
 class MagnetModel private constructor(
     val version: String,
@@ -24,7 +29,7 @@ class MagnetModel private constructor(
     companion object {
         @Volatile private var cached: MagnetModel? = null
 
-        /** The model shipped with MagnetKit (assets/Magnet.mfxl), or null if missing. */
+        /** The model in the app's assets (assets/Magnet.mfxl), or null if missing. */
         fun bundled(context: Context): MagnetModel? = cached ?: synchronized(this) {
             cached ?: runCatching { context.assets.open("Magnet.mfxl").use { it.readBytes() } }
                 .getOrNull()?.let { parse(it) }?.also { cached = it }

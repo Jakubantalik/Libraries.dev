@@ -1,0 +1,56 @@
+{
+  "name": "react-native-magnetkit",
+  "version": "0.1.0",
+  "description": "Magnetic UI for React Native: a real magnet beside the phone pulls your interface. MagnetKit (the on-device magnet model) as an Expo module for iOS and Android.",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "src",
+    "ios",
+    "android/build.gradle",
+    "android/src",
+    "plugin",
+    "app.plugin.js",
+    "expo-module.config.json",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "build": "node scripts/sync.mjs && tsc",
+    "typecheck": "node scripts/sync.mjs && tsc --noEmit",
+    "prepare": "node scripts/sync.mjs",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "expo": ">=52.0.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.76.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "expo": "~58.0.19",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "typescript": "~6.0.3"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "magnet",
+    "magnetometer",
+    "magnetic ui",
+    "ios",
+    "android",
+    "gesture"
+  ],
+  "author": "Jakub Antalik",
+  "license": "MIT",
+  "homepage": "https://libraries.dev/magnetic",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.dev.git",
+    "directory": "packages/metal-fx/ports/react-native/magnetkit-native"
+  }
+}

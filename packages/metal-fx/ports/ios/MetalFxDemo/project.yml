@@ -17,6 +17,11 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+      # The magnet model is licensed separately and not in the public repo
+      # (*.mfxl is ignored). Copy it here from libraries-pro to run the demo.
+      - path: Resources/Magnet.mfxl
+        optional: true
+        buildPhase: resources
     dependencies:
       - package: MetalFxKit
         product: MetalFxKit

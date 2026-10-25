@@ -353,7 +353,8 @@
       padding: 48px 40px;
       background: var(--stage-bg);
     }
-    .st-main .pg-stage::after { content: none; }
+    /* The phone mockup (playground.css) draws its Dynamic Island on ::after. */
+    .st-main .pg-stage:not([data-device="phone"])::after { content: none; }
     /* ── Preview column as one card (the transitions.dev Studio layout) ──
        The bar, the stage and the code sit on a single panel-coloured card
        that runs the panel's full height: the bar is the card's header (9px

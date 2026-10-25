@@ -1258,7 +1258,23 @@ export interface PromptMeta {
   platforms?: PlatformSnippet[];
 }
 
-function buildAgentPrompt(library: string, meta: PromptMeta): string {
+function buildAgentPrompt(library: string, meta: PromptMeta, port?: PlatformSnippet): string {
+  if (port) {
+    return [
+      `Add the ${library} effect from Libraries.dev to my ${port.label} app.`,
+      "",
+      "Install:",
+      port.install,
+      ...(port.note ? ["", port.note] : []),
+      "",
+      "Use exactly this configuration — it was tuned by hand in the Libraries.dev Studio:",
+      "",
+      port.usage,
+      "",
+      "Keep the values exactly as given; adapt only the child content to my app.",
+      `Docs: https://libraries.dev${meta.docsPath}`,
+    ].join("\n");
+  }
   return [
     `Add the ${library} effect from Libraries.dev to my React app.`,
     "",
@@ -1275,6 +1291,18 @@ function buildAgentPrompt(library: string, meta: PromptMeta): string {
 }
 
 type StageView = "preview" | "code";
+
+/* The platform choice the detail pages keep (site.js, same key), so a
+   SwiftUI pick on a page carries into the Studio and back. */
+const PLATFORM_KEY = "ldev:platform";
+const HEAD_PLATFORMS = [
+  { id: "react", label: "React" },
+  { id: "swift", label: "SwiftUI" },
+  { id: "rn", label: "React Native" },
+] as const;
+function readPlatform(): string | null {
+  try { return localStorage.getItem(PLATFORM_KEY); } catch { return null; }
+}
 
 /** Bar above the stage: the detail pages' Preview / Install / Usage tabs
     (same .detail-tabs / .proto-modal-tabs pill bar) on the left, and their
@@ -1293,8 +1321,40 @@ export function StageBar({
   agent?: AgentWiring;
 }) {
   const [view, setView] = useState<StageView>("preview");
-  /* Platform under Install & Usage: "react" is the web package itself. */
-  const [platform, setPlatform] = useState("react");
+  /* Platform, as in the detail pages' head row: "react" is the web package
+     itself; a port is offered only when this library has one, the rest
+     show greyed with "Coming soon". */
+  const ports = prompt?.platforms ?? [];
+  const [platform, setPlatformState] = useState(() => {
+    const saved = readPlatform();
+    return saved && ports.some((x) => x.id === saved) ? saved : "react";
+  });
+  const setPlatform = useCallback((id: string) => {
+    setPlatformState(id);
+    try { localStorage.setItem(PLATFORM_KEY, id); } catch { /* private mode */ }
+    window.dispatchEvent(new CustomEvent(PLATFORM_KEY, { detail: id }));
+  }, []);
+  /* Every library's bar is mounted at once, so a pick in one reaches the
+     others; a library without that port falls back to React. */
+  const portIds = ports.map((x) => x.id).join(",");
+  useEffect(() => {
+    const onPick = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      setPlatformState(id === "react" || portIds.split(",").includes(id) ? id : "react");
+    };
+    window.addEventListener(PLATFORM_KEY, onPick);
+    return () => window.removeEventListener(PLATFORM_KEY, onPick);
+  }, [portIds]);
+  const stageBarRef = useRef<HTMLDivElement | null>(null);
+  /* A native platform draws the stage as a phone (playground.css,
+     [data-device="phone"]). The stage is this bar's sibling, owned by the
+     library's studio, so the attribute is set on it directly. */
+  useEffect(() => {
+    const stage = stageBarRef.current?.parentElement?.querySelector<HTMLElement>(":scope > .pg-stage");
+    if (!stage) return;
+    if (platform === "react") stage.removeAttribute("data-device");
+    else stage.setAttribute("data-device", "phone");
+  }, [platform]);
   const barRef2 = useRef<HTMLDivElement | null>(null);
   const indRef = useRef<HTMLSpanElement | null>(null);
   const viewRef = useRef<StageView>("preview");
@@ -1505,18 +1565,18 @@ export function StageBar({
 
   const copy = useCallback(() => {
     if (!prompt) return;
-    const text = buildAgentPrompt(library, prompt);
+    const text = buildAgentPrompt(library, prompt, ports.find((x) => x.id === platform));
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
     setCopied(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopied(false), 1600);
-  }, [library, prompt]);
+  }, [library, prompt, ports, platform]);
 
   return (
     <>
-    <div className="st-stage-bar" data-view={view}>
+    <div className="st-stage-bar" data-view={view} ref={stageBarRef}>
       <div className="detail-tabs proto-modal-tabs" ref={barRef2} role="tablist" aria-label="View">
         <span className="proto-modal-tabs-indicator" ref={indRef} aria-hidden="true" />
         {(["preview", "code"] as const).map((v) => (
@@ -1529,11 +1589,34 @@ export function StageBar({
             aria-selected={view === v}
             onClick={() => selectView(v)}
           >
-            {v === "preview" ? "Preview" : "Install & Usage"}
+            {v === "preview" ? "Preview" : "Install"}
           </button>
         ))}
       </div>
       <div className="st-stage-actions">
+      {prompt && (
+        <div className="st-platform-tabs detail-platforms" role="tablist" aria-label="Platform">
+          {HEAD_PLATFORMS.map((x) => {
+            const ready = x.id === "react" || ports.some((p) => p.id === x.id);
+            return (
+              <button
+                key={x.id}
+                type="button"
+                className="st-platform-tab"
+                role="tab"
+                aria-selected={platform === x.id}
+                aria-disabled={ready ? undefined : true}
+                data-active={platform === x.id ? "true" : undefined}
+                data-soon={ready ? undefined : ""}
+                onClick={() => { if (ready) setPlatform(x.id); }}
+              >
+                {x.label}
+                {!ready && <span className="detail-platform-tip" role="tooltip">Coming soon</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {agent && (
         <div className="pm-anchor" ref={menuAnchor}>
           <button
@@ -1659,7 +1742,6 @@ export function StageBar({
         usage subtitle says the snippet is the live tuning, because it is —
         it carries whatever the knobs currently read. */}
     {prompt && view === "code" && (() => {
-      const ports = prompt.platforms ?? [];
       const active = ports.find((x) => x.id === platform);
       const install = active ? active.install : `npm install ${prompt.pkg}`;
       const usage = active ? active.usage : prompt.snippet;
@@ -1671,23 +1753,6 @@ export function StageBar({
         : "";
       return (
         <div className="st-stage-panel">
-          {ports.length > 0 && (
-            <div className="st-platform-tabs" role="tablist" aria-label="Platform">
-              {[{ id: "react", label: "React" }, ...ports].map((x) => (
-                <button
-                  key={x.id}
-                  type="button"
-                  className="st-platform-tab"
-                  role="tab"
-                  aria-selected={platform === x.id}
-                  data-active={platform === x.id ? "true" : undefined}
-                  onClick={() => setPlatform(x.id)}
-                >
-                  {x.label}
-                </button>
-              ))}
-            </div>
-          )}
           <div className="st-code-group">
             <span className="st-code-title">Installation</span>
             <CodeBlock code={install} label="Copy install command" />

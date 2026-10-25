@@ -40,6 +40,11 @@ MagnetSource.shared.addGestureHandler { g in
 }
 ```
 
+Then add the model: download `Magnet.mfxl` from
+[libraries.dev/magnetic](https://libraries.dev/magnetic) and add it to your app
+target (Copy Bundle Resources). Without it MagnetKit still reads the field,
+but position, presence and taps from the model are off.
+
 iOS 17+, iPhone. The Simulator has no magnetometer: feed
 `MagnetSource.shared.simulatedField` from `MagnetSimulator.field(magnet:sensor:northUp:)`
 (the demo app drives it with a draggable puck).
@@ -47,8 +52,8 @@ iOS 17+, iPhone. The Simulator has no magnetometer: feed
 ## The magnet model
 
 One model, one file (`Magnet.mfxl`, ~2 MB, half precision, v1.0), run with
-Accelerate on every frame. `MagnetModel.bundled` loads it; `MagnetSource`
-runs it for you. It answers three things:
+Accelerate on every frame. `MagnetModel.bundled` loads it from your app
+bundle; `MagnetSource` runs it for you. It answers three things:
 
 | | Reads | Answers |
 |---|---|---|
@@ -57,11 +62,18 @@ runs it for you. It answers three things:
 | **Tap** | the last 1.28 s at 50 Hz | an air tap — the hovering magnet dipped toward the glass and back — about 0.1 s before the hand is back, with where it landed |
 
 Inside it has three parts (7 → 512 → 512 → 512 → 256 → 6; 238 → 256 → 256 →
-128 → 4; 257 → 256 → 256 → 128 → 1), packed into the one file by
-`training/pack_model.py`. It was trained only on simulated magnet physics —
-dipoles of every size, tilt and face, hand tremor, sensor noise, drift and
-leftovers — with the simulator fitted to real recordings on an iPhone 15
-Pro (`training/FINETUNE_PLAN.md` has the plan and the results).
+128 → 4; 257 → 256 → 256 → 128 → 1) in the one file. It was trained only on
+simulated magnet physics — dipoles of every size, tilt and face, hand
+tremor, sensor noise, drift and leftovers — with the simulator fitted to real
+recordings on an iPhone 15 Pro.
+
+### License
+
+MagnetKit's code is MIT. The model is not: `Magnet.mfxl` is licensed under
+the [Libraries.dev Model License](../../../../../LICENSE-MODEL.md). It is free
+for development, prototypes and non-commercial apps; shipping it in a
+commercial app needs a Pro or Business plan. Keep the file out of public
+repositories.
 
 ## Pairing with other libraries
 
@@ -95,8 +107,8 @@ phone (v5: on the desk beside it and held in the air beside it). It was
 trained only on simulated physics — a dipole hovering or sliding on the
 glass or beside the phone, tilted, either face down, strengths from a small
 ring to a large N52 block, with sensor noise, leftover drift and small
-distortions — so it needs no data from users. `training/` has the scripts,
-including calibrating and fine-tuning on real recordings.
+distortions — so it needs no data from users, then calibrated and
+fine-tuned on real recordings.
 
 Turn it on with `config.locatorEnabled = true` and a `sensorPosition` (the
 magnetometer's spot in window points). Readings then carry `screenPosition`,
@@ -163,8 +175,7 @@ a confident "no magnet" with a steady field re-zeros the sensor, so
 leftovers from an overload are cleared while a magnet resting beside the
 phone is kept. On simulated sequences: resting magnet kept 99.7 %, leftover
 cleared 97.6 %, magnet taken away 99.9 %, held magnet 99.9 %; a magnet held
-while a large leftover dominates is the weak case (66 %). Fine-tuning on
-real phones is described in `training/FINETUNE_PLAN.md`.
+while a large leftover dominates is the weak case (66 %).
 
 Measured on an iPhone 15 Pro, a strong magnet touching the glass over the
 sensor leaves 160–250 µT that lasts more than six minutes — far beyond the

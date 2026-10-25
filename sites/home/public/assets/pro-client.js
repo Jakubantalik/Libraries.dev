@@ -199,6 +199,25 @@
       } else if (!state.authenticated && signout) {
         signout.remove();
       }
+
+      // "Sign up" right below "Sign in" while signed out: a free account
+      // (signup "site"), no purchase needed.
+      var signup = document.getElementById("pm-signup");
+      if (!state.authenticated && !signup) {
+        signup = document.createElement("div");
+        signup.className = "tl-menu-item";
+        signup.id = "pm-signup";
+        signup.setAttribute("role", "menuitem");
+        signup.setAttribute("tabindex", "0");
+        signup.innerHTML = '<span class="tl-menu-item-label">Join for free</span>';
+        signup.addEventListener("click", function (e) {
+          e.preventDefault();
+          signIn({ signup: "site", title: "Join for free", sub: "Get model downloads and install guides." });
+        });
+        signin.parentNode.insertBefore(signup, signin.nextSibling);
+      } else if (state.authenticated && signup) {
+        signup.remove();
+      }
     }
     // 3-dot "More" button becomes the user's avatar while signed in
     // (Figma 1425:38996) — the menu behind it stays the same and already
@@ -370,10 +389,14 @@
   // always opens in the browser that asked. Optional deviceCode ties the login
   // to a device-activate flow; inviteToken makes signing in accept a team invite.
   // (Name kept from the magic-link era so existing pages keep working.)
-  function magicLink(email, deviceCode, inviteToken) {
+  // `extra.signup` ("model:magnet") lets an address with no plan get a free
+  // account; `extra.newsletter` is the opt-in box, applied once the code verifies.
+  function magicLink(email, deviceCode, inviteToken, extra) {
     var body = { email: (email || "").trim() };
     if (deviceCode) body.device_code = deviceCode;
     if (inviteToken) body.invite_token = inviteToken;
+    if (extra && extra.signup) body.signup = extra.signup;
+    if (extra && extra.newsletter) body.newsletter = true;
     return apiJSON("/auth/code/request", "POST", body);
   }
   // Exchange email + typed code for a session in THIS browser.
@@ -437,6 +460,7 @@
   // Replaces the old prompt()/alert() flow. Injected once, reused across pages.
   var modalEl = null, lastFocus = null;
 
+  var modalOpts = {};
   function ensureAuthModal() {
     if (modalEl) return modalEl;
     injectModalStyle();
@@ -458,6 +482,10 @@
             '<input class="tp-modal-input" id="tp-modal-email" type="email" name="email" placeholder="you@example.com" autocomplete="email" aria-label="Email address" />' +
             '<p class="tp-modal-error" role="alert" hidden>Please enter a valid email.</p>' +
           '</div>' +
+          '<label class="tp-modal-check" data-tp-newsletter hidden>' +
+            '<input type="checkbox" name="newsletter" />' +
+            '<span>Email me about new models and libraries, a few times a year</span>' +
+          '</label>' +
           '<button class="tp-modal-btn" type="submit">Send code</button>' +
           '<button class="tp-modal-btn tp-modal-btn--ghost" type="button" data-tp-close>Back</button>' +
         '</form>' +
@@ -490,11 +518,11 @@
       var code = step === "code";
       emailForm.hidden = code;
       codeFormEl.hidden = !code;
-      titleEl.firstChild.nodeValue = code ? "Enter one-time password" : "Enter your email address";
+      titleEl.firstChild.nodeValue = code ? "Enter one-time password" : (modalOpts.title || "Enter your email address");
       var sub = titleEl.querySelector("[data-step-sub]");
       if (sub) sub.textContent = code
         ? "We sent it to " + (email || "your inbox") + "."
-        : "The one you used at checkout.";
+        : (modalOpts.sub || "The one you used at checkout.");
       var focusEl = modalEl.querySelector(code ? "#tp-modal-code" : "#tp-modal-email");
       setTimeout(function () { if (focusEl) focusEl.focus(); }, 0);
     }
@@ -536,7 +564,8 @@
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setError(true); input.focus(); return; }
       setError(false);
       btn.disabled = true; btn.textContent = "Sending…";
-      magicLink(email)
+      var news = modalEl.querySelector("[data-tp-newsletter] input");
+      magicLink(email, null, null, { signup: modalOpts.signup, newsletter: !!(modalOpts.signup && news && news.checked) })
         .then(function (data) {
           // apiJSON resolves on any status, so a refusal arrives here, not in
           // .catch — without this the modal promised an email that was never
@@ -573,7 +602,8 @@
         .then(function (r) {
           if (r && r.ok) {
             setModalNote(note, "Signed in.", "ok");
-            return refreshMe().then(function () { closeAuthModal(); });
+            var done = modalOpts.onSignedIn;
+            return refreshMe().then(function () { closeAuthModal(); if (done) done(); });
           }
           cErr.textContent = r && r.error === "too_many_attempts"
             ? "Too many tries — request a fresh code."
@@ -593,10 +623,18 @@
     note.setAttribute("data-kind", kind || "");
   }
 
+  // opts: { email?, step?, signup?, title?, sub?, onSignedIn? }. With `signup`
+  // the box creates a free account (title and sub-line say what for), offers
+  // the newsletter opt-in and drops the "Get Pro" footer.
   function openAuthModal(opts) {
     var m = ensureAuthModal();
+    modalOpts = opts || {};
     lastFocus = document.activeElement;
     setModalNote(m.querySelector(".tp-modal-note"), "", "");
+    var news = m.querySelector("[data-tp-newsletter]");
+    news.hidden = !modalOpts.signup;
+    news.querySelector("input").checked = false;
+    m.querySelector(".tp-modal-foot").hidden = !!modalOpts.signup;
     if (opts && opts.email) m.querySelector("#tp-modal-email").value = opts.email;
     if (m.__showStep) m.__showStep(opts && opts.step === "code" ? "code" : "email", opts && opts.email);
     m.classList.remove("is-closing");
@@ -654,7 +692,11 @@
       // An author display rule outranks the UA [hidden] style, so every element
       // this modal toggles needs its own companion rule. Without it the code
       // form was permanently on screen.
-      ".tp-modal-form[hidden],.tp-modal-note[hidden],.tp-modal-error[hidden]{display:none}" +
+      ".tp-modal-form[hidden],.tp-modal-note[hidden],.tp-modal-error[hidden],.tp-modal-check[hidden],.tp-modal-foot[hidden]{display:none}" +
+      ".tp-modal-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4;color:#4d4d4d;cursor:pointer}" +
+      ".tp-modal-check input{margin:2px 0 0;flex:none;accent-color:#17181c}" +
+      'html[data-theme="dark"] .tp-modal-check{color:#b5b5b5}' +
+      'html[data-theme="dark"] .tp-modal-check input{accent-color:#f2f2f2}' +
       ".tp-modal-field{display:flex;flex-direction:column;gap:6px}" +
       ".tp-modal-label{font-size:13px;line-height:1.4;color:#4d4d4d}" +
       'html[data-theme="dark"] .tp-modal-label{color:#b5b5b5}' +
@@ -802,6 +844,9 @@
       // `resolved` is still false, so nothing treats this as authoritative, and
       // /me re-locks the moment it disagrees.
       document.dispatchEvent(new CustomEvent("pro:me", { detail: state }));
+    } else {
+      // No cache: paint signed out (the menu's "Sign up") until /me answers.
+      paintAuth();
     }
     mountProBadges();
     wireProCopy();

@@ -515,16 +515,17 @@
     });
   });
 
-  /* ── Platform row under Install & Usage ───────────────────
-   * Beam and Orb ship ports, so the row swaps the whole install+usage
-   * pair — the same thing the Studio's StageBar does with its platform
-   * state. Pages without ports simply have no row. */
+  /* ── Platform row under Install ──────────────────────────
+   * Ports swap the whole install+usage pair — the same thing the Studio's
+   * StageBar does with its platform state. The head row below drives it;
+   * this row only stays visible where it offers more than the head does. */
+  var selectPlatform = null;
   var platformBar = document.querySelector("[data-detail-platforms]");
   if (platformBar) {
     var pTabs = [].slice.call(platformBar.querySelectorAll("[data-platform-tab]"));
     var pPanels = [].slice.call(document.querySelectorAll("[data-platform]"));
 
-    var selectPlatform = function (id) {
+    selectPlatform = function (id) {
       pTabs.forEach(function (t) {
         var on = t.getAttribute("data-platform-tab") === id;
         t.setAttribute("aria-selected", on ? "true" : "false");
@@ -543,6 +544,104 @@
         selectPlatform(t.getAttribute("data-platform-tab"));
       });
     });
+  }
+
+  /* ── Platform in the page head (React / SwiftUI / React Native) ──
+   * One choice for the page: it picks the Install pair and the Copy prompt,
+   * and for SwiftUI or React Native the playground draws its effect inside
+   * a phone mockup (playground.css, [data-device="phone"]). Remembered
+   * across pages, so an iOS developer picks SwiftUI once. Greyed tabs are
+   * ports not built yet: they only show their "Coming soon" tip. */
+  var PLATFORM_KEY = "ldev:platform";
+  var PLATFORM_LABEL = { react: "React", swift: "SwiftUI", rn: "React Native" };
+  var headBar = document.querySelector("[data-head-platforms]");
+  var headPlatform = null;
+  var pagePlatform = null; // the page's own first platform: what #agent-prompt is written for
+  if (headBar) {
+    var hTabs = [].slice.call(headBar.querySelectorAll("[data-head-platform]"));
+    var ready = hTabs.filter(function (t) { return !t.hasAttribute("data-soon"); });
+    pagePlatform = ready.length ? ready[0].getAttribute("data-head-platform") : "react";
+
+    // The inner row hides when every choice in it is one the head offers.
+    if (platformBar) {
+      var heads = hTabs.map(function (t) { return t.getAttribute("data-head-platform"); });
+      var inner = [].slice.call(platformBar.querySelectorAll("[data-platform-tab]"));
+      if (inner.every(function (t) { return heads.indexOf(t.getAttribute("data-platform-tab")) !== -1; })) {
+        platformBar.setAttribute("data-driven", "");
+      }
+    }
+
+    // The playground stage is rendered by React a moment after this runs,
+    // so the attribute is (re)applied once it appears.
+    var setDevice = function (id) {
+      var stage = document.querySelector(".pg-stage");
+      if (!stage) return;
+      if (id === "swift" || id === "rn") stage.setAttribute("data-device", "phone");
+      else stage.removeAttribute("data-device");
+    };
+    if (!document.querySelector(".pg-stage") && window.MutationObserver) {
+      var waitStage = new MutationObserver(function () {
+        if (!document.querySelector(".pg-stage")) return;
+        waitStage.disconnect();
+        setDevice(headPlatform);
+      });
+      waitStage.observe(document.body, { childList: true, subtree: true });
+    }
+
+    var selectHead = function (id, remember) {
+      headPlatform = id;
+      hTabs.forEach(function (t) {
+        var on = t.getAttribute("data-head-platform") === id;
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        if (on) t.setAttribute("data-active", "true");
+        else t.removeAttribute("data-active");
+      });
+      if (selectPlatform && document.querySelector('.detail-platform[data-platform="' + id + '"]')) selectPlatform(id);
+      setDevice(id);
+      if (remember) { try { localStorage.setItem(PLATFORM_KEY, id); } catch (e) {} }
+    };
+
+    hTabs.forEach(function (t) {
+      t.addEventListener("click", function () {
+        if (t.hasAttribute("data-soon")) return;
+        selectHead(t.getAttribute("data-head-platform"), true);
+      });
+    });
+
+    var saved = null;
+    try { saved = localStorage.getItem(PLATFORM_KEY); } catch (e) {}
+    var savedTab = ready.filter(function (t) { return t.getAttribute("data-head-platform") === saved; })[0];
+    selectHead(savedTab ? saved : pagePlatform, false);
+  }
+
+  // The prompt for the chosen platform: a hand-written #agent-prompt-<id>
+  // when the page has one, the page's own #agent-prompt for its first
+  // platform, otherwise built from that platform's Install blocks.
+  function promptFor(btn) {
+    var id = headPlatform || pagePlatform;
+    var own = id && document.getElementById("agent-prompt-" + id);
+    if (own) return (own.textContent || "").trim();
+    var panel = id && document.querySelector('.detail-platform[data-platform="' + id + '"]');
+    if (!panel || id === pagePlatform) {
+      var src = document.querySelector(btn.getAttribute("data-prompt-target"));
+      return src ? (src.textContent || "").trim() : "";
+    }
+    var title = document.querySelector(".detail-title");
+    var canonical = document.querySelector('link[rel="canonical"]');
+    var parts = ["Add " + (title ? title.textContent.trim() : "this library") + " from Libraries.dev to my " +
+      PLATFORM_LABEL[id] + " app."];
+    [].slice.call(panel.querySelectorAll(".st-code-group")).forEach(function (g) {
+      var head = g.querySelector(".st-code-title");
+      var pre = g.querySelector("pre");
+      var note = g.querySelector(".st-code-note");
+      var block = [];
+      if (head) block.push(head.textContent.trim() + ":");
+      if (pre) block.push(pre.textContent.trim());
+      if (note) block.push(note.textContent.replace(/\s+/g, " ").trim());
+      if (block.length) parts.push(block.join("\n"));
+    });
+    parts.push("Docs: " + (canonical ? canonical.href : location.origin + location.pathname));
+    return parts.join("\n\n");
   }
 
   /* ── Detail-page tabs (Preview / Install / Usage) ──────────
@@ -609,8 +708,7 @@
   promptBtns.forEach(function (btn) {
     var timer = null;
     btn.addEventListener("click", function () {
-      var src = document.querySelector(btn.getAttribute("data-prompt-target"));
-      var text = src ? (src.textContent || "").trim() : "";
+      var text = promptFor(btn);
       if (!text) return;
       if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function () {});
       /* Only the icon reacts: the CSS swaps copy for check off this

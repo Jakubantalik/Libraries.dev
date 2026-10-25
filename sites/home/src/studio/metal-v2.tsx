@@ -453,7 +453,7 @@ export function MetalStudioV2({
   const platforms = [
     {
       id: "swift",
-      label: "Swift UI",
+      label: "SwiftUI",
       installTitle: "Add MetalFxKit from GitHub with Swift Package Manager (iOS 17+)",
       install: `// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "MetalFxKit", package: "Libraries.dev")`,
       note: "Build through Xcode: the Metal shader is compiled by Xcode's build system, not by SwiftPM alone. The phone's tilt bends the rings; source: .magnet bends them toward a magnet near the phone instead.",

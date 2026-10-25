@@ -4,15 +4,20 @@ import Foundation
 /// magnetometer and answers three things — where the magnet is, whether it is
 /// really there (or the phone's own magnetised parts are lying), and air taps.
 /// Trained only on simulated magnet physics, its simulator fitted to real
-/// recordings; it ships in this package as one file (Magnet.mfxl, ~2 MB,
-/// half precision) and runs with Accelerate — no Core ML, no network.
+/// recordings; it is one file (Magnet.mfxl, ~2 MB, half precision) and runs
+/// with Accelerate — no Core ML, no network.
+///
+/// The model is not part of this MIT package: it is licensed separately under
+/// the Libraries.dev Model License (LICENSE-MODEL.md) and downloaded from
+/// libraries.dev. Add Magnet.mfxl to your app target and `bundled` finds it.
 ///
 /// `MagnetSource` runs it for you every frame; use the model directly only
 /// to feed it your own readings.
 public final class MagnetModel {
-    /// The model shipped with MagnetKit, or nil if the file is missing.
+    /// The model in the app bundle (Magnet.mfxl in your app target), or nil
+    /// if the file is missing.
     public static let bundled: MagnetModel? = {
-        guard let url = Bundle.module.url(forResource: "Magnet", withExtension: "mfxl"),
+        guard let url = Bundle.main.url(forResource: "Magnet", withExtension: "mfxl"),
               let data = try? Data(contentsOf: url) else { return nil }
         return MagnetModel(data: data)
     }()

@@ -11,11 +11,9 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MagnetKit",
-            resources: [
-                // The magnet model (MagnetModel): locator, presence and tap in one file, ~2 MB.
-                .copy("Magnet.mfxl"),
-            ]
+            // The magnet model (Magnet.mfxl) is not in this package: it is licensed
+            // separately (LICENSE-MODEL.md) and loaded from the host app's bundle.
+            name: "MagnetKit"
         ),
     ]
 )

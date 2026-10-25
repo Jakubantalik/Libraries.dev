@@ -57,12 +57,12 @@ let package = Package(
             path: "packages/metal-fx/ports/ios/MetalFxKit/Sources/MetalFxKit",
             resources: [.process("MetalFxShaders.metal")]
         ),
-        // The magnet model and the sensor around it (Magnetic UI), a library of
-        // its own; MetalFxKit's `source: .magnet` rings read it.
+        // The sensor around the magnet model (Magnetic UI), a library of its own;
+        // MetalFxKit's `source: .magnet` rings read it. The model itself
+        // (Magnet.mfxl) is licensed separately and loaded from the host app.
         .target(
             name: "MagnetKit",
-            path: "packages/metal-fx/ports/ios/MagnetKit/Sources/MagnetKit",
-            resources: [.copy("Magnet.mfxl")]
+            path: "packages/metal-fx/ports/ios/MagnetKit/Sources/MagnetKit"
         ),
     ]
 )

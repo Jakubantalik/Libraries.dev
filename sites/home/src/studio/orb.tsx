@@ -333,7 +333,7 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
     },
     {
       id: "swift",
-      label: "Swift UI",
+      label: "SwiftUI",
       installTitle: "Add ThinkingOrbsKit from GitHub with Swift Package Manager (iOS 17+, no dependencies)",
       install: `// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "ThinkingOrbsKit", package: "Libraries.dev")`,
       usage: swiftSnippet,

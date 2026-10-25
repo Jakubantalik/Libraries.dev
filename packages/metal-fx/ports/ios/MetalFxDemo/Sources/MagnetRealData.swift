@@ -4,7 +4,7 @@ import MagnetKit
 import simd
 
 // Recording real magnet data, to measure the networks' real accuracy and to
-// fine-tune them on real phones and magnets (MetalFxKit/training/FINETUNE_PLAN.md).
+// fine-tune them on real phones and magnets (the training notes live with the model in the private libraries-pro repo).
 //
 // - Mat passes: the phone lies screen-up in the outline on a printed mat
 //   (MetalFxDemo/real-data-mat-iphone15pro.pdf, made by tools/make_mat.py)

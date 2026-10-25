@@ -372,10 +372,17 @@
             <div class="detail-tabs proto-modal-tabs" data-detail-tabs role="tablist" aria-label="View">
               <span class="proto-modal-tabs-indicator" aria-hidden="true"></span>
               <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="preview" aria-selected="true">Preview</button>
-              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install &amp; Usage</button>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install</button>
             </div>
 
             <div class="detail-head-actions">
+              <!-- Platform: drives Install, the Copy prompt and the phone frame
+                   (site.js). Ports not built yet show greyed with "Coming soon". -->
+              <div class="st-platform-tabs detail-platforms" role="tablist" aria-label="Platform" data-head-platforms>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="react" aria-selected="true" data-active="true">React</button>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="swift" aria-selected="false" aria-disabled="true" data-soon>SwiftUI<span class="detail-platform-tip" role="tooltip">Coming soon</span></button>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="rn" aria-selected="false" aria-disabled="true" data-soon>React Native<span class="detail-platform-tip" role="tooltip">Coming soon</span></button>
+              </div>
               <a class="t-pro-btn detail-studio" href="/studio/app.html#gooey">
                 <img src="/assets/icons/magic-wand.svg" alt="" width="16" height="16" decoding="async" />
                 <span class="detail-studio-sparks" aria-hidden="true"><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 900ms; --sdelay: 0ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 1000ms; --sdelay: 120ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 950ms; --sdelay: 240ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 1000ms; --sdelay: 360ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 920ms; --sdelay: 480ms;"></i><i style="--ox: -1px; --oy: -3px; --sx: 0px; --sy: -11px; --sd: 950ms; --sdelay: 520ms;"></i><i style="--ox: 2px; --oy: -2px; --sx: 9px; --sy: -9px; --sd: 900ms; --sdelay: 650ms;"></i><i style="--ox: 2px; --oy: 5px; --sx: 9px; --sy: 9px; --sd: 1000ms; --sdelay: 760ms;"></i><i style="--ox: -5px; --oy: -2px; --sx: -9px; --sy: -9px; --sd: 930ms; --sdelay: 180ms;"></i><i style="--ox: 3px; --oy: 1px; --sx: 12px; --sy: 1px; --sd: 980ms; --sdelay: 300ms;"></i></span>

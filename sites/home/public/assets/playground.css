@@ -546,6 +546,40 @@ html[data-theme="light"] .st-platform-tab {
 .st-platform-tab[data-active="true"],
 html[data-theme="dark"] .st-platform-tab[data-active="true"],
 html[data-theme="light"] .st-platform-tab[data-active="true"] { opacity: 1; }
+
+/* The same text tabs in the page head, before Tune in Studio: one platform
+   choice for the whole page (Install, Copy prompt, preview note). A port
+   that is not built yet stays visible, greyed, with a "Coming soon" tip. */
+.detail-platforms { align-self: center; height: 36px; margin-right: 12px; }
+.detail-platforms .st-platform-tab { position: relative; height: 36px; }
+/* Greyed through the ink, not opacity, so the tip inside keeps full ink. */
+.detail-platforms .st-platform-tab[data-soon],
+html[data-theme="dark"] .detail-platforms .st-platform-tab[data-soon],
+html[data-theme="light"] .detail-platforms .st-platform-tab[data-soon] {
+  opacity: 1; cursor: default; color: color-mix(in srgb, var(--pg-title) 25%, transparent);
+}
+.detail-platform-tip {
+  position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%);
+  height: 28px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 40px;
+  font: 400 12px/16px var(--font-sans); white-space: nowrap; pointer-events: none; z-index: 10;
+  background: #ffffff; color: #17181c;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 1px 0 rgba(0, 0, 0, 0.04);
+  opacity: 0; visibility: hidden; filter: blur(var(--blur-medium, 3px));
+  transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1), filter 150ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 150ms;
+}
+html[data-theme="dark"] .detail-platform-tip {
+  background: #181818; color: #e3e3e3;
+  box-shadow: 0 1px 16px 0 rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+}
+.detail-platforms .st-platform-tab[data-soon]:hover .detail-platform-tip,
+.detail-platforms .st-platform-tab[data-soon]:focus-visible .detail-platform-tip {
+  opacity: 1; visibility: visible; filter: blur(0);
+  transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms, filter 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms, visibility 0s linear 50ms;
+}
+/* The head row now picks the platform, so the row inside Install hides
+   (pages whose inner row has other choices, like Magnetic UI's Android and
+   Model only, keep theirs). */
+.st-platform-tabs[data-driven] { display: none; }
 .st-code-note {
   font-family: var(--font-sans);
   font-size: 12px;
@@ -1019,6 +1053,66 @@ html[data-theme="light"] .st-preset-save:active { background: #fafafa; }
   overflow: hidden;
 }
 html[data-theme="dark"] .pg-stage { background: #171717; }
+
+/* ── Phone mockup ────────────────────────────────────────────
+   With SwiftUI or React Native picked (page head or Studio bar), the stage
+   draws a plain vector iPhone and the effect sits on its screen: body and
+   bezel on ::before, the Dynamic Island on ::after, home indicator as the
+   body's last background layer. Pure CSS on the stage, so the React tree
+   inside never changes. The effect runs at 0.7 zoom — phone scale — so the
+   widest demo (Voice, ~370px) still fits the 274px screen. */
+.pg-stage[data-device="phone"] {
+  --phone-w: 292px;
+  --phone-h: 600px;
+  --phone-bezel: 9px;
+  --phone-body: #0b0b0c;
+  --phone-edge: rgba(255, 255, 255, 0.12);
+  --phone-screen: #171717;
+  --phone-island: #000;
+  --phone-home: rgba(255, 255, 255, 0.55);
+  min-height: calc(var(--phone-h) + 64px);
+  /* Own stacking context: the body paints at z -1, above the stage's
+     background and under the effect, without repositioning any child. */
+  isolation: isolate;
+}
+html[data-theme="light"] .pg-stage[data-device="phone"] {
+  --phone-body: #f4f4f5;
+  --phone-edge: rgba(0, 0, 0, 0.12);
+  --phone-screen: var(--stage-bg);
+  --phone-home: rgba(0, 0, 0, 0.45);
+}
+.pg-stage[data-device="phone"]::before,
+.pg-stage[data-device="phone"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+}
+.pg-stage[data-device="phone"]::before {
+  z-index: -1;
+  width: var(--phone-w);
+  height: var(--phone-h);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: var(--phone-bezel) solid var(--phone-body);
+  border-radius: 52px;
+  background:
+    linear-gradient(var(--phone-home), var(--phone-home)) center bottom 8px / 108px 4px no-repeat,
+    var(--phone-screen);
+  box-shadow: 0 0 0 1px var(--phone-edge), 0 24px 64px rgba(0, 0, 0, 0.28);
+}
+.pg-stage[data-device="phone"]::after {
+  z-index: 3;
+  width: 86px;
+  height: 25px;
+  border-radius: 13px;
+  background: var(--phone-island);
+  transform: translate(-50%, calc(var(--phone-h) / -2 + var(--phone-bezel) + 11px));
+}
+.pg-stage[data-device="phone"] > :not(.pg-play):not(.pg-toolbar) { zoom: 0.7; }
+/* Play moves onto the screen, above the home indicator. */
+.pg-stage[data-device="phone"] > .pg-play { bottom: calc(50% - var(--phone-h) / 2 + 36px); }
 
 /* ── Studio control tokens ────────────────────────────────────
    Light values follow transitions.dev's page palette (--bg / --card-bg

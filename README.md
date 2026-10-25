@@ -52,6 +52,8 @@ Each package's README documents its props.
 
 **Commercial projects?** The libraries are MIT — use them anywhere, including commercial work. Pro content (Studio exports, Pro presets and recipes) is licensed to you or your team under the plan you buy, for unlimited projects.
 
+**What about the models?** The code around them (MagnetKit for iOS and Android) is MIT. The model files themselves, starting with `Magnet.mfxl` for Magnetic UI, are under the [Libraries.dev Model License](LICENSE-MODEL.md): free for development, prototypes and non-commercial apps; shipping one in a commercial app needs Pro or Business. They are downloaded from libraries.dev and never committed to this repo.
+
 ## Working in this repo
 
 npm workspaces: `packages/` holds the published libraries (one folder per npm package, each with its own README and LICENSE), `sites/` the demo sites — `sites/home` is libraries.dev.

@@ -8,3 +8,7 @@
 # The Magnetic UI page moved from /magnetic-ui to /magnetic.
 /magnetic-ui       /magnetic  301
 /magnetic-ui.html  /magnetic  301
+
+# The magnet model left the public site on 24 Oct 2026 (Model License, free
+# account download from the page).
+/downloads/Magnet.mfxl  /magnetic.html  302
