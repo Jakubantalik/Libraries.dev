@@ -212,7 +212,7 @@
         signup.innerHTML = '<span class="tl-menu-item-label">Join for free</span>';
         signup.addEventListener("click", function (e) {
           e.preventDefault();
-          signIn({ signup: "site", title: "Join for free", sub: "Get access to the latest models and libraries." });
+          signIn({ signup: "site", title: "Join for free", sub: "Get access to the latest models\nand libraries." });
         });
         signin.parentNode.insertBefore(signup, signin.parentNode.firstChild);
       } else if (state.authenticated && signup) {
@@ -678,7 +678,8 @@
       ".tp-modal-x:hover{opacity:.9}" +
       ".tp-modal-x:active{scale:.9}" +
       ".tp-modal-intro{margin:0;font-size:16px;line-height:24.2px;font-weight:400;padding-right:20px}" +
-      ".tp-modal-intro-muted{color:#8a8a8a;display:block}" +
+      // pre-line: a sub-line may set its own break ("\n").
+      ".tp-modal-intro-muted{color:#8a8a8a;display:block;white-space:pre-line}" +
       ".tp-modal-form{display:flex;flex-direction:column;gap:12px}" +
       // An author display rule outranks the UA [hidden] style, so every element
       // this modal toggles needs its own companion rule. Without it the code
