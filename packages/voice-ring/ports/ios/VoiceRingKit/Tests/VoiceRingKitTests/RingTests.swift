@@ -28,6 +28,22 @@ final class RingTests: XCTestCase {
                                               blur: 1.25, bounce: 0.82))
         XCTAssertEqual(ring.leanMargin, 0)
     }
+
+    /// The spectrum is resampled along a smooth closed curve: it closes on
+    /// itself, keeps the gold at the top, and never jumps between samples.
+    func testSpectrumIsSmooth() throws {
+        let light = try XCTUnwrap(VoiceRing.preset(size: 200).frame(200, 1, VoiceInput(), [:]).light)
+        let smooth = smoothSpectrum(light.stops)
+        XCTAssertEqual(smooth.count, 37)
+        let first = try XCTUnwrap(smooth.first), last = try XCTUnwrap(smooth.last)
+        XCTAssertEqual(first.r, last.r, accuracy: 0.5)
+        XCTAssertEqual(first.g, last.g, accuracy: 0.5)
+        XCTAssertEqual(first.b, last.b, accuracy: 0.5)
+        XCTAssertEqual(first.g, 150, accuracy: 1)            // the gold at the top is kept
+        for (a, b) in zip(smooth, smooth.dropFirst()) {
+            XCTAssertLessThan(abs(b.r - a.r) + abs(b.g - a.g) + abs(b.b - a.b), 90, "step at \(a.offset)")
+        }
+    }
 }
 
 final class ModelFileTests: XCTestCase {

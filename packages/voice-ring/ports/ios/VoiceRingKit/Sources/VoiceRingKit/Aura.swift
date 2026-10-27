@@ -9,7 +9,10 @@ import VoiceCore
 private let spectrum: [FrameLight.Stop] = {
     let rows: [[Double]] = [
         [0, 255, 150, 90], [0.12, 255, 110, 120], [0.24, 255, 80, 170], [0.4, 190, 80, 255],
-        [0.58, 90, 92, 255], [0.74, 60, 132, 255], [0.88, 160, 92, 255], [1, 255, 150, 90],
+        [0.58, 90, 92, 255], [0.74, 60, 132, 255],
+        // violet warms through magenta into the gold at the top, so the gold
+        // fades in rather than meeting the violet at an edge
+        [0.84, 170, 90, 255], [0.93, 240, 104, 165], [1, 255, 150, 90],
     ]
     return rows.map { FrameLight.Stop($0[0], $0[1], $0[2], $0[3]) }
 }()

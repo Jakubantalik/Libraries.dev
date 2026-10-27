@@ -100,6 +100,45 @@ function palette(stops: Stop[], dark: boolean, tint?: OrbTint, glow?: OrbGlow): 
 
 const css = (r: number, g: number, b: number) => `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 
+/**
+ * The ring's colours resampled every 10° along a smooth curve through the
+ * stops, in OKLab. Joined in straight lines, the colours turn sharply at a
+ * stop — the warm one at the top peaks there — and the additive bloom, which
+ * runs a channel into white, turns that corner into a visible edge.
+ */
+export function smoothSpectrum(stops: Stop[], samples = 36): Stop[] {
+  // the ring closes on itself: the stop at 1 is the one at 0 again
+  const ring = stops.filter(([o]) => o < 1);
+  const m = ring.length;
+  if (m < 3) return stops;
+  const lab = ring.map(([, r, g, b]) => toLab(r, g, b));
+  const at = (i: number) => ((i % m) + m) % m;
+  // where stop i sits, counting laps round the ring
+  const pos = (i: number) => ring[at(i)][0] + Math.floor(i / m);
+  // the slope through each stop, from its neighbours: no corner at the stop
+  const slope = (i: number) => {
+    const d = pos(i + 1) - pos(i - 1);
+    return lab[at(i + 1)].map((v, c) => (v - lab[at(i - 1)][c]) / d);
+  };
+  const out: Stop[] = [];
+  for (let k = 0; k <= samples; k++) {
+    const u = k / samples;
+    let i = -1;
+    while (i < m - 1 && pos(i + 1) <= u) i++;
+    const h = pos(i + 1) - pos(i);
+    const t = (u - pos(i)) / h;
+    const t2 = t * t, t3 = t2 * t;
+    const a = lab[at(i)], b = lab[at(i + 1)], ma = slope(i), mb = slope(i + 1);
+    const v = [0, 1, 2].map(
+      (c) =>
+        (2 * t3 - 3 * t2 + 1) * a[c] + (t3 - 2 * t2 + t) * h * ma[c] + (-2 * t3 + 3 * t2) * b[c] + (t3 - t2) * h * mb[c]
+    );
+    const [r, g, bl] = fromLab(v[0], v[1], v[2]);
+    out.push([u, r, g, bl]);
+  }
+  return out;
+}
+
 function spectrum(ctx: CanvasRenderingContext2D, L: FrameLight, stops: Stop[]): CanvasGradient {
   // conic where the browser has it (all current ones); a diagonal sweep otherwise
   const grad =
@@ -119,7 +158,7 @@ export function paintLight(
   tint?: OrbTint,
   glow?: OrbGlow
 ): void {
-  const grad = spectrum(ctx, L, palette(L.stops, dark, tint, glow));
+  const grad = spectrum(ctx, L, smoothSpectrum(palette(L.stops, dark, tint, glow)));
   // one path per ring, lit at its mean depth: per-segment opacity would
   // seam where the wide, additive bloom strokes overlap
   const rings = frame.strokes.map((s) => {

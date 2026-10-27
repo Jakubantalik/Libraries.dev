@@ -66,7 +66,8 @@ private func fromLab(_ v: SIMD3<Double>) -> RGB {
 /// the web: an emotion recolours it as a gradient of its own hue's
 /// neighbours, blended in evenly from each stop's own colour.
 private func palette(_ stops: [FrameLight.Stop], dark: Bool, glow: (color: RGB, amount: Double)?) -> [Gradient.Stop] {
-    stops.map { s in
+    let d = dark ? 1.0 : 0.82
+    let coloured = stops.map { s in
         var c = RGB(s.r, s.g, s.b)
         if let glow, glow.amount > 0.005 {
             // green teal to lime, red magenta to orange, blue cyan to violet —
@@ -80,9 +81,43 @@ private func palette(_ stops: [FrameLight.Stop], dark: Bool, glow: (color: RGB, 
             let a = toLab(c)
             c = fromLab(a + (toLab(to) - a) * glow.amount)
         }
-        let d = dark ? 1.0 : 0.82
-        return Gradient.Stop(color: Color(.sRGB, red: c.r * d / 255, green: c.g * d / 255, blue: c.b * d / 255), location: s.offset)
+        return FrameLight.Stop(s.offset, c.r * d, c.g * d, c.b * d)
     }
+    return smoothSpectrum(coloured).map {
+        Gradient.Stop(color: Color(.sRGB, red: $0.r / 255, green: $0.g / 255, blue: $0.b / 255), location: $0.offset)
+    }
+}
+
+/// The ring's colours resampled every 10° along a smooth curve through the
+/// stops, in OKLab — port of light.ts. Joined in straight lines, the colours
+/// turn sharply at a stop — the warm one at the top peaks there — and the
+/// additive bloom, which runs a channel into white, turns that corner into a
+/// visible edge.
+func smoothSpectrum(_ stops: [FrameLight.Stop], samples: Int = 36) -> [FrameLight.Stop] {
+    // the ring closes on itself: the stop at 1 is the one at 0 again
+    let ring = stops.filter { $0.offset < 1 }
+    let m = ring.count
+    guard m >= 3 else { return stops }
+    let lab = ring.map { toLab(RGB($0.r, $0.g, $0.b)) }
+    func at(_ i: Int) -> Int { ((i % m) + m) % m }
+    // where stop i sits, counting laps round the ring
+    func pos(_ i: Int) -> Double { ring[at(i)].offset + floor(Double(i) / Double(m)) }
+    // the slope through each stop, from its neighbours: no corner at the stop
+    func slope(_ i: Int) -> SIMD3<Double> { (lab[at(i + 1)] - lab[at(i - 1)]) / (pos(i + 1) - pos(i - 1)) }
+    var out: [FrameLight.Stop] = []
+    out.reserveCapacity(samples + 1)
+    for k in 0...samples {
+        let u = Double(k) / Double(samples)
+        var i = -1
+        while i < m - 1, pos(i + 1) <= u { i += 1 }
+        let h = pos(i + 1) - pos(i)
+        let t = (u - pos(i)) / h, t2 = t * t, t3 = t2 * t
+        let v = (2 * t3 - 3 * t2 + 1) * lab[at(i)] + (t3 - 2 * t2 + t) * h * slope(i)
+            + (-2 * t3 + 3 * t2) * lab[at(i + 1)] + (t3 - t2) * h * slope(i + 1)
+        let c = fromLab(v)
+        out.append(FrameLight.Stop(u, c.r, c.g, c.b))
+    }
+    return out
 }
 
 func paintLight(_ context: inout GraphicsContext, _ frame: OrbFrame, _ L: FrameLight, dark: Bool, glow: (color: RGB, amount: Double)?) {
