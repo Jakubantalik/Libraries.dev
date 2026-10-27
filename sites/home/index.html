@@ -426,6 +426,8 @@
        in half. */
     .lib-card[data-lib="beam"] .lib-video,
     .lib-card[data-lib="orb"] .lib-video { object-position: left center; }
+    /* The Voice direction clip anchors to its top centre, where the ring is. */
+    .lib-card[data-lib="voice-direction"] .lib-video { object-position: center top; }
     /* 254 leaves 16px between the stage and the icon — the same gap the
        meta keeps below itself, so the card breathes evenly. */
     .lib-card .card-stage { height: 254px; }
@@ -1026,7 +1028,9 @@
           }
           document.querySelectorAll(".lib-card").forEach(function (card) {
             var v = card.querySelector(".lib-video");
-            if (!v) return;
+            /* A card with a still image (data-ready set in the markup) has no
+               clip to start or poster to wait for. */
+            if (!v || v.tagName !== "VIDEO") return;
             /* Blur-up: the wrapper drops its blurred placeholder once the
                sharp poster has decoded, or once the clip itself has a frame,
                whichever lands first. This has to run for every card, ahead
@@ -1125,6 +1129,22 @@
         </div>
       </article>
 
+      <article class="card lib-card" data-lib="voice-ring">
+        <a class="lib-card-hit" href="/voice-ring.html" aria-label="Voice ring"></a>
+        <div class="card-stage">
+          <!-- A still for now (the live ring, captured from its page); swap in
+               a clip like the other cards when one is recorded. -->
+          <div class="vid" data-ready style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBARXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAFKADAAQAAAABAAAAEQAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/+IB2ElDQ19QUk9GSUxFAAEBAAAByAAAAAAEMAAAbW50clJHQiBYWVogB+AAAQABAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJZGVzYwAAAPAAAAAkclhZWgAAARQAAAAUZ1hZWgAAASgAAAAUYlhZWgAAATwAAAAUd3RwdAAAAVAAAAAUclRSQwAAAWQAAAAoZ1RSQwAAAWQAAAAoYlRSQwAAAWQAAAAoY3BydAAAAYwAAAA8bWx1YwAAAAAAAAABAAAADGVuVVMAAAAIAAAAHABzAFIARwBCWFlaIAAAAAAAAG+iAAA49QAAA5BYWVogAAAAAAAAYpkAALeFAAAY2lhZWiAAAAAAAAAkoAAAD4QAALbPWFlaIAAAAAAAAPbWAAEAAAAA0y1wYXJhAAAAAAAEAAAAAmZmAADypwAADVkAABPQAAAKWwAAAAAAAAAAbWx1YwAAAAAAAAABAAAADGVuVVMAAAAgAAAAHABHAG8AbwBnAGwAZQAgAEkAbgBjAC4AIAAyADAAMQA2/8AAEQgAEQAUAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMADAwMDAwMFAwMFB0UFBQdJx0dHR0nMScnJycnMTsxMTExMTE7Ozs7Ozs7O0dHR0dHR1NTU1NTXV1dXV1dXV1dXf/bAEMBDg8PGBYYKBYWKGFCNkJhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYf/dAAQAAv/aAAwDAQACEQMRAD8A89iieaQRJ1Pr0qxJaBY2kilWUJw23PGe/IHHvUNvMYJRLjcBkEHuDwRUzTwrG8duhXzOpY54znA4FNJDVupTooopCP/Q85ooooAKKKKAP//Z&quot;)"><img class="lib-video" src="/assets/videos/posters/voice-ring-main-card.jpg" alt="" width="960" height="825" loading="lazy" decoding="async" /></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico"><img src="/assets/icons/figma-voice-ring.svg" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Voice ring</span>
+            <span class="lib-desc">Light that bends with your voice</span>
+          </span>
+        </div>
+      </article>
+
       <article class="card lib-card" data-lib="avatars">
         <a class="lib-card-hit" href="/bots.html" aria-label="Bot avatars playground"></a>
         <div class="card-stage">
@@ -1153,6 +1173,20 @@
         </div>
       </article>
 
+      <article class="card lib-card" data-lib="image">
+        <a class="lib-card-hit" href="/image.html" aria-label="Image generation playground"></a>
+        <div class="card-stage">
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIBBv/EAB0QAQEBAAAHAAAAAAAAAAAAAAABAgMRITFhgfD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5rMlnlU4c+qc2TPts1ARelvIL3AAAAAf/9k=&quot;)"><video class="lib-video" src="/assets/videos/image-main-card.mp4" poster="/assets/videos/posters/image-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico"><img src="/assets/icons/tile-image.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Image generation</span>
+            <span class="lib-desc">A loader that becomes the image</span>
+          </span>
+        </div>
+      </article>
+
       <article class="card lib-card" data-lib="magnetic">
         <a class="lib-card-hit" href="/magnetic.html" aria-label="Magnetic UI"></a>
         <div class="card-stage">
@@ -1167,16 +1201,16 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="image">
-        <a class="lib-card-hit" href="/image.html" aria-label="Image generation playground"></a>
+      <article class="card lib-card" data-lib="voice-direction">
+        <a class="lib-card-hit" href="/voice-direction.html" aria-label="Voice direction"></a>
         <div class="card-stage">
-          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIBBv/EAB0QAQEBAAAHAAAAAAAAAAAAAAABAgMRITFhgfD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5rMlnlU4c+qc2TPts1ARelvIL3AAAAAf/9k=&quot;)"><video class="lib-video" src="/assets/videos/image-main-card.mp4" poster="/assets/videos/posters/image-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,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&quot;)"><video class="lib-video" src="/assets/videos/voice-direction-main-card.mp4" poster="/assets/videos/posters/voice-direction-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
         </div>
         <div class="lib-meta">
-          <span class="lib-ico"><img src="/assets/icons/tile-image.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
+          <span class="lib-ico lib-ico--tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="19" height="24" viewBox="0 0 19 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="Vector" filter="url(#filter0_ii_vd_card)"><path d="M7.91667 17.6768C7.54458 17.6768 7.16933 17.5491 6.87008 17.2875C6.213 16.7176 6.15125 15.7335 6.72917 15.0889C7.49392 14.2356 7.91667 13.1379 7.91667 11.9997C7.91667 10.8615 7.4955 9.76375 6.73075 8.91203C6.15283 8.26741 6.21458 7.28334 6.87167 6.71346C7.524 6.14668 8.52467 6.20585 9.10575 6.85048C10.3819 8.27208 11.0833 10.1016 11.0833 11.9997C11.0833 13.8978 10.3803 15.7273 9.10417 17.1489C8.79067 17.4977 8.35367 17.6768 7.91667 17.6768Z" fill="url(#paint0_linear_vd_card)" fill-opacity="0.7"/><path d="M12.6683 24C12.2344 24 11.8006 23.8256 11.4887 23.4815C10.906 22.84 10.9614 21.8559 11.6122 21.2829C14.2943 18.9209 15.8333 15.5373 15.8333 11.9997C15.8333 8.46204 14.2943 5.07854 11.6122 2.71647C10.9614 2.14191 10.906 1.1594 11.4887 0.517891C12.0729 -0.12362 13.0768 -0.175004 13.7243 0.39644C17.0763 3.34708 19 7.57607 19 11.9997C19 16.4233 17.0763 20.6523 13.7243 23.6045C13.4219 23.8692 13.0435 24 12.6683 24Z" fill="url(#paint1_linear_vd_card)" fill-opacity="0.7"/><path d="M1.58333 13.5568C2.45778 13.5568 3.16667 12.8596 3.16667 11.9997C3.16667 11.1398 2.45778 10.4426 1.58333 10.4426C0.708882 10.4426 0 11.1398 0 11.9997C0 12.8596 0.708882 13.5568 1.58333 13.5568Z" fill="url(#paint2_linear_vd_card)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_vd_card" x="0" y="0" width="19" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_vd_card"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_vd_card" result="effect2_innerShadow_vd_card"/></filter><linearGradient id="paint0_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint1_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint2_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
           <span class="lib-meta-text">
-            <span class="lib-name">Image generation</span>
-            <span class="lib-desc">A loader that becomes the image</span>
+            <span class="lib-name">Voice direction</span>
+            <span class="lib-desc">Hear where the voice comes from</span>
           </span>
         </div>
       </article>
@@ -1374,6 +1408,7 @@
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
             <a href="/voice.html">Voice</a>
+            <a href="/voice-ring.html">Voice ring</a>
             <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>

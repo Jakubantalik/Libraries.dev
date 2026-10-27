@@ -26,6 +26,9 @@ let package = Package(
         .library(name: "BotAvatarsKit", targets: ["BotAvatarsKit"]),
         .library(name: "MetalFxKit", targets: ["MetalFxKit"]),
         .library(name: "MagnetKit", targets: ["MagnetKit"]),
+        .library(name: "VoiceRingKit", targets: ["VoiceRingKit"]),
+        .library(name: "VoiceRingEmotion", targets: ["VoiceRingEmotion"]),
+        .library(name: "VoiceDirectionKit", targets: ["VoiceDirectionKit"]),
     ],
     targets: [
         .target(
@@ -63,6 +66,30 @@ let package = Package(
         .target(
             name: "MagnetKit",
             path: "packages/metal-fx/ports/ios/MagnetKit/Sources/MagnetKit"
+        ),
+        // Voice ring: the ring, and the kits around it, on one shared core
+        // (the engine, the stereo meter, moods). The Voice direction model
+        // (VoiceDirection.mfxl) is licensed separately and loaded from the
+        // host app; the emotion models come from the app too.
+        .target(
+            name: "VoiceCore",
+            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceCore",
+            resources: [.process("Render/Refract.metal")]
+        ),
+        .target(
+            name: "VoiceRingKit",
+            dependencies: ["VoiceCore"],
+            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceRingKit"
+        ),
+        .target(
+            name: "VoiceRingEmotion",
+            dependencies: ["VoiceCore"],
+            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceRingEmotion"
+        ),
+        .target(
+            name: "VoiceDirectionKit",
+            dependencies: ["VoiceCore"],
+            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceDirectionKit"
         ),
     ]
 )

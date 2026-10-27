@@ -1031,8 +1031,8 @@ html[data-theme="light"] .pg-stage [data-beam]:has(> .mock-vchat) {
 /* ── Voice mocks (Studio and the detail page) ───────────────────────── */
 
 /* Sidebar / docs icon in the light theme. */
-html[data-theme="light"] .docs-link-icon[src*="figma-voice"],
-html[data-theme="light"] .st-lib-ico img[src*="figma-voice"] { content: url("/assets/icons/figma-voice-light.png"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-voice."],
+html[data-theme="light"] .st-lib-ico img[src*="figma-voice."] { content: url("/assets/icons/figma-voice-light.png"); }
 
 /* Studio bench colour rows: nine discs (eight variants + the picker)
    on one line inside the 273px panel — 24px discs at a 5px gap. */

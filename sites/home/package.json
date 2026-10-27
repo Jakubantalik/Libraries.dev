@@ -20,8 +20,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "thinking-orbs": "*",
+    "three": "^0.149.0",
     "voice-glow": "*",
-    "three": "^0.149.0"
+    "voice-ring": "*"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

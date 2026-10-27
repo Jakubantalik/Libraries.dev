@@ -1,0 +1,12 @@
+export { VoiceOrb } from './VoiceOrb';
+export { useMicrophone } from './useMicrophone';
+export type { MicrophoneState, UseMicrophoneOptions, UseMicrophoneResult } from './useMicrophone';
+export { acquireAnalyser, getAudioContext, isAudioSupported } from './audio';
+export type { AnalyserLease } from './audio';
+export { VoiceFollower, SPECTRUM_N } from './voice';
+export { ACCENT_COLORS, EMOTION_COLORS, type VoiceOrbAccent, type VoiceOrbEmotion } from './emotion';
+export { PRESETS, resolvePreset } from './presets';
+export { VOICE_ORB_TYPES, type VoiceOrbType } from './engine/registry';
+export type { OrbTheme, VoiceOrbProps, VoiceOrbState } from './types';
+export type { VoiceInput, TypeFrame, TypeOpts } from './engine/types';
+export { VoiceRing, type VoiceRingProps } from './VoiceRing';

@@ -1256,6 +1256,10 @@ export interface PromptMeta {
   /** Ports of the same library — each with its own install line and a
       usage snippet built from the same live knobs. */
   platforms?: PlatformSnippet[];
+  /** False while the library ships no web package yet (Voice ring is
+      SwiftUI only): React shows greyed with "Coming soon" and the first
+      port is the default. */
+  web?: boolean;
 }
 
 function buildAgentPrompt(library: string, meta: PromptMeta, port?: PlatformSnippet): string {
@@ -1325,9 +1329,11 @@ export function StageBar({
      itself; a port is offered only when this library has one, the rest
      show greyed with "Coming soon". */
   const ports = prompt?.platforms ?? [];
+  const webReady = prompt?.web !== false;
+  const fallback = webReady ? "react" : (ports[0]?.id ?? "react");
   const [platform, setPlatformState] = useState(() => {
     const saved = readPlatform();
-    return saved && ports.some((x) => x.id === saved) ? saved : "react";
+    return saved && ports.some((x) => x.id === saved) ? saved : fallback;
   });
   const setPlatform = useCallback((id: string) => {
     setPlatformState(id);
@@ -1335,16 +1341,17 @@ export function StageBar({
     window.dispatchEvent(new CustomEvent(PLATFORM_KEY, { detail: id }));
   }, []);
   /* Every library's bar is mounted at once, so a pick in one reaches the
-     others; a library without that port falls back to React. */
+     others; a library without that port falls back to React (or, with no
+     web package, to its first port). */
   const portIds = ports.map((x) => x.id).join(",");
   useEffect(() => {
     const onPick = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      setPlatformState(id === "react" || portIds.split(",").includes(id) ? id : "react");
+      setPlatformState((id === "react" && webReady) || portIds.split(",").includes(id) ? id : fallback);
     };
     window.addEventListener(PLATFORM_KEY, onPick);
     return () => window.removeEventListener(PLATFORM_KEY, onPick);
-  }, [portIds]);
+  }, [portIds, webReady, fallback]);
   const stageBarRef = useRef<HTMLDivElement | null>(null);
   /* A native platform draws the stage as a phone (playground.css,
      [data-device="phone"]). The stage is this bar's sibling, owned by the
@@ -1597,7 +1604,7 @@ export function StageBar({
       {prompt && (
         <div className="st-platform-tabs detail-platforms" role="tablist" aria-label="Platform">
           {HEAD_PLATFORMS.map((x) => {
-            const ready = x.id === "react" || ports.some((p) => p.id === x.id);
+            const ready = (x.id === "react" && webReady) || ports.some((p) => p.id === x.id);
             return (
               <button
                 key={x.id}

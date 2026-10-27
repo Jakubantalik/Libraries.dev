@@ -33,7 +33,7 @@ type Emotion = (typeof EMOTION_OPTIONS)[number]["value"];
 const SWIFT_TYPE: Record<string, string> = { default: ".standard", pill: ".pill", mobile: ".mobile" };
 
 /* The mood plane: drag to set valence (→ positive) and arousal (↑ excited). */
-function MoodPad({ value, onChange }: { value: MoodPoint; onChange: (p: MoodPoint) => void }) {
+export function MoodPad({ value, onChange }: { value: MoodPoint; onChange: (p: MoodPoint) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const move = (e: React.PointerEvent) => {
     const r = ref.current?.getBoundingClientRect();

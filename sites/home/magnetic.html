@@ -175,6 +175,7 @@
     .mui-doc strong { font-weight: 500; color: var(--text); }
     /* Sub-titles wear the section title's type (The model, Built for the phone). */
     .mui-doc h3 { font-size: 16px; line-height: 24px; }
+    .mui-doc--license > h2:first-child { margin-top: 0; }
     .mui-list code, .mui-table code {
       font-family: var(--font-mono);
       font-size: 11.5px;
@@ -459,6 +460,7 @@
             <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
             <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
             <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link" href="/voice-ring.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice-ring.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice ring</a>
             <a class="docs-link" href="/bots.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
             <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
             <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
@@ -468,6 +470,7 @@
           <div class="docs-group-label">Models</div>
           <nav class="docs-list" aria-label="Models">
             <a class="docs-link is-active" href="/magnetic.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-magnetic.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Magnetic UI</a>
+            <a class="docs-link" href="/voice-direction.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice direction</a>
           </nav>
         </div>
       </aside>
@@ -477,7 +480,7 @@
           <a class="detail-arrow" href="/image.html" aria-label="Previous library: Image">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.667 8H3.333M6.667 4.667 3.333 8l3.334 3.333" /></svg>
           </a>
-          <a class="detail-arrow" href="/beam.html" aria-label="Next library: Beam">
+          <a class="detail-arrow" href="/voice-direction.html" aria-label="Next: Voice direction">
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.333 8h9.334M9.333 4.667 12.667 8l-3.334 3.333" /></svg>
           </a>
         </div>
@@ -494,6 +497,7 @@
               <span class="proto-modal-tabs-indicator" aria-hidden="true"></span>
               <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="preview" aria-selected="true">Preview</button>
               <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="code" aria-selected="false">Install</button>
+              <button type="button" class="proto-modal-tab" role="tab" data-detail-tab="license" aria-selected="false">License</button>
             </div>
 
             <div class="detail-head-actions">
@@ -1088,6 +1092,47 @@ print(locate([64.4, -96.6, -60.8], strength=6500, face=1))   # ≈ [1.94, -3.02,
           </div>
           </div>
         </div>
+
+          <!-- License: the Model License in plain terms, open to everyone (no
+               account needed). The full text ships in every model download. -->
+          <div class="detail-panel" data-detail-panel="license" hidden>
+            <div class="docs-prose mui-doc mui-doc--license">
+              <h2>Two licenses</h2>
+              <ul>
+                <li><strong>The model</strong> <code>Magnet.mfxl</code>, its weights, and any copy, conversion, quantization or fine-tune of them: the <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>.</li>
+                <li><strong>The code</strong> MagnetKit for iOS and Android, <code>magnetkit</code> for React, <code>react-native-magnetkit</code> and the loader on this page: MIT, free for any use.</li>
+              </ul>
+              <h2>Free, no plan needed</h2>
+              <ul>
+                <li>Development, testing and evaluation.</li>
+                <li>Prototypes, demos and internal tools that are not released to the public.</li>
+                <li>Personal and non-commercial projects, open-source projects that earn no revenue included, with the model kept inside the app.</li>
+              </ul>
+              <h2>Commercial release</h2>
+              <p>A product that contains or loads the model, made available outside your own team (App Store, a public TestFlight, a website, a delivery to a client), when it is sold, earns revenue (ads, subscriptions, in-app purchases), is built for a client or is used in a business. It needs a plan held by you:</p>
+              <ul>
+                <li><strong>Pro</strong> One person, such as a solo builder or freelancer: unlimited products, client work included. Pro Lifetime covers the same for 12 months from purchase, every model included; after that, shipped builds stay live and a new release with a model needs a subscription (bought before 27 October 2026: every model, no end date).</li>
+                <li><strong>Business</strong> A company or organization: unlimited products.</li>
+                <li><strong>Enterprise</strong> Terms set by a separate written agreement, for example custom training or volume deals. <a href="mailto:jakub@libraries.dev">jakub@libraries.dev</a></li>
+              </ul>
+              <p>Builds released while your plan was active may stay available after it ends. A new release, including an update that ships the model, needs an active plan.</p>
+              <h2>Conditions</h2>
+              <ul>
+                <li>Ship the model only inside the product that uses it, such as your app bundle. Never on its own: no public repository, model hub or download link.</li>
+                <li>Don&#x27;t sublicense, sell, rent or lend the model.</li>
+                <li>Don&#x27;t use the model, its weights or its outputs to train, fine-tune, distil or evaluate a model that does the same job, other than for your own product under this license.</li>
+                <li>Keep the license and copyright notice that come with it. Every download includes <code>LICENSE-MODEL.md</code>.</li>
+              </ul>
+              <h2>Good to know</h2>
+              <ul>
+                <li><strong>Ownership</strong> The model stays Libraries.dev&#x27;s. Your products, code and data stay yours.</li>
+                <li><strong>Breaches</strong> The license ends if it is broken, and comes back if the breach is fixed within 30 days.</li>
+                <li><strong>No warranty</strong> The model estimates from sensor readings and can be wrong. Don&#x27;t rely on it where an error could cause injury, damage or financial loss.</li>
+                <li><strong>Earlier copies</strong> <code>Magnet.mfxl</code> v1.0 was in the public repository under MIT from 20 to 24 October 2026; copies obtained then stay MIT. Every copy since, and every later version, is under the Model License only.</li>
+              </ul>
+              <p>This is a summary. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">full Model License</a> is what applies; plans are on <a href="/pro.html">Pricing</a>.</p>
+            </div>
+          </div>
 </div>
       </div>
     </div>
@@ -1243,6 +1288,7 @@ Docs: https://libraries.dev/magnetic
             <a href="/orbs.html">Thinking orbs</a>
             <a href="/gooey.html">Gooey</a>
             <a href="/voice.html">Voice</a>
+            <a href="/voice-ring.html">Voice ring</a>
             <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>
