@@ -286,6 +286,9 @@
     if (footerLink) {
       footerLink.textContent = state.authenticated ? "Account" : "Sign in";
     }
+    // Signed in, the Free card's CTA leads to the account instead of a sign-up.
+    var freeCta = document.querySelector('.pro-price-cta[data-plan="free"]');
+    if (freeCta) freeCta.textContent = state.authenticated ? "Go to account" : "Join for free";
     // CTAs reflect entitlement: entitled users manage their plan instead of
     // buying. A Business seat sees Pro as included; a Pro subscriber is
     // offered the upgrade to Business.
@@ -302,6 +305,13 @@
         if (teamCta) { teamCta.textContent = "Upgrade to Business"; teamCta.removeAttribute("data-action"); }
       }
     }
+  }
+
+  // Free plan: a free account (signup "site"), as the menu's "Join for free".
+  // Signed in, there is nothing to start, so the card leads to the account.
+  function startFree() {
+    if (state.authenticated) { location.href = "account.html"; return; }
+    signIn({ signup: "site", title: "Join for free", sub: "Get access to the latest models\nand libraries." });
   }
 
   function selectedBilling() {
@@ -775,8 +785,10 @@
         e.preventDefault();
         if (cta.getAttribute("aria-disabled") === "true") return;
         var action = cta.getAttribute("data-action");
+        var plan = cta.getAttribute("data-plan");
         if (action === "portal") startPortal();
-        else startCheckout(cta.getAttribute("data-plan"), cta);
+        else if (plan === "free") startFree();
+        else startCheckout(plan, cta);
       });
     });
     var signin = document.getElementById("pm-signin");

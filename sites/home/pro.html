@@ -4247,12 +4247,12 @@
         inset 0 0 0 1px rgba(196, 196, 196, 0.1);
       padding: 20px;
     }
-    /* Pro and Business side by side (as on transitions.dev/pro); they
-       stack on narrow viewports. Cards stretch to the taller one and the
-       CTAs pin to the bottom so both buttons sit on one line. */
+    /* Free, Pro and Business side by side (as on transitions.dev/pro); they
+       stack on narrow viewports. Cards stretch to the tallest one and the
+       CTAs pin to the bottom so the buttons sit on one line. */
     .pro-price-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 325px));
+      grid-template-columns: repeat(3, minmax(0, 325px));
       justify-content: center;
       gap: 16px;
       width: 100%;
@@ -4270,7 +4270,7 @@
     .pro-price-card { transition: opacity 200ms var(--ease-smooth-out); }
     .pro-price-card[data-disabled="true"] { opacity: 0.4; }
     .pro-price-card[data-disabled="true"] .pro-price-cta { pointer-events: none; cursor: default; }
-    @media (max-width: 720px) {
+    @media (max-width: 900px) {
       .pro-price-grid { grid-template-columns: minmax(0, 325px); }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -4335,6 +4335,7 @@
     .pro-feature-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
     /* Balanced wrapping: two-line features break at even widths instead of
        leaving a one-word orphan on the second line. */
+    .pro-feature[hidden] { display: none; }
     .pro-feature { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; color: var(--text); text-wrap: balance; }
     /* Same check as transitions.dev pricing: a faint tinted disc with a 5%
        hairline and a 10px check. */
@@ -5371,9 +5372,28 @@
     </div>
 
 
-    <!-- ─── Pricing cards (Pro / Business), both at once ─────────── -->
+    <!-- ─── Pricing cards (Free / Pro / Business), all at once ───── -->
     <div class="pro-price-wrap">
       <div class="pro-price-grid">
+        <div class="pro-price-card" data-plan-card="free">
+          <div class="pro-price-plan-name">Free</div>
+          <div class="pro-price-head">
+            <div class="pro-price-amount">
+              <span class="pro-price-value p9-number" data-price-value aria-live="polite"><span class="p9-static">$</span><span class="p9-digits"><span class="p9-char">0</span></span></span>
+              <span class="pro-price-per p6-text" data-price-per>/mo</span>
+            </div>
+            <div class="pro-price-seat" data-price-seat>Free forever, no card needed</div>
+          </div>
+          <ul class="pro-feature-list">
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>All libraries, free variants</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Install guides and copy-ready code for every library</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Access to all models<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="Which models?" aria-describedby="tip-free-models">i</button><span class="cmp-tip" id="tip-free-models" role="tooltip">On-device models for iOS and Android: download each one with its license, plus the install guide and agent prompt.</span></span></span></li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Model license for personal and non-commercial use<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the free model license cover?" aria-describedby="tip-free-model-license">i</button><span class="cmp-tip" id="tip-free-model-license" role="tooltip">Build, prototype and ship personal or non-commercial apps. Shipping a model in a commercial app needs Pro or Business.</span></span></span></li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Agent skill for Claude Code, Cursor and Codex</li>
+          </ul>
+          <a class="pro-price-cta" href="#" data-plan="free">Join for free</a>
+        </div>
+
         <div class="pro-price-card" data-plan-card="solo">
           <div class="pro-price-plan-name">Pro</div>
           <div class="pro-price-head">
@@ -5385,11 +5405,12 @@
           </div>
           <ul class="pro-feature-list">
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for solo builders and freelancers</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-libs>All libraries, Pro presets and variants</span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Studio access: deep customization of all seven libraries, with an AI coding agent</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-models>Models for commercial use: ship them in paid and client apps</span><span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the commercial model license cover?" aria-describedby="tip-pro-models">i</button><span class="cmp-tip" id="tip-pro-models" role="tooltip" data-price-models-tip>Ship Magnetic UI and every future model in apps you sell or build for clients, for as long as your plan is active.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-credit>Studio AI agent: 300 credits each month</span><span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="How far do credits go?" aria-describedby="tip-credit-pro">i</button><span class="cmp-tip" id="tip-credit-pro" role="tooltip" data-price-credit-tip>About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st.</span></span></span></li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro presets and variants</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Every future library and update, free</li>
+            <li class="pro-feature" data-hide-lifetime><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Every future library and update, free</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Commercial license, unlimited projects</li>
           </ul>
           <a class="pro-price-cta" href="mailto:jakubja@gmail.com?subject=Libraries%20Pro%20access" data-plan="solo">Get Pro</a>
@@ -5406,12 +5427,12 @@
           </div>
           <ul class="pro-feature-list">
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for companies and teams, 3 seats included</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>All libraries, Pro presets and variants</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Everything in Pro, for every seat</li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Team MCP server: your brand kit and presets in every developer's coding agent</li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Models for commercial use across your company’s apps<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the commercial model license cover?" aria-describedby="tip-biz-models">i</button><span class="cmp-tip" id="tip-biz-models" role="tooltip">Ship Magnetic UI and every future model in any product your company releases, for as long as your plan is active.</span></span></span></li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>MCP server: use it in your coding agent</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Priority support</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Extra Studio AI agent credits: 800 per seat each month (Pro has 300)<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="How far do credits go?" aria-describedby="tip-credit-biz">i</button><span class="cmp-tip" id="tip-credit-biz" role="tooltip">About 400 edits a month for each seat. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st.</span></span></span></li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Invite, remove and manage seats from your account</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Commercial license for your company, unlimited projects</li>
           </ul>
           <a class="pro-price-cta" href="mailto:jakubja@gmail.com?subject=Libraries%20Business" data-plan="team">Get Business</a>
@@ -5571,7 +5592,7 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. Because the Studio's AI agent runs on live AI, Lifetime includes a limited amount of it: 100 credits a month, up to 3,000 in total. Business is monthly or annual only.</p>
+            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. Because the Studio's AI agent runs on live AI, Lifetime includes a limited amount of it: 100 credits a month, up to 3,000 in total. For models, Lifetime includes 12 months of commercial use from purchase, covering every model, new ones included. After that, apps you already shipped stay live, and a new release that ships a model needs a Pro or Business subscription. Lifetime bought before 27 October 2026 covers every model. Business is monthly or annual only.</p>
           </div></div>
         </div>
 
@@ -5680,11 +5701,17 @@
 
       /* ── Pricing: billing (Monthly/Annual/Lifetime) × plan (Pro/Business) ── */
       var PRICES = {
+        free: {
+          monthly: { v: "$0", per: "/mo", seat: "Free forever, no card needed" },
+          annual:  { v: "$0", per: "/yr", seat: "Free forever, no card needed" },
+          lifetime: { v: "$0", per: "forever", seat: "Free forever, no card needed" }
+        },
         solo: {
-          monthly: { v: "$9", per: "/mo", seat: "Billed monthly", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
-          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
-          // Lifetime buys the Studio, not live AI: agent credits are capped in total.
-          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", credit: "Studio AI agent: 100 credits a month, 3,000 credits in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. Once the 3,000 are used, the agent stops; the rest of the Studio keeps working." }
+          monthly: { v: "$9", per: "/mo", seat: "Billed monthly", libs: "All libraries, Pro presets and variants", models: "Models for commercial use: ship them in paid and client apps", modelsTip: "Ship Magnetic UI and every future model in apps you sell or build for clients, for as long as your plan is active.", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
+          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free", libs: "All libraries, Pro presets and variants", models: "Models for commercial use: ship them in paid and client apps", modelsTip: "Ship Magnetic UI and every future model in apps you sell or build for clients, for as long as your plan is active.", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
+          // Lifetime buys the Studio, not live AI: agent credits are capped in
+          // total. Models: 12 months of commercial use from purchase.
+          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", libs: "All libraries with Pro presets and variants, plus every future library and update, for life", models: "Models for commercial use: 12 months included", modelsTip: "Ship every model, including new ones, in paid and client apps for 12 months from purchase. After that, apps you shipped stay live; a new release with a model needs a Pro or Business subscription.", credit: "Studio AI agent: 100 credits a month, 3,000 credits in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. Once the 3,000 are used, the agent stops; the rest of the Studio keeps working." }
         },
         team: {
           monthly: { v: "$29", per: "/mo", seat: "Billed monthly" },
@@ -5844,6 +5871,15 @@
           if (creditEl && p.credit && creditEl.textContent !== p.credit) swapText(creditEl, p.credit, priceReady, 0);
           var tipEl = card.querySelector("[data-price-credit-tip]");
           if (tipEl && p.tip) tipEl.textContent = p.tip;
+          // Lifetime's libraries line already says "every future library and
+          // update", so the separate line steps aside.
+          card.querySelectorAll("[data-hide-lifetime]").forEach(function (li) { li.hidden = curBilling === "lifetime"; });
+          var libsEl = card.querySelector("[data-price-libs]");
+          if (libsEl && p.libs && libsEl.textContent !== p.libs) swapText(libsEl, p.libs, priceReady, 0);
+          var modelsEl = card.querySelector("[data-price-models]");
+          if (modelsEl && p.models && modelsEl.textContent !== p.models) swapText(modelsEl, p.models, priceReady, 0);
+          var modelsTipEl = card.querySelector("[data-price-models-tip]");
+          if (modelsTipEl && p.modelsTip) modelsTipEl.textContent = p.modelsTip;
           // Business goes inert under Lifetime (no lifetime plan to sell).
           var disabled = plan === "team" && curBilling === "lifetime";
           card.setAttribute("data-disabled", disabled ? "true" : "false");

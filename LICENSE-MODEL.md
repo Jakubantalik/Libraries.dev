@@ -1,20 +1,22 @@
 # Libraries.dev Model License
 
-Version 1.0 · Effective 24 October 2026
+Version 1.1 · Effective 27 October 2026
 
 Copyright (c) 2026 Jakub Antalik. All rights reserved except as granted below.
 
-This license covers the machine-learning models published by Libraries.dev,
-starting with the magnet model behind Magnetic UI (`Magnet.mfxl`). The source
-code around a model (MagnetKit for iOS and Android, and the other Libraries.dev
-packages) is MIT and is not covered here; this license applies only to the
-model files.
+This license covers the machine-learning models published by Libraries.dev:
+the magnet model behind Magnetic UI (`Magnet.mfxl`) and the Voice direction
+model (`VoiceDirection.mfxl`). The source code around a model (MagnetKit for
+iOS and Android, VoiceRingKit and VoiceDirectionKit, and the other
+Libraries.dev packages) is MIT and is not covered here; this license applies
+only to the model files.
 
 ## 1. Definitions
 
 - **Model**: a model file published by Libraries.dev (for example
-  `Magnet.mfxl`), its weights and parameters, and any copy, conversion,
-  quantization, compression, fine-tune or other derivative of them.
+  `Magnet.mfxl` or `VoiceDirection.mfxl`), its weights and parameters, and
+  any copy, conversion, quantization, compression, fine-tune or other
+  derivative of them.
 - **You**: the individual, or the company or organization, that downloads or
   uses the Model.
 - **Plan**: an active Libraries.dev Pro or Business subscription, a Pro
@@ -44,8 +46,15 @@ No Plan is needed for these uses.
 
 A Commercial Release requires a Plan held by you:
 
-- **Pro** (including Pro Lifetime) covers one individual, such as a solo
-  builder or freelancer, for unlimited products, client work included.
+- **Pro** covers one individual, such as a solo builder or freelancer, for
+  unlimited products, client work included.
+- **Pro Lifetime** covers the same for 12 months from the purchase date,
+  for every Model, including Models released during those 12 months. After
+  that, Pro Lifetime is treated as a Plan that has ended: builds released
+  during the 12 months may stay available, and a new Commercial Release
+  (including an update that ships a Model) needs an active Pro or Business
+  subscription. Pro Lifetime purchased before 27 October 2026 covers every
+  Model with no end date, whenever it is released.
 - **Business** covers a company or organization for unlimited products.
 - **Enterprise** terms are set by a separate written agreement.
 
@@ -108,10 +117,15 @@ of a repository under the MIT License. Copies obtained in that period keep the
 MIT License. Every copy obtained from Libraries.dev after that, and every later
 version of the Model, is licensed under this license only.
 
+`VoiceDirection.mfxl` has never been published under any other license.
+
 ## 10. Changes to this license
 
 The Licensor may publish new versions of this license. A new version applies
 to Model versions released after it is published; the version you received
-with a Model continues to apply to that Model version.
+with a Model continues to apply to that Model version. Version 1.1 adds the
+Voice direction model, and limits the Model rights of Pro Lifetime purchased
+from 27 October 2026 to 12 months from purchase (section 3); Pro Lifetime
+purchased earlier keeps every Model. It changes no other term of version 1.0.
 
 Questions or Enterprise licensing: jakub@libraries.dev
