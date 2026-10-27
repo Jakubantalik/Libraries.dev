@@ -1,34 +1,23 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { CodeBlock } from "./examples/CodeCopy";
-import { MetalExamples } from "./examples/metal-examples";
 import { MetalExamplesV2, useMetalCursorSprite } from "./examples/metal-examples-v2";
 import { StudioTeaser } from "./examples/StudioTeaser";
 import { PgTabs } from "./examples/PgTabs";
-import { MetalFx as MetalFxV1, type MetalFxPreset, type MetalFxVariant } from "metal-fx-v1";
 import { MetalFx, MetalText, setCursorLightConfig, useMetalBend, useMetalTextReflection } from "metal-fx";
 
 /* Metal detail page — playground island (stage + controls + live snippet).
 
-   Two families:
-     v2 — metal-fx 2 (Paper Shaders liquidMetal engine). Types: Circle
-          button, Text — each with the settings the v2 demo page ships
-          (rim on the circle, cursor bend, glyph metal with its inner
-          shadow). The pill button and the New badge show in the examples
-          above; as types they live in the Studio only.
-     v1 — metal-fx 1.0.4 as published, unchanged: Button / Circle.
+   metal-fx 2 (Paper Shaders liquidMetal engine). Types: Circle button,
+   Text — each with the settings the demo page ships (rim on the circle,
+   cursor bend, glyph metal with its inner shadow). The pill button and
+   the New badge show in the examples above; as types they live in the
+   Studio only.
 
-   Preset and strength stay at the demo's baseline (chromatic at 90%)
-   rather than being exposed here, since the Studio tunes them in full. */
+   Strength stays at the demo's baseline (90%) rather than being exposed
+   here, since the Studio tunes it in full. */
 
-const PRESET: MetalFxPreset = "chromatic";
 const STRENGTH = 90;
-
-type Family = "v2" | "v1";
-const FAMILIES: Array<{ id: Family; label: string }> = [
-  { id: "v2", label: "v2" },
-  { id: "v1", label: "v1" },
-];
 
 type V2Type = "circle" | "text";
 const V2_TYPES: Array<{ id: V2Type; label: string }> = [
@@ -38,30 +27,6 @@ const V2_TYPES: Array<{ id: V2Type; label: string }> = [
 const V2_TYPE_OPTIONS = V2_TYPES.map((t) => ({ value: t.id, label: t.label }));
 /* The other two v2 components are the Studio's; they show here, locked. */
 const V2_TYPES_LOCKED = ["Button", "Badge"];
-
-const V1_VARIANTS: MetalFxVariant[] = ["button", "circle"];
-const V1_VARIANT_OPTIONS = V1_VARIANTS.map((v) => ({
-  value: v,
-  label: v.charAt(0).toUpperCase() + v.slice(1),
-}));
-
-function buildSnippetV1(
-  variant: MetalFxVariant,
-  preset: MetalFxPreset,
-  strength: number,
-  disableGlow: boolean,
-  disableReflection: boolean
-): string {
-  const props = [`preset="${preset}"`];
-  if (variant !== "button") props.push(`variant="${variant}"`);
-  if (strength !== 1) props.push(`strength={${strength.toFixed(2)}}`);
-  if (disableGlow) props.push("disableGlow");
-  if (!disableReflection) props.push("reflectionTargets={[siblingRef]}");
-  const child = variant === "circle"
-    ? `  <button aria-label="Send"><ArrowUpIcon /></button>`
-    : `  <button>Upgrade to Pro</button>`;
-  return `// npm install metal-fx@1\nimport { MetalFx } from 'metal-fx';\n\n<MetalFx ${props.join(" ")}>\n${child}\n</MetalFx>`;
-}
 
 function buildSnippetV2(type: V2Type, strength: number, disableGlow: boolean, disableReflection: boolean, noCursor: boolean): string {
   const s = strength !== 1 ? ` strength={${strength.toFixed(2)}}` : "";
@@ -193,82 +158,36 @@ function CircleStageV2({
   );
 }
 
-/* ── v1 stage (as published) ──────────────────────────────────────────── */
-
-function StageV1({
-  variant, paused, disableGlow, disableReflection, playPauseRef,
-}: { variant: MetalFxVariant; paused: boolean; disableGlow: boolean; disableReflection: boolean; playPauseRef: RefObject<HTMLButtonElement> }) {
-  const searchRef = useRef<HTMLLabelElement>(null);
-  const reflectionTargets = disableReflection ? undefined : [searchRef, playPauseRef];
-  return (
-    <div className="metal-stage-row">
-      <label ref={searchRef} className="metal-search">
-        <SearchIcon />
-        <input type="search" placeholder="Search" spellCheck={false} tabIndex={-1} aria-label="Search" />
-      </label>
-      {/* key remounts the WebGL instance on variant change, matching the live demo */}
-      <MetalFxV1
-        key={variant}
-        preset={PRESET}
-        variant={variant}
-        theme="dark"
-        strength={STRENGTH / 100}
-        paused={paused}
-        disableGlow={disableGlow}
-        reflectionTargets={reflectionTargets}
-      >
-        {variant === "circle" ? (
-          <button type="button" className="metal-pill metal-pill--circle" aria-label="Send">
-            <ArrowUpIcon />
-          </button>
-        ) : (
-          <button type="button" className="metal-pill">Upgrade to Pro</button>
-        )}
-      </MetalFxV1>
-    </div>
-  );
-}
-
 function MetalPlayground() {
-  const [family, setFamily] = useState<Family>("v2");
   const [v2Type, setV2Type] = useState<V2Type>("circle");
-  const [variant, setVariant] = useState<MetalFxVariant>("button");
   // Starts paused so the page loads quietly (same as the live playground).
   const [paused, setPaused] = useState(true);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
-  // v2 only: the ring lights the pointer (macOS sprite). Off by default on
+  // The ring lights the pointer (macOS sprite). Off by default on
   // this page, an opt-in option: the pointer sprite is a lot of motion to
   // meet before you've touched anything. Global config, so it is applied as
   // an effect and the library default (on) is restored when the page
   // unmounts.
   const [cursorReflection, setCursorReflection] = useState(false);
   useEffect(() => {
-    setCursorLightConfig({ cursor: family === "v2" && cursorReflection });
+    setCursorLightConfig({ cursor: cursorReflection });
     return () => setCursorLightConfig({ cursor: true });
-  }, [family, cursorReflection]);
-  const playPauseRef = useRef<HTMLButtonElement>(null);
+  }, [cursorReflection]);
 
-  const snippet = family === "v2"
-    ? buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection, !cursorReflection)
-    : buildSnippetV1(variant, PRESET, STRENGTH / 100, disableGlow, disableReflection);
+  const snippet = buildSnippetV2(v2Type, STRENGTH / 100, disableGlow, disableReflection, !cursorReflection);
 
   return (
     <>
-      {family === "v2" ? <MetalExamplesV2 key="ex-v2" strength={STRENGTH / 100} /> : <MetalExamples key="ex-v1" strength={STRENGTH / 100} />}
+      <MetalExamplesV2 strength={STRENGTH / 100} />
 
       <p className="detail-playground-label">Playground</p>
 
       <div className="pg">
       <div className="pg-stage">
-        {family === "v2" ? (
-          <StageV2 key="stage-v2" type={v2Type} paused={paused} disableGlow={disableGlow} disableReflection={disableReflection} />
-        ) : (
-          <StageV1 key="stage-v1" variant={variant} paused={paused} disableGlow={disableGlow} disableReflection={disableReflection} playPauseRef={playPauseRef} />
-        )}
+        <StageV2 type={v2Type} paused={paused} disableGlow={disableGlow} disableReflection={disableReflection} />
 
         <button
-          ref={playPauseRef}
           type="button"
           className="btn-animate pg-play"
           onClick={() => setPaused((p) => !p)}
@@ -280,23 +199,12 @@ function MetalPlayground() {
 
       <div className="pg-controls">
         <PgTabs
-          label="Version"
-          options={FAMILIES.map((f) => ({ value: f.id, label: f.label }))}
-          value={family}
-          onChange={setFamily}
+          label="Type"
+          options={V2_TYPE_OPTIONS}
+          value={v2Type}
+          onChange={setV2Type}
+          extra={V2_TYPES_LOCKED}
         />
-
-        {family === "v2" ? (
-          <PgTabs
-            label="Type"
-            options={V2_TYPE_OPTIONS}
-            value={v2Type}
-            onChange={setV2Type}
-            extra={V2_TYPES_LOCKED}
-          />
-        ) : (
-          <PgTabs label="Type" options={V1_VARIANT_OPTIONS} value={variant} onChange={setVariant} />
-        )}
 
         <div className="pg-field">
           <span className="pg-label">Options</span>
@@ -319,17 +227,15 @@ function MetalPlayground() {
             >
               No Reflection
             </button>
-            {family === "v2" && (
-              <button
-                type="button"
-                className="pg-toggle"
-                aria-pressed={cursorReflection}
-                data-active={cursorReflection}
-                onClick={() => setCursorReflection((c) => !c)}
-              >
-                Cursor Reflection
-              </button>
-            )}
+            <button
+              type="button"
+              className="pg-toggle"
+              aria-pressed={cursorReflection}
+              data-active={cursorReflection}
+              onClick={() => setCursorReflection((c) => !c)}
+            >
+              Cursor Reflection
+            </button>
           </div>
         </div>
         <StudioTeaser
