@@ -57,10 +57,10 @@
   <meta property="og:description" content="Image FX (img-fx) is a WebGL loading effect for AI image generation in React: a churning pixel mosaic that dissolves into the finished image. Free, MIT, live playground." />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg" />
+  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
   <meta name="twitter:title" content="Image FX: AI image generation loader for React" />
   <meta name="twitter:description" content="Image FX (img-fx) is a WebGL loading effect for AI image generation in React: a churning pixel mosaic that dissolves into the finished image. Free, MIT, live playground." />
 
@@ -74,6 +74,7 @@
     crossorigin
   />
   <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/nav-products.css" />
   <link rel="stylesheet" href="/assets/playground.css" />
   <link rel="stylesheet" href="/assets/examples.css" />
   <script>
@@ -182,9 +183,15 @@
             <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
           </a>
           <nav class="site-nav-menu" aria-label="Primary">
-            <a class="nav-pill nav-pill--active" href="/beam.html">Libraries</a>
+            <div class="nav-products" data-nav-products>
+              <button type="button" class="nav-pill nav-products-btn nav-pill--active" aria-haspopup="menu" aria-expanded="false" aria-controls="nav-products-menu">Products<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.46967 6.46967C4.76256 6.17678 5.23744 6.17678 5.53033 6.46967L8 8.93934L10.4697 6.46967C10.7626 6.17678 11.2374 6.17678 11.5303 6.46967C11.8232 6.76256 11.8232 7.23744 11.5303 7.53033L8.53033 10.5303C8.23744 10.8232 7.76256 10.8232 7.46967 10.5303L4.46967 7.53033C4.17678 7.23744 4.17678 6.76256 4.46967 6.46967Z"/></svg></button>
+              <div class="tl-menu t-dropdown nav-products-menu" id="nav-products-menu" role="menu" aria-label="Products">
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/beam.html" aria-current="page"><span class="nav-products-name">Libraries</span><span class="nav-products-hint">UI effects for AI interfaces</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/magnetic.html"><span class="nav-products-name">Models<span class="nav-new-badge">New</span></span><span class="nav-products-hint">On-device models for iOS and Android</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/skill.html"><span class="nav-products-name">Skill</span><span class="nav-products-hint">Teach your coding agent every library</span></a>
+              </div>
+            </div>
             <a class="nav-pill" href="/how-to-use.html">How to use</a>
-            <a class="nav-pill" href="/skill.html">Skill</a>
             <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
             <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
           </nav>
@@ -265,11 +272,13 @@
       <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
       <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
         <ul class="mobile-menu-list">
+          <li class="mobile-menu-group" aria-hidden="true">Products</li>
           <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--2" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--2" href="/magnetic.html">Models<span class="nav-new-badge">New</span></a></li>
           <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--4" href="/studio.html">Studio</a></li>
-          <li><a class="mobile-menu-link mobile-menu-link--5 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--6 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
         </ul>
         <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
       </nav>
@@ -445,7 +454,7 @@ Docs: https://libraries.dev/image.html
             </span>
             <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
           </a>
-          <p class="footer-tagline">High-crafted UI libraries for AI agents</p>
+          <p class="footer-tagline">Libraries and models for next-gen UI</p>
         </div>
         <nav class="footer-cols" aria-label="Footer">
           <div class="footer-col">
@@ -482,6 +491,7 @@ Docs: https://libraries.dev/image.html
   </main>
 
   <script src="/assets/site.js" defer></script>
+  <script src="/assets/nav-products.js" defer></script>
   <script src="/assets/pro-client.js" defer></script>
   <script type="module" src="/src/image.tsx"></script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
