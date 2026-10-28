@@ -31,9 +31,16 @@ public struct BotColor: Hashable, Sendable {
 
     /// From a SwiftUI colour, resolved in sRGB.
     public init(_ color: Color) {
-        let ui = UIColor(color)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        if ui.getRed(&r, green: &g, blue: &b, alpha: &a) {
+        #if canImport(UIKit)
+        let resolved = UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+        #else
+        /* getRed on an NSColor outside an RGB space raises, so convert first */
+        let ns = NSColor(color).usingColorSpace(.sRGB)
+        ns?.getRed(&r, green: &g, blue: &b, alpha: &a)
+        let resolved = ns != nil
+        #endif
+        if resolved {
             self.init(r: Double(r) * 255, g: Double(g) * 255, b: Double(b) * 255)
         } else {
             self.init(r: 128, g: 128, b: 128)
