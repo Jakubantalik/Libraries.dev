@@ -143,7 +143,7 @@ export const BorderBeam = forwardRef<HTMLDivElement, BorderBeamProps>(
     // per-axis so the halo grows/shrinks to fit any component it's applied to.
     useEffect(() => {
       if (size !== 'pulse-outside') {
-        setPulseGlowScale({ x: 1, y: 1 });
+        setPulseGlowScale(prev => (prev.x === 1 && prev.y === 1 ? prev : { x: 1, y: 1 }));
         return;
       }
 
