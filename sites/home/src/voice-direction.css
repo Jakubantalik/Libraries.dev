@@ -452,7 +452,7 @@
 }
 
 /* the readout: dark glass on a dot grid, its outline drawn in flowing dots,
-   corner handles, a scan line, mono readouts that decode into place */
+   corner handles, mono readouts that decode into place */
 .vd-badge {
   position: absolute;
   left: 0;
@@ -466,7 +466,7 @@
   backdrop-filter: blur(12px);
   color: var(--hud);
   font-family: var(--mono);
-  animation: vd-badge-in 460ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: vd-badge-in 220ms 40ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes vd-badge-in {
@@ -474,25 +474,6 @@
     opacity: 0;
     filter: blur(4px);
     scale: 0.96;
-  }
-}
-
-.vd-badge::after {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  border-radius: 9px;
-  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.05) 48%, transparent 52%) 0 0 / 100% 300%;
-  animation: vd-scan 3.2s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes vd-scan {
-  from {
-    background-position: 0 100%;
-  }
-  to {
-    background-position: 0 -200%;
   }
 }
 
@@ -520,32 +501,6 @@
 @keyframes vd-outline-flow {
   to {
     stroke-dashoffset: -6.2;
-  }
-}
-
-/* a bright run of dots traces the outline once on each new detection */
-.vd-badge-outline .sweep {
-  stroke: var(--accent);
-  stroke-width: 1.6;
-  stroke-dasharray: 0 0.62 0 0.62 0 0.62 0 0.62 0 0.62 0 0.62 0 0.62 0 0.62 0 95.04;
-  opacity: 0;
-  animation: vd-sweep 1.3s 0.65s cubic-bezier(0.45, 0, 0.2, 1) both;
-}
-
-@keyframes vd-sweep {
-  0% {
-    opacity: 0;
-    stroke-dashoffset: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    stroke-dashoffset: -100;
   }
 }
 
@@ -729,9 +684,7 @@
   .vd-box::after,
   .vd-box-tag,
   .vd-links line,
-  .vd-badge::after,
   .vd-badge-outline .dots,
-  .vd-badge-outline .sweep,
   .vd-leader,
   .vd-value .on {
     animation: none;

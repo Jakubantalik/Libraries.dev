@@ -5,7 +5,7 @@
 // (no ctx.filter, so Safari draws the same picture), additively on dark
 // substrates so overlaps run hot toward white, like light does.
 
-import type { FrameLight, OrbFrame } from './core';
+import type { FrameLight, LightLook, OrbFrame } from './core';
 import { clamp01 } from './core';
 import type { OrbGlow, OrbTint } from './paint';
 
@@ -116,6 +116,47 @@ function palette(stops: Stop[], dark: boolean, tint?: OrbTint, glow?: OrbGlow, g
   });
 }
 
+/**
+ * The spectrum graded in OKLab: its hues turned, its colourfulness scaled,
+ * warmed or cooled, and the lightness between its colours stretched about
+ * their mean. Before the emotion and theme, so an emotion keeps its hue.
+ */
+function grade(stops: Stop[], k: LightLook): Stop[] {
+  if (!k.hue && k.chroma === 1 && !k.warmth && k.contrast === 1) return stops;
+  const lab = stops.map(([, r, g, b]) => toLab(r, g, b));
+  const mean = lab.reduce((s, [l]) => s + l, 0) / lab.length;
+  const c = Math.cos((k.hue * Math.PI) / 180);
+  const s = Math.sin((k.hue * Math.PI) / 180);
+  return stops.map(([o], i) => {
+    const [l, a, b] = lab[i];
+    const L = Math.max(0, Math.min(1, mean + (l - mean) * k.contrast));
+    const A = (a * c - b * s) * k.chroma + 0.02 * k.warmth;
+    const B = (a * s + b * c) * k.chroma + 0.07 * k.warmth;
+    return [o, ...fromLab(L, A, B)];
+  });
+}
+
+/** The spectrum run `n` times round the ring. */
+function cycle(stops: Stop[], n: number): Stop[] {
+  if (n <= 1) return stops;
+  const out: Stop[] = [];
+  for (let k = 0; k < n; k++) for (const [o, r, g, b] of stops) out.push([(o + k) / n, r, g, b]);
+  return out;
+}
+
+const LOOK: LightLook = {
+  hue: 0,
+  chroma: 1,
+  warmth: 0,
+  contrast: 1,
+  cycles: 1,
+  glowSize: 1,
+  bloom: 1,
+  bloomSize: 1,
+  soft: 1.5,
+  core: 1
+};
+
 const css = (r: number, g: number, b: number) => `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 
 /**
@@ -162,10 +203,9 @@ type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 // The halo and bloom are stacks of wide, faint, hard-edged strokes. Each
 // edge is a small step in the light, and the dither the browser lays on
 // every faint gradient pass adds up, pass on pass, into a fine checker. So
-// they're drawn on a layer of their own and laid down through a blur of
-// SOFT CSS px: the steps melt into a smooth falloff and the dither averages
-// away, at full resolution.
-const SOFT = 1.5;
+// they're drawn on a layer of their own and laid down through a blur (the
+// look's `soft`, 1.5 CSS px by default): the steps melt into a smooth
+// falloff and the dither averages away, at full resolution.
 
 // A canvas blur filter where the browser has one. Where it hasn't (older
 // Safari), the layer is halved, halved again and doubled back up a step at
@@ -214,8 +254,8 @@ function resample(to: Ctx, from: Ctx): void {
   to.drawImage(from.canvas, 0, 0, to.canvas.width, to.canvas.height);
 }
 
-/** Lay the glow layer over `ctx`, blurred. */
-function laySoftened(ctx: CanvasRenderingContext2D, l: GlowLayer, op: GlobalCompositeOperation): void {
+/** Lay the glow layer over `ctx`, blurred by `soft` CSS px. */
+function laySoftened(ctx: CanvasRenderingContext2D, l: GlowLayer, op: GlobalCompositeOperation, soft: number): void {
   const m = ctx.getTransform();
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -223,8 +263,8 @@ function laySoftened(ctx: CanvasRenderingContext2D, l: GlowLayer, op: GlobalComp
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  if (FILTER) {
-    ctx.filter = `blur(${SOFT * Math.hypot(m.a, m.b)}px)`;
+  if (FILTER || soft <= 0) {
+    if (soft > 0) ctx.filter = `blur(${soft * Math.hypot(m.a, m.b)}px)`;
     ctx.drawImage(l.full.canvas, 0, 0);
   } else if (l.half && l.quarter) {
     resample(l.half, l.full);
@@ -254,7 +294,10 @@ export function paintLight(
   tint?: OrbTint,
   glow?: OrbGlow
 ): void {
-  const stops = smoothSpectrum(palette(L.stops, dark, tint, glow, L.green));
+  // the frame's look over the defaults, a part it leaves unset keeping its default
+  const k = { ...LOOK };
+  for (const key of Object.keys(LOOK) as Array<keyof LightLook>) k[key] = L.look?.[key] ?? LOOK[key];
+  const stops = cycle(smoothSpectrum(palette(grade(L.stops, k), dark, tint, glow, L.green)), Math.round(k.cycles));
   const grad = spectrum(ctx, L, stops);
   // one path per ring, lit at its mean depth: per-segment opacity would
   // seam where the wide, additive bloom strokes overlap
@@ -302,7 +345,7 @@ export function paintLight(
     [0.12, 0.16]
   ]) {
     pass(
-      () => L.r * wk,
+      () => L.r * wk * k.glowSize,
       () => ak * haloK,
       g
     );
@@ -310,19 +353,19 @@ export function paintLight(
 
   // 2 · bloom: three soft passes hugging each ring; across a bundle of
   // rings they sum into one luminous band, the glassy ribbon
-  const bloomK = I * (dark ? 1 : 0.6);
+  const bloomK = I * (dark ? 1 : 0.6) * k.bloom;
   for (const [wk, ak] of [
     [16, 0.05],
     [8, 0.11],
     [4, 0.2]
   ]) {
     pass(
-      (w) => w * wk,
+      (w) => w * wk * k.bloomSize,
       (a) => ak * bloomK * a,
       g
     );
   }
-  laySoftened(ctx, layer, op);
+  laySoftened(ctx, layer, op, k.soft);
 
   ctx.save();
   begin(ctx, grad);
@@ -350,7 +393,7 @@ export function paintLight(
   // 4 · the crisp core of every ring
   pass(
     (w) => w,
-    (a) => 0.7 * a * (0.75 + 0.25 * I)
+    (a) => 0.7 * a * (0.75 + 0.25 * I) * k.core
   );
 
   // 5 · specular hot spots: white pooled where the light sits

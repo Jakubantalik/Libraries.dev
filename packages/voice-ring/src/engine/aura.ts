@@ -140,6 +140,7 @@ export const frameAura: TypeFrame = (size, t, v, o) => {
 
   // the highlight rests low on the left; processing sweeps it around
   const specAt = 2.3 + 0.25 * Math.sin(t * 0.21) + 2 * v.spin;
+  const drift = o.colorDrift ?? 1;
   const light: FrameLight = {
     cx: half,
     cy: half,
@@ -148,20 +149,38 @@ export const frameAura: TypeFrame = (size, t, v, o) => {
     // warm at the top, cool below, swaying rather than turning — the
     // spectrum flows with the voice but keeps its sense of up; processing
     // spins it all the way round
-    angle: -Math.PI / 2 - 0.35 + 0.5 * Math.sin(t * 0.07) + 0.4 * Math.sin(T * 0.2) + v.spin,
+    angle:
+      -Math.PI / 2 -
+      0.35 +
+      ((o.colorTurn ?? 0) * Math.PI) / 180 +
+      drift * (0.5 * Math.sin(t * 0.07) + 0.4 * Math.sin(T * 0.2)) +
+      v.spin,
     // processing lights the ring up: brighter bloom and a bigger halo
-    intensity: 0.62 + 0.55 * voice + 0.5 * P,
+    intensity: (0.62 + 0.55 * voice + 0.5 * P) * (o.brightness ?? 0.78),
     halo: (o.halo ?? 0.5) * (1 + 0.6 * P),
     spec: [
       {
         x: half + Math.cos(specAt) * R,
         y: half + Math.sin(specAt) * R,
-        r: R * (0.5 + 0.25 * P),
-        a: 0.5 + 0.35 * voice + 0.4 * P
+        r: R * (0.5 + 0.25 * P) * (o.highlightSize ?? 1),
+        a: (0.5 + 0.35 * voice + 0.4 * P) * (o.highlight ?? 1.4)
       }
     ],
-    fringe: 0.016 + 0.012 * voice,
-    green: [o.greenFrom ?? 81, o.greenTo ?? 136]
+    fringe: (0.016 + 0.012 * voice) * (o.fringe ?? 1),
+    green: [o.greenFrom ?? 81, o.greenTo ?? 136],
+    look: {
+      hue: o.hue,
+      chroma: o.chroma,
+      warmth: o.warmth,
+      contrast: o.contrast,
+      cycles: o.colorCycles,
+      glowSize: o.glowSize,
+      // a fainter, wider, softer bloom than the painter's own
+      bloom: o.bloom ?? 0.55,
+      bloomSize: o.bloomSize ?? 1.4,
+      soft: o.softness ?? 3.7,
+      core: o.core
+    }
   };
   return { ...finalizeFrame([], strokes), light };
 };

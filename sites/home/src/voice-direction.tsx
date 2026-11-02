@@ -358,7 +358,6 @@ function Badge({
     <div className="vd-badge" data-orient={across ? "across" : "down"} style={{ width: BADGE_W, height: BADGE_H, transform: `translate(${x}px, ${y}px)` }}>
       <svg className="vd-badge-outline" aria-hidden="true">
         <rect className="dots" x="0.5" y="0.5" width={BADGE_W - 1} height={BADGE_H - 1} rx="9" pathLength="100" />
-        <rect className="sweep" x="0.5" y="0.5" width={BADGE_W - 1} height={BADGE_H - 1} rx="9" pathLength="100" />
       </svg>
       <span className="vd-corner tl" />
       <span className="vd-corner tr" />

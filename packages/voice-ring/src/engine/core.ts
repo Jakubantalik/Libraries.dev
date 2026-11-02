@@ -103,6 +103,33 @@ export interface FrameLight {
   /** Where the positive emotion's colours run round the ring: degrees of
    *  hue, from one side to the other. @default [81, 136] (yellow-green → green) */
   green?: [number, number];
+  /** How the spectrum is graded and the glow drawn; each part defaults to
+   *  the untouched look. */
+  look?: Partial<LightLook>;
+}
+
+/** The light's grade and glow, as the painter takes them. */
+export interface LightLook {
+  /** Turns the spectrum's hues, degrees. @default 0 */
+  hue: number;
+  /** Scales its colourfulness: 0 white light … 2 twice as vivid. @default 1 */
+  chroma: number;
+  /** Warms (+) or cools (−) it, −1 … 1. @default 0 */
+  warmth: number;
+  /** Stretches the lightness between its colours. @default 1 */
+  contrast: number;
+  /** How many times the spectrum runs round the ring. @default 1 */
+  cycles: number;
+  /** Scales the halo's width. @default 1 */
+  glowSize: number;
+  /** Scales the bloom hugging the rings. @default 1 */
+  bloom: number;
+  /** Scales the bloom's width. @default 1 */
+  bloomSize: number;
+  /** How far the halo and bloom are blurred, CSS px. @default 1.5 */
+  soft: number;
+  /** Scales the crisp core of the rings. @default 1 */
+  core: number;
 }
 
 export type Projector = (x: number, y: number, z: number) => [number, number, number];
