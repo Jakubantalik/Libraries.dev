@@ -139,7 +139,85 @@ export function smoothSpectrum(stops: Stop[], samples = 36): Stop[] {
   return out;
 }
 
-function spectrum(ctx: CanvasRenderingContext2D, L: FrameLight, stops: Stop[]): CanvasGradient {
+type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+
+// The halo and bloom are stacks of wide, faint, hard-edged strokes. Each
+// edge is a small step in the light, and the dither the browser lays on
+// every faint gradient pass adds up, pass on pass, into a fine checker. So
+// they're drawn on a layer of their own and laid down through a blur of
+// SOFT CSS px: the steps melt into a smooth falloff and the dither averages
+// away, at full resolution.
+const SOFT = 1.5;
+
+// A canvas blur filter where the browser has one. Where it hasn't (older
+// Safari), the layer is halved, halved again and doubled back up a step at
+// a time: each step a smooth bilinear pass, together about as soft.
+const FILTER = typeof CanvasRenderingContext2D === 'function' && 'filter' in CanvasRenderingContext2D.prototype;
+
+interface GlowLayer {
+  full: Ctx;
+  half?: Ctx;
+  quarter?: Ctx;
+}
+
+const layers = new WeakMap<CanvasRenderingContext2D, GlowLayer>();
+
+function canvas(w: number, h: number): Ctx {
+  const c =
+    typeof OffscreenCanvas === 'function'
+      ? new OffscreenCanvas(w, h)
+      : Object.assign(document.createElement('canvas'), { width: w, height: h });
+  return c.getContext('2d') as Ctx;
+}
+
+/** The glow layer for `ctx`: its size, cleared, drawn in `ctx`'s coordinates. */
+function glowLayer(ctx: CanvasRenderingContext2D): GlowLayer {
+  const { width: w, height: h } = ctx.canvas;
+  let l = layers.get(ctx);
+  if (!l || l.full.canvas.width !== w || l.full.canvas.height !== h) {
+    l = { full: canvas(w, h) };
+    if (!FILTER) {
+      l.half = canvas(Math.ceil(w / 2), Math.ceil(h / 2));
+      l.quarter = canvas(Math.ceil(w / 4), Math.ceil(h / 4));
+    }
+    layers.set(ctx, l);
+  }
+  l.full.setTransform(1, 0, 0, 1, 0, 0);
+  l.full.clearRect(0, 0, w, h);
+  l.full.setTransform(ctx.getTransform());
+  return l;
+}
+
+/** Redraw `from` over the whole of `to`, smoothly scaled. */
+function resample(to: Ctx, from: Ctx): void {
+  to.globalCompositeOperation = 'copy';
+  to.imageSmoothingEnabled = true;
+  to.imageSmoothingQuality = 'high';
+  to.drawImage(from.canvas, 0, 0, to.canvas.width, to.canvas.height);
+}
+
+/** Lay the glow layer over `ctx`, blurred. */
+function laySoftened(ctx: CanvasRenderingContext2D, l: GlowLayer, op: GlobalCompositeOperation): void {
+  const m = ctx.getTransform();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = op;
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  if (FILTER) {
+    ctx.filter = `blur(${SOFT * Math.hypot(m.a, m.b)}px)`;
+    ctx.drawImage(l.full.canvas, 0, 0);
+  } else if (l.half && l.quarter) {
+    resample(l.half, l.full);
+    resample(l.quarter, l.half);
+    resample(l.half, l.quarter);
+    ctx.drawImage(l.half.canvas, 0, 0, l.half.canvas.width * 2, l.half.canvas.height * 2);
+  }
+  ctx.restore();
+}
+
+function spectrum(ctx: Ctx, L: FrameLight, stops: Stop[]): CanvasGradient {
   // conic where the browser has it (all current ones); a diagonal sweep otherwise
   const grad =
     typeof ctx.createConicGradient === 'function'
@@ -158,7 +236,8 @@ export function paintLight(
   tint?: OrbTint,
   glow?: OrbGlow
 ): void {
-  const grad = spectrum(ctx, L, smoothSpectrum(palette(L.stops, dark, tint, glow)));
+  const stops = smoothSpectrum(palette(L.stops, dark, tint, glow));
+  const grad = spectrum(ctx, L, stops);
   // one path per ring, lit at its mean depth: per-segment opacity would
   // seam where the wide, additive bloom strokes overlap
   const rings = frame.strokes.map((s) => {
@@ -175,19 +254,25 @@ export function paintLight(
   });
   const n = Math.max(1, rings.length);
   const I = L.intensity;
-  const pass = (width: (w: number) => number, alpha: (a: number) => number) => {
+  const op: GlobalCompositeOperation = dark ? 'lighter' : 'source-over';
+  const pass = (width: (w: number) => number, alpha: (a: number) => number, c: Ctx = ctx) => {
     for (const r of rings) {
-      ctx.lineWidth = width(r.w);
-      ctx.globalAlpha = clamp01(alpha(r.a));
-      ctx.stroke(r.p);
+      c.lineWidth = width(r.w);
+      c.globalAlpha = clamp01(alpha(r.a));
+      c.stroke(r.p);
     }
   };
+  const begin = (c: Ctx, style: CanvasGradient) => {
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.globalCompositeOperation = op;
+    c.strokeStyle = style;
+  };
 
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over';
-  ctx.strokeStyle = grad;
+  // the glow, on its own layer to be softened
+  const layer = glowLayer(ctx);
+  const g = layer.full;
+  begin(g, spectrum(g, L, stops));
 
   // 1 · halo: very wide, very faint, shared out between the rings so the
   // total stays the same however many there are
@@ -200,7 +285,8 @@ export function paintLight(
   ]) {
     pass(
       () => L.r * wk,
-      () => ak * haloK
+      () => ak * haloK,
+      g
     );
   }
 
@@ -214,9 +300,14 @@ export function paintLight(
   ]) {
     pass(
       (w) => w * wk,
-      (a) => ak * bloomK * a
+      (a) => ak * bloomK * a,
+      g
     );
   }
+  laySoftened(ctx, layer, op);
+
+  ctx.save();
+  begin(ctx, grad);
 
   // 3 · chromatic fringes, scaled about the centre (dark substrates only)
   if (dark && L.fringe > 0) {

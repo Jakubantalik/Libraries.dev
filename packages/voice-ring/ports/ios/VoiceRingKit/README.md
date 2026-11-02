@@ -35,7 +35,9 @@ struct VoiceScreen: View {
 - `source`: `.meter(meter)`, `.level { yourLevel }` (0–1, read every frame) or `.silence`.
 - `style`: a `VoiceStyle` — `speed`, `sensitivity`, `threshold`, `release`,
   `idle`, `theme`, and the ring's own knobs in `opts`: `rings` (6), `lean`
-  (0.91), `ringGap` (0.02), `deform` (1.45), `halo` (0.5), `radius` (0.56).
+  (0.91), `ringGap` (0.02), `deform` (1.45), `halo` (0.5), `radius` (0.56). The lean toward the voice: `lean` (a `LeanAmounts`;
+  the ring's own barely drifts but leans), `leanMargin` (32 pt short of the
+  screen's edge) and `leanSpeed` (1 settles on a side in about two seconds).
 - `mood`: a `VoiceMood` (valence −1…1, arousal 0…1), or `emotion:` `.positive`,
   `.negative`, `.calm`. Shifts the spectrum toward its colour.
 - `direction`: −1 left … 1 right. Left nil, the ring follows the meter's own

@@ -2,9 +2,8 @@
 // drawn in light, a blooming spectrum with chromatic fringes that bends with
 // the voice and leans toward where it comes from.
 //
-// The shipped port is SwiftUI (ports/ios/VoiceRingKit). This web component
-// renders the same engine for the site's preview and the Studio; the React
-// package itself is not published yet.
+// The React package (npm `voice-ring`). The SwiftUI port, VoiceRingKit,
+// draws the same engine (ports/ios/VoiceRingKit).
 
 import type { VoiceOrbProps } from './types';
 import { VoiceOrb } from './VoiceOrb';

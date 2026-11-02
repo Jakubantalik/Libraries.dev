@@ -33,7 +33,7 @@ export const LEAN_DEFAULTS: LeanAmounts = {
   pull: 0.7,
   deform: 0.1,
   squash: 0.5,
-  lens: 1,
+  lens: 0.67,
   stretch: 1,
   split: 1,
   blur: 1,

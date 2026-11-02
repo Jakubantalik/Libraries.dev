@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from "react";
+import { type RefObject, StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { VoiceRing, useMicrophone, type VoiceOrbState } from "voice-ring";
 import { demoGetter, MIC_STATUS } from "./examples/voice-mocks";
@@ -7,10 +7,10 @@ import { StudioTeaser } from "./examples/StudioTeaser";
 import { PgTabs } from "./examples/PgTabs";
 
 /* Voice ring detail page — one React island: the examples, the playground
-   (stage + controls) and the live SwiftUI snippet under it. The library
-   ships as SwiftUI (VoiceRingKit); the stage draws the same engine on the
-   web (packages/voice-ring), inside the phone frame the SwiftUI platform
-   puts on the stage. Controls mirror the Studio's Voice ring bench
+   (stage + controls) and the live snippet under it, React or SwiftUI as the
+   page's platform is. The library ships for both (npm voice-ring, and
+   VoiceRingKit); the stage draws the web engine (packages/voice-ring), inside
+   the phone frame the SwiftUI platform puts on the stage. Controls mirror the Studio's Voice ring bench
    (src/studio/voice-ring.tsx) at its first knobs; the rest live there. The
    playground stage starts PAUSED, like every other library's. */
 
@@ -72,10 +72,28 @@ function Examples() {
   );
 }
 
+/* The page's platform as site.js marks it on the stage: SwiftUI (and React
+   Native) draw the ring inside a phone. */
+function usePhone(stage: RefObject<HTMLDivElement>) {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const read = () => setPhone(el.getAttribute("data-device") === "phone");
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(el, { attributes: true, attributeFilter: ["data-device"] });
+    return () => watch.disconnect();
+  }, [stage]);
+  return phone;
+}
+
 function RingPlayground() {
   const [state, setState] = useState<VoiceOrbState>("listening");
   const [source, setSource] = useState<Source>("demo");
   const [paused, setPaused] = useState(true);
+  const stage = useRef<HTMLDivElement>(null);
+  const phone = usePhone(stage);
 
   const mic = useMicrophone();
   const isMic = source === "mic";
@@ -95,13 +113,21 @@ function RingPlayground() {
     }
   };
 
-  /* Live SwiftUI snippet: only what differs from the defaults. */
-  const args = [`state: ${SWIFT_STATE[state]}`, isMic ? "source: .meter(meter)" : "source: .level { yourLevel }"];
-  args.push("size: 240");
-  const lines = ["import VoiceRingKit", ""];
-  if (isMic) lines.push("@State private var meter = VoiceMeter()", "");
-  lines.push(`VoiceRing(\n  ${args.join(",\n  ")}\n)${isMic ? "\n.task { try? await meter.start() }" : ""}`);
-  const snippet = lines.join("\n");
+  /* Live snippet for the page's platform: only what differs from the defaults. */
+  let snippet: string;
+  if (phone) {
+    const args = [`state: ${SWIFT_STATE[state]}`, isMic ? "source: .meter(meter)" : "source: .level { yourLevel }"];
+    args.push("size: 240");
+    const lines = ["import VoiceRingKit", ""];
+    if (isMic) lines.push("@State private var meter = VoiceMeter()", "");
+    lines.push(`VoiceRing(\n  ${args.join(",\n  ")}\n)${isMic ? "\n.task { try? await meter.start() }" : ""}`);
+    snippet = lines.join("\n");
+  } else {
+    const ring = `<VoiceRing size={240} state="${state}" ${isMic ? "stream={mic.stream}" : "level={() => yourLevel}"} />`;
+    snippet = isMic
+      ? `import { VoiceRing, useMicrophone } from 'voice-ring';\n\nconst mic = useMicrophone();\n\n${ring}\n<button onClick={mic.start}>Listen</button>`
+      : `import { VoiceRing } from 'voice-ring';\n\n${ring}`;
+  }
 
   return (
     <>
@@ -110,7 +136,7 @@ function RingPlayground() {
       <p className="detail-playground-label">Playground</p>
 
       <div className="pg">
-        <div className="pg-stage" id="playground-stage">
+        <div className="pg-stage" id="playground-stage" ref={stage}>
           <VoiceRing
             size={240}
             state={state}

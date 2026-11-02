@@ -41,7 +41,7 @@ public enum VoiceSource {
 public struct VoiceStyle {
     // Motion
     public var speed: Double = 1
-    public var sensitivity: Double = 1
+    public var sensitivity: Double = 0.85
     public var threshold: Double = 0.04
     /// Seconds to rise; nil takes the type's own (0.06 s, 0.16 s for pixel).
     public var attack: Double?
@@ -86,11 +86,14 @@ public struct VoiceStyle {
 
     // Direction
     /// How the orb leans toward the voice; nil takes the type's own (aura's
-    /// is pulled further, never squashes and stretches far into the lens).
+    /// barely drifts but leans, bulges a touch and never squashes).
     public var lean: LeanAmounts?
     /// Points the lean stops short of the screen's edge; nil takes the
-    /// type's own (32, aura none).
+    /// type's own (32).
     public var leanMargin: Double?
+    /// How fast the orb travels to the voice's side and back: 1 settles on
+    /// a side in about two seconds, 2 in about one.
+    public var leanSpeed: Double = 1
 
     public init() {}
 }

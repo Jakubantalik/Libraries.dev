@@ -1,7 +1,7 @@
 {
   "name": "@jakubantalik/libraries",
   "private": true,
-  "description": "Home of Jakub Antalik's libraries: border-beam, voice-glow, liquid-gooey, thinking-orbs, bot-avatars, metal-fx and img-fx.",
+  "description": "Home of Jakub Antalik's libraries: border-beam, voice-glow, voice-ring, liquid-gooey, thinking-orbs, bot-avatars, metal-fx and img-fx.",
   "license": "MIT",
   "workspaces": [
     "packages/*",
@@ -19,6 +19,7 @@
     "build:image": "npm run build -w img-fx",
     "build:voice": "npm run build -w voice-glow",
     "build:avatars": "npm run build -w bot-avatars",
-    "build:site-home": "npm run build:beam && npm run build:orbs && npm run build:gooey && npm run build:metal && npm run build:image && npm run build:voice && npm run build:avatars && npm run build -w @sites/home"
+    "build:ring": "npm run build -w voice-ring",
+    "build:site-home": "npm run build:beam && npm run build:orbs && npm run build:gooey && npm run build:metal && npm run build:image && npm run build:voice && npm run build:ring && npm run build:avatars && npm run build -w @sites/home"
   }
 }

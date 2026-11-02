@@ -25,7 +25,7 @@ public struct LeanAmounts: Sendable, Equatable {
 
     public init(
         move: Double = 2, pull: Double = 0.7, deform: Double = 0.1, squash: Double = 0.5,
-        lens: Double = 1, stretch: Double = 1, split: Double = 1, blur: Double = 1, bounce: Double = 1
+        lens: Double = 0.67, stretch: Double = 1, split: Double = 1, blur: Double = 1, bounce: Double = 1
     ) {
         self.move = move
         self.pull = pull

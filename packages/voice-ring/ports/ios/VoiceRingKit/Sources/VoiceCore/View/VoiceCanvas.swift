@@ -192,7 +192,8 @@ final class OrbEngine {
                 idle: s.idle, driveGain: preset.driveGain * (s.voiceSpeed ?? preset.voiceSpeed), calm: s.calm,
                 rate: preset.speed * s.speed, processing: input.state == .processing,
                 // the side the app passes in (VoiceDirectionKit, or its own)
-                direction: input.direction
+                direction: input.direction,
+                panSpeed: s.leanSpeed
             ),
             still: input.still
         )

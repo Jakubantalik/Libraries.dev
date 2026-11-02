@@ -20,6 +20,9 @@ public struct FollowerConfig {
     /// Where the voice comes from, −1 left … 1 right (from VoiceDirectionKit,
     /// or set by the app); nil leans nowhere.
     public var direction: Double?
+    /// How fast the lean travels to the side and back, a multiplier on its
+    /// spring's pace.
+    public var panSpeed: Double = 1
 }
 
 public final class VoiceFollower {
@@ -30,9 +33,8 @@ public final class VoiceFollower {
     private static let specLo = 90.0, specHi = 7000.0
     private static let softAttack = 0.35, softRelease = 0.9
     private static let spinRate = 2.1, settleMax = 0.3
-    /// The lean's spring stiffness: to follow a side (settled in about a
-    /// second), to drift home (about three).
-    // the lean's spring: settles on a side in about two seconds, home in three
+    /// The lean's spring stiffness: settles on a side in about two seconds,
+    /// drifts home in about three (at `panSpeed` 1).
     private static let panIn = 2.5, panOut = 1.6
 
     /// Real seconds run; the ambient clock; the voice clock (orb seconds).
@@ -165,7 +167,7 @@ public final class VoiceFollower {
         let goal = heard > 0.06 && !cfg.processing ? raw : 0
         // a critically damped spring: it eases in and out — sets off gently,
         // speeds up, settles without overshooting
-        let w = abs(goal) > abs(pan) ? Self.panIn : Self.panOut
+        let w = (abs(goal) > abs(pan) ? Self.panIn : Self.panOut) * cfg.panSpeed
         panVel += (w * w * (goal - pan) - 2 * w * panVel) * dt
         pan += panVel * dt
         out.pan = pan

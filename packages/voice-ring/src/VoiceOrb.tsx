@@ -49,7 +49,7 @@ export function VoiceOrb({
   stream,
   analyser,
   level,
-  sensitivity = 1,
+  sensitivity = 0.85,
   threshold = 0.04,
   attack,
   release = 0.32,

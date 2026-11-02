@@ -68,11 +68,10 @@ export const PRESETS: Record<VoiceOrbType, Preset> = {
     speed: 1.6,
     driveGain: 2,
     voiceSpeed: 0.9,
-    // drawn out further and bulging more toward the voice; light meets the
-    // edge through the lens, stretched far, rather than squashing on it
-    lean: { pull: 1.26, deform: 0.38, squash: 0, bounce: 0.82, lens: 0.79, stretch: 1.99, split: 1.17, blur: 1.25 },
-    // and leans right up to the screen's edge, with no margin
-    margin: 0,
+    // barely drifts toward the voice: it leans, its near side drawn out and
+    // bulging a touch; light meets the edge through a soft lens rather than
+    // squashing on it
+    lean: { move: 0.21, pull: 0.36, deform: 0.28, squash: 0, bounce: 0.92, lens: 0.49, stretch: 1.04, split: 1.01, blur: 1.24 },
     opts: { rings: 6, segs: 140 },
     counts: { segs: 0.5 }
   }

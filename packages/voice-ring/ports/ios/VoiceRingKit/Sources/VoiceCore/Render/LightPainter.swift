@@ -152,15 +152,23 @@ func paintLight(_ context: inout GraphicsContext, _ frame: OrbFrame, _ L: FrameL
         }
     }
 
-    // 1 · halo: very wide, very faint, shared out between the rings
-    let haloK = L.halo * I * (dark ? 1 : 0.2) / n
-    for (wk, ak) in [(0.7, 0.045), (0.42, 0.075), (0.24, 0.11), (0.12, 0.16)] {
-        pass(spectrum, in: ctx, width: { _ in L.r * wk }, alpha: { _ in ak * haloK })
-    }
-    // 2 · bloom: three soft passes that sum into one luminous band
-    let bloomK = I * (dark ? 1 : 0.6)
-    for (wk, ak) in [(16.0, 0.05), (8.0, 0.11), (4.0, 0.2)] {
-        pass(spectrum, in: ctx, width: { $0 * wk }, alpha: { ak * bloomK * $0 })
+    // the halo and bloom are stacks of wide, faint, hard-edged strokes; each
+    // edge is a small step in the light, so they're drawn on a layer of their
+    // own and softened, and the steps melt into a smooth falloff
+    var soft = ctx
+    soft.addFilter(.blur(radius: 1.5))
+    soft.drawLayer { layer in
+        layer.blendMode = dark ? .plusLighter : .normal
+        // 1 · halo: very wide, very faint, shared out between the rings
+        let haloK = L.halo * I * (dark ? 1 : 0.2) / n
+        for (wk, ak) in [(0.7, 0.045), (0.42, 0.075), (0.24, 0.11), (0.12, 0.16)] {
+            pass(spectrum, in: layer, width: { _ in L.r * wk }, alpha: { _ in ak * haloK })
+        }
+        // 2 · bloom: three soft passes that sum into one luminous band
+        let bloomK = I * (dark ? 1 : 0.6)
+        for (wk, ak) in [(16.0, 0.05), (8.0, 0.11), (4.0, 0.2)] {
+            pass(spectrum, in: layer, width: { $0 * wk }, alpha: { ak * bloomK * $0 })
+        }
     }
     // 3 · chromatic fringes, scaled about the centre (dark substrates only)
     if dark, L.fringe > 0 {

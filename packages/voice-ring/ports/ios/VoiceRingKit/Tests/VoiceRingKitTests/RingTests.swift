@@ -20,13 +20,13 @@ final class RingTests: XCTestCase {
         }
     }
 
-    /// The ring leans its own way: pulled and bulging further, never
-    /// squashing, stretched far into the lens, right up to the edge.
+    /// The ring leans its own way: barely drifting, leaning and bulging a
+    /// touch, never squashing, through a softer lens, 32 pt short of the edge.
     func testRingLeansItsOwnWay() {
         let ring = VoiceRing.preset(size: 200)
-        XCTAssertEqual(ring.lean, LeanAmounts(pull: 1.26, deform: 0.38, squash: 0, lens: 0.79, stretch: 1.99, split: 1.17,
-                                              blur: 1.25, bounce: 0.82))
-        XCTAssertEqual(ring.leanMargin, 0)
+        XCTAssertEqual(ring.lean, LeanAmounts(move: 0.21, pull: 0.36, deform: 0.28, squash: 0, lens: 0.49, stretch: 1.04,
+                                              split: 1.01, blur: 1.24, bounce: 0.92))
+        XCTAssertEqual(ring.leanMargin, 32)
     }
 
     /// The spectrum is resampled along a smooth closed curve: it closes on

@@ -53,7 +53,7 @@ export interface VoiceOrbProps extends Omit<CanvasHTMLAttributes<HTMLCanvasEleme
    */
   level?: number | (() => number);
 
-  /** Input gain — raise for quiet sources. @default 1 */
+  /** Input gain — raise for quiet sources. @default 0.85 */
   sensitivity?: number;
 
   /** Noise gate: below this the orb hears silence. @default 0.04 */
@@ -120,16 +120,16 @@ export interface VoiceOrbProps extends Omit<CanvasHTMLAttributes<HTMLCanvasEleme
 
   /**
    * Lean: how far the orb drifts toward the voice, as a share of its radius.
-   * Every `direction…` amount left unset takes the type's own; `aura` is
-   * pulled and bulges further, never squashes, and stretches far into the
-   * edge lens. @default 2
+   * Every `direction…` amount left unset takes the type's own; `aura`
+   * barely drifts but leans, bulges a touch, never squashes, and meets the
+   * edge through a softer lens. @default 2 (aura 0.21)
    */
   directionMove?: number;
 
-  /** Lean: how far its near side is pulled out beyond the far side. @default 0.7 (aura 1.26) */
+  /** Lean: how far its near side is pulled out beyond the far side. @default 0.7 (aura 0.36) */
   directionPull?: number;
 
-  /** Lean: how much the near flank bulges. @default 0.1 (aura 0.38) */
+  /** Lean: how much the near flank bulges. @default 0.1 (aura 0.28) */
   directionDeform?: number;
 
   /** Lean: pressing on at the screen's edge, how much the orb squashes against it, 0–1. @default 0.5 (aura 0) */
@@ -139,23 +139,23 @@ export interface VoiceOrbProps extends Omit<CanvasHTMLAttributes<HTMLCanvasEleme
    * Lean: pressing on at the screen's edge, how strongly the orb is refracted
    * into it, as through glass — it rests short of the edge and its near side
    * is drawn out across the gap, its colours parted and blurred toward the
-   * edge. 0 none … 1 … 2 most. @default 1 (aura 0.79)
+   * edge. 0 none … 1 … 2 most. @default 0.67 (aura 0.49)
    */
   directionLens?: number;
 
-  /** Lean: how far the edge lens draws the orb out toward the edge (distortion), 0–2. @default 1 (aura 1.99) */
+  /** Lean: how far the edge lens draws the orb out toward the edge (distortion), 0–2. @default 1 (aura 1.04) */
   directionStretch?: number;
 
-  /** Lean: how far the edge lens parts red from blue (chromatic aberration), 0–2. @default 1 (aura 1.17) */
+  /** Lean: how far the edge lens parts red from blue (chromatic aberration), 0–2. @default 1 (aura 1.01) */
   directionSplit?: number;
 
-  /** Lean: how much the edge lens blurs, more the nearer the edge, 0–2. @default 1 (aura 1.25) */
+  /** Lean: how much the edge lens blurs, more the nearer the edge, 0–2. @default 1 (aura 1.24) */
   directionBlur?: number;
 
-  /** Lean: how much the orb bounces as it meets the edge, 0–2. @default 1 (aura 0.82) */
+  /** Lean: how much the orb bounces as it meets the edge, 0–2. @default 1 (aura 0.92) */
   directionBounce?: number;
 
-  /** Lean: CSS px the orb stops short of the screen's edge. @default 32 (aura 0) */
+  /** Lean: CSS px the orb stops short of the screen's edge. @default 32 */
   directionMargin?: number;
 
   /**

@@ -63,13 +63,13 @@ public struct VoiceRing: View {
         )
     }
 
-    /// The ring's preset: drawn out further and bulging more toward the
-    /// voice; light meets the edge through the lens, stretched far, rather
-    /// than squashing on it, and leans right up to the screen's edge.
+    /// The ring's preset: it barely drifts toward the voice but leans, its
+    /// near side drawn out and bulging a touch; light meets the edge through
+    /// a soft lens rather than squashing on it, 32 pt short of the edge.
     public static func preset(size: Double, dots: Double = 1, dotSize: Double = 1) -> ResolvedPreset {
-        let lean = LeanAmounts(pull: 1.26, deform: 0.38, squash: 0, lens: 0.79, stretch: 1.99, split: 1.17,
-                               blur: 1.25, bounce: 0.82)
-        return .resolve(frame: frameAura, speed: 1.6, driveGain: 2, voiceSpeed: 0.9, lean: lean, leanMargin: 0,
+        let lean = LeanAmounts(move: 0.21, pull: 0.36, deform: 0.28, squash: 0, lens: 0.49, stretch: 1.04, split: 1.01,
+                               blur: 1.24, bounce: 0.92)
+        return .resolve(frame: frameAura, speed: 1.6, driveGain: 2, voiceSpeed: 0.9, lean: lean,
                         opts: ["rings": 6, "segs": 140],
                         counts: ["segs": 0.5], size: size, dots: dots, dotSize: dotSize)
     }
