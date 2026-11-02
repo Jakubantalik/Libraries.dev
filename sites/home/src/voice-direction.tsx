@@ -125,7 +125,6 @@ function DirectionDemo() {
     right: { x: phone.r + 14, y: ringY },
     front: { x: w / 2, y: phone.b + 14 },
   };
-  const towards = { left: 0, right: 180, front: -90 }[r.source];
 
   // the readout: centred under a side source, beside the phone for one in
   // front; a dotted leader runs up (or across) to the source
@@ -176,7 +175,14 @@ function DirectionDemo() {
           </div>
         </div>
 
-        <Emitter key={`e${r.turn}`} x={src.x} y={src.y} towards={towards} label={LABEL[r.source]} live={!!r.side} />
+        <Emitter
+          key={`e${r.turn}`}
+          x={src.x}
+          y={src.y}
+          to={{ x: end[r.source].x - src.x, y: end[r.source].y - src.y }}
+          label={LABEL[r.source]}
+          live={!!r.side}
+        />
 
         {/* a new readout with each voice, so it appears beside its source
             rather than sliding across the phone to get there */}
@@ -197,24 +203,130 @@ function DirectionDemo() {
   );
 }
 
-/** The sound's source: a pulsing point with dotted wavefronts toward the phone. */
-function Emitter({ x, y, towards, label, live }: { x: number; y: number; towards: number; label: string; live: boolean }) {
+// Detection boxes, in the source's own frame: `a` px along the way to the
+// phone and `o` px across it. The trace boxes pick the voice out of the air
+// on its way to the phone once its side is known, in quick succession, each
+// for a moment; `d` is when, in s from the voice's start, and `alpha` how
+// strongly each shows. The scan boxes flash round the source while it is
+// still being found.
+const TRACE = [
+  { a: 44, o: -18, w: 20, h: 16, d: 0.75, alpha: 0.8, tag: true },
+  { a: 74, o: 12, w: 24, h: 18, d: 0.95, alpha: 0.35, tag: false },
+  { a: 100, o: -22, w: 16, h: 12, d: 1.15, alpha: 0.6, tag: false },
+  { a: 60, o: 26, w: 18, h: 14, d: 1.35, alpha: 0.45, tag: true },
+  { a: 112, o: 8, w: 14, h: 12, d: 1.55, alpha: 0.25, tag: false },
+  { a: 88, o: -36, w: 22, h: 16, d: 1.75, alpha: 0.55, tag: false },
+];
+const SCAN = [
+  { x: -36, y: -6, w: 16, h: 12, d: 0, alpha: 0.5 },
+  { x: 36, y: -22, w: 20, h: 14, d: 0.1, alpha: 0.8 },
+  { x: -32, y: 14, w: 16, h: 12, d: 0.2, alpha: 0.3 },
+  { x: 34, y: 12, w: 14, h: 10, d: 0.3, alpha: 0.6 },
+];
+// the box locked round the source (its size is in the CSS too)
+const LOCK = { w: 28, h: 22 };
+
+/** How far along (dx, dy), in its own units, a `w` × `h` box's edge is from its centre. */
+const toEdge = (w: number, h: number, dx: number, dy: number) =>
+  Math.min(dx ? w / 2 / Math.abs(dx) : Infinity, dy ? h / 2 / Math.abs(dy) : Infinity);
+
+/**
+ * The sound's source, as detection: a box that searches round it and locks
+ * on once the side is detected, with the source's position on a tag; and
+ * small boxes flicking up in the air between it and the phone, linked back
+ * to the source.
+ */
+function Emitter({
+  x,
+  y,
+  to,
+  label,
+  live,
+}: {
+  x: number;
+  y: number;
+  /** Where the phone is from the source, CSS px. */
+  to: { x: number; y: number };
+  label: string;
+  live: boolean;
+}) {
+  const ox = Math.round(x);
+  const oy = Math.round(y);
+  const reach = Math.hypot(to.x, to.y) || 1;
+  const u = { x: to.x / reach, y: to.y / reach };
+  // a source just under the phone has no room on the way to it, so its
+  // boxes spread out across the way instead
+  const spread = reach < 80 ? 2.6 : 1;
+  const trace = TRACE.map((q) => {
+    const a = Math.min(q.a, reach - toEdge(q.w, q.h, u.x, u.y) - 8);
+    const cx = u.x * a - u.y * q.o * spread;
+    const cy = u.y * a + u.x * q.o * spread;
+    const from = toEdge(LOCK.w, LOCK.h, cx, cy);
+    const into = 1 - toEdge(q.w, q.h, cx, cy);
+    return {
+      ...q,
+      x: Math.round(cx - q.w / 2),
+      y: Math.round(cy - q.h / 2),
+      link: into > from ? [cx * from, cy * from, cx * into, cy * into] : null,
+    };
+  });
+
   return (
-    <div className="vd-emitter" data-live={live} style={{ left: x, top: y }} aria-hidden="true">
-      <span className="vd-emitter-ring" />
-      <span className="vd-emitter-ring" />
-      <span className="vd-emitter-core" />
-      <svg className="vd-waves" viewBox="-40 -40 80 80" width="80" height="80" style={{ rotate: `${towards}deg` }}>
-        {[14, 22, 30].map((rad, i) => (
-          <path
-            key={rad}
-            d={`M ${rad * Math.cos(-0.6)} ${rad * Math.sin(-0.6)} A ${rad} ${rad} 0 0 1 ${rad * Math.cos(0.6)} ${rad * Math.sin(0.6)}`}
-            style={{ animationDelay: `${i * 180}ms` }}
-          />
-        ))}
+    <div className="vd-emitter" data-live={live} style={{ left: ox, top: oy }} aria-hidden="true">
+      <svg className="vd-links" width="1" height="1">
+        {trace.map(
+          (q, i) =>
+            q.link && (
+              <line
+                key={i}
+                x1={q.link[0]}
+                y1={q.link[1]}
+                x2={q.link[2]}
+                y2={q.link[3]}
+                style={{ "--d": `${q.d}s`, strokeOpacity: q.alpha } as CSSProperties}
+              />
+            )
+        )}
       </svg>
+      {SCAN.map((q, i) => (
+        <Box key={`s${i}`} className="scan" rect={{ x: q.x - q.w / 2, y: q.y - q.h / 2, w: q.w, h: q.h }} delay={q.d} alpha={q.alpha} />
+      ))}
+      {trace.map((q, i) => (
+        <Box key={`t${i}`} className="trace" rect={q} delay={q.d} alpha={q.alpha} tag={q.tag ? `${ox + q.x}, ${oy + q.y}` : undefined} />
+      ))}
+      <Box className="lock" tag={live ? `${ox}, ${oy}` : "SCAN"} />
       <span className="vd-emitter-label">SRC · {label.toUpperCase()}</span>
     </div>
+  );
+}
+
+/**
+ * One detection box: a 1px frame drawn in from its corner handles and a tag
+ * over its corner. Without a `rect` its place and size come from the CSS.
+ */
+function Box({
+  className,
+  rect,
+  delay = 0,
+  alpha = 1,
+  tag,
+}: {
+  className: string;
+  rect?: { x: number; y: number; w: number; h: number };
+  delay?: number;
+  alpha?: number;
+  tag?: string;
+}) {
+  const style = { "--d": `${delay}s`, opacity: alpha } as CSSProperties;
+  if (rect) Object.assign(style, { left: Math.round(rect.x), top: Math.round(rect.y), width: rect.w, height: rect.h });
+  return (
+    <span className={`vd-box ${className}`} style={style}>
+      {tag && (
+        <span className="vd-box-tag">
+          <Decode text={tag} pending={tag === "SCAN"} />
+        </span>
+      )}
+    </span>
   );
 }
 

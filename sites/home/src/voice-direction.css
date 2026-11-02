@@ -165,8 +165,9 @@
   }
 }
 
-/* the source: a point, two dotted rings breathing out from it, and dotted
-   wavefronts travelling toward the orb */
+/* the source, as detection: a box that searches round it and locks on
+   once the side is detected; small boxes flicking up in the air on the
+   way to the phone, linked back */
 .vd-emitter {
   position: absolute;
   width: 0;
@@ -181,77 +182,255 @@
   }
 }
 
-.vd-emitter-core {
+/* a detection box: a 1px frame (::before) drawn in from its top-left
+   corner, square handles on its corners (::after), a tag over it */
+.vd-box {
   position: absolute;
-  left: -4px;
-  top: -4px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow:
-    0 0 10px 2px rgba(255, 255, 255, 0.35),
-    0 0 0 4px rgba(255, 255, 255, 0.06);
+  color: rgba(237, 237, 237, 0.5);
 }
 
-.vd-emitter-ring {
+.vd-box::before {
+  content: '';
   position: absolute;
-  left: -22px;
-  top: -22px;
-  width: 44px;
-  height: 44px;
-  border: 1.5px dotted var(--hud-2);
-  border-radius: 50%;
-  animation: vd-ring-out 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  inset: 0;
+  border: 1px solid currentColor;
 }
 
-.vd-emitter-ring + .vd-emitter-ring {
-  animation-delay: 1.2s;
+.vd-box::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background:
+    linear-gradient(currentColor 0 0) 0 0 / 3px 3px no-repeat,
+    linear-gradient(currentColor 0 0) 100% 0 / 3px 3px no-repeat,
+    linear-gradient(currentColor 0 0) 0 100% / 3px 3px no-repeat,
+    linear-gradient(currentColor 0 0) 100% 100% / 3px 3px no-repeat;
 }
 
-@keyframes vd-ring-out {
-  from {
-    opacity: 0.9;
-    scale: 0.3;
+.vd-box-tag {
+  position: absolute;
+  left: -1px;
+  bottom: calc(100% + 3px);
+  padding: 2px 3px;
+  background: rgba(237, 237, 237, 0.55);
+  color: #070707;
+  font: 600 7.5px/1 var(--mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* scan and trace boxes come and go on a loop of --t: handles first, the
+   frame drawn in from the corner, the tag after; a hold; a blink out */
+.vd-box.scan {
+  --t: 0.6s;
+}
+
+.vd-box.trace {
+  --t: 1.2s;
+}
+
+.vd-box.scan::before,
+.vd-box.trace::before {
+  animation: vd-box-frame var(--t) linear var(--d) infinite both;
+}
+
+.vd-box.scan::after,
+.vd-box.trace::after {
+  animation: vd-box-handles var(--t) linear var(--d) infinite both;
+}
+
+.vd-box.trace .vd-box-tag {
+  animation: vd-box-tag var(--t) linear var(--d) infinite both;
+}
+
+@keyframes vd-box-frame {
+  0% {
+    clip-path: inset(0 100% 100% 0);
+    opacity: 1;
   }
-  to {
+  10% {
+    clip-path: inset(0);
+  }
+  62% {
+    opacity: 1;
+  }
+  63% {
     opacity: 0;
-    scale: 1.6;
+  }
+  65% {
+    opacity: 1;
+  }
+  67%,
+  100% {
+    clip-path: inset(0);
+    opacity: 0;
   }
 }
 
-.vd-waves {
+@keyframes vd-box-handles {
+  0% {
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  4% {
+    opacity: 0.2;
+  }
+  6%,
+  62% {
+    opacity: 1;
+  }
+  63% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+  67%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes vd-box-fill {
+  0%,
+  8% {
+    opacity: 0;
+  }
+  14%,
+  62% {
+    opacity: 1;
+  }
+  63% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+  67%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes vd-box-tag {
+  0%,
+  8% {
+    clip-path: inset(0 100% 0 0);
+  }
+  16% {
+    clip-path: inset(0);
+  }
+  62% {
+    opacity: 1;
+  }
+  63% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+  67%,
+  100% {
+    clip-path: inset(0);
+    opacity: 0;
+  }
+}
+
+/* the scan boxes only while the source is being found, the trace boxes
+   and their links only once it is */
+.vd-emitter[data-live='true'] .vd-box.scan,
+.vd-emitter:not([data-live='true']) .vd-box.trace,
+.vd-emitter:not([data-live='true']) .vd-links {
+  visibility: hidden;
+}
+
+/* the box round the source: wide and dashed while it searches, then
+   snapping in round it, solid */
+.vd-box.lock {
+  left: -22px;
+  top: -17px;
+  width: 44px;
+  height: 34px;
+  color: rgba(237, 237, 237, 0.35);
+  transition:
+    left 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    top 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    width 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    height 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 300ms;
+}
+
+.vd-box.lock::before {
+  border-style: dashed;
+  animation: vd-lock-frame 200ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+.vd-box.lock::after {
+  animation: vd-lock-handles 160ms linear both;
+}
+
+.vd-box.lock .vd-box-tag {
+  background: rgba(237, 237, 237, 0.35);
+  animation: vd-lock-tag 180ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+}
+
+.vd-emitter[data-live='true'] .vd-box.lock {
+  left: -14px;
+  top: -11px;
+  width: 28px;
+  height: 22px;
+  color: rgba(237, 237, 237, 0.6);
+}
+
+.vd-emitter[data-live='true'] .vd-box.lock::before {
+  border-style: solid;
+}
+
+.vd-emitter[data-live='true'] .vd-box.lock .vd-box-tag {
+  background: rgba(237, 237, 237, 0.6);
+}
+
+@keyframes vd-lock-frame {
+  from {
+    clip-path: inset(0 100% 100% 0);
+  }
+}
+
+@keyframes vd-lock-handles {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes vd-lock-tag {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+/* the links from the source's box to the boxes in the air */
+.vd-links {
   position: absolute;
-  left: -40px;
-  top: -40px;
+  left: 0;
+  top: 0;
   overflow: visible;
 }
 
-.vd-waves path {
-  fill: none;
-  stroke: var(--hud);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-dasharray: 0 4.2;
-  animation: vd-wave 1.4s ease-out infinite;
-}
-
-.vd-emitter[data-live='true'] .vd-waves path {
-  stroke: var(--accent);
-}
-
-@keyframes vd-wave {
-  0% {
-    opacity: 0;
-    translate: -6px 0;
-  }
-  35% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    translate: 10px 0;
-  }
+.vd-links line {
+  stroke: rgba(237, 237, 237, 0.22);
+  stroke-width: 1;
+  animation: vd-box-fill 1.2s linear var(--d) infinite both;
 }
 
 .vd-emitter-label {
@@ -539,8 +718,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vd-signal line,
-  .vd-emitter-ring,
-  .vd-waves path,
+  .vd-box::before,
+  .vd-box::after,
+  .vd-box-tag,
+  .vd-links line,
   .vd-badge::after,
   .vd-badge-outline .dots,
   .vd-badge-outline .sweep,
