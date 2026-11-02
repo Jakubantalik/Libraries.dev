@@ -170,7 +170,10 @@ function RingPlayground() {
             <PgTabs label="Direction detection" options={DIRECTION_OPTIONS} value="off" onChange={() => {}} />
             <span className="pg-note">
               The ring leans toward whoever is speaking: Libraries.dev&apos;s{" "}
-              <a href="/voice-direction.html" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }}>
+              <a
+                href="/voice-direction.html"
+                style={{ color: "color-mix(in srgb, var(--pg-title) 55%, var(--pg-label))", textDecoration: "underline", textUnderlineOffset: 2 }}
+              >
                 Voice direction
               </a>{" "}
               model hears the side on the iPhone&apos;s two built-in mics.

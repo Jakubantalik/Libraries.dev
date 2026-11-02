@@ -93,6 +93,9 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
+    /* The playground's control labels read as the Studio's titles do
+       (playground.css, .st-panel-body): the title ink, 8px under. */
+    #playground-controls .pg-field > .pg-label { color: var(--pg-title); margin-bottom: 8px; }
     /* Copy-button icon crossfade, as beam and gooey do it. The older
        display:none swap lost to playground.css's `.code-block .code-copy svg
        { display: block }` once these buttons moved onto the Studio's stage
