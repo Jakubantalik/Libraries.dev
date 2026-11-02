@@ -426,8 +426,89 @@
        in half. */
     .lib-card[data-lib="beam"] .lib-video,
     .lib-card[data-lib="orb"] .lib-video { object-position: left center; }
-    /* The Voice direction clip anchors to its top centre, where the ring is. */
-    .lib-card[data-lib="voice-direction"] .lib-video { object-position: center top; }
+    /* The two models draw their cards instead of playing a clip (the same
+       illustrations as Voice orbs' demo/thumbs/models.html): Magnetic UI, a
+       still magnet whose field swells out in dotted waves; Voice direction,
+       a dotted dial whose beam swings left, front, right, front, the
+       voice's wavefronts running in along it. Each is a 472 × 254 artboard,
+       scaled down with the stage. */
+    .mdl {
+      --mdl-ink: rgba(20, 20, 20, 0.85); --mdl-ink-2: rgba(20, 20, 20, 0.42); --mdl-ink-3: rgba(20, 20, 20, 0.13);
+      --mdl-n: #1c1c1c; --mdl-s: #bdbdbd; --mdl-n-ink: rgba(255, 255, 255, 0.75); --mdl-s-ink: rgba(0, 0, 0, 0.5);
+      --mdl-glow: rgba(0, 0, 0, 0.12); --mdl-device: #e4e4e4;
+      --mdl-scale: 1; --mdl-spring: cubic-bezier(0.22, 1, 0.36, 1);
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+      background: radial-gradient(circle, var(--mdl-ink-3) 0.7px, transparent 1px) 0 0 / 12px 12px;
+    }
+    html[data-theme="dark"] .mdl {
+      --mdl-ink: rgba(237, 237, 237, 0.9); --mdl-ink-2: rgba(237, 237, 237, 0.45); --mdl-ink-3: rgba(237, 237, 237, 0.1);
+      --mdl-n: #ededed; --mdl-s: #3d3d3d; --mdl-n-ink: rgba(17, 17, 17, 0.7); --mdl-s-ink: rgba(255, 255, 255, 0.45);
+      --mdl-glow: rgba(255, 255, 255, 0.14); --mdl-device: #1f1f1f;
+    }
+    .mdl-art { position: absolute; left: 50%; top: 50%; width: 472px; height: 254px; translate: -50% -50%; scale: var(--mdl-scale); }
+    @media (max-width: 1100px) { .mdl { --mdl-scale: 0.72; } }
+    @media (max-width: 740px) { .mdl { --mdl-scale: 0.8; } }
+
+    /* Magnetic UI: the magnet, flat north and south, and its field */
+    .mdl-field { position: absolute; left: 0; top: 0; overflow: visible; }
+    .mdl-field ellipse { fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .mdl-stand ellipse { stroke: var(--mdl-ink-3); stroke-width: 1.4; stroke-dasharray: 0 6; animation: mdl-flow 2.4s linear infinite; }
+    .mdl-stand ellipse:nth-child(even) { animation-direction: reverse; }
+    @keyframes mdl-flow { to { stroke-dashoffset: -12; } }
+    .mdl-wave { transform-box: view-box; transform-origin: 0 0; opacity: 0; animation: mdl-swell 5.4s ease-in-out infinite; }
+    .mdl-wave:nth-of-type(2) { animation-delay: -1.8s; }
+    .mdl-wave:nth-of-type(3) { animation-delay: -3.6s; }
+    .mdl-wave ellipse { stroke: var(--mdl-ink); stroke-width: 1.5; stroke-dasharray: 0 6; }
+    @keyframes mdl-swell { 0% { scale: 0.8; opacity: 0; } 45% { opacity: 0.5; } 100% { scale: 1.18; opacity: 0; } }
+    .mdl-bar {
+      position: absolute; left: calc(50% - 25px); top: calc(50% - 9px); width: 50px; height: 18px; border-radius: 9px;
+      background: linear-gradient(90deg, var(--mdl-n) 50%, var(--mdl-s) 50%);
+      box-shadow: 0 0 26px 6px var(--mdl-glow);
+    }
+    .mdl-bar::before, .mdl-bar::after { position: absolute; top: 0; width: 50%; font: 600 9px/18px ui-monospace, "SF Mono", Menlo, monospace; text-align: center; }
+    .mdl-bar::before { content: "N"; left: 0; color: var(--mdl-n-ink); }
+    .mdl-bar::after { content: "S"; right: 0; color: var(--mdl-s-ink); }
+
+    /* Voice direction: the dial, its beam and the voice's wavefronts */
+    .mdl-dial { position: absolute; left: 50%; top: 200px; width: 0; height: 0; }
+    .mdl-arc { position: absolute; left: -150px; top: -150px; overflow: visible; }
+    .mdl-track { fill: none; stroke: var(--mdl-ink-3); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 0 7; }
+    .mdl-ticks line { stroke: var(--mdl-ink-2); stroke-width: 1.4; stroke-linecap: round; }
+    .mdl-beam { position: absolute; left: 0; top: 0; width: 0; height: 0; rotate: -62deg; animation: mdl-turn 13.6s infinite; }
+    /* left, front, right, front: each a spring to the side, then a hold */
+    @keyframes mdl-turn {
+      0% { rotate: -62deg; }
+      20% { rotate: -62deg; animation-timing-function: var(--mdl-spring); }
+      29% { rotate: 0deg; }
+      45% { rotate: 0deg; animation-timing-function: var(--mdl-spring); }
+      54% { rotate: 58deg; }
+      70% { rotate: 58deg; animation-timing-function: var(--mdl-spring); }
+      79% { rotate: 0deg; }
+      91% { rotate: 0deg; animation-timing-function: var(--mdl-spring); }
+      100% { rotate: -62deg; }
+    }
+    .mdl-beam::before { /* dots running in along the beam, from the voice to the phone */
+      content: ""; position: absolute; left: -1px; top: -132px; width: 2px; height: 126px;
+      background: radial-gradient(circle, var(--mdl-ink) 0.9px, transparent 1.1px) 0 0 / 2px 7px;
+      -webkit-mask: linear-gradient(to top, rgba(0, 0, 0, 0.15), #000); mask: linear-gradient(to top, rgba(0, 0, 0, 0.15), #000);
+      animation: mdl-run 600ms linear infinite;
+    }
+    @keyframes mdl-run { to { background-position: 0 7px; } }
+    .mdl-beam::after { /* the fix on the arc */
+      content: ""; position: absolute; left: -5px; top: -145px; width: 10px; height: 10px; border-radius: 50%;
+      background: var(--mdl-ink); box-shadow: 0 0 12px 3px var(--mdl-glow);
+    }
+    .mdl-waves { position: absolute; left: -40px; top: -185px; rotate: 90deg; scale: 1.35; overflow: visible; }
+    .mdl-waves path { fill: none; stroke: var(--mdl-ink); stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: 0 4.2; opacity: 0; animation: mdl-wave 1.4s ease-out infinite; }
+    .mdl-waves path:nth-child(2) { animation-delay: 180ms; }
+    .mdl-waves path:nth-child(3) { animation-delay: 360ms; }
+    @keyframes mdl-wave { 0% { opacity: 0; translate: -6px 0; } 35% { opacity: 1; } 100% { opacity: 0; translate: 10px 0; } }
+    .mdl-device { position: absolute; left: -18px; top: -9px; width: 36px; height: 18px; border-radius: 6px; background: var(--mdl-device); box-shadow: inset 0 0 0 1px var(--mdl-ink-3); }
+    .mdl-side { position: absolute; translate: -50% 0; font: 500 8px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.14em; color: var(--mdl-ink-2); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mdl *, .mdl *::before, .mdl *::after { animation: none !important; }
+    }
     /* 254 leaves 16px between the stage and the icon — the same gap the
        meta keeps below itself, so the card breathes evenly. */
     .lib-card .card-stage { height: 254px; }
@@ -1190,7 +1271,7 @@
       <article class="card lib-card" data-lib="magnetic">
         <a class="lib-card-hit" href="/magnetic.html" aria-label="Magnetic UI"></a>
         <div class="card-stage">
-          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAGAABAQADAAAAAAAAAAAAAAAAAAMCBAX/xAAgEAACAgICAgMAAAAAAAAAAAAAAQIRAxIhMWGBEzJx/8QAFQEBAQAAAAAAAAAAAAAAAAAAAwL/xAAYEQEBAQEBAAAAAAAAAAAAAAABAAIxEf/aAAwDAQACEQMRAD8A4qk03KStt80ZLPHanFrzaYcbpN6+Sfx6z4nFx/FYYCS60j4W3HLkxJxxz1V3QJ2gHLSyfX2Tx9y9AC55DrtZdAAiW//Z&quot;)"><video class="lib-video" src="/assets/videos/magnetic-main-card.mp4" poster="/assets/videos/posters/magnetic-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+          <div class="mdl mdl-mag" aria-hidden="true"><div class="mdl-art"><svg class="mdl-field" width="472" height="254" viewBox="-236 -127 472 254"><g class="mdl-stand"><ellipse cx="0" cy="-22" rx="37.4" ry="22"/><ellipse cx="0" cy="22" rx="37.4" ry="22"/><ellipse cx="0" cy="-40" rx="68" ry="40"/><ellipse cx="0" cy="40" rx="68" ry="40"/><ellipse cx="0" cy="-60" rx="102" ry="60"/><ellipse cx="0" cy="60" rx="102" ry="60"/></g><g class="mdl-wave"><ellipse cx="0" cy="-46" rx="78.2" ry="46"/><ellipse cx="0" cy="46" rx="78.2" ry="46"/></g><g class="mdl-wave"><ellipse cx="0" cy="-46" rx="78.2" ry="46"/><ellipse cx="0" cy="46" rx="78.2" ry="46"/></g><g class="mdl-wave"><ellipse cx="0" cy="-46" rx="78.2" ry="46"/><ellipse cx="0" cy="46" rx="78.2" ry="46"/></g></svg><span class="mdl-bar"></span></div></div>
         </div>
         <div class="lib-meta">
           <span class="lib-ico lib-ico--tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="24" height="24" viewBox="14 13 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="magnet 1"><g id="Group"><g id="Vector"><path d="M26.0002 20.125L28.5502 17.575C28.7002 17.425 28.7752 17.275 28.7752 17.05C28.7752 16.825 28.7002 16.675 28.5502 16.525L25.5502 13.525C25.2502 13.225 24.8002 13.225 24.5002 13.525L21.9502 16.075L26.0002 20.125Z" fill="url(#paint0_linear_mui_home)" fill-opacity="0.7"/></g><g id="Vector_2"><path d="M29.75 26.1251L25.925 29.9501C25.25 30.6251 24.425 30.9251 23.525 30.9251C22.625 30.9251 21.725 30.5501 21.125 29.9501C20.45 29.2751 20.15 28.4501 20.15 27.5501C20.15 26.6501 20.525 25.7501 21.125 25.1501L24.95 21.3251L20.9 17.2001L17.075 21.0251C15.35 22.7501 14.375 25.0751 14.375 27.4751C14.375 29.9501 15.35 32.2001 17.075 33.9251C18.8 35.6501 21.125 36.6251 23.525 36.6251C26 36.6251 28.25 35.6501 29.975 33.9251L33.8 30.1001L29.75 26.1251Z" fill="url(#paint1_linear_mui_home)" fill-opacity="0.7"/></g><g id="Vector_3"><path d="M37.4 25.4501L34.4 22.4501C34.25 22.3001 34.1 22.2251 33.875 22.2251C33.65 22.2251 33.5 22.3001 33.35 22.4501L30.875 25.0001L34.925 29.0501L37.475 26.5001C37.7 26.2001 37.7 25.7501 37.4 25.4501Z" fill="url(#paint2_linear_mui_home)" fill-opacity="0.7"/></g></g></g><defs><linearGradient id="paint0_linear_mui_home" x1="23.4313" y1="20.2328" x2="26.6851" y2="8.25611" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint1_linear_mui_home" x1="18.5906" y1="36.9318" x2="27.8512" y2="2.84426" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint2_linear_mui_home" x1="32.3421" y1="29.1579" x2="35.6226" y2="17.197" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
@@ -1204,7 +1285,7 @@
       <article class="card lib-card" data-lib="voice-direction">
         <a class="lib-card-hit" href="/voice-direction.html" aria-label="Voice direction"></a>
         <div class="card-stage">
-          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,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&quot;)"><video class="lib-video" src="/assets/videos/voice-direction-main-card.mp4" poster="/assets/videos/posters/voice-direction-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+          <div class="mdl mdl-dir" aria-hidden="true"><div class="mdl-art"><div class="mdl-dial"><svg class="mdl-arc" width="300" height="300" viewBox="-150 -150 300 300"><path class="mdl-track" d="M -140 0 A 140 140 0 0 1 140 0"/><g class="mdl-ticks"><line x1="-130" y1="-0" x2="-140" y2="-0"/><line x1="-130.4" y1="-34.94" x2="-135.23" y2="-36.23"/><line x1="-116.91" y1="-67.5" x2="-121.24" y2="-70"/><line x1="-91.92" y1="-91.92" x2="-98.99" y2="-98.99"/><line x1="-67.5" y1="-116.91" x2="-70" y2="-121.24"/><line x1="-34.94" y1="-130.4" x2="-36.23" y2="-135.23"/><line x1="0" y1="-130" x2="0" y2="-140"/><line x1="34.94" y1="-130.4" x2="36.23" y2="-135.23"/><line x1="67.5" y1="-116.91" x2="70" y2="-121.24"/><line x1="91.92" y1="-91.92" x2="98.99" y2="-98.99"/><line x1="116.91" y1="-67.5" x2="121.24" y2="-70"/><line x1="130.4" y1="-34.94" x2="135.23" y2="-36.23"/><line x1="130" y1="0" x2="140" y2="0"/></g></svg><div class="mdl-beam"><svg class="mdl-waves" viewBox="-40 -40 80 80" width="80" height="80"><path d="M 11.55 -7.9 A 14 14 0 0 1 11.55 7.9"/><path d="M 18.16 -12.42 A 22 22 0 0 1 18.16 12.42"/><path d="M 24.76 -16.94 A 30 30 0 0 1 24.76 16.94"/></svg></div><div class="mdl-device"></div><span class="mdl-side" style="left: -150px; top: 8px">L</span><span class="mdl-side" style="left: 0; top: -172px">F</span><span class="mdl-side" style="left: 150px; top: 8px">R</span></div></div></div>
         </div>
         <div class="lib-meta">
           <span class="lib-ico lib-ico--tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="19" height="24" viewBox="0 0 19 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="Vector" filter="url(#filter0_ii_vd_card)"><path d="M7.91667 17.6768C7.54458 17.6768 7.16933 17.5491 6.87008 17.2875C6.213 16.7176 6.15125 15.7335 6.72917 15.0889C7.49392 14.2356 7.91667 13.1379 7.91667 11.9997C7.91667 10.8615 7.4955 9.76375 6.73075 8.91203C6.15283 8.26741 6.21458 7.28334 6.87167 6.71346C7.524 6.14668 8.52467 6.20585 9.10575 6.85048C10.3819 8.27208 11.0833 10.1016 11.0833 11.9997C11.0833 13.8978 10.3803 15.7273 9.10417 17.1489C8.79067 17.4977 8.35367 17.6768 7.91667 17.6768Z" fill="url(#paint0_linear_vd_card)" fill-opacity="0.7"/><path d="M12.6683 24C12.2344 24 11.8006 23.8256 11.4887 23.4815C10.906 22.84 10.9614 21.8559 11.6122 21.2829C14.2943 18.9209 15.8333 15.5373 15.8333 11.9997C15.8333 8.46204 14.2943 5.07854 11.6122 2.71647C10.9614 2.14191 10.906 1.1594 11.4887 0.517891C12.0729 -0.12362 13.0768 -0.175004 13.7243 0.39644C17.0763 3.34708 19 7.57607 19 11.9997C19 16.4233 17.0763 20.6523 13.7243 23.6045C13.4219 23.8692 13.0435 24 12.6683 24Z" fill="url(#paint1_linear_vd_card)" fill-opacity="0.7"/><path d="M1.58333 13.5568C2.45778 13.5568 3.16667 12.8596 3.16667 11.9997C3.16667 11.1398 2.45778 10.4426 1.58333 10.4426C0.708882 10.4426 0 11.1398 0 11.9997C0 12.8596 0.708882 13.5568 1.58333 13.5568Z" fill="url(#paint2_linear_vd_card)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_vd_card" x="0" y="0" width="19" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_vd_card"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_vd_card" result="effect2_innerShadow_vd_card"/></filter><linearGradient id="paint0_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint1_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint2_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
