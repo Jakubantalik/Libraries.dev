@@ -9,7 +9,7 @@
 #if canImport(SwiftUI) && !os(watchOS)
 import SwiftUI
 
-#if canImport(AppKit)
+#if os(macOS)
 import AppKit
 #elseif canImport(UIKit)
 import UIKit
@@ -36,7 +36,7 @@ public enum OrbSnapshot {
         // transparent background, exactly like the web canvas
         renderer.isOpaque = false
 
-        #if canImport(AppKit)
+        #if os(macOS)
         guard let image = renderer.nsImage,
               let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff) else { return nil }
