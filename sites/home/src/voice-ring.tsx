@@ -166,7 +166,16 @@ function RingPlayground() {
             </div>
           )}
           <PgTabs label="Emotion" options={EMOTION_OPTIONS} value="off" onChange={() => {}} />
-          <PgTabs label="Direction detection" options={DIRECTION_OPTIONS} value="off" onChange={() => {}} />
+          <div>
+            <PgTabs label="Direction detection" options={DIRECTION_OPTIONS} value="off" onChange={() => {}} />
+            <span className="pg-note">
+              The ring leans toward whoever is speaking: Libraries.dev&apos;s{" "}
+              <a href="/voice-direction.html" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }}>
+                Voice direction
+              </a>{" "}
+              model hears the side on the iPhone&apos;s two built-in mics.
+            </span>
+          </div>
           <PgTabs label="Hover bend" options={BEND_OPTIONS} value="off" onChange={() => {}} />
           <StudioTeaser
             rows={[
