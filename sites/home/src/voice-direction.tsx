@@ -1,29 +1,23 @@
 import { type CSSProperties, type RefObject, StrictMode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { EMOTION_COLORS, VoiceRing, type VoiceOrbEmotion } from "voice-ring";
+import { VoiceRing } from "voice-ring";
 import { demoGetter } from "./examples/voice-mocks";
 import "./voice-direction.css";
 
 /* Voice direction page — the showcase on the stage card: Voice ring on a
    phone, listening to a voice that moves round it (simulated), with where
-   the sound comes from drawn around the phone and a live readout of what
-   the models detect: the side, and the feeling of the voice. The same
-   stage as the voice orbs demo's "Simulated direction" tab. It runs on its
-   own and pauses off screen; with reduced motion it waits for Play. */
+   the sound comes from drawn around the phone and a live readout of the
+   side the model detects. The voice orbs demo's "Simulated direction" tab,
+   without its emotion: this page is the direction model alone. It runs on
+   its own and pauses off screen; with reduced motion it waits for Play. */
 
 type Source = "left" | "front" | "right";
 
 // A speaker moves round the phone: left, in front, right, in front again.
 const ROUTE: Source[] = ["left", "front", "right", "front"];
-/** What the voice sounds like: one of the ring's emotions, or neutral (its own colours). */
-type Mood = VoiceOrbEmotion | "neutral";
-// a feeling from each side; from in front, a level, neutral voice
-const MOODS: Mood[] = ["positive", "neutral", "negative", "neutral"];
 const TURN = 5600;
-// what the models take to commit, as on the device: the side first, then
-// the feeling, which needs a little more of the voice
+// what the model takes to commit to a side, as on the device
 const SIDE_AFTER = 700;
-const MOOD_AFTER = 1600;
 
 // The stage is laid out at least this wide; narrower, it is scaled down.
 const STAGE_W = 880;
@@ -38,23 +32,12 @@ const SIDE_GAP = 150;
 const LABEL: Record<Source, string> = { left: "Left", front: "Front", right: "Right" };
 const PAN: Record<Source, number> = { left: -1, front: 0, right: 1 };
 const ANGLE: Record<Source, number> = { left: -62, front: 0, right: 58 };
-const MOOD_LABEL: Record<Mood, string> = { positive: "Positive", negative: "Negative", calm: "Calm", neutral: "Neutral" };
-// where each feeling sits: valence (unhappy … happy), arousal (calm … excited)
-const AFFECT: Record<Mood, [number, number]> = {
-  positive: [0.64, 0.58],
-  negative: [-0.57, 0.71],
-  calm: [0.31, 0.18],
-  neutral: [0.03, 0.24],
-};
-
 interface Reading {
   turn: number;
   /** Where the voice is now; the detector catches up a moment later. */
   source: Source;
   side: Source | null;
   sideConfidence: number;
-  mood: Mood | null;
-  moodConfidence: number;
 }
 
 /** The scripted run: a voice from each side in turn, detected a beat after it starts. */
@@ -64,8 +47,6 @@ function useSimulation(paused: boolean): Reading {
     source: ROUTE[0],
     side: null,
     sideConfidence: 0,
-    mood: null,
-    moodConfidence: 0,
   });
   useEffect(() => {
     if (paused) return;
@@ -73,7 +54,6 @@ function useSimulation(paused: boolean): Reading {
     const jitter = (k: number) => 0.84 + ((t * 37 + k * 13) % 11) / 100;
     const ids = [
       setTimeout(() => setR((p) => ({ ...p, side: p.source, sideConfidence: jitter(1) })), SIDE_AFTER),
-      setTimeout(() => setR((p) => ({ ...p, mood: MOODS[t % MOODS.length], moodConfidence: jitter(2) - 0.06 })), MOOD_AFTER),
       setTimeout(
         () =>
           setR((p) => ({
@@ -82,8 +62,6 @@ function useSimulation(paused: boolean): Reading {
             source: ROUTE[(t + 1) % ROUTE.length],
             side: null,
             sideConfidence: 0,
-            mood: null,
-            moodConfidence: 0,
           })),
         TURN
       ),
@@ -121,15 +99,11 @@ function DirectionDemo() {
   const still = paused || !visible;
 
   const r = useSimulation(still);
-  // the ring holds its side and its colour until the next ones are detected
+  // the ring holds its side until the next one is detected
   const [lean, setLean] = useState(0);
-  const [mood, setMood] = useState<Mood | null>(null);
   useEffect(() => {
     if (r.side) setLean(PAN[r.side]);
   }, [r.side]);
-  useEffect(() => {
-    if (r.mood) setMood(r.mood);
-  }, [r.mood]);
 
   // laid out at the card's width, or at STAGE_W and scaled down to fit
   const w = Math.max(width, STAGE_W);
@@ -161,8 +135,6 @@ function DirectionDemo() {
   const leader: CSSProperties = front
     ? { right: "100%", top: src.y - by, width: bx - src.x - 12 }
     : { left: BADGE_W / 2 - 1, bottom: "100%", height: Math.max(0, by - src.y - 48) };
-  const tint = mood && mood !== "neutral" ? EMOTION_COLORS[mood] : null;
-  const accent = tint ? `rgb(${tint.r}, ${tint.g}, ${tint.b})` : "rgb(237, 237, 237)";
 
   return (
     <div className="vd-fit" ref={box} data-paused-by-user={paused} style={{ height: h * scale }}>
@@ -170,8 +142,8 @@ function DirectionDemo() {
         className="vd-stage"
         data-paused={still}
         role="img"
-        aria-label={`Voice ring on a phone, leaning toward a simulated voice that moves from the left, to the front, to the right. Now: a voice from the ${LABEL[r.source].toLowerCase()}, detected as ${r.side ? LABEL[r.side].toLowerCase() : "…"}, sounding ${r.mood ? MOOD_LABEL[r.mood].toLowerCase() : "…"}.`}
-        style={{ width: w, height: h, transform: scale < 1 ? `scale(${scale})` : undefined, "--accent": accent } as CSSProperties}
+        aria-label={`Voice ring on a phone, leaning toward a simulated voice that moves from the left, to the front, to the right. Now: a voice from the ${LABEL[r.source].toLowerCase()}, detected as ${r.side ? LABEL[r.side].toLowerCase() : "…"}.`}
+        style={{ width: w, height: h, transform: scale < 1 ? `scale(${scale})` : undefined, "--accent": "rgb(237, 237, 237)" } as CSSProperties}
       >
         <svg className="vd-signal" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
           <line key={r.turn} data-live={r.side ? "true" : "false"} x1={src.x} y1={src.y} x2={end[r.source].x} y2={end[r.source].y} />
@@ -185,7 +157,6 @@ function DirectionDemo() {
                 state="listening"
                 level={demoGetter}
                 direction={lean}
-                emotion={mood === "neutral" ? null : mood}
                 directionBounds={screen}
                 directionMargin={Math.round(32 * U)}
                 paused={still}
@@ -248,7 +219,7 @@ function Emitter({ x, y, towards, label, live }: { x: number; y: number; towards
 }
 
 const BADGE_W = 172;
-const BADGE_H = 86;
+const BADGE_H = 54;
 
 /** The live readout, at `x`, `y` on the stage, its leader running to the source. */
 function Badge({
@@ -270,7 +241,6 @@ function Badge({
   paused: boolean;
 }) {
   const angle = r.side ? ANGLE[r.side] + (r.turn % 3) - 1 : null;
-  const affect = r.mood ? AFFECT[r.mood] : null;
 
   return (
     <div className="vd-badge" data-orient={across ? "across" : "down"} style={{ width: BADGE_W, height: BADGE_H, transform: `translate(${x}px, ${y}px)` }}>
@@ -296,13 +266,6 @@ function Badge({
         <span className="vd-read">{angle == null ? "—" : `${angle > 0 ? "+" : angle < 0 ? "−" : "±"}${Math.abs(angle)}°`}</span>
       </div>
       <DotMeter value={r.side ? r.sideConfidence : 0} />
-
-      <div className="vd-row">
-        <span className="vd-key">EMOTION</span>
-        <Decode className="vd-value tinted" text={r.mood ? MOOD_LABEL[r.mood] : "Detecting"} pending={!r.mood} />
-        <span className="vd-read">{affect ? `v${affect[0] > 0 ? "+" : "−"}${Math.abs(affect[0]).toFixed(2)} a${affect[1].toFixed(2)}` : "—"}</span>
-      </div>
-      <DotMeter value={r.mood ? r.moodConfidence : 0} tinted />
     </div>
   );
 }
@@ -348,10 +311,10 @@ function Decode({ text, pending, className }: { text: string; pending: boolean; 
 const DOTS = 18;
 
 /** Confidence as a row of fine dots, filling one after another. */
-function DotMeter({ value, tinted }: { value: number; tinted?: boolean }) {
+function DotMeter({ value }: { value: number }) {
   const lit = Math.round(value * DOTS);
   return (
-    <div className="vd-meter" data-tinted={tinted ? "true" : "false"} aria-hidden="true">
+    <div className="vd-meter" aria-hidden="true">
       {Array.from({ length: DOTS }, (_, i) => (
         <i key={i} data-on={i < lit} style={{ transitionDelay: `${i * 22}ms` }} />
       ))}

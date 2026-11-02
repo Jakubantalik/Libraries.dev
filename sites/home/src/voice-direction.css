@@ -468,11 +468,6 @@
   white-space: pre;
 }
 
-.vd-value.tinted .on {
-  color: var(--accent);
-  transition: color 400ms;
-}
-
 .vd-value span {
   display: inline-block;
 }
@@ -533,11 +528,6 @@
 .vd-meter i[data-on='true'] {
   background: var(--hud);
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
-}
-
-.vd-meter[data-tinted='true'] i[data-on='true'] {
-  background: var(--accent);
-  box-shadow: 0 0 4px var(--accent);
 }
 
 .vd-pct {
