@@ -591,6 +591,7 @@ function VoiceScreen() {
 - direction: number | () =&gt; number (-1 left ... 1 right): the ring leans toward the voice.
   A browser microphone is mono, so the side must come from the app (stereo capture,
   a diarised speaker, or where that person sits in the UI).
+- hoverBend: true | 0...1: the ring bends toward the cursor near its rim (desktop pointers only)
 - sensitivity (0.85), speed, theme ("auto" | "dark" | "light"), paused
 
 Docs: https://libraries.dev/voice-ring.html

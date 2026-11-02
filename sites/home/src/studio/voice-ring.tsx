@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { VoiceRing, useMicrophone, type VoiceOrbState } from "voice-ring";
 import { ControlsPanel, PgTabs, PgSlider, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { MOOD_PRESETS, moodColors, type MoodPoint, type MoodPreset } from "./voice-mood";
 import { MoodPad } from "./voice";
 import { demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 
-/* Studio — Voice ring workbench. The library ships as SwiftUI
-   (VoiceRingKit); the stage draws the same engine on the web
-   (packages/voice-ring) and the Install tab writes the SwiftUI call from
-   the knobs. Every knob is a VoiceRing parameter or one of the ring's own
-   `style.opts`, so the snippet carries only what was moved.
+/* Studio — Voice ring workbench. The library ships for React (npm
+   voice-ring, which draws the stage) and SwiftUI (VoiceRingKit); the
+   Install tab writes the call for the chosen platform from the knobs.
+   Every knob is a VoiceRing parameter or one of the ring's own `opts`, so
+   the snippet carries only what was moved. The hover bend is React's
+   alone, on a desktop pointer.
 
    Two models plug into the ring, and both are previewed here by hand:
    Emotion (emotion2vec+ on the iPhone, Pro, as on the Voice bench) tints
@@ -19,6 +20,30 @@ import { demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 type Source = "demo" | "mic" | "manual";
 type Emotion = "off" | MoodPreset;
 type Direction = "off" | "manual";
+
+/* The web package's three emotions, from the bench's four moods. */
+const REACT_EMOTION: Record<MoodPreset, "positive" | "negative" | "calm"> = {
+  happy: "positive",
+  calm: "calm",
+  angry: "negative",
+  sad: "negative",
+};
+
+/* The platform the bar picked, as it marks the stage: SwiftUI and React
+   Native draw it as a phone. */
+function usePhone(stage: RefObject<HTMLDivElement>) {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const read = () => setPhone(el.getAttribute("data-device") === "phone");
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(el, { attributes: true, attributeFilter: ["data-device"] });
+    return () => watch.disconnect();
+  }, [stage]);
+  return phone;
+}
 
 const STATE_OPTIONS = [
   { value: "idle", label: "Idle" },
@@ -84,6 +109,7 @@ const LABELS: Record<string, string> = {
   direction: "Direction",
   lean: "Voice from",
   paused: "Paused",
+  hoverBend: "Hover bend",
   ...Object.fromEntries(Object.entries(RING_KNOBS).map(([k, v]) => [`knob.${k}`, v.label])),
 };
 
@@ -97,14 +123,16 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   const [source, setSource] = useState<Source>("demo");
   const [level, setLevel] = useState(60);
   const [speed, setSpeed] = useState(1);
-  const [sensitivity, setSensitivity] = useState(1);
+  const [sensitivity, setSensitivity] = useState(0.85);
   const [knobs, setKnobs] = useState<KnobValues>(KNOB_DEFAULTS);
   const [emotion, setEmotion] = useState<Emotion>("off");
   const [moodPoint, setMoodPoint] = useState<MoodPoint>(MOOD_PRESETS.happy);
   const [direction, setDirection] = useState<Direction>("off");
   const [lean, setLean] = useState(0.6);
   const [paused, setPaused] = useState(false);
+  const [bend, setBend] = useState(0);
   const stageRef = useRef<HTMLDivElement>(null);
+  const phone = usePhone(stageRef);
 
   const mic = useMicrophone();
   const isMic = source === "mic";
@@ -144,7 +172,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   /* SwiftUI snippet: a VoiceStyle only when something in it moved. */
   const styleLines: string[] = [];
   if (speed !== 1) styleLines.push(`style.speed = ${num(speed)}`);
-  if (sensitivity !== 1) styleLines.push(`style.sensitivity = ${num(sensitivity)}`);
+  if (sensitivity !== 0.85) styleLines.push(`style.sensitivity = ${num(sensitivity)}`);
   if (theme === "light") styleLines.push("style.theme = .light");
   if (moved.length) styleLines.push(`style.opts = [${moved.map((k) => `"${k}": ${num(knobs[k])}`).join(", ")}]`);
   const args = [`state: ${SWIFT_STATE[state]}`];
@@ -167,6 +195,28 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
     `VoiceRing(\n  ${args.join(",\n  ")}\n)${isMic ? "\n.task { try? await meter.start() }" : ""}`,
   ].join("\n");
 
+  /* React snippet: only what differs from the defaults. */
+  const props = ["size={240}", `state="${state}"`];
+  if (isMic) props.push("stream={mic.stream}");
+  else if (source === "manual") props.push(`level={${num(level / 100)}}`);
+  else props.push("level={() => yourLevel}");
+  if (speed !== 1) props.push(`speed={${num(speed)}}`);
+  if (sensitivity !== 0.85) props.push(`sensitivity={${num(sensitivity)}}`);
+  if (theme === "light") props.push('theme="light"');
+  if (moved.length) props.push(`opts={{ ${moved.map((k) => `${k}: ${num(knobs[k])}`).join(", ")} }}`);
+  if (emotion !== "off") props.push(`emotion="${REACT_EMOTION[emotion]}"`);
+  if (direction === "manual") props.push(`direction={${num(lean)}}`);
+  if (bend > 0) props.push(bend === 1 ? "hoverBend" : `hoverBend={${num(bend)}}`);
+  const reactUsage = [
+    `import { VoiceRing${isMic ? ", useMicrophone" : ""} } from 'voice-ring';`,
+    "",
+    ...(isMic ? ["const mic = useMicrophone();", ""] : []),
+    ...(emotion !== "off" ? ["// Your own emotion model's read of the voice: positive, negative or calm."] : []),
+    ...(direction === "manual" ? ["// The side the voice comes from, -1 left … 1 right, from your own stereo or diarised input."] : []),
+    `<VoiceRing\n  ${props.join("\n  ")}\n/>`,
+    ...(isMic ? ["<button onClick={mic.start}>Listen</button>"] : []),
+  ].join("\n");
+
   const platforms = [
     {
       id: "swift",
@@ -181,7 +231,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   /* Presets and reset ride the same params; the chat agent is not wired
      for this library yet, so the controls panel gets none. */
   const params: Record<string, unknown> = {
-    state, source, level, speed, sensitivity, emotion, direction, lean, paused,
+    state, source, level, speed, sensitivity, emotion, direction, lean, paused, hoverBend: bend,
     ...Object.fromEntries(Object.entries(knobs).map(([k, v]) => [`knob.${k}`, v])),
   };
   const applyParams = useCallback((patch: Record<string, unknown>) => {
@@ -194,6 +244,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
     if (patch.direction === "off" || patch.direction === "manual") setDirection(patch.direction);
     if (typeof patch.lean === "number") setLean(patch.lean);
     if (typeof patch.paused === "boolean") setPaused(patch.paused);
+    if (typeof patch.hoverBend === "number") setBend(Math.max(0, Math.min(1, patch.hoverBend)));
     const next = Object.entries(patch).filter(([k, v]) => k.startsWith("knob.") && typeof v === "number");
     if (next.length) setKnobs((prev) => ({ ...prev, ...Object.fromEntries(next.map(([k, v]) => [k.slice(5), v as number])) }));
   }, []);
@@ -202,7 +253,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
     <div className="pg">
       <StageBar
         library="Voice ring"
-        prompt={{ pkg: "voice-ring", docsPath: "/voice-ring.html", snippet: swiftUsage, platforms, web: false }}
+        prompt={{ pkg: "voice-ring", docsPath: "/voice-ring.html", snippet: reactUsage, platforms }}
         agent={{ libraryId: "voice-ring", params, labels: LABELS, onApply: applyParams }}
       />
       <div className="pg-stage" ref={stageRef}>
@@ -220,6 +271,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
             direction={direction === "manual" ? lean : undefined}
             directionBounds={stageRef}
             paused={paused}
+            hoverBend={!phone && bend > 0 ? bend : false}
             theme={theme}
           />
         )}
@@ -291,9 +343,29 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
             model (beta, tested on iPhone 15 Pro) reads the side from the stereo mics, with no calibration.
           </span>
         </PgGroup>
+        {!phone && (
+          <>
+            <PanelSep />
+            <PgGroup label="Hover (React, desktop)">
+              <PgSlider
+                label="Hover bend"
+                value={bend}
+                min={0}
+                max={1}
+                step={0.05}
+                display={bend > 0 ? num(bend) : "Off"}
+                onChange={setBend}
+              />
+              <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "4px 0 0" }}>
+                The ring bends toward the cursor as it nears the rim, like a membrane. The web package only, on a
+                desktop pointer.
+              </span>
+            </PgGroup>
+          </>
+        )}
       </ControlsPanel>
 
-      <Snippet code={swiftUsage} />
+      <Snippet code={phone ? swiftUsage : reactUsage} />
     </div>
   );
 }

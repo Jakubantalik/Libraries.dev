@@ -43,6 +43,13 @@ const DIRECTION_OPTIONS = [
   { value: "on", label: "On", locked: "Uses Voice direction model, Pro plan" },
 ] as const;
 
+/* The ring bending toward the cursor on hover: the web package only, on
+   a desktop pointer. */
+const BEND_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "on", label: "On" },
+] as const;
+
 const SWIFT_STATE: Record<VoiceOrbState, string> = {
   idle: ".idle",
   listening: ".listening",
@@ -92,8 +99,10 @@ function RingPlayground() {
   const [state, setState] = useState<VoiceOrbState>("listening");
   const [source, setSource] = useState<Source>("demo");
   const [paused, setPaused] = useState(true);
+  const [bend, setBend] = useState<"off" | "on">("off");
   const stage = useRef<HTMLDivElement>(null);
   const phone = usePhone(stage);
+  const bending = bend === "on" && !phone;
 
   const mic = useMicrophone();
   const isMic = source === "mic";
@@ -123,7 +132,7 @@ function RingPlayground() {
     lines.push(`VoiceRing(\n  ${args.join(",\n  ")}\n)${isMic ? "\n.task { try? await meter.start() }" : ""}`);
     snippet = lines.join("\n");
   } else {
-    const ring = `<VoiceRing size={240} state="${state}" ${isMic ? "stream={mic.stream}" : "level={() => yourLevel}"} />`;
+    const ring = `<VoiceRing size={240} state="${state}" ${isMic ? "stream={mic.stream}" : "level={() => yourLevel}"}${bending ? " hoverBend" : ""} />`;
     snippet = isMic
       ? `import { VoiceRing, useMicrophone } from 'voice-ring';\n\nconst mic = useMicrophone();\n\n${ring}\n<button onClick={mic.start}>Listen</button>`
       : `import { VoiceRing } from 'voice-ring';\n\n${ring}`;
@@ -143,6 +152,7 @@ function RingPlayground() {
             stream={isMic ? mic.stream : null}
             level={isMic ? 0 : demoGetter}
             paused={paused}
+            hoverBend={bending}
             theme="dark"
           />
           <button type="button" className="btn-animate pg-play" onClick={() => setPaused((p) => !p)} aria-pressed={!paused}>
@@ -160,6 +170,12 @@ function RingPlayground() {
           )}
           <PgTabs label="Emotion" options={EMOTION_OPTIONS} value="off" onChange={() => {}} />
           <PgTabs label="Direction detection" options={DIRECTION_OPTIONS} value="off" onChange={() => {}} />
+          <PgTabs
+            label="Hover bend"
+            options={phone ? [BEND_OPTIONS[0], { ...BEND_OPTIONS[1], locked: "React, on desktop" }] : BEND_OPTIONS}
+            value={phone ? "off" : bend}
+            onChange={setBend}
+          />
           <StudioTeaser
             rows={[
               { kind: "slider", label: "Rings", value: "6", fill: 45 },

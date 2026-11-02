@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { acquireAnalyser } from './audio';
 import { ACCENT_COLORS, EMOTION_COLORS, GlowFollower } from './emotion';
+import { bendFrame, bendRadius, bendReach } from './engine/bend';
 import { EdgeBounce, LEAN_DEFAULTS, leanFrame, leanReach } from './engine/lean';
 import { paintFrame, type OrbGlow, type OrbTint } from './engine/paint';
 import type { VoiceInput } from './engine/types';
@@ -79,6 +80,7 @@ export function VoiceOrb({
   directionBounce,
   directionMargin: marginProp,
   directionBounds,
+  hoverBend = false,
   theme = 'auto',
   speed = 1,
   paused = false,
@@ -142,6 +144,7 @@ export function VoiceOrb({
     colors,
     direction,
     bounds: directionBounds,
+    bend: hoverBend === true ? 1 : typeof hoverBend === 'number' ? Math.max(0, Math.min(1, hoverBend)) : 0,
     // each amount: the prop, else the type's own, else the shared default
     lean: {
       move: directionMove ?? typeLean.move ?? LEAN_DEFAULTS.move,
@@ -170,6 +173,33 @@ export function VoiceOrb({
   // side fades out there instead of being cut at the bound
   const padL = reach ? left + directionMargin : 0;
   const padR = reach ? right + directionMargin : 0;
+
+  // Where the pointer is, for the hover bend, in the orb's own CSS px:
+  // desktop only (a fine pointer that hovers), never with reduced motion.
+  const pointer = useRef({ x: 0, y: 0, over: false });
+  const bendOn = inputs.bend > 0 && !reduced;
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!bendOn || !canvas || typeof matchMedia !== 'function') return;
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const move = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      const r = canvas.getBoundingClientRect();
+      // the canvas may be scaled by an ancestor's transform
+      const k = (size + padL + padR) / (r.width || 1);
+      pointer.current = { x: (e.clientX - r.left) * k - padL, y: (e.clientY - r.top) * k, over: true };
+    };
+    const leave = () => {
+      pointer.current.over = false;
+    };
+    window.addEventListener('pointermove', move, { passive: true });
+    document.documentElement.addEventListener('pointerleave', leave);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      document.documentElement.removeEventListener('pointerleave', leave);
+      pointer.current.over = false;
+    };
+  }, [bendOn, size, padL, padR]);
 
   // A stream gets its own analyser, released when the stream goes.
   const ownAnalyser = useRef<AnalyserNode | null>(null);
@@ -203,14 +233,32 @@ export function VoiceOrb({
     // the bounce off the edge chases how hard the last frame pressed on it
     const bounce = new EdgeBounce();
     let press = 0;
+    // the hover bend, eased in as the pointer nears the rim and out as it
+    // leaves, toward a pointer position that is eased too
+    let bend = 0;
+    let bx = size / 2;
+    let by = size / 2;
 
     const draw = (voice: VoiceInput, glow: OrbGlow, dt: number) => {
       ctx.setTransform(dpr, 0, 0, dpr, padL * dpr, 0);
       ctx.clearRect(-padL, 0, size + padL + padR, size);
       // lean toward where the voice comes from, after the geometry
       const hit = paused || reduced ? 0 : bounce.step(press, dt);
-      const frame = leanFrame(frameFn(size, follower.t, voice, opts), voice.pan, size, live.current.lean, [left, right], hit);
+      let frame = leanFrame(frameFn(size, follower.t, voice, opts), voice.pan, size, live.current.lean, [left, right], hit);
       press = frame.contact?.press ?? 0;
+      // then bend toward the pointer on hover
+      const strength = live.current.bend;
+      if (strength > 0) {
+        const p = pointer.current;
+        const R = bendRadius(frame, size);
+        const near = p.over && !paused && !reduced ? bendReach(Math.hypot(p.x - size / 2, p.y - size / 2) - R, R) : 0;
+        bend += (near - bend) * (1 - Math.exp(-dt / 0.14));
+        // a fresh approach starts where the pointer is, not from the middle
+        const follow = bend < 0.01 ? 1 : 1 - Math.exp(-dt / 0.05);
+        bx += (p.x - bx) * follow;
+        by += (p.y - by) * follow;
+        if (bend > 0.002) frame = bendFrame(frame, size, { x: bx, y: by, amount: bend * strength });
+      }
       // On the ink types the emotion *is* the colour: the gradient runs from
       // the neutral ink into the emotion's hue, fading in and crossfading as
       // the glow follower eases. A fixed accent, if set, holds the colour

@@ -60,6 +60,7 @@ function VoiceScreen() {
 - `stream` (a `MediaStream`) or `level` (a number, or a getter read every frame).
 - `emotion`: `positive`, `negative` or `calm` shifts the spectrum toward its colour.
 - `direction`: −1 left … 1 right, a number or a getter. A browser microphone is mono, so the side comes from you: a stereo capture, a diarised speaker, or where that person sits in your UI. The ring barely drifts but leans toward it, and meets the screen's edge through a soft lens; the `direction…` props tune it.
+- `hoverBend`: `true`, or 0–1 for less. As the cursor nears the rim the ring bends toward it like a membrane, easing in and out. Desktop only (a fine pointer that hovers), and off with reduced motion.
 - `sensitivity` (0.85), `speed`, `theme` (`auto`, `dark`, `light`), `paused`.
 
 A 2D canvas with a small WebGL pass for the edge lens; React 18+.
