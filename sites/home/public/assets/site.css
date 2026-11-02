@@ -1097,8 +1097,9 @@ html[data-theme="dark"] .skill-btn--secondary:active {
 @media (min-width: 1101px) {
   .cards > .lib-card[data-lib="beam"],
   .cards > .lib-card[data-lib="orb"] { grid-column: span 3; }
-  /* The two models close the grid the same way, as a wide pair, so the
-     eight libraries between fill rows of three with nothing left over. */
+  /* The two models sit the same way, as a wide pair, one row above the
+     last, so the libraries around them fill rows of three with nothing
+     left over. */
   .cards > .lib-card[data-lib="magnetic"],
   .cards > .lib-card[data-lib="voice-direction"] { grid-column: span 3; }
 }
