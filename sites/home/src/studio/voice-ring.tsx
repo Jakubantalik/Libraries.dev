@@ -66,6 +66,13 @@ const EMOTION_OPTIONS = [
   { value: "sad", label: "Sad" },
 ] as const;
 
+/* The ring bending toward the cursor while it waits or works: the web
+   package only, on a desktop pointer. */
+const BEND_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "on", label: "On" },
+] as const;
+
 const DIRECTION_OPTIONS = [
   { value: "off", label: "Off" },
   { value: "manual", label: "Manual" },
@@ -130,7 +137,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   const [direction, setDirection] = useState<Direction>("off");
   const [lean, setLean] = useState(0.6);
   const [paused, setPaused] = useState(false);
-  const [bend, setBend] = useState(0);
+  const [bend, setBend] = useState<"off" | "on">("off");
   const stageRef = useRef<HTMLDivElement>(null);
   const phone = usePhone(stageRef);
 
@@ -206,7 +213,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   if (moved.length) props.push(`opts={{ ${moved.map((k) => `${k}: ${num(knobs[k])}`).join(", ")} }}`);
   if (emotion !== "off") props.push(`emotion="${REACT_EMOTION[emotion]}"`);
   if (direction === "manual") props.push(`direction={${num(lean)}}`);
-  if (bend > 0) props.push(bend === 1 ? "hoverBend" : `hoverBend={${num(bend)}}`);
+  if (bend === "on") props.push("hoverBend");
   const reactUsage = [
     `import { VoiceRing${isMic ? ", useMicrophone" : ""} } from 'voice-ring';`,
     "",
@@ -244,7 +251,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
     if (patch.direction === "off" || patch.direction === "manual") setDirection(patch.direction);
     if (typeof patch.lean === "number") setLean(patch.lean);
     if (typeof patch.paused === "boolean") setPaused(patch.paused);
-    if (typeof patch.hoverBend === "number") setBend(Math.max(0, Math.min(1, patch.hoverBend)));
+    if (patch.hoverBend === "off" || patch.hoverBend === "on") setBend(patch.hoverBend);
     const next = Object.entries(patch).filter(([k, v]) => k.startsWith("knob.") && typeof v === "number");
     if (next.length) setKnobs((prev) => ({ ...prev, ...Object.fromEntries(next.map(([k, v]) => [k.slice(5), v as number])) }));
   }, []);
@@ -271,7 +278,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
             direction={direction === "manual" ? lean : undefined}
             directionBounds={stageRef}
             paused={paused}
-            hoverBend={!phone && bend > 0 ? bend : false}
+            hoverBend={!phone && bend === "on"}
             theme={theme}
           />
         )}
@@ -312,11 +319,16 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
         </PgGroup>
         <PanelSep />
         <PgGroup label="Emotion (emotion2vec)">
+          {/* the models are separate downloads, so say so before the choice */}
+          <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "0 0 10px" }}>
+            Uses a separate model, downloaded with Pro: Emotion2Vec for the tone of the voice (about 90 MB), and
+            optionally TextEmotion for its words (about 120 MB). It runs on the iPhone, in the SwiftUI app.
+          </span>
           <PgTabs label="Emotion" options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />
           {emotion !== "off" && (
             <div className="pg-field">
               <MoodPad value={moodPoint} onChange={dragMood} />
-              <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "8px 0 0" }}>
+              <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "8px 0 0" }}>
                 A preview of the mood the ring&apos;s spectrum shifts toward. Detection runs on the iPhone with
                 VoiceRingEmotion: emotion2vec+ reads the tone of the voice, GoEmotions its words (Pro).
               </span>
@@ -325,6 +337,13 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
         </PgGroup>
         <PanelSep />
         <PgGroup label="Direction (Voice direction)">
+          <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "0 0 10px" }}>
+            Uses Libraries.dev&apos;s{" "}
+            <a href="/voice-direction.html" style={{ color: "inherit", textDecoration: "underline" }}>Voice direction</a>{" "}
+            model (beta), a separate download: VoiceDirection.mfxl (1.4 KB), free with a Libraries.dev account. On
+            the iPhone it reads the side from the stereo mics, with no calibration, and the ring leans while a voice
+            is heard.
+          </span>
           <PgTabs label="Direction" options={DIRECTION_OPTIONS} value={direction} onChange={setDirection} />
           {direction === "manual" && (
             <PgSlider
@@ -337,28 +356,15 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
               onChange={setLean}
             />
           )}
-          <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "4px 0 0" }}>
-            The ring leans while a voice is heard. On an iPhone the{" "}
-            <a href="/voice-direction.html" style={{ color: "inherit", textDecoration: "underline" }}>Voice direction</a>{" "}
-            model (beta, tested on iPhone 15 Pro) reads the side from the stereo mics, with no calibration.
-          </span>
         </PgGroup>
         {!phone && (
           <>
             <PanelSep />
             <PgGroup label="Hover (React, desktop)">
-              <PgSlider
-                label="Hover bend"
-                value={bend}
-                min={0}
-                max={1}
-                step={0.05}
-                display={bend > 0 ? num(bend) : "Off"}
-                onChange={setBend}
-              />
-              <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "4px 0 0" }}>
-                The ring bends toward the cursor as it nears the rim, like a membrane. The web package only, on a
-                desktop pointer.
+              <PgTabs label="Hover bend" options={BEND_OPTIONS} value={bend} onChange={setBend} />
+              <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "4px 0 0" }}>
+                While the ring waits or works (Idle, Processing), it bends toward the cursor as it nears the rim,
+                like a membrane. The web package only, on a desktop pointer.
               </span>
             </PgGroup>
           </>

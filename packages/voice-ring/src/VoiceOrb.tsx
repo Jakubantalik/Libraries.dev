@@ -40,6 +40,9 @@ const LABELS: Record<string, string> = {
   processing: 'Thinking'
 };
 
+// The hover bend's strength when it is simply on.
+const HOVER_BEND = 0.55;
+
 // 120 Hz displays would double the paint work for no visible gain.
 const FRAME_MS = 1000 / 62;
 
@@ -144,7 +147,7 @@ export function VoiceOrb({
     colors,
     direction,
     bounds: directionBounds,
-    bend: hoverBend === true ? 1 : typeof hoverBend === 'number' ? Math.max(0, Math.min(1, hoverBend)) : 0,
+    bend: hoverBend === true ? HOVER_BEND : typeof hoverBend === 'number' ? Math.max(0, Math.min(1, hoverBend)) : 0,
     // each amount: the prop, else the type's own, else the shared default
     lean: {
       move: directionMove ?? typeLean.move ?? LEAN_DEFAULTS.move,
@@ -246,12 +249,14 @@ export function VoiceOrb({
       const hit = paused || reduced ? 0 : bounce.step(press, dt);
       let frame = leanFrame(frameFn(size, follower.t, voice, opts), voice.pan, size, live.current.lean, [left, right], hit);
       press = frame.contact?.press ?? 0;
-      // then bend toward the pointer on hover
+      // then bend toward the pointer on hover, while no voice moves the
+      // orb: waiting or processing
       const strength = live.current.bend;
       if (strength > 0) {
         const p = pointer.current;
         const R = bendRadius(frame, size);
-        const near = p.over && !paused && !reduced ? bendReach(Math.hypot(p.x - size / 2, p.y - size / 2) - R, R) : 0;
+        const quiet = live.current.state === 'idle' || live.current.state === 'processing';
+        const near = p.over && quiet && !paused && !reduced ? bendReach(Math.hypot(p.x - size / 2, p.y - size / 2) - R, R) : 0;
         bend += (near - bend) * (1 - Math.exp(-dt / 0.14));
         // a fresh approach starts where the pointer is, not from the middle
         const follow = bend < 0.01 ? 1 : 1 - Math.exp(-dt / 0.05);

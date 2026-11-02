@@ -167,9 +167,11 @@ export interface VoiceOrbProps extends Omit<CanvasHTMLAttributes<HTMLCanvasEleme
 
   /**
    * Bend toward the pointer on hover: as the cursor nears the rim, the orb's
-   * marks are drawn out toward it like a membrane, easing in and out. Desktop
-   * only (a fine pointer that hovers), and off with reduced motion. `true`
-   * is full strength; a number 0–1 scales it. @default false
+   * marks are drawn out toward it like a membrane, easing in and out. Only
+   * while the orb is waiting or processing (a voice moving it leaves the
+   * pointer be); desktop only (a fine pointer that hovers), and off with
+   * reduced motion. `true` bends at 0.55; a number 0–1 sets the strength.
+   * @default false
    */
   hoverBend?: boolean | number;
 
