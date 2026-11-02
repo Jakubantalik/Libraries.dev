@@ -417,6 +417,63 @@
       .header { min-height: 689px; }
     }
 
+    /* ── Category filter above the grid, styled as transitions.dev's ──
+       Sits on the card grid's own width so the first pill lines up with
+       the first card. Pills are individual 36px capsules; the active one
+       fills with the pressed grey. */
+    .cards-toolbar {
+      width: 100%;
+      max-width: 1008px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cards-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+    .cards-filter {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 48px;
+      background: #fff;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.1),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      color: rgba(38, 38, 38, 0.8);
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 150ms var(--ease-smooth-out), color 150ms var(--ease-smooth-out);
+    }
+    .cards-filter:hover { background: #f7f7f7; }
+    .cards-filter[data-active="true"] { background: #f1f1f1; color: #080808; }
+    .cards-filter:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    /* Dark: translucent white fills over the page, 4% resting / 14%
+       selected, with a 1px top-lit inset ring. */
+    html[data-theme="dark"] .cards-filter {
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(251, 251, 251, 0.8);
+      box-shadow:
+        0 1px 1px 0 rgba(0, 0, 0, 0.24),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+    html[data-theme="dark"] .cards-filter:hover { background: rgba(255, 255, 255, 0.08); }
+    html[data-theme="dark"] .cards-filter[data-active="true"] { background: rgba(255, 255, 255, 0.14); color: #fbfbfb; }
+    /* Follows .cards through its breakpoints in site.css. */
+    @media (max-width: 1100px) { .cards-toolbar { max-width: 664px; } }
+    @media (max-width: 740px) { .cards-toolbar { max-width: none; } }
+
     /* ── Library grid cards (Figma 1413-37519): icon + meta row ── */
     .lib-card-hit { position: absolute; inset: 0; z-index: 6; border-radius: 24px; }
     .lib-video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1152,8 +1209,16 @@
       </div>
     </section>
 
+    <div class="cards-toolbar" id="cards-toolbar">
+      <div class="cards-filters" role="tablist" aria-label="Filter by kind">
+        <button type="button" class="cards-filter" data-filter="all" data-active="true" role="tab" aria-selected="true" aria-controls="components">All</button>
+        <button type="button" class="cards-filter" data-filter="library" data-active="false" role="tab" aria-selected="false" aria-controls="components">Libraries</button>
+        <button type="button" class="cards-filter" data-filter="model" data-active="false" role="tab" aria-selected="false" aria-controls="components">ML models</button>
+      </div>
+    </div>
+
     <section class="cards" id="components" aria-label="Effect libraries" style="scroll-margin-top: 24px;">
-      <article class="card lib-card" data-lib="beam">
+      <article class="card lib-card" data-lib="beam" data-kind="library">
         <a class="lib-card-hit" href="/beam.html" aria-label="Border beam playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAALABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECBv/EAB0QAAICAQUAAAAAAAAAAAAAAAABEiECETFBUWH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5xRirWpK8MlnkuQI9wJPsAf/2Q==&quot;)"><video class="lib-video" src="/assets/videos/beam-main-card.mp4" poster="/assets/videos/posters/beam-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1167,7 +1232,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="orb">
+      <article class="card lib-card" data-lib="orb" data-kind="library">
         <a class="lib-card-hit" href="/orbs.html" aria-label="Thinking orbs playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAALABQDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAEG/8QAGhAAAwADAQAAAAAAAAAAAAAAAAERITFBUf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwDMqdLzCq9hAm1psABQB//Z&quot;)"><video class="lib-video" src="/assets/videos/orb-main-card.mp4" poster="/assets/videos/posters/orb-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1182,7 +1247,7 @@
       </article>
 
 
-      <article class="card lib-card" data-lib="gooey">
+      <article class="card lib-card" data-lib="gooey" data-kind="library">
         <a class="lib-card-hit" href="/gooey.html" aria-label="Gooey playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAXEAEBAQEAAAAAAAAAAAAAAAAAAREh/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJgC2XMmcAAAAAAB/9k=&quot;)"><video class="lib-video" src="/assets/videos/gooey-main-card.mp4" poster="/assets/videos/posters/gooey-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1196,7 +1261,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="voice">
+      <article class="card lib-card" data-lib="voice" data-kind="library">
         <a class="lib-card-hit" href="/voice.html" aria-label="Voice playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAMBBv/EAB0QAAMBAAEFAAAAAAAAAAAAAAABAhEhAwQSMVH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5hLfRvi/jE05ep4yl9z1bWVSzM4lLgCQAAAAAAAP/9k=&quot;)"><video class="lib-video" src="/assets/videos/voice-main-card.mp4" poster="/assets/videos/posters/voice-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1210,7 +1275,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="voice-ring">
+      <article class="card lib-card" data-lib="voice-ring" data-kind="library">
         <a class="lib-card-hit" href="/voice-ring.html" aria-label="Voice ring"></a>
         <div class="card-stage">
           <!-- A still for now (the live ring, captured from its page); swap in
@@ -1226,7 +1291,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="magnetic">
+      <article class="card lib-card" data-lib="magnetic" data-kind="model">
         <a class="lib-card-hit" href="/magnetic.html" aria-label="Magnetic UI"></a>
         <div class="card-stage">
           <div class="mdl mdl-mag" aria-hidden="true"><div class="mdl-art"><svg class="mdl-field" width="472" height="254" viewBox="-236 -127 472 254"><g class="mdl-stand"><ellipse cx="0" cy="-22" rx="37.4" ry="22"/><ellipse cx="0" cy="22" rx="37.4" ry="22"/><ellipse cx="0" cy="-40" rx="68" ry="40"/><ellipse cx="0" cy="40" rx="68" ry="40"/><ellipse cx="0" cy="-60" rx="102" ry="60"/><ellipse cx="0" cy="60" rx="102" ry="60"/></g><g class="mdl-wave"><ellipse cx="0" cy="-46" rx="78.2" ry="46"/><ellipse cx="0" cy="46" rx="78.2" ry="46"/></g><g class="mdl-wave"><ellipse cx="0" cy="-46" rx="78.2" ry="46"/><ellipse cx="0" cy="46" rx="78.2" ry="46"/></g><g class="mdl-wave"><ellipse cx="0" cy="-46" rx="78.2" ry="46"/><ellipse cx="0" cy="46" rx="78.2" ry="46"/></g></svg><span class="mdl-bar"></span></div></div>
@@ -1240,7 +1305,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="voice-direction">
+      <article class="card lib-card" data-lib="voice-direction" data-kind="model">
         <a class="lib-card-hit" href="/voice-direction.html" aria-label="Voice direction"></a>
         <div class="card-stage">
           <div class="mdl mdl-dir" aria-hidden="true"><div class="mdl-art"><div class="mdl-dial"><svg class="mdl-arc" width="300" height="300" viewBox="-150 -150 300 300"><path class="mdl-track" d="M -140 0 A 140 140 0 0 1 140 0"/><g class="mdl-ticks"><line x1="-130" y1="-0" x2="-140" y2="-0"/><line x1="-130.4" y1="-34.94" x2="-135.23" y2="-36.23"/><line x1="-116.91" y1="-67.5" x2="-121.24" y2="-70"/><line x1="-91.92" y1="-91.92" x2="-98.99" y2="-98.99"/><line x1="-67.5" y1="-116.91" x2="-70" y2="-121.24"/><line x1="-34.94" y1="-130.4" x2="-36.23" y2="-135.23"/><line x1="0" y1="-130" x2="0" y2="-140"/><line x1="34.94" y1="-130.4" x2="36.23" y2="-135.23"/><line x1="67.5" y1="-116.91" x2="70" y2="-121.24"/><line x1="91.92" y1="-91.92" x2="98.99" y2="-98.99"/><line x1="116.91" y1="-67.5" x2="121.24" y2="-70"/><line x1="130.4" y1="-34.94" x2="135.23" y2="-36.23"/><line x1="130" y1="0" x2="140" y2="0"/></g></svg><div class="mdl-beam"><svg class="mdl-waves" viewBox="-40 -40 80 80" width="80" height="80"><path d="M 11.55 -7.9 A 14 14 0 0 1 11.55 7.9"/><path d="M 18.16 -12.42 A 22 22 0 0 1 18.16 12.42"/><path d="M 24.76 -16.94 A 30 30 0 0 1 24.76 16.94"/></svg></div><div class="mdl-device"></div><span class="mdl-side" style="left: -150px; top: 8px">L</span><span class="mdl-side" style="left: 0; top: -172px">F</span><span class="mdl-side" style="left: 150px; top: 8px">R</span></div></div></div>
@@ -1254,7 +1319,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="avatars">
+      <article class="card lib-card" data-lib="avatars" data-kind="library">
         <a class="lib-card-hit" href="/bots.html" aria-label="Bot avatars playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAGAABAAMBAAAAAAAAAAAAAAAAAAECAwb/xAAeEAADAQACAgMAAAAAAAAAAAABAgMABBEhMRJRYf/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/8QAFxEBAAMAAAAAAAAAAAAAAAAAAAEhYf/aAAwDAQACEQMRAD8A5ozdZrQowRiQGI8HS8qIVDoylh2vY9jWbkVbjrBnJkp7C/umnLvWk3ehLSACHr11k4lsnRkYq6lWHggjojNe1qcizVq3ydj2T95is8zMDMzB/9k=&quot;)"><video class="lib-video" src="/assets/videos/bots-main-card.mp4" poster="/assets/videos/posters/bots-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1268,7 +1333,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="metal">
+      <article class="card lib-card" data-lib="metal" data-kind="library">
         <a class="lib-card-hit" href="/metal.html" aria-label="Liquid Metal playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECBv/EABoQAQEBAAMBAAAAAAAAAAAAAAABEQISIUH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5nDGu934l5bJMngIACAAAA//2Q==&quot;)"><video class="lib-video" src="/assets/videos/metal-main-card.mp4" poster="/assets/videos/posters/metal-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1282,7 +1347,7 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="image">
+      <article class="card lib-card" data-lib="image" data-kind="library">
         <a class="lib-card-hit" href="/image.html" aria-label="Image generation playground"></a>
         <div class="card-stage">
           <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIBBv/EAB0QAQEBAAAHAAAAAAAAAAAAAAABAgMRITFhgfD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5rMlnlU4c+qc2TPts1ARelvIL3AAAAAf/9k=&quot;)"><video class="lib-video" src="/assets/videos/image-main-card.mp4" poster="/assets/videos/posters/image-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
@@ -1904,6 +1969,30 @@
 
       syncBezUI();
       apply();
+    })();
+  </script>
+  <script>
+    /* Card filter: All / Libraries / ML models, keyed on each card's data-kind. */
+    (function () {
+      var toolbar = document.getElementById("cards-toolbar");
+      var grid = document.getElementById("components");
+      if (!toolbar || !grid) return;
+      var tabs = Array.prototype.slice.call(toolbar.querySelectorAll(".cards-filter"));
+      var cards = Array.prototype.slice.call(grid.querySelectorAll(".lib-card"));
+      function applyFilter(key) {
+        tabs.forEach(function (t) {
+          var on = t.getAttribute("data-filter") === key;
+          t.setAttribute("data-active", String(on));
+          t.setAttribute("aria-selected", String(on));
+        });
+        cards.forEach(function (c) {
+          if (key === "all" || c.getAttribute("data-kind") === key) c.removeAttribute("hidden");
+          else c.setAttribute("hidden", "");
+        });
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener("click", function () { applyFilter(t.getAttribute("data-filter")); });
+      });
     })();
   </script>
   <script src="/assets/site.js" defer></script>
