@@ -33,7 +33,13 @@
   width: calc(402 * var(--u));
   height: calc(874 * var(--u));
   border-radius: calc(66 * var(--u));
-  background: #191919;
+  /* as the Voice page's phone (.mock-phone there): the stage's own fill,
+     so the screen reads as an outlined shape, with its hairline ring and
+     wide soft inner glow */
+  background: #171717;
+  box-shadow:
+    inset 0 0 0 1px rgba(44, 47, 54, 0.52),
+    inset 0 0 calc(50 * var(--u)) 0 rgba(255, 255, 255, 0.02);
 }
 
 /* the ring a little below the middle, where the design has it */
@@ -124,11 +130,12 @@
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
   position: relative;
   overflow: hidden;
-  /* a fine dot field, fading out toward the edges */
+  /* a fine dot field, fading out toward the edges, on the playground
+     stage grey the orbs page uses (.pg-stage) */
   background:
-    radial-gradient(120% 100% at 50% 50%, transparent 40%, #070707 85%),
+    radial-gradient(120% 100% at 50% 50%, transparent 40%, #171717 85%),
     radial-gradient(circle, rgba(255, 255, 255, 0.07) 0.7px, transparent 1px) 0 0 / 14px 14px,
-    #070707;
+    #171717;
 }
 
 .vd-signal {
