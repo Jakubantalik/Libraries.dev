@@ -65,17 +65,29 @@ private func fromLab(_ v: SIMD3<Double>) -> RGB {
 /// The spectrum after the emotion and the theme have had their say, as on
 /// the web: an emotion recolours it as a gradient of its own hue's
 /// neighbours, blended in evenly from each stop's own colour.
+/// The hue an emotion's spectrum swings round, and how far — port of
+/// light.ts. Green runs from green to yellow, like light through leaves,
+/// rather than round its own hue toward teal: near green, the swing spans
+/// 81°–136°, faded out over 40° so a colour crossfading through green turns
+/// smoothly.
+private func emotionHue(_ eh: Double) -> (mid: Double, swing: Double) {
+    let green = 146.0 / 360, greenMid = 108.5 / 360, greenSwing = 27.5 / 360, swing = 0.1
+    let off = abs((eh - green + 1.5).truncatingRemainder(dividingBy: 1) - 0.5)
+    let w = max(0, 1 - off / (40.0 / 360))
+    return (eh + (greenMid - eh) * w, swing + (greenSwing - swing) * w)
+}
+
 private func palette(_ stops: [FrameLight.Stop], dark: Bool, glow: (color: RGB, amount: Double)?) -> [Gradient.Stop] {
     let d = dark ? 1.0 : 0.82
     let coloured = stops.map { s in
         var c = RGB(s.r, s.g, s.b)
         if let glow, glow.amount > 0.005 {
-            // green teal to lime, red magenta to orange, blue cyan to violet —
-            // swinging ±36° round the ring so it closes seamlessly; each stop
+            // green to yellow, red magenta to orange, blue cyan to violet —
+            // swinging round the ring so it closes seamlessly; each stop
             // takes its new hue at its own saturation and lightness
             let (_, sat, l) = toHsl(c)
-            let (eh, _, _) = toHsl(glow.color)
-            let to = fromHsl((eh + 0.1 * sin(2 * .pi * s.offset) + 1).truncatingRemainder(dividingBy: 1), sat, l)
+            let hue = emotionHue(toHsl(glow.color).0)
+            let to = fromHsl((hue.mid + hue.swing * sin(2 * .pi * s.offset) + 1).truncatingRemainder(dividingBy: 1), sat, l)
             // an even blend, not a turn of the hue: turning a whole spectrum
             // to one hue tears the ring where neighbours turn opposite ways
             let a = toLab(c)

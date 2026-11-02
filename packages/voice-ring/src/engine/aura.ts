@@ -160,7 +160,8 @@ export const frameAura: TypeFrame = (size, t, v, o) => {
         a: 0.5 + 0.35 * voice + 0.4 * P
       }
     ],
-    fringe: 0.016 + 0.012 * voice
+    fringe: 0.016 + 0.012 * voice,
+    green: [o.greenFrom ?? 81, o.greenTo ?? 136]
   };
   return { ...finalizeFrame([], strokes), light };
 };

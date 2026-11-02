@@ -65,8 +65,26 @@ function fromLab(L: number, A: number, B: number): [number, number, number] {
   ];
 }
 
+// Green runs from green to yellow, like light through leaves, rather than
+// round its own hue toward teal: near green, the swing spans the frame's
+// green range (81°–136° unless the aura's `greenFrom` / `greenTo` say
+// otherwise). Faded out over 40° so a colour crossfading through green
+// turns smoothly.
+const GREEN = 146 / 360;
+const GREEN_RANGE: [number, number] = [81, 136];
+const SWING = 0.1;
+
+/** The hue an emotion's spectrum swings round, and how far, in turns. */
+function emotionHue(eh: number, green: [number, number] = GREEN_RANGE): [number, number] {
+  const mid = (green[0] + green[1]) / 720;
+  const swing = (green[1] - green[0]) / 720;
+  const off = Math.abs(((eh - GREEN + 1.5) % 1) - 0.5);
+  const w = Math.max(0, 1 - off / (40 / 360));
+  return [eh + (mid - eh) * w, SWING + (swing - SWING) * w];
+}
+
 /** The spectrum after tint, emotion and theme have had their say. */
-function palette(stops: Stop[], dark: boolean, tint?: OrbTint, glow?: OrbGlow): Stop[] {
+function palette(stops: Stop[], dark: boolean, tint?: OrbTint, glow?: OrbGlow, green?: [number, number]): Stop[] {
   const e = glow && glow.amount > 0.005 ? glow : undefined;
   return stops.map(([o, r, g, b]) => {
     if (tint) {
@@ -77,13 +95,13 @@ function palette(stops: Stop[], dark: boolean, tint?: OrbTint, glow?: OrbGlow): 
     }
     if (e) {
       // An emotion recolours the spectrum as a gradient of its own hue's
-      // neighbours — green runs from teal to lime, red from magenta to
-      // orange, blue from cyan to violet — swinging ±36° round the ring so
-      // it closes seamlessly. Each stop takes its new hue at its own
+      // neighbours — green runs from green to yellow, red from magenta to
+      // orange, blue from cyan to violet — swinging round the ring so it
+      // closes seamlessly. Each stop takes its new hue at its own
       // saturation and lightness, so the light stays as vivid as it was.
       const [, sat, l] = toHsl(r, g, b);
-      const [eh] = toHsl(e.r, e.g, e.b);
-      const to = fromHsl((eh + 0.1 * Math.sin(2 * Math.PI * o) + 1) % 1, sat, l);
+      const [mid, swing] = emotionHue(toHsl(e.r, e.g, e.b)[0], green);
+      const to = fromHsl((mid + swing * Math.sin(2 * Math.PI * o) + 1) % 1, sat, l);
       // It comes and goes as an even blend from each stop's own colour, not
       // a turn of the hue: turning a whole spectrum to one hue tears the
       // ring where neighbouring stops turn opposite ways round the wheel.
@@ -236,7 +254,7 @@ export function paintLight(
   tint?: OrbTint,
   glow?: OrbGlow
 ): void {
-  const stops = smoothSpectrum(palette(L.stops, dark, tint, glow));
+  const stops = smoothSpectrum(palette(L.stops, dark, tint, glow, L.green));
   const grad = spectrum(ctx, L, stops);
   // one path per ring, lit at its mean depth: per-segment opacity would
   // seam where the wide, additive bloom strokes overlap

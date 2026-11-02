@@ -100,6 +100,9 @@ export interface FrameLight {
   spec: Array<{ x: number; y: number; r: number; a: number }>;
   /** Chromatic fringe offset, as a share of `r`. */
   fringe: number;
+  /** Where the positive emotion's colours run round the ring: degrees of
+   *  hue, from one side to the other. @default [81, 136] (yellow-green → green) */
+  green?: [number, number];
 }
 
 export type Projector = (x: number, y: number, z: number) => [number, number, number];
