@@ -18,6 +18,7 @@
 import { parseCssColor, type EnginePresetMode, type MaskShape } from '../presets';
 import { ease } from './tween';
 import {
+  drawShader,
   effectiveCardBg,
   effectiveCellSize,
   effectivePaletteColor,
@@ -392,7 +393,7 @@ function sampleShaderField(
         ? inst.preset.pixelConfig.fillOpacity
         : inst.preset.dotConfig.fillOpacity
       : 0;
-  s.renderer.render(s.scene, s.camera);
+  drawShader(s);
 
   // The instance's pixels live in the BOTTOM-LEFT iw×ih sub-rect of the
   // shared GL canvas (paintInstance sets the viewport accordingly). In

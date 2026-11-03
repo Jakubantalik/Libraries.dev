@@ -1,7 +1,9 @@
 /**
- * Vertex + fragment shader sources lifted byte-for-byte from `image.html`
- * (lines 961–1548). All 24 effect branches are kept so future presets can
- * select any of them without re-touching the shader.
+ * Vertex + fragment shader sources lifted from `image.html` (lines 961–1548).
+ * All effect branches are kept in the source so future presets can select any
+ * of them without re-touching the shader; the renderer compiles one effect per
+ * program (see `specializeEffect`). The mosaic stage after `computeEffect` is
+ * split into the `imgfx_*` helpers so it can also run as two passes.
  */
 
 export const VERT_SRC = /* glsl */ `
@@ -21,6 +23,13 @@ export const FRAG_SRC = /* glsl */ `
   uniform float u_dotMode;
   uniform int u_effect;
   uniform int u_sweepEase;
+  // Two-pass mosaic (see the mosaic stages above main). Unused by IMGFX_PASS 0.
+  uniform vec2 u_grid;
+  uniform vec2 u_fieldSize;
+  uniform highp sampler2D u_field;
+  #ifndef IMGFX_PASS
+  #define IMGFX_PASS 0
+  #endif
 
   // Reference card edge length (CSS px) at which the original preset cellSize
   // gives the canonical cell count. Cell PIXEL size stays constant across card
@@ -475,36 +484,58 @@ export const FRAG_SRC = /* glsl */ `
     return col;
   }
 
-  void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution;
-    float aspect = u_resolution.x / u_resolution.y;
-    float t = u_time * u_speed;
+  // ── Mosaic stages ─────────────────────────────────────────────────────────
+  // In the pixel / dot mosaic everything except the per-pixel cell mask is
+  // constant across a cell: the effect colour, its blur taps and the
+  // highlight wave are all sampled at the cell centre. The renderer uses that
+  // for a two-pass path — IMGFX_PASS 1 evaluates the cell field once per cell
+  // into a tiny gridX×gridY target, IMGFX_PASS 2 shades every pixel from it —
+  // which draws the same image as the single pass (IMGFX_PASS 0) with a few
+  // hundred noise evaluations per frame instead of hundreds of thousands.
+
+  /** Mosaic grid (cells along x / y) of the active mosaic mode. */
+  vec2 imgfx_mosaicGrid() {
+    vec2 gs = gridCounts(6.0 + u_cellSize * 74.0);
+    if (u_dotMode > 1.5) {
+      gs = max(vec2(2.0), floor(gs * (1.0 - u_gap * 0.8)));
+    }
+    return gs;
+  }
+
+  /** Effect colour at sampleUV, with the optional 5-tap blur. */
+  vec3 imgfx_effectColor(vec2 sampleUV, float aspect, float t) {
     float dist = u_distortion;
     float soft = u_softness;
     float cpx = u_complexity;
     float shp = u_shape;
-
-    vec2 sampleUV = uv;
-    if (u_dotMode > 0.5) {
-      vec2 gs = gridCounts(6.0 + u_cellSize * 74.0);
-      if (u_dotMode > 1.5) {
-        gs = max(vec2(2.0), floor(gs * (1.0 - u_gap * 0.8)));
-      }
-      sampleUV = (floor(uv * gs) + vec2(0.5)) / gs;
-    }
-
-    vec3 col;
     if (u_blur < 0.01) {
-      col = computeEffect(sampleUV, aspect, t, dist, soft, cpx, shp);
-    } else {
-      float r = u_blur * 0.02;
-      col  = computeEffect(sampleUV, aspect, t, dist, soft, cpx, shp) * 0.4;
-      col += computeEffect(sampleUV + vec2( r,  0.0), aspect, t, dist, soft, cpx, shp) * 0.15;
-      col += computeEffect(sampleUV + vec2(-r,  0.0), aspect, t, dist, soft, cpx, shp) * 0.15;
-      col += computeEffect(sampleUV + vec2( 0.0,  r), aspect, t, dist, soft, cpx, shp) * 0.15;
-      col += computeEffect(sampleUV + vec2( 0.0, -r), aspect, t, dist, soft, cpx, shp) * 0.15;
+      return computeEffect(sampleUV, aspect, t, dist, soft, cpx, shp);
     }
+    float r = u_blur * 0.02;
+    vec3 col = computeEffect(sampleUV, aspect, t, dist, soft, cpx, shp) * 0.4;
+    col += computeEffect(sampleUV + vec2( r,  0.0), aspect, t, dist, soft, cpx, shp) * 0.15;
+    col += computeEffect(sampleUV + vec2(-r,  0.0), aspect, t, dist, soft, cpx, shp) * 0.15;
+    col += computeEffect(sampleUV + vec2( 0.0,  r), aspect, t, dist, soft, cpx, shp) * 0.15;
+    col += computeEffect(sampleUV + vec2( 0.0, -r), aspect, t, dist, soft, cpx, shp) * 0.15;
+    return col;
+  }
 
+  /** Highlight wave weight of the cell centred at cellCenter. */
+  float imgfx_cellHighlight(vec2 cellCenter, float aspect, float t) {
+    if (u_highlight <= 0.01 && u_hlScale <= 0.01) return 0.0;
+    vec2 cp2 = (cellCenter - 0.5) * u_scale;
+    cp2.x *= aspect;
+    float lw = sin(cp2.x * 3.0 + t * 1.5) * 0.5 + 0.5;
+    lw *= sin(cp2.y * 2.5 - t * 1.1) * 0.5 + 0.5;
+    lw += (snoise(cp2 * 2.0 + t * 0.6) * 0.5 + 0.5) * 0.3;
+    float hlFactor = clamp(lw, 0.0, 1.0);
+    return hlFactor * hlFactor;
+  }
+
+  /** Per-pixel stage: vignette, colour alpha and — in mosaic modes — the
+   *  cell mask, highlight and edge fade. col is the effect colour of the
+   *  pixel's cell (or of the pixel itself in raw mode). */
+  vec4 imgfx_shade(vec2 uv, vec3 col, float hlFactor, vec2 gridSize) {
     vec3 baseCol = col;
     if (u_dotMode < 0.5) {
       col = pow(col, vec3(1.3));
@@ -537,26 +568,10 @@ export const FRAG_SRC = /* glsl */ `
     float alpha = colorAlpha;
 
     if (u_dotMode > 0.5) {
-      vec2 gridSize = gridCounts(6.0 + u_cellSize * 74.0);
-      if (u_dotMode > 1.5) {
-        gridSize = max(vec2(2.0), floor(gridSize * (1.0 - u_gap * 0.8)));
-      }
       // cellLocal is in [0,1] within each cell. Because gridSize was chosen so
       // that cell PIXEL size is square, distance / mask math here works in
       // screen-square units even though we're operating in normalised cell uv.
       vec2 cellLocal = fract(uv * gridSize);
-
-      float hlFactor = 0.0;
-      if (u_highlight > 0.01 || u_hlScale > 0.01) {
-        vec2 cellCenter = (floor(uv * gridSize) + vec2(0.5)) / gridSize;
-        vec2 cp2 = (cellCenter - 0.5) * u_scale;
-        cp2.x *= aspect;
-        float lw = sin(cp2.x * 3.0 + t * 1.5) * 0.5 + 0.5;
-        lw *= sin(cp2.y * 2.5 - t * 1.1) * 0.5 + 0.5;
-        lw += (snoise(cp2 * 2.0 + t * 0.6) * 0.5 + 0.5) * 0.3;
-        hlFactor = clamp(lw, 0.0, 1.0);
-        hlFactor *= hlFactor;
-      }
 
       float scaleBoost = 1.0 + smoothstep(0.2, 0.8, hlFactor) * u_hlScale * 1.2;
 
@@ -613,7 +628,33 @@ export const FRAG_SRC = /* glsl */ `
       alpha *= smoothstep(0.0, 0.33, abs(colLum - bgLum));
     }
 
-    gl_FragColor = vec4(col, alpha * u_shaderOpacity);
+    return vec4(col, alpha * u_shaderOpacity);
+  }
+
+  void main() {
+    float aspect = u_resolution.x / u_resolution.y;
+    float t = u_time * u_speed;
+  #if IMGFX_PASS == 1
+    // Cell field: one fragment per cell (viewport = u_grid), so the fragment
+    // coordinate is the cell centre in grid units.
+    vec2 cellCenter = gl_FragCoord.xy / u_grid;
+    gl_FragColor = vec4(imgfx_effectColor(cellCenter, aspect, t), imgfx_cellHighlight(cellCenter, aspect, t));
+  #elif IMGFX_PASS == 2
+    // Composite: every pixel reads its cell's field texel.
+    vec2 uv = gl_FragCoord.xy / u_resolution;
+    vec4 field = texture2D(u_field, (floor(uv * u_grid) + 0.5) / u_fieldSize);
+    gl_FragColor = imgfx_shade(uv, field.rgb, field.a, u_grid);
+  #else
+    vec2 uv = gl_FragCoord.xy / u_resolution;
+    vec2 gridSize = imgfx_mosaicGrid();
+    vec2 sampleUV = uv;
+    float hlFactor = 0.0;
+    if (u_dotMode > 0.5) {
+      sampleUV = (floor(uv * gridSize) + vec2(0.5)) / gridSize;
+      hlFactor = imgfx_cellHighlight(sampleUV, aspect, t);
+    }
+    gl_FragColor = imgfx_shade(uv, imgfx_effectColor(sampleUV, aspect, t), hlFactor, gridSize);
+  #endif
   }
 `;
 
@@ -626,5 +667,60 @@ export const UNIFORM_NAMES: readonly string[] = [
   'u_softness', 'u_distortion', 'u_complexity', 'u_shape', 'u_flicker',
   'u_vignette', 'u_vigOpacity', 'u_blur', 'u_highlight', 'u_shaderOpacity',
   'u_cellSize', 'u_gap', 'u_dotSize', 'u_dotSoftness', 'u_dotOpacity', 'u_hlScale',
-  'u_fillOpacity', 'u_edgeFade', 'u_fadeStr', 'u_dotMode', 'u_effect', 'u_sweepEase'
+  'u_fillOpacity', 'u_edgeFade', 'u_fadeStr', 'u_dotMode', 'u_effect', 'u_sweepEase',
+  'u_grid', 'u_fieldSize', 'u_field'
 ];
+
+const EFFECT_BRANCH = /\bif\s*\(\s*u_effect\s*==\s*(\d+)\s*\)\s*\{/;
+const EFFECT_ELSE_BRANCH = /^\s*else\s+if\s*\(\s*u_effect\s*==\s*(\d+)\s*\)\s*\{/;
+
+/** Index of the `}` closing the `{` at `open`, or -1. */
+function matchingBrace(src: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === '{') depth++;
+    else if (ch === '}' && --depth === 0) return i;
+  }
+  return -1;
+}
+
+/**
+ * Specialise a fragment source to a single effect. `u_effect` becomes a
+ * compile-time constant and the `if (u_effect == N) {…} else if …` chain is
+ * cut down to the one branch that runs, so the driver compiles one effect
+ * instead of all of them — the full chain is a large program once the noise
+ * loops are unrolled, and compiling it can stall the page for a long time on
+ * Windows (ANGLE → D3D), where the first card mounts.
+ *
+ * Works on any source that declares `uniform int u_effect;` (the bundled
+ * shader and custom ones built from its prelude); anything else is returned
+ * unchanged.
+ */
+export function specializeEffect(src: string, effect: number): string {
+  const decl = /uniform\s+int\s+u_effect\s*;/;
+  if (!decl.test(src)) return src;
+  let out = src.replace(decl, `const int u_effect = ${effect | 0};`);
+
+  const head = EFFECT_BRANCH.exec(out);
+  if (!head) return out;
+  const start = head.index;
+  let open = start + head[0].length - 1;
+  let body = '{}';
+  let end = -1;
+  let n = Number(head[1]);
+  for (;;) {
+    const close = matchingBrace(out, open);
+    if (close < 0) return out;
+    if (n === effect) body = out.slice(open, close + 1);
+    end = close + 1;
+    const next = EFFECT_ELSE_BRANCH.exec(out.slice(end));
+    if (!next) break;
+    n = Number(next[1]);
+    open = end + next[0].length - 1;
+  }
+  // A trailing plain `else` can't be cut cleanly — the constant alone still
+  // lets the compiler fold the chain.
+  if (/^\s*else\b/.test(out.slice(end))) return out;
+  return out.slice(0, start) + body + out.slice(end);
+}
