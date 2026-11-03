@@ -151,6 +151,8 @@ chunky pixels on big cards.
 ## Performance
 
 - Single shared `THREE.WebGLRenderer` for the whole page; one WebGL context.
+- Mosaic presets render in two passes: the effect (noise, blur taps, highlight) is evaluated once per cell into a tiny grid-sized target, then a cheap per-pixel pass draws the cell mask, vignette and edge fade. Same image as a single pass; the shader cost no longer grows with card size.
+- Programs are compiled per effect, on first use, instead of one program holding every effect — much shorter compile stalls when the first card mounts.
 - 10 fps default cap via rAF accumulator — ideal for the slow-drift presets. Raise it with `setFrameRate(15)` (up to 60) for faster custom presets.
 - `IntersectionObserver` pauses any card that scrolls offscreen.
 - Strength is implemented as `canvas.style.opacity` — no shader recompile, no uniform reupload.

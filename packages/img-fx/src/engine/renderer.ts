@@ -25,14 +25,21 @@
  *   4. WebGL context loss is handled: on `webglcontextlost` the rAF is
  *      cancelled and uniforms marked dirty; on `webglcontextrestored` the
  *      renderer recovers and resumes.
- *   5. Last unmount disposes everything (geometry, material, renderer).
+ *   5. Last unmount disposes everything (geometry, materials, renderer).
+ *   6. Programs are compiled per effect (`specializeEffect`), lazily, so a
+ *      page only ever compiles the effects its presets use.
+ *   7. Mosaic presets (dotMode 1 / 2) render in two passes: the cell field
+ *      (effect colour + highlight, constant per cell) into a tiny
+ *      gridX×gridY target, then a cheap per-pixel composite. Same image as
+ *      the single pass, a few hundred noise evaluations per frame instead of
+ *      several per pixel. Custom fragment shaders keep the single pass.
  *
  * This mirrors the metal-fx shared-renderer pattern but built around Three.js
  * (peer dep) so the GLSL from image.html drops in unchanged.
  */
 import * as THREE from 'three';
 import { parseCssColor, type EnginePresetMode, type PresetMode } from '../presets';
-import { FRAG_SRC, VERT_SRC } from './shaders';
+import { FRAG_SRC, VERT_SRC, specializeEffect } from './shaders';
 import type { RevealState } from './reveal';
 
 /** Frame interval (ms). 10 fps cap is the sweet spot for the bundled presets
@@ -142,7 +149,14 @@ interface SharedRenderer {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.OrthographicCamera;
-  material: THREE.ShaderMaterial;
+  /** Fragment source every program is built from (bundled or custom). */
+  fragSrc: string;
+  /** Compiled programs, keyed `${pass}:${effect}` — see `getMaterial`. */
+  materials: Map<string, THREE.ShaderMaterial>;
+  /** Cell-field target of the two-pass mosaic. Grow-only, like the GL
+   *  canvas; each paint uses its bottom-left gridX×gridY texels. Null until
+   *  the first mosaic paint. */
+  fieldTarget: THREE.WebGLRenderTarget | null;
   geometry: THREE.PlaneGeometry;
   mesh: THREE.Mesh;
   uniforms: Record<string, THREE.IUniform>;
@@ -211,7 +225,10 @@ function createUniforms(): Record<string, THREE.IUniform> {
     u_fadeStr: { value: 1 },
     u_dotMode: { value: 2 },
     u_effect: { value: 4 },
-    u_sweepEase: { value: 0 }
+    u_sweepEase: { value: 0 },
+    u_grid: { value: new THREE.Vector2(2, 2) },
+    u_fieldSize: { value: new THREE.Vector2(1, 1) },
+    u_field: { value: null }
   };
 }
 
@@ -246,17 +263,9 @@ function ensureShared(): SharedRenderer {
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
   const uniforms = createUniforms();
-  const material = new THREE.ShaderMaterial({
-    vertexShader: VERT_SRC,
-    fragmentShader: FRAG_SRC,
-    uniforms,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-    blending: THREE.NormalBlending
-  });
   const geometry = new THREE.PlaneGeometry(2, 2);
-  const mesh = new THREE.Mesh(geometry, material);
+  // The material is picked per draw (`drawShader`); none is built up front.
+  const mesh = new THREE.Mesh(geometry);
   scene.add(mesh);
 
   SHARED = {
@@ -265,7 +274,9 @@ function ensureShared(): SharedRenderer {
     renderer,
     scene,
     camera,
-    material,
+    fragSrc: FRAG_SRC,
+    materials: new Map(),
+    fieldTarget: null,
     geometry,
     mesh,
     uniforms,
@@ -319,7 +330,9 @@ function destroyShared(): void {
     SHARED.glCanvas.removeEventListener('webglcontextrestored', SHARED.onContextRestored, false);
   }
   SHARED.geometry.dispose();
-  SHARED.material.dispose();
+  for (const m of SHARED.materials.values()) m.dispose();
+  SHARED.materials.clear();
+  SHARED.fieldTarget?.dispose();
   SHARED.renderer.dispose();
   SHARED = null;
 }
@@ -448,6 +461,139 @@ function maybeGrowGlCanvas(s: SharedRenderer): void {
   s.renderer.setSize(targetCssW, targetCssH, false);
 }
 
+/** Debug switch for the two-pass mosaic (see `setTwoPassMosaic`). */
+let twoPassMosaic = true;
+
+/** Reference card edge (CSS px) of the shader's `gridCounts`. */
+const REF_DIM = 320;
+
+/**
+ * Program for `effect` at `pass` (0 = single pass, 1 = cell field,
+ * 2 = composite), built on first use. All materials share the one uniform
+ * block, so switching program never needs a re-upload.
+ */
+function getMaterial(s: SharedRenderer, effect: number, pass: 0 | 1 | 2): THREE.ShaderMaterial {
+  const key = `${pass}:${effect}`;
+  let m = s.materials.get(key);
+  if (m) return m;
+  const field = pass === 1;
+  m = new THREE.ShaderMaterial({
+    vertexShader: VERT_SRC,
+    fragmentShader: specializeEffect(s.fragSrc, effect),
+    defines: { IMGFX_PASS: pass },
+    uniforms: s.uniforms,
+    // The field pass writes raw colour + highlight weight; blending would
+    // fold the weight (in alpha) into the colour.
+    transparent: !field,
+    depthTest: false,
+    depthWrite: false,
+    blending: field ? THREE.NoBlending : THREE.NormalBlending
+  });
+  s.materials.set(key, m);
+  return m;
+}
+
+/** Mosaic grid for the uploaded uniforms. Mirrors the shader's
+ *  `imgfx_mosaicGrid` in float32 so both passes agree with the single one. */
+function mosaicGrid(u: Record<string, THREE.IUniform>): { gx: number; gy: number } {
+  const f = Math.fround;
+  const res = u.u_resolution.value as THREE.Vector2;
+  const dpr = f(Math.max(u.u_dpr.value as number, 0.0001));
+  const base = f(6 + f(f(u.u_cellSize.value as number) * 74));
+  let gx = Math.max(2, Math.floor(f(f(base * f(f(res.x) / dpr)) / REF_DIM)));
+  let gy = Math.max(2, Math.floor(f(f(base * f(f(res.y) / dpr)) / REF_DIM)));
+  if ((u.u_dotMode.value as number) > 1.5) {
+    const k = f(1 - f(f(u.u_gap.value as number) * 0.8));
+    gx = Math.max(2, Math.floor(f(gx * k)));
+    gy = Math.max(2, Math.floor(f(gy * k)));
+  }
+  return { gx, gy };
+}
+
+function createFieldTarget(s: SharedRenderer, w: number, h: number, type: THREE.TextureDataType): THREE.WebGLRenderTarget | null {
+  const rt = new THREE.WebGLRenderTarget(w, h, {
+    type,
+    format: THREE.RGBAFormat,
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter,
+    generateMipmaps: false,
+    depthBuffer: false,
+    stencilBuffer: false
+  });
+  // Float colour attachments need extensions some devices lack; check the
+  // framebuffer so the caller can fall back to a narrower type.
+  s.renderer.setRenderTarget(rt);
+  const gl = s.gl;
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  s.renderer.setRenderTarget(null);
+  if (ok) return rt;
+  rt.dispose();
+  return null;
+}
+
+/** Field target with room for a gx×gy grid. Grow-only. A float target keeps
+ *  the cell colour and highlight weight exact, so the composite matches the
+ *  single pass bit for bit; half float, then 8-bit (within ~1/255 in
+ *  practice), are the fallbacks. */
+function ensureFieldTarget(s: SharedRenderer, gx: number, gy: number): THREE.WebGLRenderTarget | null {
+  const cur = s.fieldTarget;
+  if (cur && cur.width >= gx && cur.height >= gy) return cur;
+  const w = Math.max(gx, cur?.width ?? 64);
+  const h = Math.max(gy, cur?.height ?? 64);
+  if (cur) {
+    cur.setSize(w, h);
+    return cur;
+  }
+  s.fieldTarget =
+    createFieldTarget(s, w, h, THREE.FloatType) ??
+    createFieldTarget(s, w, h, THREE.HalfFloatType) ??
+    createFieldTarget(s, w, h, THREE.UnsignedByteType);
+  return s.fieldTarget;
+}
+
+/**
+ * Draw the shader for the uploaded uniforms into the renderer's current
+ * viewport. Mosaic modes (`u_dotMode` > 0.5) of the bundled shader take the
+ * two-pass path; raw mode and custom shaders draw in a single pass.
+ * Also used by the reveal sampler, which re-draws with patched uniforms.
+ */
+export function drawShader(s: SharedRenderer): void {
+  const u = s.uniforms;
+  const effect = u.u_effect.value as number;
+  const mosaic = (u.u_dotMode.value as number) > 0.5;
+  const rt = twoPassMosaic && mosaic && s.fragSrc === FRAG_SRC ? fieldTargetFor(s) : null;
+  if (!rt) {
+    s.mesh.material = getMaterial(s, effect, 0);
+    s.renderer.render(s.scene, s.camera);
+    return;
+  }
+  const grid = u.u_grid.value as THREE.Vector2;
+  rt.viewport.set(0, 0, grid.x, grid.y);
+  s.mesh.material = getMaterial(s, effect, 1);
+  s.renderer.setRenderTarget(rt);
+  s.renderer.render(s.scene, s.camera);
+  // Back to the canvas: the renderer restores its own viewport + scissor.
+  s.renderer.setRenderTarget(null);
+  (u.u_fieldSize.value as THREE.Vector2).set(rt.width, rt.height);
+  u.u_field.value = rt.texture;
+  s.mesh.material = getMaterial(s, effect, 2);
+  s.renderer.render(s.scene, s.camera);
+}
+
+/** Sets `u_grid` for the current uniforms and returns a field target big
+ *  enough for it (null if none could be created). */
+function fieldTargetFor(s: SharedRenderer): THREE.WebGLRenderTarget | null {
+  const { gx, gy } = mosaicGrid(s.uniforms);
+  (s.uniforms.u_grid.value as THREE.Vector2).set(gx, gy);
+  return ensureFieldTarget(s, gx, gy);
+}
+
+/** Debug: turn the two-pass mosaic off to compare against the single pass.
+ *  Both draw the same image. */
+export function setTwoPassMosaic(enabled: boolean): void {
+  twoPassMosaic = enabled;
+}
+
 /** Inner render — assumes the caller has already gated on visibility / size /
  *  pause where appropriate AND has called `maybeGrowGlCanvas` for the frame.
  *
@@ -494,7 +640,7 @@ function paintInstance(s: SharedRenderer, inst: Instance, nowMs: number): void {
   }
   s.uniforms.u_time.value = inst.accumulatedTime;
 
-  s.renderer.render(s.scene, s.camera);
+  drawShader(s);
 
   // Resize the visible canvas to the instance's pixel size — at the
   // *display* DPR cap (`canvasDpr`, default 2), not the GL DPR (`dpr`,
@@ -820,15 +966,17 @@ export function getMaxDpr(): number {
  *  reveal.ts so it can momentarily re-render with a different dotMode and read
  *  pixels back via gl.readPixels. */
 /** Swap the fragment stage every instance renders with, or `null` for the
- *  bundled one. The material is shared, so this is page-wide. Compile
+ *  bundled one. The programs are shared, so this is page-wide. Compile
  *  errors surface from three.js on the next render — validate the source
  *  on a scratch context first if it comes from somewhere untrusted. */
 export function setSharedFragmentShader(src: string | null): void {
   const s = ensureShared();
   const next = src ?? FRAG_SRC;
-  if (s.material.fragmentShader === next) return;
-  s.material.fragmentShader = next;
-  s.material.needsUpdate = true;
+  if (s.fragSrc === next) return;
+  s.fragSrc = next;
+  // Programs are rebuilt lazily from the new source on the next draw.
+  for (const m of s.materials.values()) m.dispose();
+  s.materials.clear();
   for (const inst of s.instances) inst.uniformsDirty = true;
   wakeLoop();
 }
