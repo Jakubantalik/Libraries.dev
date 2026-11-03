@@ -50,7 +50,8 @@ reveal materializes the image cell-by-cell along the traveling band).
 | ------------------- | --------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------ |
 | `preset`            | `'pixels-organic' \| 'pixels-mechanic' \| 'sweep-gradient'`           | `'pixels-organic'` | Selects the bundled effect preset. `pixels-organic` = Chromium Flow mosaic, `pixels-mechanic` = Nebula mosaic, `sweep-gradient` = diagonal "generating" gradient sweep with per-cell flicker. |
 | `theme`             | `'auto' \| 'dark' \| 'light'`                                          | `'auto'`    | `auto` checks `<html data-theme>`, `.dark`/`.light` class, inline `color-scheme`, then `prefers-color-scheme`. Live-updates via MutationObserver. |
-| `strength`          | `number` (0..1)                                                       | `1`         | Final opacity multiplier. Doesn't change shader animation.                                       |
+| `strength`          | `number` (0..2)                                                       | `1`         | 0..1 multiplies the effect's opacity (the shader keeps animating at full intensity). Above 1 the effect stays opaque and the palette intensity and highlight are boosted instead. |
+| `speed`             | `number`                                                              | `1`         | Animation speed multiplier on top of the preset's tempo. Scales the whole clock (drift, churn, flicker) together: `0.5` = half speed, `2` = double. |
 | `pixelScale`        | `number`                                                              | `1`         | Pixel-cell size multiplier for the mosaic. `0.5` = finer grid, `2` = chunkier. The reveal dissolve stays in lockstep with the shader grid. |
 | `cardBg`            | `string` (any CSS colour)                                             | preset      | Override the host card surface colour. Applied verbatim to the wrapper background (alpha preserved) AND parsed to opaque RGB for the shader's `u_cardBg` so colour-proximity logic stays in sync. Accepts hex, `rgb()`/`rgba()`, `hsl()`, named colours, etc. |
 | `colors`            | `(string \| null)[]`                                                  | preset      | Per-slot palette override (up to 7 CSS colours, one per shader slot). Slots with a value replace the preset colour; `null`/missing slots keep it. Re-tints the running effect without authoring a preset. |
@@ -62,6 +63,7 @@ reveal materializes the image cell-by-cell along the traveling band).
 | `borderRadius`      | `number`                                                              | (auto)      | Override the corner radius (px). Auto-detected from the wrapped child by default.                |
 | `paused`            | `boolean`                                                             | `false`     | Freezes shader and scheduler.                                                                    |
 | `onCycle`           | `(p) => void`                                                         | -           | Fires on each phase change: `idle` / `reveal` / `visible` / `hide`.                              |
+| `fragmentShader`    | `string`                                                              | -           | Replacement fragment shader (GLSL 1.00, as the bundled one). Applies page-wide while set. See [Custom shader](#custom-shader). |
 
 ## Manual reveal (ref handle)
 
@@ -139,6 +141,31 @@ Options:
 No-op unless an image is currently revealed. Requires same-origin (or
 CORS-enabled) images for the palette sampling; cross-origin images without
 CORS fall back to the preset palette.
+
+## Custom shader
+
+`fragmentShader` swaps the shader every card renders with. The bundled source is
+exported as `IMAGE_FRAGMENT_SHADER`; keep everything before `void main()` (the
+uniforms, noise, palette, `computeEffect` and the `imgfx_*` mosaic helpers) and
+write your own `main()`:
+
+```tsx
+import { ImageGeneration, IMAGE_FRAGMENT_SHADER } from 'img-fx';
+
+const prelude = IMAGE_FRAGMENT_SHADER.slice(0, IMAGE_FRAGMENT_SHADER.indexOf('void main()'));
+const shader = prelude + `
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_resolution;
+  vec3 col = imgfx_effectColor(uv, u_resolution.x / u_resolution.y, u_time * u_speed);
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+<ImageGeneration fragmentShader={shader} images={['/a.jpg']}>
+  <div style={{ width: 320, height: 320, borderRadius: 20 }} />
+</ImageGeneration>;
+```
+
+Every uniform keeps its name. A custom shader always renders in a single pass.
 
 ## Scale invariance
 
