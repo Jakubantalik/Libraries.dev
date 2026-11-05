@@ -29,7 +29,7 @@
   />
   <meta
     name="keywords"
-    content="voice visualizer swiftui, voice orb ios, audio reactive animation swiftui, voice assistant ui, ai voice mode, emotion2vec, voice direction, voice-ring"
+    content="voice visualizer swiftui, voice orb ios, audio reactive animation swiftui, voice assistant ui, ai voice mode, emotion2vec, voice position, voice-ring"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -336,7 +336,7 @@
           <div class="docs-group-label">Models</div>
           <nav class="docs-list" aria-label="Models">
             <a class="docs-link" href="/magnetic.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-magnetic.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Magnetic UI</a>
-            <a class="docs-link" href="/voice-direction.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice direction</a>
+            <a class="docs-link" href="/voice-position.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice position</a>
           </nav>
         </div>
       </aside>
@@ -355,7 +355,7 @@
           <div class="detail-titles">
             <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_vring)"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C17.799 1.5 22.5 6.20101 22.5 12C22.5 17.799 17.799 22.5 12 22.5C6.20101 22.5 1.5 17.799 1.5 12C1.5 6.20101 6.20101 1.5 12 1.5ZM12 4.6C7.91309 4.6 4.6 7.91309 4.6 12C4.6 16.0869 7.91309 19.4 12 19.4C16.0869 19.4 19.4 16.0869 19.4 12C19.4 7.91309 16.0869 4.6 12 4.6Z" fill="url(#paint0_linear_vring)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_vring" x="1.5" y="1.5" width="21" height="21" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_vring"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_vring" result="effect2_innerShadow_vring"/></filter><linearGradient id="paint0_linear_vring" x1="6.4" y1="23" x2="17.3" y2="-7.5" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
             <h1 class="detail-title">Voice ring</h1>
-            <p class="detail-sub">A ring of light for voice interfaces. A glassy spectrum that bends with the voice, takes the colour of how it feels and leans toward whoever is speaking, read by the <a href="/voice-direction.html">Voice direction</a> model. React and SwiftUI.</p>
+            <p class="detail-sub">A ring of light for voice interfaces. A glassy spectrum that bends with the voice, takes the colour of how it feels and leans toward whoever is speaking, read by the <a href="/voice-position.html">Voice position</a> model. React and SwiftUI.</p>
           </div>
 
           <div class="detail-head-row">
@@ -447,7 +447,7 @@ const mic = useMicrophone();
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">A browser microphone is mono, so the side comes from you: a stereo capture, a diarised speaker, or where that person sits in your UI. The emotion and Voice direction models run on the iPhone (SwiftUI).</span>
+            <span class="st-code-note">A browser microphone is mono, so the side comes from you: a stereo capture, a diarised speaker, or where that person sits in your UI. The emotion and Voice position models run on the iPhone (SwiftUI).</span>
             </div>
           </div>
 
@@ -521,16 +521,16 @@ VoiceRing(state: .listening, source: .meter(meter), mood: emotion.mood)
             <span class="st-code-note">Pro, as on <a class="vr-link" href="/voice.html">Voice</a>: the ring takes the colour of how the voice feels, green for positive, teal for calm, red for negative. emotion2vec+ reads the tone of the last two seconds on device; GoEmotions reads the live transcript. Add <code>Emotion2Vec.mlpackage</code> (and, for the words, <code>TextEmotion.mlpackage</code> with the <code>TextEmotionTokenizer</code> folder and NSSpeechRecognitionUsageDescription) to your app target; the converted models come with <a class="vr-link" href="/pro.html">Pro</a>. Any model that is missing is skipped.</span>
             </div>
             <div class="st-code-group">
-              <span class="st-code-title">Connect a model: Voice direction</span>
+              <span class="st-code-title">Connect a model: Voice position</span>
               <div class="code-block">
-              <pre>// 1. Download VoiceDirection.mfxl (free account) and add it to your app target.
-// 2. Add VoiceDirectionKit, read the meter the ring listens to, pass the side in:
+              <pre>// 1. Download VoicePosition.mfxl (free account) and add it to your app target.
+// 2. Add VoicePositionKit, read the meter the ring listens to, pass the side in:
 //    no calibration (beta: tested on iPhone 15 Pro; on other iPhones, calibrate).
 import VoiceRingKit
-import VoiceDirectionKit
+import VoicePositionKit
 
 @State private var meter = VoiceMeter()
-@State private var voice = VoiceDirection()
+@State private var voice = VoicePosition()
 
 VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
     .task { try? await voice.start(meter) }   // opens the meter in stereo
@@ -543,7 +543,7 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">Our own on-device model reads which side of the iPhone a voice comes from, from its stereo microphones: <a class="vr-link" href="/voice-direction.html">Voice direction</a> (beta, trained and tested on iPhone 15 Pro so far). VoiceRingKit carries no direction code: without VoiceDirectionKit the ring still listens and leans only when you pass <code>direction</code>. Without the model file, <code>voice.calibrate(.left)</code>, <code>.ahead</code> and <code>.right</code> calibrate the current pose instead. Physical iPhone only; in the Simulator, pass <code>direction</code> yourself.</span>
+            <span class="st-code-note">Our own on-device model reads which side of the iPhone a voice comes from, from its stereo microphones: <a class="vr-link" href="/voice-position.html">Voice position</a> (beta, trained and tested on iPhone 15 Pro so far). VoiceRingKit carries no direction code: without VoicePositionKit the ring still listens and leans only when you pass <code>direction</code>. Without the model file, <code>voice.calibrate(.left)</code>, <code>.ahead</code> and <code>.right</code> calibrate the current pose instead. Physical iPhone only; in the Simulator, pass <code>direction</code> yourself.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">Options</span>
@@ -557,7 +557,7 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
             </div>
             <div class="st-code-group">
               <span class="st-code-title">License</span>
-              <span class="st-code-note">VoiceRingKit, VoiceRingEmotion and VoiceDirectionKit are MIT. The models are licensed apart from the code: emotion2vec+ under the FunASR Model Open Source License (keep its credit in your app&#x27;s acknowledgements), roberta-base-go_emotions under MIT, and the Voice direction model under the <a class="vr-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development and non-commercial apps, a commercial release needs <a class="vr-link" href="/pro.html">Pro or Business</a>.</span>
+              <span class="st-code-note">VoiceRingKit, VoiceRingEmotion and VoicePositionKit are MIT. The models are licensed apart from the code: emotion2vec+ under the FunASR Model Open Source License (keep its credit in your app&#x27;s acknowledgements), roberta-base-go_emotions under MIT, and the Voice position model under the <a class="vr-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development and non-commercial apps, a commercial release needs <a class="vr-link" href="/pro.html">Pro or Business</a>.</span>
             </div>
           </div>
           </div>
@@ -633,11 +633,11 @@ pass mood: emotion.mood. Needs Emotion2Vec.mlpackage (emotion2vec+, FunASR
 Model License) and optionally TextEmotion.mlpackage + TextEmotionTokenizer in
 the app target; ask the user for them (they come with Libraries.dev Pro).
 
-Direction (Voice direction model): ask the user to download
-VoiceDirection.mfxl from https://libraries.dev/voice-direction.html (free
+Direction (Voice position model): ask the user to download
+VoicePosition.mfxl from https://libraries.dev/voice-position.html (free
 account) and add it to the app target, plus
-.product(name: "VoiceDirectionKit", package: "Libraries.dev"):
-@State var meter = VoiceMeter(); @State var voice = VoiceDirection();
+.product(name: "VoicePositionKit", package: "Libraries.dev"):
+@State var meter = VoiceMeter(); @State var voice = VoicePosition();
 .task { try? await voice.start(meter) }; pass source: .meter(meter),
 direction: voice.pan. No calibration (beta: tested on iPhone 15 Pro; on other
 iPhones use voice.calibrate(.left / .ahead / .right)). VoiceRingKit alone has

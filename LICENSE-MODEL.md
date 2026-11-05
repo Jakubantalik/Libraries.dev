@@ -1,20 +1,21 @@
 # Libraries.dev Model License
 
-Version 1.1 · Effective 27 October 2026
+Version 1.2 · Effective 5 November 2026
 
 Copyright (c) 2026 Jakub Antalik. All rights reserved except as granted below.
 
 This license covers the machine-learning models published by Libraries.dev:
-the magnet model behind Magnetic UI (`Magnet.mfxl`) and the Voice direction
-model (`VoiceDirection.mfxl`). The source code around a model (MagnetKit for
-iOS and Android, VoiceRingKit and VoiceDirectionKit, and the other
+the magnet model behind Magnetic UI (`Magnet.mfxl`) and the Voice position
+model (`VoicePosition.mfxl`, called Voice direction and `VoiceDirection.mfxl`
+up to its version 1.0). The source code around a model (MagnetKit for
+iOS and Android, VoiceRingKit and VoicePositionKit, and the other
 Libraries.dev packages) is MIT and is not covered here; this license applies
 only to the model files.
 
 ## 1. Definitions
 
 - **Model**: a model file published by Libraries.dev (for example
-  `Magnet.mfxl` or `VoiceDirection.mfxl`), its weights and parameters, and
+  `Magnet.mfxl` or `VoicePosition.mfxl`), its weights and parameters, and
   any copy, conversion, quantization, compression, fine-tune or other
   derivative of them.
 - **You**: the individual, or the company or organization, that downloads or
@@ -117,7 +118,8 @@ of a repository under the MIT License. Copies obtained in that period keep the
 MIT License. Every copy obtained from Libraries.dev after that, and every later
 version of the Model, is licensed under this license only.
 
-`VoiceDirection.mfxl` has never been published under any other license.
+`VoicePosition.mfxl`, under either of its names, has never been published under
+any other license.
 
 ## 10. Changes to this license
 

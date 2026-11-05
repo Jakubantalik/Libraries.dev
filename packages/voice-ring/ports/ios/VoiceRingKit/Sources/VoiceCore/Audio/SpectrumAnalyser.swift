@@ -92,7 +92,7 @@ final class SpectrumAnalyser: @unchecked Sendable {
     ///   right × conj(left) summed over 200–700 Hz (the strongest bins
     ///   lead) in degrees — what a calibration reads;
     /// - features: the same two kinds in the model's bands, as
-    ///   the Voice direction model's training computes them — a level per
+    ///   the Voice position model's training computes them — a level per
     ///   `StereoBands.level` band, (cos, sin) of the phase per `StereoBands.phase` band;
     /// - power: the 300–6000 Hz band in dB, for the voice gate.
     func stereoFrame(left: [Float], right: [Float], sampleRate: Double) -> StereoFrame {
@@ -102,6 +102,7 @@ final class SpectrumAnalyser: @unchecked Sendable {
             let levelBands = StereoBands.level, phaseBands = StereoBands.phase
             var el = 1e-24, er = 1e-24, power = 1e-24, xr = 0.0, xi = 0.0
             var bandL = [Double](repeating: 1e-24, count: levelBands.count - 1), bandR = bandL
+            var bandCross = [SIMD2<Double>](repeating: .zero, count: levelBands.count - 1)
             var bandX = [SIMD2<Double>](repeating: .zero, count: phaseBands.count - 1)
             for i in 1..<l.re.count {
                 let hz = Double(i) * binHz
@@ -122,6 +123,7 @@ final class SpectrumAnalyser: @unchecked Sendable {
                 if let b = levelBands.indices.dropLast().last(where: { hz >= levelBands[$0] }), hz < levelBands[b + 1] {
                     bandL[b] += pl
                     bandR[b] += pr
+                    bandCross[b] += x
                 }
                 if let b = phaseBands.indices.dropLast().last(where: { hz >= phaseBands[$0] }), hz < phaseBands[b + 1] {
                     bandX[b] += x
@@ -135,7 +137,9 @@ final class SpectrumAnalyser: @unchecked Sendable {
             return StereoFrame(
                 cues: DirectionCues(level: 10 * log10(er / el), phase: atan2(xi, xr) * 180 / .pi),
                 features: features,
-                power: 10 * log10(power)
+                power: 10 * log10(power),
+                bandPower: bandL.indices.map { 10 * log10(bandL[$0] + bandR[$0]) },
+                coherence: bandL.indices.map { min(1, (bandCross[$0] * bandCross[$0]).sum().squareRoot() / (bandL[$0] * bandR[$0]).squareRoot()) }
             )
         }
     }

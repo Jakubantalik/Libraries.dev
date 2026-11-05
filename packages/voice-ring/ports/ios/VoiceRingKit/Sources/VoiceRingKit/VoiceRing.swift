@@ -17,8 +17,8 @@ import SwiftUI
 ///
 /// `mood` shifts the spectrum toward how the voice feels (from
 /// VoiceRingEmotion, or set by hand). `direction` (−1 left … 1 right) leans
-/// the ring toward the voice: pass `VoiceDirection.pan` from
-/// VoiceDirectionKit, or your own; nil leans nowhere.
+/// the ring toward the voice: pass `VoicePosition.pan` from
+/// VoicePositionKit, or your own; nil leans nowhere.
 public struct VoiceRing: View {
     private let state: VoiceState
     private let source: VoiceSource

@@ -1,7 +1,7 @@
 // The microphone, analysed — adapted from VoiceGlowKit's VoiceMeter. On
 // iPhone it records in stereo from the built-in mics (iOS 14+, where the
 // model supports it) and measures how the two channels differ
-// (`stereoFrame()`), which VoiceDirectionKit reads into a side; elsewhere
+// (`stereoFrame()`), which VoicePositionKit reads into a side; elsewhere
 // it falls back to mono.
 //
 // The real-time audio thread only copies samples into two ring buffers.
@@ -188,7 +188,7 @@ public final class VoiceMeter {
 
     /// How the two channels differ over the latest 1024 samples, seen from
     /// the user's side; nil without a stereo input. Voiced or not: telling a
-    /// voice from the room is up to the reader (VoiceDirectionKit).
+    /// voice from the room is up to the reader (VoicePositionKit).
     public func stereoFrame() -> StereoFrame? {
         guard stereoFlag else { return nil }
         let rate = left.sampleRate

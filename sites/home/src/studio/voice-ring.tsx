@@ -14,7 +14,7 @@ import { demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 
    Two models plug into the ring, and both are previewed here by hand:
    Emotion (emotion2vec+ on the iPhone, Pro, as on the Voice bench) tints
-   the spectrum toward a mood; Direction (our Voice direction model,
+   the spectrum toward a mood; Direction (our Voice position model,
    free account) leans it toward the side the voice comes from. */
 
 type Source = "demo" | "mic" | "manual";
@@ -192,7 +192,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   args.push("size: 240");
   const notes: string[] = [];
   if (emotion !== "off") notes.push("// A fixed mood here. Live emotion (Pro): import VoiceRingEmotion,\n// await emotion.start(meter: meter), then mood: emotion.mood.");
-  if (direction === "manual") notes.push("// A fixed lean here. On an iPhone, add VoiceDirection.mfxl (Voice direction)\n// to the app target and pass direction: voice.pan (VoiceDirectionKit): the ring follows the voice.");
+  if (direction === "manual") notes.push("// A fixed lean here. On an iPhone, add VoicePosition.mfxl (Voice position)\n// to the app target and pass direction: voice.pan (VoicePositionKit): the ring follows the voice.");
   const swiftUsage = [
     "import VoiceRingKit",
     "",
@@ -230,7 +230,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
       label: "SwiftUI",
       installTitle: "Add VoiceRingKit from GitHub with Swift Package Manager (iOS 17+ / macOS 14+)",
       install: `// Package.swift, or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)\n.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")\n// …and in your target's dependencies:\n.product(name: "VoiceRingKit", package: "Libraries.dev")`,
-      note: "Build through Xcode (the edge lens is a Metal shader) and add NSMicrophoneUsageDescription. Emotion is VoiceRingEmotion with Pro's emotion2vec+ models; direction is the Voice direction model (VoiceDirection.mfxl, free account).",
+      note: "Build through Xcode (the edge lens is a Metal shader) and add NSMicrophoneUsageDescription. Emotion is VoiceRingEmotion with Pro's emotion2vec+ models; direction is the Voice position model (VoicePosition.mfxl, free account).",
       usage: swiftUsage,
     },
   ];
@@ -336,11 +336,11 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
           )}
         </PgGroup>
         <PanelSep />
-        <PgGroup label="Direction (Voice direction)">
+        <PgGroup label="Direction (Voice position)">
           <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "0 0 10px" }}>
             Uses Libraries.dev&apos;s{" "}
-            <a href="/voice-direction.html" style={{ color: "inherit", textDecoration: "underline" }}>Voice direction</a>{" "}
-            model (beta), a separate download: VoiceDirection.mfxl (1.4 KB), free with a Libraries.dev account. On
+            <a href="/voice-position.html" style={{ color: "inherit", textDecoration: "underline" }}>Voice position</a>{" "}
+            model (beta), a separate download: VoicePosition.mfxl (1.6 KB), free with a Libraries.dev account. On
             the iPhone it reads the side from the stereo mics, with no calibration, and the ring leans while a voice
             is heard.
           </span>

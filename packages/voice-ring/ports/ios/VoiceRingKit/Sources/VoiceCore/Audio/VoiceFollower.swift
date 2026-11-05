@@ -17,7 +17,7 @@ public struct FollowerConfig {
     public var calm: Double
     public var rate: Double
     public var processing: Bool
-    /// Where the voice comes from, −1 left … 1 right (from VoiceDirectionKit,
+    /// Where the voice comes from, −1 left … 1 right (from VoicePositionKit,
     /// or set by the app); nil leans nowhere.
     public var direction: Double?
     /// How fast the lean travels to the side and back, a multiplier on its

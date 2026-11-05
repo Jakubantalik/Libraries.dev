@@ -1,7 +1,8 @@
 // What the iPhone's two built-in mics tell apart, frame by frame: the level
-// and phase differences between the channels, from the user's side. The
-// meter measures them (`VoiceMeter.stereoFrame()`); reading a side out of
-// them is VoiceDirectionKit's job, so nothing here decides anything.
+// and phase differences between the channels, from the user's side, and how
+// much of the sound is direct rather than the room's. The meter measures them
+// (`VoiceMeter.stereoFrame()`); reading a side or a distance out of them is
+// VoicePositionKit's job, so nothing here decides anything.
 
 import Foundation
 
@@ -20,7 +21,7 @@ public struct DirectionCues: Codable, Sendable, Equatable {
 
 /// The bands the per-band features are measured in: the level difference
 /// between each pair of `level` edges, the phase difference between each
-/// pair of `phase` edges. The Voice direction model was trained on these.
+/// pair of `phase` edges. The Voice position model was trained on these.
 public enum StereoBands {
     public static let level: [Double] = [150, 250, 400, 600, 800, 1000, 1300, 1700, 2200, 2800, 3500, 4500, 6000, 9000]
     public static let phase: [Double] = [150, 300, 500, 800, 1200, 1800, 2700]
@@ -39,11 +40,19 @@ public struct StereoFrame: Sendable {
     public var features: [Double]
     /// The 300–6000 Hz band in dB, for telling a voice from the room.
     public var power: Double
+    /// The power in each `StereoBands.level` band in dB, both channels
+    /// together: the voice's colour, which the room shapes as it gets further off.
+    public var bandPower: [Double]
+    /// How alike the channels are in each `StereoBands.level` band, 0…1: the
+    /// direct sound arrives alike, a room's reflections don't.
+    public var coherence: [Double]
 
-    public init(cues: DirectionCues, features: [Double] = [], power: Double) {
+    public init(cues: DirectionCues, features: [Double] = [], power: Double, bandPower: [Double] = [], coherence: [Double] = []) {
         self.cues = cues
         self.features = features
         self.power = power
+        self.bandPower = bandPower
+        self.coherence = coherence
     }
 
     /// Seen from the other side: for the front mics, whose stereo image is

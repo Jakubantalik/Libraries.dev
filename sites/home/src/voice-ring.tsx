@@ -36,11 +36,11 @@ const EMOTION_OPTIONS = [
   { value: "emotion", label: "Emotion", locked: "SwiftUI only, with Pro plan" },
 ] as const;
 
-/* Direction detection is Pro as well: the Voice direction model reads
+/* Direction detection is Pro as well: the Voice position model reads
    which side of the iPhone the voice comes from, and the ring leans there. */
 const DIRECTION_OPTIONS = [
   { value: "off", label: "Off" },
-  { value: "on", label: "On", locked: "Uses Voice direction model, Pro plan" },
+  { value: "on", label: "On", locked: "Uses Voice position model, Pro plan" },
 ] as const;
 
 /* The ring bending toward the cursor while it waits or works is a Pro
@@ -171,10 +171,10 @@ function RingPlayground() {
             <span className="pg-note">
               The ring leans toward whoever is speaking: Libraries.dev&apos;s{" "}
               <a
-                href="/voice-direction.html"
+                href="/voice-position.html"
                 style={{ color: "color-mix(in srgb, var(--pg-title) 55%, var(--pg-label))", textDecoration: "underline", textUnderlineOffset: 2 }}
               >
-                Voice direction
+                Voice position
               </a>{" "}
               model hears the side on the iPhone&apos;s two built-in mics.
             </span>

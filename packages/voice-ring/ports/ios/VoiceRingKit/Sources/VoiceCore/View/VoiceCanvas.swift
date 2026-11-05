@@ -191,7 +191,7 @@ final class OrbEngine {
                 sensitivity: sensitivity, threshold: s.threshold, attack: s.attack ?? preset.attack, release: s.release,
                 idle: s.idle, driveGain: preset.driveGain * (s.voiceSpeed ?? preset.voiceSpeed), calm: s.calm,
                 rate: preset.speed * s.speed, processing: input.state == .processing,
-                // the side the app passes in (VoiceDirectionKit, or its own)
+                // the side the app passes in (VoicePositionKit, or its own)
                 direction: input.direction,
                 panSpeed: s.leanSpeed
             ),

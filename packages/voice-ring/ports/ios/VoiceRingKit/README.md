@@ -68,22 +68,22 @@ The Core ML models are not in this package. They come with Voice Pro
 `NSSpeechRecognitionUsageDescription`. emotion2vec+ is under the FunASR Model
 Open Source License, roberta-base-go_emotions under MIT; credit both.
 
-**Direction (Voice direction).** On iPhone the meter records in stereo, and
-the Voice direction model (beta) reads which side the voice comes from,
-with no calibration. It is trained and tested on an iPhone 15 Pro (upright and
-flat on a desk) so far; on other iPhones, calibrate. Download `VoiceDirection.mfxl` from
-[libraries.dev/voice-direction](https://libraries.dev/voice-direction.html)
+**Direction (Voice position).** On iPhone the meter records in stereo, and
+the Voice position model (beta) reads which side the voice comes from,
+with no calibration, and on a desk how far off it is (`voice.distance`). It is trained and tested on an iPhone 15 Pro (upright and
+flat on a desk) so far; on other iPhones, calibrate. Download `VoicePosition.mfxl` from
+[libraries.dev/voice-position](https://libraries.dev/voice-position.html)
 (free account) and add it to your app target, then read the ring's meter
-with `VoiceDirection` and pass the side in. Without the file,
+with `VoicePosition` and pass the side in. Without the file,
 `voice.calibrate(_:)` (a few seconds of voice from the left, ahead and the
 right) does the same for the pose it was made in.
 
 ```swift
 import VoiceRingKit
-import VoiceDirectionKit
+import VoicePositionKit
 
 @State private var meter = VoiceMeter()
-@State private var voice = VoiceDirection()
+@State private var voice = VoicePosition()
 
 VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
     .task { try? await voice.start(meter) }   // opens the meter in stereo
@@ -92,7 +92,7 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
 
 VoiceRingKit carries no direction code: everything the model needs — the
 pose (hand or desk), the voice gate, the model file, the decision and the
-calibration — lives in VoiceDirectionKit, which reads the meter's stereo
+calibration — lives in VoicePositionKit, which reads the meter's stereo
 frames (`VoiceMeter.stereoFrame()`). Without it, `direction:` is whatever
 you pass, and nil leans nowhere. Pass it only while listening: while the
 assistant speaks, the mics hear the phone's own speaker
@@ -108,5 +108,5 @@ public repository.
 
 ```bash
 swift test
-VOICE_DIRECTION_MODEL=/path/to/VoiceDirection.mfxl swift test   # also checks the model against training
+VOICE_POSITION_MODEL=/path/to/VoicePosition.mfxl swift test   # also checks the model against training
 ```

@@ -485,7 +485,7 @@
     .lib-card[data-lib="orb"] .lib-video { object-position: left center; }
     /* The two models draw their cards instead of playing a clip (the same
        illustrations as Voice orbs' demo/thumbs/models.html): Magnetic UI, a
-       still magnet whose field swells out in dotted waves; Voice direction,
+       still magnet whose field swells out in dotted waves; Voice position,
        a dotted dial whose beam swings left, front, right, front, the
        voice's wavefronts running in along it. Each is a 472 × 254 artboard,
        scaled down with the stage. */
@@ -526,7 +526,7 @@
     .mdl-bar::before { content: "N"; left: 0; color: var(--mdl-n-ink); }
     .mdl-bar::after { content: "S"; right: 0; color: var(--mdl-s-ink); }
 
-    /* Voice direction: the dial, its beam and the voice's wavefronts */
+    /* Voice position: the dial, its beam and the voice's wavefronts */
     .mdl-dial { position: absolute; left: 50%; top: 200px; width: 0; height: 0; }
     .mdl-arc { position: absolute; left: -150px; top: -150px; overflow: visible; }
     .mdl-track { fill: none; stroke: var(--mdl-ink-3); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 0 7; }
@@ -1305,16 +1305,16 @@
         </div>
       </article>
 
-      <article class="card lib-card" data-lib="voice-direction" data-kind="model">
-        <a class="lib-card-hit" href="/voice-direction.html" aria-label="Voice direction"></a>
+      <article class="card lib-card" data-lib="voice-position" data-kind="model">
+        <a class="lib-card-hit" href="/voice-position.html" aria-label="Voice position"></a>
         <div class="card-stage">
           <div class="mdl mdl-dir" aria-hidden="true"><div class="mdl-art"><div class="mdl-dial"><svg class="mdl-arc" width="300" height="300" viewBox="-150 -150 300 300"><path class="mdl-track" d="M -140 0 A 140 140 0 0 1 140 0"/><g class="mdl-ticks"><line x1="-130" y1="-0" x2="-140" y2="-0"/><line x1="-130.4" y1="-34.94" x2="-135.23" y2="-36.23"/><line x1="-116.91" y1="-67.5" x2="-121.24" y2="-70"/><line x1="-91.92" y1="-91.92" x2="-98.99" y2="-98.99"/><line x1="-67.5" y1="-116.91" x2="-70" y2="-121.24"/><line x1="-34.94" y1="-130.4" x2="-36.23" y2="-135.23"/><line x1="0" y1="-130" x2="0" y2="-140"/><line x1="34.94" y1="-130.4" x2="36.23" y2="-135.23"/><line x1="67.5" y1="-116.91" x2="70" y2="-121.24"/><line x1="91.92" y1="-91.92" x2="98.99" y2="-98.99"/><line x1="116.91" y1="-67.5" x2="121.24" y2="-70"/><line x1="130.4" y1="-34.94" x2="135.23" y2="-36.23"/><line x1="130" y1="0" x2="140" y2="0"/></g></svg><div class="mdl-beam"><svg class="mdl-waves" viewBox="-40 -40 80 80" width="80" height="80"><path d="M 11.55 -7.9 A 14 14 0 0 1 11.55 7.9"/><path d="M 18.16 -12.42 A 22 22 0 0 1 18.16 12.42"/><path d="M 24.76 -16.94 A 30 30 0 0 1 24.76 16.94"/></svg></div><div class="mdl-device"></div><span class="mdl-side" style="left: -150px; top: 8px">L</span><span class="mdl-side" style="left: 0; top: -172px">F</span><span class="mdl-side" style="left: 150px; top: 8px">R</span></div></div></div>
         </div>
         <div class="lib-meta">
           <span class="lib-ico lib-ico--tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="19" height="24" viewBox="0 0 19 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="Vector" filter="url(#filter0_ii_vd_card)"><path d="M7.91667 17.6768C7.54458 17.6768 7.16933 17.5491 6.87008 17.2875C6.213 16.7176 6.15125 15.7335 6.72917 15.0889C7.49392 14.2356 7.91667 13.1379 7.91667 11.9997C7.91667 10.8615 7.4955 9.76375 6.73075 8.91203C6.15283 8.26741 6.21458 7.28334 6.87167 6.71346C7.524 6.14668 8.52467 6.20585 9.10575 6.85048C10.3819 8.27208 11.0833 10.1016 11.0833 11.9997C11.0833 13.8978 10.3803 15.7273 9.10417 17.1489C8.79067 17.4977 8.35367 17.6768 7.91667 17.6768Z" fill="url(#paint0_linear_vd_card)" fill-opacity="0.7"/><path d="M12.6683 24C12.2344 24 11.8006 23.8256 11.4887 23.4815C10.906 22.84 10.9614 21.8559 11.6122 21.2829C14.2943 18.9209 15.8333 15.5373 15.8333 11.9997C15.8333 8.46204 14.2943 5.07854 11.6122 2.71647C10.9614 2.14191 10.906 1.1594 11.4887 0.517891C12.0729 -0.12362 13.0768 -0.175004 13.7243 0.39644C17.0763 3.34708 19 7.57607 19 11.9997C19 16.4233 17.0763 20.6523 13.7243 23.6045C13.4219 23.8692 13.0435 24 12.6683 24Z" fill="url(#paint1_linear_vd_card)" fill-opacity="0.7"/><path d="M1.58333 13.5568C2.45778 13.5568 3.16667 12.8596 3.16667 11.9997C3.16667 11.1398 2.45778 10.4426 1.58333 10.4426C0.708882 10.4426 0 11.1398 0 11.9997C0 12.8596 0.708882 13.5568 1.58333 13.5568Z" fill="url(#paint2_linear_vd_card)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_vd_card" x="0" y="0" width="19" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_vd_card"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_vd_card" result="effect2_innerShadow_vd_card"/></filter><linearGradient id="paint0_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint1_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint2_linear_vd_card" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
           <span class="lib-meta-text">
-            <span class="lib-name">Voice direction</span>
-            <span class="lib-desc">Hear where the voice comes from</span>
+            <span class="lib-name">Voice position</span>
+            <span class="lib-desc">Hear where the voice is</span>
           </span>
         </div>
       </article>

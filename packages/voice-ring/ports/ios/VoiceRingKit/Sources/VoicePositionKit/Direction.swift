@@ -13,8 +13,8 @@
 // - all of it shifts with how the phone is held: a calibration made one
 //   way does not carry over to another.
 //
-// So VoiceDirection reads the meter's stereo frames, voiced ones only.
-// Without a calibration the Voice direction model reads them (DirectionModel: many bands,
+// So VoicePosition reads the meter's stereo frames, voiced ones only.
+// Without a calibration the Voice position model reads them (DirectionModel: many bands,
 // one model per pose, trained on recorded rounds). A calibration — a few
 // seconds of voice from the left, ahead and the right — replaces it for
 // the pose it was made in: it lays a path through the two main cues, and a

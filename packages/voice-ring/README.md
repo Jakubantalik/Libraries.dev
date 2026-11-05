@@ -29,7 +29,7 @@ struct VoiceScreen: View {
 Two models plug in:
 
 - **Emotion** (`VoiceRingEmotion`, Pro): emotion2vec+ reads the tone of the voice, GoEmotions its words; pass `mood: emotion.mood`.
-- **Direction** ([Voice direction](https://libraries.dev/voice-direction.html), free account): add `VoiceDirection.mfxl` to the app target and the ring leans toward the voice from the iPhone's stereo mics, no calibration.
+- **Direction** ([Voice position](https://libraries.dev/voice-position.html), free account): add `VoicePosition.mfxl` to the app target and the ring leans toward the voice from the iPhone's stereo mics, no calibration.
 
 Docs: https://libraries.dev/voice-ring.html
 

@@ -92,7 +92,7 @@ export default mergeConfig(defineConfig({
         metal: resolve(__dirname, "metal.html"),
         image: resolve(__dirname, "image.html"),
         magnetic: resolve(__dirname, "magnetic.html"),
-        "voice-direction": resolve(__dirname, "voice-direction.html"),
+        "voice-position": resolve(__dirname, "voice-position.html"),
         voice: resolve(__dirname, "voice.html"),
         "voice-ring": resolve(__dirname, "voice-ring.html"),
         "voice-phone": resolve(__dirname, "voice-phone.html"),

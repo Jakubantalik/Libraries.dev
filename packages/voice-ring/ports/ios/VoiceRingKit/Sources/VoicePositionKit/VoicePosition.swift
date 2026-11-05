@@ -1,31 +1,33 @@
-// VoiceDirectionKit — where a voice comes from, from the iPhone's built-in
-// stereo mics, read by the Voice direction model (`VoiceDirection.mfxl`,
-// libraries.dev/voice-direction). Input only: pair it with any view.
+// VoicePositionKit — where a voice is, from the iPhone's built-in stereo mics:
+// which side it comes from and how far off it is, read by the Voice position
+// model (`VoicePosition.mfxl`, libraries.dev/voice-position). Input only: pair
+// it with any view.
 //
 // Everything that exists for the model lives here: the pose (hand or desk),
-// the voice gate, the model and its file, the decision, the calibration.
+// the voice gates, the model and its file, the decisions, the calibration.
 // VoiceCore only measures the stereo frames; this kit reads them.
 //
-// The model is not in this package. Add `VoiceDirection.mfxl` to your app
-// target and it loads on first use; without it the direction needs a
-// calibration (`calibrate(_:)`, a few seconds of voice from each side).
+// The model is not in this package. Add `VoicePosition.mfxl` to your app
+// target and it loads on first use; without it the side needs a calibration
+// (`calibrate(_:)`, a few seconds of voice from each side) and the distance
+// reads nil.
 
 @_exported import VoiceCore
 import Foundation
 import Observation
 
-/// The voice's side, read about 60 times a second while started.
+/// The voice's side and distance, read about 60 times a second while started.
 ///
 /// ```swift
 /// @State private var meter = VoiceMeter()
-/// @State private var voice = VoiceDirection()
+/// @State private var voice = VoicePosition()
 ///
 /// VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
 ///     .task { try? await voice.start(meter) }
 /// ```
 @Observable
 @MainActor
-public final class VoiceDirection {
+public final class VoicePosition {
     /// −1 left … 1 right: the side it has committed to, eased. nil when
     /// there is no direction to read (mono input, or no model and no
     /// calibration for the pose).
@@ -40,6 +42,21 @@ public final class VoiceDirection {
     public private(set) var probabilities: SIMD3<Double>?
     /// The broad cues behind it, eased over voiced frames; nil when quiet.
     public private(set) var cues: DirectionCues?
+    /// How far the voice is: `.small`, the phone within reach, or `.large`,
+    /// further off. nil without a stereo input or a distance model for this
+    /// pose (the model has none for the hand yet).
+    public private(set) var distance: VoiceDistance?
+    /// The belief behind `distance`, 0 small … 1 large; nil as for `distance`.
+    public private(set) var distanceBelief: Double?
+    /// The voice may be further off: `distance` is large, or the belief in it
+    /// has begun to build. Changes rarely, so a view can follow it.
+    public private(set) var soundsFar = false
+    /// Whether the distance follows what the mics hear. Set it false while the
+    /// app's own voice plays: they would hear the phone's speaker, not the user,
+    /// and the distance holds until it's true again.
+    public var readsDistance = true
+    /// Whether a distance model reads the current pose.
+    public var hasDistanceModel: Bool { DistanceModel.current(pose) != nil }
     /// The microphone's RMS level, 0–1.
     public private(set) var level: Double = 0
     /// How the phone sits — in the hand or flat on a desk — from its motion
@@ -61,9 +78,9 @@ public final class VoiceDirection {
     public var inverted = false
 
     /// Whether the model file was found and loaded.
-    public var isModelLoaded: Bool { DirectionModel.bundled != nil }
-    /// The loaded model's version, e.g. "1.0".
-    public var modelVersion: String? { DirectionModel.bundled?.version }
+    public var isModelLoaded: Bool { PositionModelFile.bundled != nil }
+    /// The loaded model's version, e.g. "2.0".
+    public var modelVersion: String? { PositionModelFile.bundled?.version }
 
     /// The microphone it reads; nil until started.
     public private(set) var meter: VoiceMeter?
@@ -71,6 +88,8 @@ public final class VoiceDirection {
     private var sensedPose: DevicePose = .hand
     @ObservationIgnored private var gate = DirectionGate()
     @ObservationIgnored private var decision = DirectionDecision()
+    @ObservationIgnored private var distanceGate = DistanceGate()
+    @ObservationIgnored private var distanceDecision = DistanceDecision()
     @ObservationIgnored private var lastTick: Double = 0
     @ObservationIgnored private var ticker: Task<Void, Never>?
     @ObservationIgnored private var ownsMeter = false
@@ -90,6 +109,8 @@ public final class VoiceDirection {
         if !meter.isRunning { try await meter.start(stereo: true) }
         gate = DirectionGate()
         decision = DirectionDecision()
+        distanceGate = DistanceGate()
+        distanceDecision = DistanceDecision()
         lastTick = 0
         #if os(iOS)
         poses.start { [weak self] pose in self?.sensedPose = pose }
@@ -116,6 +137,9 @@ public final class VoiceDirection {
         reading = nil
         probabilities = nil
         cues = nil
+        distance = nil
+        distanceBelief = nil
+        soundsFar = false
         level = 0
     }
 
@@ -158,6 +182,9 @@ public final class VoiceDirection {
         guard let frame = meter?.stereoFrame() else {
             pan = nil
             side = nil
+            distance = nil
+            distanceBelief = nil
+            soundsFar = false
             return
         }
         let now = ProcessInfo.processInfo.systemUptime
@@ -185,5 +212,21 @@ public final class VoiceDirection {
         decision.step(reading, dt: dt)
         pan = readable ? decision.pan : nil
         side = readable ? (decision.side < 0 ? .left : decision.side > 0 ? .right : .ahead) : nil
+
+        if let model = DistanceModel.current(pose) {
+            if readsDistance {
+                distanceGate.step(frame, dt: dt)
+                distanceDecision.step(distanceGate.features.map(model.large), dt: dt)
+            }
+            distanceBelief = distanceDecision.belief
+            // read rarely, so a view can follow it without redrawing every frame
+            if distance != distanceDecision.distance { distance = distanceDecision.distance }
+            let far = distanceDecision.distance == .large || distanceDecision.belief > DistanceDecision.toSmall
+            if soundsFar != far { soundsFar = far }
+        } else if distance != nil {
+            distance = nil
+            distanceBelief = nil
+            soundsFar = false
+        }
     }
 }

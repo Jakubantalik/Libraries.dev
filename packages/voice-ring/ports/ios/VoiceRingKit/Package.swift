@@ -6,8 +6,8 @@ import PackageDescription
 // - VoiceRingKit      — the ring (`VoiceRing`), with the meter and moods.
 // - VoiceRingEmotion  — on-device emotion: the voice's tone (emotion2vec+)
 //   and its words (GoEmotions), as in VoiceGlow Pro. Models from the app.
-// - VoiceDirectionKit — where the voice comes from, read by the directional
-//   voice model (VoiceDirection.mfxl, licensed separately, from the app).
+// - VoicePositionKit — where the voice is, its side and distance, read by the
+//   Voice position model (VoicePosition.mfxl, licensed separately, from the app).
 //
 // VoiceCore holds what they share — the engine, the painters, the stereo
 // microphone, the voice follower, mood colours — and is re-exported by each.
@@ -19,15 +19,15 @@ let package = Package(
     products: [
         .library(name: "VoiceRingKit", targets: ["VoiceRingKit"]),
         .library(name: "VoiceRingEmotion", targets: ["VoiceRingEmotion"]),
-        .library(name: "VoiceDirectionKit", targets: ["VoiceDirectionKit"]),
+        .library(name: "VoicePositionKit", targets: ["VoicePositionKit"]),
     ],
     targets: [
         // the edge refraction is a Metal shader, compiled into the bundle
         .target(name: "VoiceCore", resources: [.process("Render/Refract.metal")]),
         .target(name: "VoiceRingKit", dependencies: ["VoiceCore"]),
         .target(name: "VoiceRingEmotion", dependencies: ["VoiceCore"]),
-        .target(name: "VoiceDirectionKit", dependencies: ["VoiceCore"]),
-        .testTarget(name: "VoiceRingKitTests", dependencies: ["VoiceCore", "VoiceRingKit", "VoiceDirectionKit"],
+        .target(name: "VoicePositionKit", dependencies: ["VoiceCore"]),
+        .testTarget(name: "VoiceRingKitTests", dependencies: ["VoiceCore", "VoiceRingKit", "VoicePositionKit"],
                     resources: [.copy("Fixtures")]),
     ]
 )

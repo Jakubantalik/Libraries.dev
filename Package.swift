@@ -28,7 +28,7 @@ let package = Package(
         .library(name: "MagnetKit", targets: ["MagnetKit"]),
         .library(name: "VoiceRingKit", targets: ["VoiceRingKit"]),
         .library(name: "VoiceRingEmotion", targets: ["VoiceRingEmotion"]),
-        .library(name: "VoiceDirectionKit", targets: ["VoiceDirectionKit"]),
+        .library(name: "VoicePositionKit", targets: ["VoicePositionKit"]),
     ],
     targets: [
         .target(
@@ -68,8 +68,8 @@ let package = Package(
             path: "packages/metal-fx/ports/ios/MagnetKit/Sources/MagnetKit"
         ),
         // Voice ring: the ring, and the kits around it, on one shared core
-        // (the engine, the stereo meter, moods). The Voice direction model
-        // (VoiceDirection.mfxl) is licensed separately and loaded from the
+        // (the engine, the stereo meter, moods). The Voice position model
+        // (VoicePosition.mfxl) is licensed separately and loaded from the
         // host app; the emotion models come from the app too.
         .target(
             name: "VoiceCore",
@@ -87,9 +87,9 @@ let package = Package(
             path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceRingEmotion"
         ),
         .target(
-            name: "VoiceDirectionKit",
+            name: "VoicePositionKit",
             dependencies: ["VoiceCore"],
-            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceDirectionKit"
+            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoicePositionKit"
         ),
     ]
 )

@@ -1,6 +1,6 @@
 import XCTest
 @testable import VoiceCore
-@testable import VoiceDirectionKit
+@testable import VoicePositionKit
 
 final class DirectionTests: XCTestCase {
     private func frame(_ level: Double, _ phase: Double, power: Double) -> StereoFrame {
@@ -70,10 +70,10 @@ final class DirectionTests: XCTestCase {
         for (i, (swift, python)) in zip(frame.features, fx.features).enumerated() {
             XCTAssertEqual(swift, python, accuracy: i < DirectionModel.levelBands.count - 1 ? 0.05 : 0.005, "feature \(i)")
         }
-        // The model is not in the repository: point VOICE_DIRECTION_MODEL at
-        // a copy of VoiceDirection.mfxl to check it agrees with training.
-        guard let path = ProcessInfo.processInfo.environment["VOICE_DIRECTION_MODEL"] else { return }
-        let file = try DirectionModelFile(contentsOf: URL(fileURLWithPath: path))
+        // The model is not in the repository: point VOICE_POSITION_MODEL at
+        // a copy of VoicePosition.mfxl to check it agrees with training.
+        guard let path = ProcessInfo.processInfo.environment["VOICE_POSITION_MODEL"] else { return }
+        let file = try PositionModelFile(contentsOf: URL(fileURLWithPath: path))
         for pose in DevicePose.allCases {
             let expected = try XCTUnwrap(fx.probabilities[pose.rawValue])
             let p = try XCTUnwrap(file.model(for: pose)).probabilities(frame.features)

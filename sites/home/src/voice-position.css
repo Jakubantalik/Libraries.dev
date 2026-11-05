@@ -1,33 +1,34 @@
-/* Voice direction page: the simulated direction showcase on the stage card
-   (src/voice-direction.tsx). The same stage as the voice orbs demo's
+/* Voice position page: the simulated showcase on the stage card
+   (src/voice-position.tsx). The same stage as the voice orbs demo's
    "Simulated direction" tab; its phone is the design's voice screen
-   (402 × 874) at 240 px. */
+   (402 × 874) at 240 px, its bar the iPhone demo's (Composer.swift): the design's
+   small and large states, in the design's units. */
 
 /* the island's root fills the stage card, so the stage can too */
-#direction-demo {
+#position-demo {
   width: 100%;
 }
 
-.vd-fit {
+.vp-fit {
   position: relative;
   width: 100%;
   overflow: hidden;
 }
 
 /* paused, or off screen: every loop holds */
-.vd-stage[data-paused='true'],
-.vd-stage[data-paused='true'] * {
+.vp-stage[data-paused='true'],
+.vp-stage[data-paused='true'] * {
   animation-play-state: paused !important;
 }
 
-.vd-phone {
+.vp-phone {
   position: absolute;
   left: 50%;
   top: 30px;
   translate: -50% 0;
 }
 
-.vd-screen {
+.vp-screen {
   --u: calc(240px / 402);
   position: relative;
   width: calc(402 * var(--u));
@@ -43,14 +44,14 @@
 }
 
 /* the ring a little below the middle, where the design has it */
-.vd-ring {
+.vp-ring {
   position: absolute;
   left: 50%;
   top: calc(518 * var(--u));
   transform: translate(-50%, -50%);
 }
 
-.vd-status {
+.vp-status {
   position: absolute;
   left: 50%;
   top: calc(657 * var(--u));
@@ -61,46 +62,91 @@
   white-space: nowrap;
 }
 
-.vd-composer {
+.vp-composer {
+  /* SwiftUI's spring(duration: 0.7, bounce: 0.12), as the iPhone demo eases it */
+  --grow: 900ms linear(0, 0.077, 0.239, 0.417, 0.577, 0.708, 0.807, 0.879, 0.928, 0.96, 0.98, 0.992, 0.998, 1.002, 1.003, 1.003, 1.003, 1.002, 1);
+  --size: calc(52 * var(--u));
   position: absolute;
   left: 50%;
   bottom: calc(41 * var(--u));
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: calc(12 * var(--u));
   transform: translateX(-50%);
+  transition: bottom var(--grow);
 }
 
-.vd-ask,
-.vd-glass {
-  height: calc(52 * var(--u));
+/* further in from the screen's edges, taller, a little higher: the field gives
+   up the width */
+.vp-composer[data-large='true'] {
+  --size: calc(66 * var(--u));
+  bottom: calc(44 * var(--u));
+}
+
+.vp-ask,
+.vp-glass,
+.vp-end {
+  flex: none;
+  height: var(--size);
   border-radius: 999px;
+  transition:
+    width var(--grow),
+    height var(--grow),
+    padding-left var(--grow);
+}
+
+.vp-ask,
+.vp-glass {
+  background: rgba(255, 255, 255, 0.1);
   box-shadow:
-    0 2px 2px -2px rgba(0, 0, 0, 0.04),
-    0 1px 2px 1px rgba(0, 0, 0, 0.02),
+    0 2px 3px -2px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
     inset 0 2px 1px -2px rgba(255, 255, 255, 0.24),
     inset 1px 2px 1px -2px rgba(255, 255, 255, 0.24),
-    inset -1px -2px 1px -2px rgba(255, 255, 255, 0.24);
+    inset -1px -2px 1px -2px rgba(255, 255, 255, 0.12);
 }
 
-.vd-ask {
+.vp-ask {
   display: flex;
   align-items: center;
   width: calc(225 * var(--u));
-  padding: 0 calc(16 * var(--u)) 0 calc(20 * var(--u));
-  background: rgba(255, 255, 255, 0.08);
+  padding-left: calc(20 * var(--u));
+  box-sizing: border-box;
   color: rgba(202, 204, 210, 0.5);
   font: 400 calc(15 * var(--u)) / 1 var(--font-sans, Inter, sans-serif);
+  white-space: nowrap;
 }
 
-.vd-glass {
+/* 18 pt when large: scaled rather than given a larger font, so it eases over */
+.vp-ask span {
+  transform-origin: left center;
+  transition: transform var(--grow);
+}
+
+.vp-composer[data-large='true'] .vp-ask {
+  width: calc(179 * var(--u));
+  padding-left: calc(25 * var(--u));
+}
+
+.vp-composer[data-large='true'] .vp-ask span {
+  transform: scale(1.2);
+}
+
+.vp-glass,
+.vp-end {
   display: grid;
   place-items: center;
-  width: calc(52 * var(--u));
-  background: rgba(231, 231, 231, 0.08);
+  width: var(--size);
 }
 
-.vd-icon {
+.vp-end {
+  background: #f4f4f4;
+  box-shadow:
+    0 1px 2px -1px rgba(0, 0, 0, 0.04),
+    inset 0 2px 1px -2px rgba(255, 255, 255, 0.24);
+}
+
+.vp-icon {
   width: calc(20 * var(--u));
   height: calc(20 * var(--u));
   background: #eaeaea;
@@ -108,21 +154,21 @@
   mask: var(--icon) center / contain no-repeat;
 }
 
-.vd-icon.plus {
+.vp-icon.close {
   width: calc(24 * var(--u));
   height: calc(24 * var(--u));
-  transform: rotate(-45deg);
+  background: #151515;
 }
 
 /* the pause button over the stage, as the clip had, up in the corner the
    readouts never reach */
-.vd-fit .mui-play {
+.vp-fit .mui-play {
   z-index: 2;
   top: 16px;
   bottom: auto;
 }
 
-.vd-stage {
+.vp-stage {
   transform-origin: 0 0;
   --hud: rgba(237, 237, 237, 0.9);
   --hud-2: rgba(237, 237, 237, 0.45);
@@ -138,35 +184,35 @@
     #171717;
 }
 
-.vd-signal {
+.vp-signal {
   position: absolute;
   inset: 0;
   overflow: visible;
 }
 
-.vd-signal line {
+.vp-signal line {
   stroke: var(--hud-2);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-dasharray: 0 7;
   opacity: 0;
   animation:
-    vd-signal-in 500ms 120ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    vd-signal-flow 700ms linear infinite;
+    vp-signal-in 500ms 120ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    vp-signal-flow 700ms linear infinite;
   transition: stroke 400ms;
 }
 
-.vd-signal line[data-live='true'] {
+.vp-signal line[data-live='true'] {
   stroke: var(--accent);
 }
 
-@keyframes vd-signal-in {
+@keyframes vp-signal-in {
   to {
     opacity: 1;
   }
 }
 
-@keyframes vd-signal-flow {
+@keyframes vp-signal-flow {
   to {
     stroke-dashoffset: -14;
   }
@@ -175,14 +221,14 @@
 /* the source, as detection: a box that searches round it and locks on
    once the side is detected; small boxes flicking up in the air on the
    way to the phone, linked back */
-.vd-emitter {
+.vp-emitter {
   position: absolute;
   width: 0;
   height: 0;
-  animation: vd-emitter-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: vp-emitter-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes vd-emitter-in {
+@keyframes vp-emitter-in {
   from {
     opacity: 0;
     scale: 0.6;
@@ -191,19 +237,19 @@
 
 /* a detection box: a 1px frame (::before) drawn in from its top-left
    corner, square handles on its corners (::after), a tag over it */
-.vd-box {
+.vp-box {
   position: absolute;
   color: rgba(237, 237, 237, 0.5);
 }
 
-.vd-box::before {
+.vp-box::before {
   content: '';
   position: absolute;
   inset: 0;
   border: 1px solid currentColor;
 }
 
-.vd-box::after {
+.vp-box::after {
   content: '';
   position: absolute;
   inset: -1px;
@@ -214,7 +260,7 @@
     linear-gradient(currentColor 0 0) 100% 100% / 3px 3px no-repeat;
 }
 
-.vd-box-tag {
+.vp-box-tag {
   position: absolute;
   left: -1px;
   bottom: calc(100% + 3px);
@@ -228,29 +274,29 @@
 
 /* scan and trace boxes come and go on a loop of --t: handles first, the
    frame drawn in from the corner, the tag after; a hold; a blink out */
-.vd-box.scan {
+.vp-box.scan {
   --t: 0.6s;
 }
 
-.vd-box.trace {
+.vp-box.trace {
   --t: 1.2s;
 }
 
-.vd-box.scan::before,
-.vd-box.trace::before {
-  animation: vd-box-frame var(--t) linear var(--d) infinite both;
+.vp-box.scan::before,
+.vp-box.trace::before {
+  animation: vp-box-frame var(--t) linear var(--d) infinite both;
 }
 
-.vd-box.scan::after,
-.vd-box.trace::after {
-  animation: vd-box-handles var(--t) linear var(--d) infinite both;
+.vp-box.scan::after,
+.vp-box.trace::after {
+  animation: vp-box-handles var(--t) linear var(--d) infinite both;
 }
 
-.vd-box.trace .vd-box-tag {
-  animation: vd-box-tag var(--t) linear var(--d) infinite both;
+.vp-box.trace .vp-box-tag {
+  animation: vp-box-tag var(--t) linear var(--d) infinite both;
 }
 
-@keyframes vd-box-frame {
+@keyframes vp-box-frame {
   0% {
     clip-path: inset(0 100% 100% 0);
     opacity: 1;
@@ -274,7 +320,7 @@
   }
 }
 
-@keyframes vd-box-handles {
+@keyframes vp-box-handles {
   0% {
     opacity: 0;
   }
@@ -300,7 +346,7 @@
   }
 }
 
-@keyframes vd-box-fill {
+@keyframes vp-box-fill {
   0%,
   8% {
     opacity: 0;
@@ -321,7 +367,7 @@
   }
 }
 
-@keyframes vd-box-tag {
+@keyframes vp-box-tag {
   0%,
   8% {
     clip-path: inset(0 100% 0 0);
@@ -347,15 +393,15 @@
 
 /* the scan boxes only while the source is being found, the trace boxes
    and their links only once it is */
-.vd-emitter[data-live='true'] .vd-box.scan,
-.vd-emitter:not([data-live='true']) .vd-box.trace,
-.vd-emitter:not([data-live='true']) .vd-links {
+.vp-emitter[data-live='true'] .vp-box.scan,
+.vp-emitter:not([data-live='true']) .vp-box.trace,
+.vp-emitter:not([data-live='true']) .vp-links {
   visibility: hidden;
 }
 
 /* the box round the source: wide and dashed while it searches, then
    snapping in round it, solid */
-.vd-box.lock {
+.vp-box.lock {
   left: -22px;
   top: -17px;
   width: 44px;
@@ -369,21 +415,21 @@
     color 300ms;
 }
 
-.vd-box.lock::before {
+.vp-box.lock::before {
   border-style: dashed;
-  animation: vd-lock-frame 200ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+  animation: vp-lock-frame 200ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
 }
 
-.vd-box.lock::after {
-  animation: vd-lock-handles 160ms linear both;
+.vp-box.lock::after {
+  animation: vp-lock-handles 160ms linear both;
 }
 
-.vd-box.lock .vd-box-tag {
+.vp-box.lock .vp-box-tag {
   background: rgba(237, 237, 237, 0.35);
-  animation: vd-lock-tag 180ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+  animation: vp-lock-tag 180ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
 }
 
-.vd-emitter[data-live='true'] .vd-box.lock {
+.vp-emitter[data-live='true'] .vp-box.lock {
   left: -14px;
   top: -11px;
   width: 28px;
@@ -391,21 +437,21 @@
   color: rgba(237, 237, 237, 0.6);
 }
 
-.vd-emitter[data-live='true'] .vd-box.lock::before {
+.vp-emitter[data-live='true'] .vp-box.lock::before {
   border-style: solid;
 }
 
-.vd-emitter[data-live='true'] .vd-box.lock .vd-box-tag {
+.vp-emitter[data-live='true'] .vp-box.lock .vp-box-tag {
   background: rgba(237, 237, 237, 0.6);
 }
 
-@keyframes vd-lock-frame {
+@keyframes vp-lock-frame {
   from {
     clip-path: inset(0 100% 100% 0);
   }
 }
 
-@keyframes vd-lock-handles {
+@keyframes vp-lock-handles {
   0% {
     opacity: 0;
   }
@@ -420,27 +466,27 @@
   }
 }
 
-@keyframes vd-lock-tag {
+@keyframes vp-lock-tag {
   from {
     clip-path: inset(0 100% 0 0);
   }
 }
 
 /* the links from the source's box to the boxes in the air */
-.vd-links {
+.vp-links {
   position: absolute;
   left: 0;
   top: 0;
   overflow: visible;
 }
 
-.vd-links line {
+.vp-links line {
   stroke: rgba(237, 237, 237, 0.22);
   stroke-width: 1;
-  animation: vd-box-fill 1.2s linear var(--d) infinite both;
+  animation: vp-box-fill 1.2s linear var(--d) infinite both;
 }
 
-.vd-emitter-label {
+.vp-emitter-label {
   position: absolute;
   top: 30px;
   left: 0;
@@ -453,7 +499,7 @@
 
 /* the readout: dark glass on a dot grid, its outline drawn in flowing dots,
    corner handles, mono readouts that decode into place */
-.vd-badge {
+.vp-badge {
   position: absolute;
   left: 0;
   top: 0;
@@ -466,10 +512,10 @@
   backdrop-filter: blur(12px);
   color: var(--hud);
   font-family: var(--mono);
-  animation: vd-badge-in 220ms 40ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: vp-badge-in 220ms 40ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes vd-badge-in {
+@keyframes vp-badge-in {
   from {
     opacity: 0;
     filter: blur(4px);
@@ -477,7 +523,7 @@
   }
 }
 
-.vd-badge-outline {
+.vp-badge-outline {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -486,25 +532,25 @@
   pointer-events: none;
 }
 
-.vd-badge-outline rect {
+.vp-badge-outline rect {
   fill: none;
   stroke-linecap: round;
 }
 
-.vd-badge-outline .dots {
+.vp-badge-outline .dots {
   stroke: var(--hud-3);
   stroke-width: 1.4;
   stroke-dasharray: 0 0.62;
-  animation: vd-outline-flow 6s linear infinite;
+  animation: vp-outline-flow 6s linear infinite;
 }
 
-@keyframes vd-outline-flow {
+@keyframes vp-outline-flow {
   to {
     stroke-dashoffset: -6.2;
   }
 }
 
-.vd-corner {
+.vp-corner {
   position: absolute;
   width: 6px;
   height: 6px;
@@ -512,62 +558,62 @@
   opacity: 0.7;
 }
 
-.vd-corner.tl {
+.vp-corner.tl {
   left: -3px;
   top: -3px;
   border-width: 1.5px 0 0 1.5px;
 }
 
-.vd-corner.tr {
+.vp-corner.tr {
   right: -3px;
   top: -3px;
   border-width: 1.5px 1.5px 0 0;
 }
 
-.vd-corner.bl {
+.vp-corner.bl {
   left: -3px;
   bottom: -3px;
   border-width: 0 0 1.5px 1.5px;
 }
 
-.vd-corner.br {
+.vp-corner.br {
   right: -3px;
   bottom: -3px;
   border-width: 0 1.5px 1.5px 0;
 }
 
 /* the dotted leader from the readout to its source */
-.vd-leader {
+.vp-leader {
   position: absolute;
 }
 
-.vd-badge[data-orient='down'] .vd-leader {
+.vp-badge[data-orient='down'] .vp-leader {
   width: 2px;
   background: radial-gradient(circle, var(--hud-2) 0.9px, transparent 1.1px) 0 0 / 2px 6px;
-  animation: vd-leader-down 600ms linear infinite;
+  animation: vp-leader-down 600ms linear infinite;
 }
 
-.vd-badge[data-orient='across'] .vd-leader {
+.vp-badge[data-orient='across'] .vp-leader {
   height: 2px;
   translate: 0 -50%;
   background: radial-gradient(circle, var(--hud-2) 0.9px, transparent 1.1px) 0 0 / 6px 2px;
-  animation: vd-leader-across 600ms linear infinite;
+  animation: vp-leader-across 600ms linear infinite;
 }
 
 /* dots flow from the source into the readout */
-@keyframes vd-leader-down {
+@keyframes vp-leader-down {
   to {
     background-position: 0 6px;
   }
 }
 
-@keyframes vd-leader-across {
+@keyframes vp-leader-across {
   to {
     background-position: 6px 0;
   }
 }
 
-.vd-badge-head {
+.vp-badge-head {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -577,31 +623,31 @@
   letter-spacing: 0.14em;
 }
 
-.vd-clock {
+.vp-clock {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
 }
 
-.vd-live {
+.vp-live {
   color: var(--hud);
 }
 
-.vd-row {
+.vp-row {
   display: flex;
   align-items: baseline;
   gap: 6px;
   height: 14px;
 }
 
-.vd-key {
+.vp-key {
   width: 46px;
   color: var(--hud-2);
   font-size: 6.5px;
   letter-spacing: 0.14em;
 }
 
-.vd-value {
+.vp-value {
   font-family: var(--font-sans, Inter, sans-serif);
   font-size: 10.5px;
   font-weight: 500;
@@ -609,46 +655,46 @@
   white-space: pre;
 }
 
-.vd-value span {
+.vp-value span {
   display: inline-block;
 }
 
-.vd-value .scramble {
+.vp-value .scramble {
   color: var(--hud-2);
   font-family: var(--mono);
   font-size: 9px;
 }
 
-.vd-value .on {
-  animation: vd-char-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.vp-value .on {
+  animation: vp-char-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes vd-char-in {
+@keyframes vp-char-in {
   from {
     opacity: 0.2;
     filter: blur(3px);
   }
 }
 
-.vd-value[data-pending='true'] .on {
+.vp-value[data-pending='true'] .on {
   color: var(--hud-2);
-  animation: vd-char-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both, vd-pending 1.1s ease-in-out infinite;
+  animation: vp-char-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both, vp-pending 1.1s ease-in-out infinite;
 }
 
-@keyframes vd-pending {
+@keyframes vp-pending {
   50% {
     opacity: 0.35;
   }
 }
 
-.vd-read {
+.vp-read {
   margin-left: auto;
   color: var(--hud-2);
   font-size: 7.5px;
   font-variant-numeric: tabular-nums;
 }
 
-.vd-meter {
+.vp-meter {
   display: flex;
   align-items: center;
   gap: 2.4px;
@@ -656,7 +702,7 @@
   margin: 1px 0 5px 52px;
 }
 
-.vd-meter i {
+.vp-meter i {
   width: 2px;
   height: 2px;
   border-radius: 50%;
@@ -666,12 +712,12 @@
     box-shadow 240ms;
 }
 
-.vd-meter i[data-on='true'] {
+.vp-meter i[data-on='true'] {
   background: var(--hud);
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
 }
 
-.vd-pct {
+.vp-pct {
   margin-left: auto;
   color: var(--hud-2);
   font-size: 6.5px;
@@ -679,22 +725,30 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vd-signal line,
-  .vd-box::before,
-  .vd-box::after,
-  .vd-box-tag,
-  .vd-links line,
-  .vd-badge-outline .dots,
-  .vd-leader,
-  .vd-value .on {
+  .vp-signal line,
+  .vp-box::before,
+  .vp-box::after,
+  .vp-box-tag,
+  .vp-links line,
+  .vp-badge-outline .dots,
+  .vp-leader,
+  .vp-value .on {
     animation: none;
   }
 
-  .vd-signal line {
+  .vp-composer,
+  .vp-ask,
+  .vp-ask span,
+  .vp-glass,
+  .vp-end {
+    transition: none;
+  }
+
+  .vp-signal line {
     opacity: 1;
   }
 
-  .vd-badge {
+  .vp-badge {
     animation: none;
   }
 }

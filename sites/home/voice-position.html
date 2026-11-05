@@ -22,14 +22,14 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Voice direction (beta): on-device model that hears where a voice comes from, for SwiftUI | Libraries.dev</title>
+  <title>Voice position (beta): on-device model that hears where a voice is, for SwiftUI | Libraries.dev</title>
   <meta
     name="description"
-    content="Voice direction (beta): a 1.4 KB on-device model that hears which side of the iPhone a voice comes from (left, ahead or right) through its built-in stereo microphones, with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far."
+    content="Voice position (beta): a 1.6 KB on-device model that hears where a voice is through the iPhone&#x27;s built-in stereo microphones: which side it comes from (left, ahead or right) and, on a desk, how far off it is (a small or a large distance), with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far."
   />
   <meta
     name="keywords"
-    content="voice direction, sound source localization, iphone stereo microphone, directional audio, on-device model, swiftui voice, voice ui, speaker side"
+    content="voice position, voice direction, voice distance, sound source localization, iphone stereo microphone, directional audio, on-device model, swiftui voice, voice ui, speaker side"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -40,27 +40,27 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/voice-direction" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/voice-direction" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/voice-direction" />
+  <link rel="canonical" href="https://libraries.dev/voice-position" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/voice-position" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/voice-position" />
 
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/voice-direction" />
+  <meta property="og:url" content="https://libraries.dev/voice-position" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Voice direction (beta): on-device model that hears where a voice comes from, for SwiftUI" />
-  <meta property="og:description" content="Voice direction (beta): a 1.4 KB on-device model that hears which side of the iPhone a voice comes from (left, ahead or right) through its built-in stereo microphones, with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far." />
+  <meta property="og:title" content="Voice position (beta): on-device model that hears where a voice is, for SwiftUI" />
+  <meta property="og:description" content="Voice position (beta): a 1.6 KB on-device model that hears where a voice is through the iPhone&#x27;s built-in stereo microphones: which side it comes from (left, ahead or right) and, on a desk, how far off it is (a small or a large distance), with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
-  <meta name="twitter:title" content="Voice direction (beta): on-device model that hears where a voice comes from, for SwiftUI" />
-  <meta name="twitter:description" content="Voice direction (beta): a 1.4 KB on-device model that hears which side of the iPhone a voice comes from (left, ahead or right) through its built-in stereo microphones, with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far." />
+  <meta name="twitter:title" content="Voice position (beta): on-device model that hears where a voice is, for SwiftUI" />
+  <meta name="twitter:description" content="Voice position (beta): a 1.6 KB on-device model that hears where a voice is through the iPhone&#x27;s built-in stereo microphones: which side it comes from (left, ahead or right) and, on a desk, how far off it is (a small or a large distance), with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -117,9 +117,9 @@
       font: 500 12px/1 var(--font-sans); letter-spacing: 0; position: relative; top: -3px;
     }
 
-    /* Voice direction is a model, not a component: no playground, so the
-       preview is a live, simulated showcase on the stage card (Voice ring on
-       a phone, src/voice-direction.tsx), then the model. */
+    /* Voice position is a model, not a component: no playground, so the
+       preview is a live, simulated showcase on the stage card (Voice ring and
+       its bar on a phone, src/voice-position.tsx), then the model. */
     /* The title tile matches the other libraries' tiles (#222 with a faint
        edge), not Metal's lighter CSS tile. */
     .detail-head .detail-tile { background: #222222; box-shadow: inset 0 0 0 0.5px #303030; }
@@ -264,10 +264,10 @@
   "@graph": [
     {
       "@type": "SoftwareSourceCode",
-      "@id": "https://libraries.dev/voice-direction#model",
-      "name": "Voice direction",
-      "description": "Voice direction (beta): a 1.4 KB on-device model that hears which side of the iPhone a voice comes from (left, ahead or right) through its built-in stereo microphones, with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far.",
-      "url": "https://libraries.dev/voice-direction",
+      "@id": "https://libraries.dev/voice-position#model",
+      "name": "Voice position",
+      "description": "Voice position (beta): a 1.6 KB on-device model that hears where a voice is through the iPhone's built-in stereo microphones: which side it comes from (left, ahead or right) and, on a desk, how far off it is (a small or a large distance), with no calibration. Input for any SwiftUI view, and for Voice ring. Tested on iPhone 15 Pro so far.",
+      "url": "https://libraries.dev/voice-position",
       "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
       "programmingLanguage": [
         "Swift"
@@ -293,8 +293,8 @@
         {
           "@type": "ListItem",
           "position": 2,
-          "name": "Voice direction",
-          "item": "https://libraries.dev/voice-direction"
+          "name": "Voice position",
+          "item": "https://libraries.dev/voice-position"
         }
       ]
     }
@@ -442,7 +442,7 @@
           <div class="docs-group-label">Models</div>
           <nav class="docs-list" aria-label="Models">
             <a class="docs-link" href="/magnetic.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-magnetic.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Magnetic UI</a>
-            <a class="docs-link is-active" href="/voice-direction.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice direction</a>
+            <a class="docs-link is-active" href="/voice-position.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice position</a>
           </nav>
         </div>
       </aside>
@@ -460,8 +460,8 @@
         <header class="detail-head">
           <div class="detail-titles">
             <span class="detail-icon detail-tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="19" height="24" viewBox="0 0 19 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="Vector" filter="url(#filter0_ii_vd_head)"><path d="M7.91667 17.6768C7.54458 17.6768 7.16933 17.5491 6.87008 17.2875C6.213 16.7176 6.15125 15.7335 6.72917 15.0889C7.49392 14.2356 7.91667 13.1379 7.91667 11.9997C7.91667 10.8615 7.4955 9.76375 6.73075 8.91203C6.15283 8.26741 6.21458 7.28334 6.87167 6.71346C7.524 6.14668 8.52467 6.20585 9.10575 6.85048C10.3819 8.27208 11.0833 10.1016 11.0833 11.9997C11.0833 13.8978 10.3803 15.7273 9.10417 17.1489C8.79067 17.4977 8.35367 17.6768 7.91667 17.6768Z" fill="url(#paint0_linear_vd_head)" fill-opacity="0.7"/><path d="M12.6683 24C12.2344 24 11.8006 23.8256 11.4887 23.4815C10.906 22.84 10.9614 21.8559 11.6122 21.2829C14.2943 18.9209 15.8333 15.5373 15.8333 11.9997C15.8333 8.46204 14.2943 5.07854 11.6122 2.71647C10.9614 2.14191 10.906 1.1594 11.4887 0.517891C12.0729 -0.12362 13.0768 -0.175004 13.7243 0.39644C17.0763 3.34708 19 7.57607 19 11.9997C19 16.4233 17.0763 20.6523 13.7243 23.6045C13.4219 23.8692 13.0435 24 12.6683 24Z" fill="url(#paint1_linear_vd_head)" fill-opacity="0.7"/><path d="M1.58333 13.5568C2.45778 13.5568 3.16667 12.8596 3.16667 11.9997C3.16667 11.1398 2.45778 10.4426 1.58333 10.4426C0.708882 10.4426 0 11.1398 0 11.9997C0 12.8596 0.708882 13.5568 1.58333 13.5568Z" fill="url(#paint2_linear_vd_head)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_vd_head" x="0" y="0" width="19" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_vd_head"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_vd_head" result="effect2_innerShadow_vd_head"/></filter><linearGradient id="paint0_linear_vd_head" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint1_linear_vd_head" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient><linearGradient id="paint2_linear_vd_head" x1="4.12336" y1="24.379" x2="18.0076" y2="-16.0807" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
-            <h1 class="detail-title">Voice direction<span class="dv-beta">Beta</span></h1>
-            <p class="detail-sub">Interfaces that know where the voice comes from. One tiny on-device model listens through the iPhone&#x27;s built-in stereo microphones and tells your views whether the user speaks from the left, ahead or the right. No calibration needed. <a href="/voice-ring.html">Voice ring</a> leans toward the speaker with it.</p>
+            <h1 class="detail-title">Voice position<span class="dv-beta">Beta</span></h1>
+            <p class="detail-sub">Interfaces that know where the voice is. One tiny on-device model listens through the iPhone&#x27;s built-in stereo microphones and tells your views whether the user speaks from the left, ahead or the right, and from how far off. No calibration needed. <a href="/voice-ring.html">Voice ring</a> leans toward the speaker with it.</p>
           </div>
 
           <div class="detail-head-row">
@@ -499,56 +499,63 @@
           <div class="detail-panel" id="playground" data-detail-panel="preview">
             <!-- Showcase: Voice ring on a phone, leaning toward a simulated voice
                  that moves round it, with a live readout of the side and the
-                 feeling the models detect (src/voice-direction.tsx). -->
+                 distance the model detects, and the bar growing with the
+                 distance (src/voice-position.tsx). -->
             <div class="mui-stage">
-              <div id="direction-demo"></div>
+              <div id="position-demo"></div>
             </div>
 
             <div class="docs-prose mui-doc">
               <h2>The model</h2>
-              <p>One model listens to the iPhone's built-in stereo microphones and tells your views which side the voice comes from: left, ahead or right. It is input only: pair it with any view or library.</p>
-              <p class="mui-doc-meta"><code>VoiceDirection.mfxl</code> · v1.0 beta · 1.4 KB · VoiceDirectionKit · <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a></p>
+              <p>One model listens to the iPhone's built-in stereo microphones and tells your views where the voice is: which side it comes from, left, ahead or right, and how far off it is, a small or a large distance. It is input only: pair it with any view or library.</p>
+              <p class="mui-doc-meta"><code>VoicePosition.mfxl</code> · v2.0 beta · 1.6 KB · VoicePositionKit · <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a></p>
 
               <h3>Which side the voice is on</h3>
               <ul>
                 <li><strong>Reads</strong> The difference between the two microphones on voiced frames: level in 13 bands from 150 Hz to 9 kHz, phase in 6 bands up to 2.7 kHz.</li>
                 <li><strong>Answers</strong> How likely the voice is on the left, ahead or on the right, and the side it settles on, about 0.65 s into a clear voice. Switching sides, it always passes through the centre; short or doubtful sounds don't move it, and quiet lets the side go.</li>
-                <li><strong>Tested</strong> On held-out rounds from one speaker on an iPhone 15 Pro, held upright or lying flat on a desk with its bottom edge toward the speaker: once settled, it was on the correct side (centred for a voice ahead) 97 % of the time on the desk and 91 % in the hand, and on the wrong side 0 % and 0.5 % (worst round 3 %).</li>
+                <li><strong>Tested</strong> On held-out rounds from one speaker on an iPhone 15 Pro, held upright or lying flat on a desk with its bottom edge toward the speaker: once settled, it was on the correct side (centred for a voice ahead) 98 % of the time on the desk and 91 % in the hand, and on the wrong side 0 % and 0.5 % (worst round 3 %). A far voice from straight ahead, on a desk in a room it had not heard, read ahead 82 % of the time and right 16 %.</li>
+              </ul>
+              <h3>How far off the voice is</h3>
+              <ul>
+                <li><strong>Reads</strong> How alike the two microphones sound from 800 to 1,700 Hz. The further off a voice is, the more of the room comes with it, and the less alike they sound. Not loudness: a whisper up close and a shout from across the room can measure the same.</li>
+                <li><strong>Answers</strong> A small or a large distance, large from about 70 cm. It changes about 1.2 s into a clear voice, up to about 4 s near the line. Large goes back to small on a close voice or after 3 s of quiet, and a single word doesn't flip it.</li>
+                <li><strong>Tested</strong> On a desk only, on 13 five-second clips from one speaker on an iPhone 15 Pro, in two rooms. In a room it had not heard, every clip ended on the right distance and no close clip ever read large. Counted from 1.25 s into each clip, close voices read right 100 % of the time and far voices 68 %, because a far voice can take longer to commit. The 70 cm is an estimate: the line was placed by hand, with no rounds measured around it yet.</li>
               </ul>
               <h3>In the hand or on the desk</h3>
               <ul>
                 <li><strong>Reads</strong> The motion sensors, to tell a hand-held phone from one lying flat. Picked automatically.</li>
-                <li><strong>Answers</strong> The pose, and the model trained for it. A phone sounds different in each, so each pose has its own.</li>
+                <li><strong>Answers</strong> The pose, and the model trained for it. A phone sounds different in each, so each pose has its own. The distance has a model for the desk only so far: in the hand it reads nil.</li>
               </ul>
               <h3>No calibration</h3>
               <ul>
                 <li><strong>Out of the box</strong> With the model in the app, users never record anything.</li>
-                <li><strong>Optional</strong> Three seconds of voice from the left, ahead and the right calibrate the current pose for one user and replace the model there: the fallback for a phone the model doesn't know yet, best recorded where the user will speak from.</li>
+                <li><strong>Optional</strong> Three seconds of voice from the left, ahead and the right calibrate the side for the current pose and one user, and replace the side model there: the fallback for a phone the model doesn't know yet, best recorded where the user will speak from. The distance has no calibration.</li>
               </ul>
-              <p>Inside: two small linear classifiers, one per pose, over 25 features, run on every audio frame.</p>
+              <p>Inside: small linear classifiers run on every audio frame. One per pose for the side, over 25 features, and one for the distance on the desk, over a single number.</p>
 
               <h2>Built for the phone</h2>
               <h3>Trained on real voices</h3>
-              <p>The model learned from rounds recorded on an iPhone 15 Pro, held upright or lying flat on a desk: one speaker talking from the left, ahead and the right, with the phone in the hand and lying on a desk, at different distances, loudness and grips. Every result above is on rounds left out of training. No user data.</p>
+              <p>The model learned from rounds recorded on an iPhone 15 Pro, held upright or lying flat on a desk: one speaker talking from the left, ahead and the right, with the phone in the hand and lying on a desk, at different distances, loudness and grips. The distance learned from clips of the same speaker close to and far from a phone on a desk, in two rooms. Every result above is on rounds left out of training. No user data.</p>
               <h3>Beta: one phone so far</h3>
-              <p>It is tested on an iPhone 15 Pro only. Other iPhones place their microphones differently, so check both sides there and calibrate if one reads weak. More devices, voices and rooms are being recorded. Not covered yet: several people speaking, noisy rooms, landscape, and AirPods or other Bluetooth microphones, which record in mono.</p>
+              <p>It is tested on an iPhone 15 Pro only. Other iPhones place their microphones differently, so check both sides there and calibrate if one reads weak. More devices, voices and rooms are being recorded. Not covered yet: several people speaking, noisy rooms, landscape, voices far off to one side, the distance in the hand, and AirPods or other Bluetooth microphones, which record in mono.</p>
               <h3>On the phone, every frame</h3>
-              <p>A 1.4 KB model that ships inside your app: no server, no network request at runtime, no audio leaves the phone.</p>
+              <p>A 1.6 KB model that ships inside your app: no server, no network request at runtime, no audio leaves the phone.</p>
               <h3>Only the microphone</h3>
               <p>One permission, the microphone, which a voice interface asks for anyway. No camera, no location.</p>
               <h3>Pair it with any view</h3>
-              <p>The side is a plain value: slide a panel toward the speaker, pick who is talking, or let <a href="/voice-ring.html">Voice ring</a> lean toward the voice. iPhone with iOS 17 or newer, held upright or lying flat.</p>
+              <p>The side and the distance are plain values: slide a panel toward the speaker, pick who is talking, make the interface bigger for someone across the room, or let <a href="/voice-ring.html">Voice ring</a> lean toward the voice. iPhone with iOS 17 or newer, held upright or lying flat.</p>
             </div>
           </div>
 
           <div class="detail-panel detail-panel--code" data-detail-panel="code" data-gated hidden>
           <div class="mui-gate" data-mui-gate>
-            <p class="mui-gate-title">Install Voice direction<span class="mui-gate-sub">Install, usage and the model are free with an account.</span></p>
+            <p class="mui-gate-title">Install Voice position<span class="mui-gate-sub">Install, usage and the model are free with an account.</span></p>
             <button type="button" class="mui-gate-btn" data-mui-gate-open>Get it for free</button>
           </div>
           <div class="st-stage-panel">
           <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
-            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="true" data-active="true">SwiftUI + VoiceDirectionKit</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="true" data-active="true">SwiftUI + VoicePositionKit</button>
             <button type="button" class="st-platform-tab" role="tab" data-platform-tab="model" aria-selected="false">Model only</button>
           </div>
           <div class="detail-platform" data-platform="swift">
@@ -558,7 +565,7 @@
               <pre id="install-code">// Package.swift, or in Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
 .package(url: &quot;https://github.com/Jakubantalik/Libraries.dev&quot;, branch: &quot;main&quot;)
 // …and in your target&#x27;s dependencies:
-.product(name: &quot;VoiceDirectionKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
+.product(name: &quot;VoicePositionKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -567,23 +574,25 @@
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">Beta. iOS 17+, iPhone, built-in microphones (tested on iPhone 15 Pro). Add NSMicrophoneUsageDescription to your Info.plist. Then add the model: download <code>VoiceDirection.mfxl</code> from the Model only tab and add it to your app target. It loads on start.</span>
+            <span class="st-code-note">Beta. iOS 17+, iPhone, built-in microphones (tested on iPhone 15 Pro). Add NSMicrophoneUsageDescription to your Info.plist. Then add the model: download <code>VoicePosition.mfxl</code> from the Model only tab and add it to your app target. It loads on start.</span>
             </div>
 
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
               <div class="code-block">
               <pre id="usage-code">import SwiftUI
-import VoiceDirectionKit
+import VoicePositionKit
 
 struct SpeakerDot: View {
-    @State private var voice = VoiceDirection()
+    @State private var voice = VoicePosition()
 
     var body: some View {
+        let size: CGFloat = voice.distance == .large ? 48 : 24   // bigger for a voice further off
         Circle()
-            .frame(width: 24, height: 24)
+            .frame(width: size, height: size)
             .offset(x: (voice.pan ?? 0) * 120)     // −1 left … 1 right
             .animation(.spring, value: voice.pan)
+            .animation(.spring, value: voice.distance)
             .task { try? await voice.start() }      // asks for the microphone
     }
 }
@@ -633,10 +642,14 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
                   <tbody>
                     <tr><td><code>pan</code></td><td>The side it committed to, −1 left … 1 right; nil while quiet. A voice split between sides, or ahead, reads near 0.</td></tr>
                     <tr><td><code>side</code></td><td><code>.left</code>, <code>.ahead</code> or <code>.right</code>; nil while quiet.</td></tr>
+                    <tr><td><code>distance</code></td><td><code>.small</code> or <code>.large</code>, held through quiet for 3 s. nil without a stereo input or a distance model for the pose: the desk only so far.</td></tr>
+                    <tr><td><code>distanceBelief</code></td><td>The belief behind it, 0 small … 1 large, before it commits.</td></tr>
+                    <tr><td><code>soundsFar</code></td><td><code>distance</code> is large, or the belief in it has begun to build. Changes rarely, so a view can follow it.</td></tr>
+                    <tr><td><code>readsDistance</code></td><td>Set it false while the app's own voice plays: the mics would hear the phone's speaker. The distance holds until it's true again.</td></tr>
                     <tr><td><code>probabilities</code></td><td>The model's belief, left, ahead and right (a <code>SIMD3&lt;Double&gt;</code> summing to 1), before it commits.</td></tr>
                     <tr><td><code>pose</code></td><td><code>.hand</code> or <code>.desk</code>, sensed from the phone's motion. Each has its own model.</td></tr>
                     <tr><td><code>level</code></td><td>How loud the voice is, 0–1.</td></tr>
-                    <tr><td><code>isModelLoaded</code></td><td>Whether <code>VoiceDirection.mfxl</code> was found in the app. Without it, the side needs a calibration.</td></tr>
+                    <tr><td><code>isModelLoaded</code></td><td>Whether <code>VoicePosition.mfxl</code> was found in the app. Without it, the side needs a calibration and the distance reads nil.</td></tr>
                     <tr><td><code>meter</code></td><td>The <code>VoiceMeter</code> it reads: the one passed to <code>start(_:)</code>, shared with Voice ring or your own audio, or its own.</td></tr>
                   </tbody>
                 </table>
@@ -646,11 +659,12 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
             <div class="st-code-group">
               <span class="st-code-title">Good to know</span>
               <ul class="mui-list">
-                <li>The side comes from the built-in stereo microphones, so it needs an iPhone. The Simulator and Macs record in mono: <code>pan</code> stays nil, so drive your view with a slider there.</li>
+                <li>The side comes from the built-in stereo microphones, so it needs an iPhone. The Simulator and Macs record in mono: <code>pan</code> and <code>distance</code> stay nil, so drive your view with a slider there.</li>
                 <li>Settling on a side takes about 0.65 s for a clear voice; switching, it passes through the centre, and the side is let go once the voice stops. Short or doubtful sounds don't move it, so a stray word won't swing the view.</li>
-                <li><code>await voice.calibrate(.left)</code>, <code>.ahead</code> and <code>.right</code> (three seconds of voice each) fit the current pose to this phone and replace the model there. Optional: the model needs no calibration.</li>
+                <li>The distance changes about 1.2 s into a clear voice, up to about 4 s near the line. Large goes back to small on a close voice or after 3 s of quiet; a single word doesn't flip it.</li>
+                <li><code>await voice.calibrate(.left)</code>, <code>.ahead</code> and <code>.right</code> (three seconds of voice each) fit the side for the current pose to this phone and replace the side model there. Optional: the model needs no calibration, and the distance has none.</li>
                 <li>Beta: trained and tested on an iPhone 15 Pro, one speaker, held upright or lying flat. Other iPhones place their microphones differently: check both sides and calibrate if one reads weak.</li>
-                <li>Not covered yet: several people speaking at once, noisy rooms and landscape. AirPods and other Bluetooth microphones record in mono, so <code>pan</code> stays nil with them.</li>
+                <li>Not covered yet: several people speaking at once, noisy rooms, landscape, voices far off to one side and the distance in the hand. The 70 cm line is an estimate. AirPods and other Bluetooth microphones record in mono, so <code>pan</code> and <code>distance</code> stay nil with them.</li>
               </ul>
             </div>
           </div>
@@ -660,11 +674,11 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
               <div class="mui-live-actions">
                 <button type="button" class="mui-live-btn" id="mui-model-download">Download model</button>
               </div>
-            <span class="st-code-note"><code>VoiceDirection-1.0.zip</code>: the model (<code>VoiceDirection.mfxl</code>, 1.4 KB, v1.0 beta) and its license. One file, two poses: <code>hand</code> and <code>desk</code>, each a linear classifier over 25 stereo features with three outputs: left, ahead and right.</span>
+            <span class="st-code-note"><code>VoicePosition-2.0.zip</code>: the model (<code>VoicePosition.mfxl</code>, 1.6 KB, v2.0 beta) and its license. One file, two poses: <code>hand</code> and <code>desk</code>, each a linear classifier over 25 stereo features with three outputs: left, ahead and right. The desk also has a distance classifier with one output: how likely the distance is large. Called <code>VoiceDirection.mfxl</code> up to v1.0, which had the side only.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">License</span>
-              <span class="st-code-note">VoiceDirectionKit's code is MIT. The model is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping it in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship the file inside your app only, never in a public repository. The License tab has the details.</span>
+              <span class="st-code-note">VoicePositionKit's code is MIT. The model is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping it in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship the file inside your app only, never in a public repository. The License tab has the details.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">Run it (Python + NumPy)</span>
@@ -672,10 +686,10 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
               <pre>import json, struct
 import numpy as np
 
-data = open(&quot;VoiceDirection.mfxl&quot;, &quot;rb&quot;).read()
+data = open(&quot;VoicePosition.mfxl&quot;, &quot;rb&quot;).read()
 assert data[:4] == b&quot;MFXL&quot;
 n = struct.unpack(&quot;&lt;I&quot;, data[4:8])[0]
-head = json.loads(data[8:8 + n])           # kind &quot;direction&quot;, bands, outputs, poses
+head = json.loads(data[8:8 + n])           # kind &quot;position&quot;, bands, outputs, poses, distance
 start, F = 8 + n, head[&quot;features&quot;]         # 25 features per frame
 
 def pose(name):
@@ -692,7 +706,17 @@ def probabilities(features, name=&quot;hand&quot;):
     return e / e.sum()                     # left, ahead, right
 
 # A frame at the desk model's average reads as its prior:
-print(probabilities(pose(&quot;desk&quot;)[0], &quot;desk&quot;))   # ≈ [0.17, 0.41, 0.41]</pre>
+print(probabilities(pose(&quot;desk&quot;)[0], &quot;desk&quot;))   # ≈ [0.08, 0.72, 0.20]
+
+def large(alike, name=&quot;desk&quot;):
+    p = next(p for p in head[&quot;distance&quot;] if p[&quot;name&quot;] == name)
+    k = p[&quot;features&quot;]
+    v = np.frombuffer(data, np.float32, p[&quot;length&quot;] // 4, start + p[&quot;offset&quot;])
+    a = ((np.asarray(alike[:k], np.float32) - v[:k]) / v[k:2 * k]) @ v[2 * k:3 * k] + v[3 * k]
+    return 1 / (1 + np.exp(-a))            # how likely the distance is large
+
+# How alike the channels are, per level band: a close voice, then a far one:
+print(large([0.95] * 13), large([0.55] * 13))   # ≈ 0.0, 1.0</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy Python loader">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -706,12 +730,13 @@ print(probabilities(pose(&quot;desk&quot;)[0], &quot;desk&quot;))   # ≈ [0.17,
             <div class="st-code-group">
               <span class="st-code-title">The file</span>
               <ul class="mui-list">
-                <li><code>VoiceDirection.mfxl</code> "MFXL", a little-endian UInt32 header length, a JSON header, then the payload.</li>
-                <li><code>header</code> <code>kind</code> "direction", <code>version</code>, the analysis frame (1,024 samples at 48 kHz), <code>levelBands</code> (14 edges, 150 Hz–9 kHz), <code>phaseBands</code> (7 edges, 150 Hz–2.7 kHz), <code>features</code> (25), <code>outputs</code> (left, ahead, right) and <code>poses</code> with each one's offset and length into the payload.</li>
+                <li><code>VoicePosition.mfxl</code> "MFXL", a little-endian UInt32 header length, a JSON header, then the payload.</li>
+                <li><code>header</code> <code>kind</code> "position", <code>version</code>, the analysis frame (1,024 samples at 48 kHz), <code>levelBands</code> (14 edges, 150 Hz–9 kHz), <code>phaseBands</code> (7 edges, 150 Hz–2.7 kHz), <code>features</code> (25), <code>outputs</code> (left, ahead, right), <code>poses</code> with each one's offset and length into the payload, and <code>distance</code> likewise, with its <code>features</code> count (a pose with no entry reads no distance).</li>
                 <li><code>pose</code> float32: <code>mean</code>[25] and <code>std</code>[25] to standardise the features, <code>weights</code>[25 × 3] (row-major, one row per feature) and <code>bias</code>[3]. Softmax of standardised features · weights + bias gives the three probabilities.</li>
+                <li><code>distance</code> float32: <code>mean</code>[k], <code>std</code>[k], <code>weights</code>[k] and <code>bias</code>. A sigmoid of standardised features · weights + bias gives how likely the distance is large. Its features are how alike the channels are in the first k level bands, eased over voiced frames.</li>
                 <li><code>features</code> Per frame of the two channels, from the user's side: the level difference in dB in each of the 13 level bands, then the cosine and sine of the phase difference in each of the 6 phase bands.</li>
               </ul>
-              <span class="st-code-note">How the features are measured, and the decision that turns probabilities into a side, are in VoiceDirectionKit's <code>SpectrumAnalyser</code> and <code>DirectionDecision</code>. Beta: trained on rounds from one speaker on an iPhone 15 Pro and tested on rounds left out.</span>
+              <span class="st-code-note">How the features are measured, and the decisions that turn the readings into a side and a distance, are in VoicePositionKit's <code>SpectrumAnalyser</code>, <code>DirectionDecision</code>, <code>DistanceGate</code> and <code>DistanceDecision</code>. Beta: trained on rounds from one speaker on an iPhone 15 Pro and tested on rounds left out.</span>
             </div>
           </div>
           </div>
@@ -723,8 +748,8 @@ print(probabilities(pose(&quot;desk&quot;)[0], &quot;desk&quot;))   # ≈ [0.17,
             <div class="docs-prose mui-doc mui-doc--license">
               <h2>Two licenses</h2>
               <ul>
-                <li><strong>The model</strong> <code>VoiceDirection.mfxl</code>, its weights, and any copy, conversion, quantization or fine-tune of them: the <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>.</li>
-                <li><strong>The code</strong> VoiceDirectionKit, <a href="/voice-ring.html">Voice ring</a> (VoiceRingKit) and the loader on this page: MIT, free for any use.</li>
+                <li><strong>The model</strong> <code>VoicePosition.mfxl</code>, its weights, and any copy, conversion, quantization or fine-tune of them: the <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>.</li>
+                <li><strong>The code</strong> VoicePositionKit, <a href="/voice-ring.html">Voice ring</a> (VoiceRingKit) and the loader on this page: MIT, free for any use.</li>
               </ul>
               <h2>Free, no plan needed</h2>
               <ul>
@@ -752,7 +777,7 @@ print(probabilities(pose(&quot;desk&quot;)[0], &quot;desk&quot;))   # ≈ [0.17,
                 <li><strong>Ownership</strong> The model stays Libraries.dev&#x27;s. Your products, code and data stay yours.</li>
                 <li><strong>Breaches</strong> The license ends if it is broken, and comes back if the breach is fixed within 30 days.</li>
                 <li><strong>No warranty</strong> The model estimates from sensor readings and can be wrong. Don&#x27;t rely on it where an error could cause injury, damage or financial loss.</li>
-                <li><strong>Versions</strong> <code>VoiceDirection.mfxl</code> v1.0 is a beta, tested on iPhone 15 Pro only; check it on the devices you ship to. It has only ever been published under the Model License, so there is no MIT copy. Each version keeps the license it shipped with.</li>
+                <li><strong>Versions</strong> <code>VoicePosition.mfxl</code> v2.0 is a beta, tested on iPhone 15 Pro only; check it on the devices you ship to. Up to v1.0 it was called <code>VoiceDirection.mfxl</code>. Under either name it has only ever been published under the Model License, so there is no MIT copy. Each version keeps the license it shipped with.</li>
               </ul>
               <p>This is a summary. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">full Model License</a> is what applies; plans are on <a href="/pro.html">Pricing</a>.</p>
             </div>
@@ -765,49 +790,62 @@ print(probabilities(pose(&quot;desk&quot;)[0], &quot;desk&quot;))   # ≈ [0.17,
          rather than a <script>: script content is raw text, so the
          escaped tags below would reach the clipboard still escaped. -->
     <pre id="agent-prompt" hidden>
-Add Voice direction (beta) from Libraries.dev to my SwiftUI app: views that know
-which side of the iPhone the user's voice comes from (left, ahead or right),
-using its on-device direction model.
+Add Voice position (beta) from Libraries.dev to my SwiftUI app: views that know
+where the user's voice is on an iPhone, which side it comes from (left, ahead or
+right) and how far off it is (a small or a large distance), using its on-device
+model.
 
 Install (Swift Package Manager, iOS 17+, iPhone):
 .package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
-.product(name: "VoiceDirectionKit", package: "Libraries.dev")
+.product(name: "VoicePositionKit", package: "Libraries.dev")
 Add NSMicrophoneUsageDescription to Info.plist.
 
 Usage:
-import VoiceDirectionKit
-@State private var voice = VoiceDirection()
+import VoicePositionKit
+@State private var voice = VoicePosition()
 .task { try? await voice.start() }   // asks for the microphone
 
 Readings (observable, update as the user speaks):
 - voice.pan: Double?: the committed side, -1 left … 1 right; nil while quiet
 - voice.side: DirectionSide?: .left / .ahead / .right; nil while quiet
 - voice.probabilities: SIMD3&lt;Double&gt;?: left, ahead, right belief
+- voice.distance: VoiceDistance?: .small / .large, large from about 70 cm; nil
+  without a distance model for the pose (the desk only so far)
+- voice.distanceBelief: Double?: 0 small … 1 large, before it commits
+- voice.soundsFar: Bool: distance is large or the belief has begun to build
+- voice.readsDistance: set false while the app's own voice plays
 - voice.pose: DevicePose: .hand or .desk, sensed from motion (one model each)
 - voice.level: 0-1 loudness
-- voice.isModelLoaded: VoiceDirection.mfxl found in the app
+- voice.isModelLoaded: VoicePosition.mfxl found in the app
 - voice.start(meter): read a VoiceMeter you share with a voice view, e.g. Voice ring:
   VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
 
-The model (VoiceDirection.mfxl v1.0 beta, 1.4 KB; per-pose linear classifier
-over the stereo level and phase differences of the built-in mics; settles on
-a side in ~0.65 s, passes through the centre when switching, ignores short or
-doubtful sounds) is NOT in
-the package: ask the user to download it from
-https://libraries.dev/voice-direction (Model only tab, free account) and add
+The model (VoicePosition.mfxl v2.0 beta, 1.6 KB; per-pose linear classifier over
+the stereo level and phase differences of the built-in mics for the side; settles
+on a side in ~0.65 s, passes through the centre when switching, ignores short or
+doubtful sounds. A linear classifier over how alike the mics sound at 800-1700 Hz
+for the distance, desk only; changes ~1.2 s into a clear voice, up to ~4 s near
+the line; large goes back to small on a close voice or after 3 s of quiet) is NOT
+in the package: ask the user to download it from
+https://libraries.dev/voice-position (Model only tab, free account) and add
 it to the app target; it loads from Bundle.main. Never commit it to a public
 repo. Model License: free for development and non-commercial apps; a
 commercial release needs Libraries.dev Pro or Business.
 
 Without the model, calibrate instead: await voice.calibrate(.left), .ahead,
-.right (3 s of voice each) for the current pose; also the way to adapt it to
+.right (3 s of voice each) for the current pose; also the way to adapt the side to
 another iPhone (best recorded where the user will speak from; a calibration
-reused in another session scores lower than the model). Beta: tested on iPhone
-15 Pro only (one speaker, upright or flat on a desk; held-out rounds, once
-settled: desk 97% correct side / 0% wrong side, hand 91% / 0.5%). Other iPhones place their mics differently; not covered yet: several
-speakers, noisy rooms, landscape. The Simulator, Macs and AirPods/Bluetooth mics
-record in mono, so pan stays nil there: drive the view with a slider in previews.
-Docs: https://libraries.dev/voice-direction
+reused in another session scores lower than the model). The distance has no
+calibration and reads nil without the model. Beta: tested on iPhone 15 Pro only
+(one speaker, upright or flat on a desk; side on held-out rounds, once settled:
+desk 98% correct side / 0% wrong side, hand 91% / 0.5%; distance on 13 desk clips
+in two rooms: in an unheard room every clip ended right, close voices read right
+100% and far voices 68% of the time; the 70 cm line is an estimate). Other iPhones
+place their mics differently; not covered yet: several speakers, noisy rooms,
+landscape, voices far off to one side, the distance in the hand. The Simulator,
+Macs and AirPods/Bluetooth mics record in mono, so pan and distance stay nil
+there: drive the view with a slider in previews.
+Docs: https://libraries.dev/voice-position
     </pre>
 
     <footer class="footer">
@@ -897,8 +935,8 @@ Docs: https://libraries.dev/voice-direction
       function signIn(then) {
         if (!window.LibrariesPro) return;
         window.LibrariesPro.signIn({
-          signup: "model:direction",
-          title: "Install Voice direction",
+          signup: "model:position",
+          title: "Install Voice position",
           sub: "Free account: we email you a code, no password.",
           onSignedIn: function () { setGated(false); if (then) then(); }
         });
@@ -912,12 +950,12 @@ Docs: https://libraries.dev/voice-direction
         e.stopImmediatePropagation();
       }, true);
       if (download) download.addEventListener("click", function () {
-        var go = function () { location.href = window.LibrariesPro.apiBase + "/models/direction"; };
+        var go = function () { location.href = window.LibrariesPro.apiBase + "/models/position"; };
         if (signedIn()) go(); else signIn(go);
       });
     })();
   </script>
-  <script type="module" src="/src/voice-direction.tsx"></script>
+  <script type="module" src="/src/voice-position.tsx"></script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
   <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>

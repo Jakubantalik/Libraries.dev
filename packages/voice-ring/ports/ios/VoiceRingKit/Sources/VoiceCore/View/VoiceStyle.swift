@@ -32,7 +32,7 @@ public enum VoiceTheme: Sendable {
 /// What the orb listens to.
 public enum VoiceSource {
     case silence
-    /// The microphone (stereo on iPhone; VoiceDirectionKit reads its side).
+    /// The microphone (stereo on iPhone; VoicePositionKit reads its side).
     case meter(VoiceMeter)
     /// A level you drive, 0–1, sampled every frame.
     case level(() -> Double)
