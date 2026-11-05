@@ -9,4 +9,4 @@ export { PRESETS, resolvePreset } from './presets';
 export { VOICE_ORB_TYPES, type VoiceOrbType } from './engine/registry';
 export type { OrbTheme, VoiceOrbProps, VoiceOrbState } from './types';
 export type { VoiceInput, TypeFrame, TypeOpts } from './engine/types';
-export { VoiceRing, type VoiceRingProps } from './VoiceRing';
+export { VoiceRing, type VoiceRingProps, type VoiceRingType } from './VoiceRing';

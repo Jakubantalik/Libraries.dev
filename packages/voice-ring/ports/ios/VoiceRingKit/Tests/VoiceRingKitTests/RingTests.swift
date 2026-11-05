@@ -20,6 +20,37 @@ final class RingTests: XCTestCase {
         }
     }
 
+    /// Mono draws its two loops as tubes, each point with a depth, at rest and
+    /// while speaking, and leans with no lens.
+    func testMonoDraws() throws {
+        var voice = VoiceInput()
+        var spans: [Double] = []
+        for level in [0.0, 0.8] {
+            voice.level = level
+            voice.soft = level
+            voice.bands = SIMD3(level, level, level)
+            voice.softBands = voice.bands
+            voice.drive = 3
+            let p = VoiceRing.preset(.mono, size: 200)
+            let f = p.frame(200, 2, voice, p.opts)
+            XCTAssertEqual(f.strokes.count, 2)
+            XCTAssertNotNil(f.tube)
+            XCTAssertNil(f.light)
+            let loop = try XCTUnwrap(f.strokes.first)
+            XCTAssertEqual(loop.z?.count, loop.a.count)
+            let ys = stride(from: 1, to: loop.pts.count, by: 2).map { loop.pts[$0] }
+            spans.append(try XCTUnwrap(ys.max()) - XCTUnwrap(ys.min()))
+        }
+        XCTAssertEqual(VoiceRing.preset(.mono, size: 200).lean.lens, 0)
+        XCTAssertEqual(VoiceRing.preset(.mono, size: 200).lean.move, 0.55)
+        XCTAssertGreaterThan(spans[0], 60, "a loop has its size at rest")
+    }
+
+    /// The ring stays the default, so existing calls draw what they did.
+    func testRingIsTheDefaultType() {
+        XCTAssertNotNil(VoiceRing.preset(size: 200).frame(200, 1, VoiceInput(), [:]).light)
+    }
+
     /// The ring leans its own way: barely drifting, leaning and bulging a
     /// touch, never squashing, through a softer lens, 32 pt short of the edge.
     func testRingLeansItsOwnWay() {

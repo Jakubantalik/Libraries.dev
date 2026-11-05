@@ -1,6 +1,6 @@
 {
   "name": "voice-ring",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Voice-reactive ring of light for React: a glassy spectrum that bends with the voice, takes the colour of its emotion and leans toward whoever is speaking",
   "keywords": [
     "react",

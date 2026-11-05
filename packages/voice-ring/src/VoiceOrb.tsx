@@ -281,8 +281,9 @@ export function VoiceOrb({
         saturation: c.saturation * (base ? 1 : e),
         angle: c.angle + c.spin * follower.clock
       };
-      // luminous frames keep the emotion as a shift of their own spectrum
-      paintFrame(ctx, frame, dark, tint, frame.light ? glow : undefined, colors);
+      // luminous frames keep the emotion as a shift of their own spectrum,
+      // tubes as a wash over their greys
+      paintFrame(ctx, frame, dark, tint, frame.light || frame.tube ? glow : undefined, colors);
     };
 
     // the room from the orb's box to the edges of the viewport, checked every

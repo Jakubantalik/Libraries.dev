@@ -355,7 +355,7 @@
           <div class="detail-titles">
             <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_vring)"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C17.799 1.5 22.5 6.20101 22.5 12C22.5 17.799 17.799 22.5 12 22.5C6.20101 22.5 1.5 17.799 1.5 12C1.5 6.20101 6.20101 1.5 12 1.5ZM12 4.6C7.91309 4.6 4.6 7.91309 4.6 12C4.6 16.0869 7.91309 19.4 12 19.4C16.0869 19.4 19.4 16.0869 19.4 12C19.4 7.91309 16.0869 4.6 12 4.6Z" fill="url(#paint0_linear_vring)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_vring" x="1.5" y="1.5" width="21" height="21" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_vring"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_vring" result="effect2_innerShadow_vring"/></filter><linearGradient id="paint0_linear_vring" x1="6.4" y1="23" x2="17.3" y2="-7.5" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
             <h1 class="detail-title">Voice ring</h1>
-            <p class="detail-sub">A ring of light for voice interfaces. A glassy spectrum that bends with the voice, takes the colour of how it feels and leans toward whoever is speaking, read by the <a href="/voice-position.html">Voice position</a> model. React and SwiftUI.</p>
+            <p class="detail-sub">A ring of light for voice interfaces. A glassy spectrum that bends with the voice, takes the colour of how it feels and leans toward whoever is speaking, read by the <a href="/voice-position.html">Voice position</a> model. Or Mono: two loops of grey tube that a voice opens into a turning globe. React and SwiftUI.</p>
           </div>
 
           <div class="detail-head-row">
@@ -438,7 +438,10 @@ const mic = useMicrophone();
 &lt;VoiceRing size={240} state=&quot;speaking&quot; level={() =&gt; player.level} /&gt;
 
 // The voice&#x27;s feeling and side, from your own models:
-&lt;VoiceRing emotion=&quot;calm&quot; direction={-0.6} /&gt;</pre>
+&lt;VoiceRing emotion=&quot;calm&quot; direction={-0.6} /&gt;
+
+// Two types: the ring of light, or mono, two loops of grey tube:
+&lt;VoiceRing type=&quot;mono&quot; size={240} state=&quot;listening&quot; stream={mic.stream} /&gt;</pre>
               <button type="button" class="code-copy" data-copy-target="#react-usage-code" aria-label="Copy usage example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -486,7 +489,10 @@ struct VoiceScreen: View {
 
 // States: .idle, .listening, .speaking (the assistant&#x27;s playback), .processing
 // Drive it yourself instead of the microphone:
-VoiceRing(state: .speaking, source: .level { player.level })</pre>
+VoiceRing(state: .speaking, source: .level { player.level })
+
+// Two types: the ring of light, or mono, two loops of grey tube:
+VoiceRing(.mono, state: .listening, source: .meter(meter), size: 240)</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -548,11 +554,12 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
             <div class="st-code-group">
               <span class="st-code-title">Options</span>
               <ul class="vr-list">
+                <li><code>type</code> The first argument: <code>.ring</code>, the default, a glassy ribbon with a spectrum running round it, or <code>.mono</code>, two loops of grey tube that a voice opens into a turning globe.</li>
                 <li><code>state</code> <code>.idle</code> waits with a slow drift, <code>.listening</code> and <code>.speaking</code> follow the source, <code>.processing</code> spins the spectrum with its highlight running round like a loader. Changes ease, never cut.</li>
                 <li><code>source</code> <code>.meter(meter)</code> (the microphone, stereo on iPhone), <code>.level { 0…1 }</code> sampled every frame, or <code>.silence</code>.</li>
                 <li><code>mood</code>, <code>emotion</code> The colour the spectrum shifts toward; nil stays the plain spectrum.</li>
                 <li><code>direction</code> −1 left … 1 right; nil reads the meter&#x27;s own estimate. While a voice is heard the ring drifts that way and meets the screen&#x27;s edge through a glass lens.</li>
-                <li><code>style</code> A <code>VoiceStyle</code>: <code>speed</code>, <code>sensitivity</code>, <code>threshold</code>, <code>release</code>, <code>idle</code>, <code>theme</code> (<code>.auto</code> / <code>.dark</code> / <code>.light</code>) and the ring&#x27;s own knobs in <code>opts</code>: <code>rings</code> (6), <code>lean</code> (0.91), <code>ringGap</code> (0.02), <code>deform</code> (1.45), <code>halo</code> (0.5), <code>radius</code> (0.56). The <a class="vr-link" href="/studio/app.html#voice-ring">Studio</a> writes these for you.</li>
+                <li><code>style</code> A <code>VoiceStyle</code>: <code>speed</code>, <code>sensitivity</code>, <code>threshold</code>, <code>release</code>, <code>idle</code>, <code>theme</code> (<code>.auto</code> / <code>.dark</code> / <code>.light</code>) and the ring&#x27;s own knobs in <code>opts</code>: <code>rings</code> (6), <code>lean</code> (0.91), <code>ringGap</code> (0.02), <code>deform</code> (1.45), <code>halo</code> (0.5), <code>radius</code> (0.56). Mono has its own: <code>rings</code> (2), <code>ringGap</code> (0.035), <code>tilt</code> (0.22), <code>open</code> (0.75), <code>twist</code> (1.69), <code>wobble</code> (0.31), <code>deform</code> (1.85), <code>radius</code> (0.44), <code>lineW</code> (1.7). The <a class="vr-link" href="/studio/app.html#voice-ring">Studio</a> writes these for you.</li>
               </ul>
             </div>
             <div class="st-code-group">
@@ -588,6 +595,7 @@ function VoiceScreen() {
   );
 }
 
+- type: "ring" (default, a glassy ribbon with a spectrum) | "mono" (two loops of grey tube that a voice opens into a globe)
 - state: "idle" | "listening" | "speaking" | "processing" (changes ease)
 - stream: MediaStream (the microphone), or level: number | () =&gt; number (0...1, read every frame)
 - emotion: "positive" | "negative" | "calm" | null: the spectrum's colour
@@ -619,13 +627,18 @@ struct VoiceScreen: View {
     }
 }
 
+- type, the first argument: .ring (default, a glassy ribbon with a spectrum) |
+  .mono (two loops of grey tube that a voice opens into a globe):
+  VoiceRing(.mono, state: .listening, source: .meter(meter), size: 240)
 - state: .idle | .listening | .speaking | .processing (changes ease)
 - source: .meter(meter) (microphone, stereo on iPhone) | .level { 0...1 } | .silence
 - mood: VoiceMood? (valence -1...1, arousal 0...1; .happy .calm .angry .sad)
   or emotion: VoiceOrbEmotion? (.positive .negative .calm): the spectrum's colour
 - direction: Double? (-1 left ... 1 right; nil = the meter's own estimate)
 - style: VoiceStyle (speed, sensitivity, threshold, release, idle, theme,
-  opts: rings 6, lean 0.91, ringGap 0.02, deform 1.45, halo 0.5, radius 0.56)
+  opts: rings 6, lean 0.91, ringGap 0.02, deform 1.45, halo 0.5, radius 0.56;
+  mono: rings 2, ringGap 0.035, tilt 0.22, open 0.75, twist 1.69, wobble 0.31,
+  deform 1.85, radius 0.44, lineW 1.7)
 
 Emotion (Pro): .product(name: "VoiceRingEmotion", package: "Libraries.dev");
 @State var emotion = EmotionListener(); await emotion.start(meter: meter);

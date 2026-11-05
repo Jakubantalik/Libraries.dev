@@ -2,7 +2,7 @@
 
 A voice-reactive ring of light for AI voice interfaces: a few rings lean off the view axis and bundle into a glassy ribbon, a spectrum runs around it, and the voice bends every ring together. It takes the colour of the voice's emotion and leans toward whoever is speaking.
 
-Voice ring is the `aura` type of the voice orbs, as a library of its own.
+Voice ring is the two aura types of the voice orbs, as a library of their own: `ring`, the default, and `mono`, two loops of grey tube that a voice opens into a turning globe, an emotion colouring the tube. Choose with `type="mono"` in React and `VoiceRing(.mono, …)` in SwiftUI.
 
 ## SwiftUI
 

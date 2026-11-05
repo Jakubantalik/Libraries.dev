@@ -1,4 +1,4 @@
-// The shipped tunings: six types, each designed at 200px. Count knobs scale
+// The shipped tunings: seven types, each designed at 200px. Count knobs scale
 // with size — a 48px orb carries fewer, relatively bolder marks — and with
 // the `dots` prop; `speed` multiplies both clocks; `driveGain` sets how far
 // a voice speeds the voice clock. Resolved once per mount.
@@ -63,6 +63,17 @@ export const PRESETS: Record<VoiceOrbType, Preset> = {
     dotSize: 0.55,
     opts: { cells: 17 },
     counts: { cells: 0.5 }
+  },
+  'aura-mono': {
+    speed: 1.2,
+    // a voice spins it up a long way: waiting it drifts, speaking it turns
+    // and morphs quickly
+    driveGain: 4,
+    // leans like the aura, the near side drawn out, but drifts further and
+    // meets the edge with no lens
+    lean: { move: 0.55, pull: 0.36, deform: 0.28, squash: 0, bounce: 0.92, lens: 0, stretch: 0, split: 0, blur: 1.24 },
+    opts: { segs: 180 },
+    counts: { segs: 0.5 }
   },
   aura: {
     speed: 1.6,

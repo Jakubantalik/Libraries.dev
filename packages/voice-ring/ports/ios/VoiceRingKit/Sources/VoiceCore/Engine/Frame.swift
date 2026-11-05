@@ -34,13 +34,16 @@ public struct Stroke: Sendable {
     public var white: Double
     public var w: Double
     public var closed: Bool
+    /// Depth per point, −1 far … 1 near, for tube frames.
+    public var z: [Double]?
 
-    public init(pts: [Double], a: [Double], white: Double, w: Double, closed: Bool) {
+    public init(pts: [Double], a: [Double], white: Double, w: Double, closed: Bool, z: [Double]? = nil) {
         self.pts = pts
         self.a = a
         self.white = white
         self.w = w
         self.closed = closed
+        self.z = z
     }
 }
 
@@ -101,6 +104,54 @@ public struct FrameLight: Sendable {
     }
 }
 
+/// How a tube frame is drawn — see `FrameTube` in the web core. Its strokes
+/// are solid tubes: each one's `a` is its light, `z` its depth.
+public struct FrameTube: Sendable {
+    /// The highlight laid along the tube toward the light.
+    public var shine: Double
+    /// How far the light spreads the tube's greys apart (0 one even grey).
+    public var contrast: Double
+    /// How much thinner the far side is drawn.
+    public var depth: Double
+    /// An emotion's colour: below 1 toward the grey, above it purer.
+    public var saturation: Double
+    /// How far the colour fades into the neutral grey round the orb (0 none).
+    public var gradient: Double
+    /// Degrees: where round the orb the colour is fullest.
+    public var gradientAngle: Double
+    /// Degrees a second the fade turns.
+    public var gradientSpin: Double
+    /// The colour's brightness, 1 as lit.
+    public var colorBrightness: Double
+    /// Each emotion's own brightness on top of `colorBrightness`: positive's
+    /// green, negative's red, calm's blue. A colour between them takes a
+    /// blend, by how near it is to each.
+    public var positiveBrightness: Double
+    public var negativeBrightness: Double
+    public var calmBrightness: Double
+    /// Seconds, for the fade's turn.
+    public var t: Double
+
+    public init(
+        shine: Double = 1, contrast: Double = 0, depth: Double = 0, saturation: Double = 1, gradient: Double = 1,
+        gradientAngle: Double = 0, gradientSpin: Double = 0, colorBrightness: Double = 1,
+        positiveBrightness: Double = 1, negativeBrightness: Double = 1, calmBrightness: Double = 1, t: Double = 0
+    ) {
+        self.shine = shine
+        self.contrast = contrast
+        self.depth = depth
+        self.saturation = saturation
+        self.gradient = gradient
+        self.gradientAngle = gradientAngle
+        self.gradientSpin = gradientSpin
+        self.colorBrightness = colorBrightness
+        self.positiveBrightness = positiveBrightness
+        self.negativeBrightness = negativeBrightness
+        self.calmBrightness = calmBrightness
+        self.t = t
+    }
+}
+
 /// Where a leaning orb meets the screen's edge, and how hard it presses.
 public struct OrbContact: Sendable {
     /// -1 the left edge, 1 the right.
@@ -137,15 +188,18 @@ public struct OrbFrame: Sendable {
     public var dots: [Dot]
     public var strokes: [Stroke]
     public var light: FrameLight?
+    /// Draw the strokes as lit tubes.
+    public var tube: FrameTube?
     /// Paint the dots as squares, `r` their half side: pixels, not points.
     public var square: Bool
     /// Set by the lean while the orb presses on the screen's edge.
     public var contact: OrbContact?
 
-    public init(dots: [Dot] = [], strokes: [Stroke] = [], light: FrameLight? = nil, square: Bool = false) {
+    public init(dots: [Dot] = [], strokes: [Stroke] = [], light: FrameLight? = nil, tube: FrameTube? = nil, square: Bool = false) {
         self.dots = dots
         self.strokes = strokes
         self.light = light
+        self.tube = tube
         self.square = square
     }
 }

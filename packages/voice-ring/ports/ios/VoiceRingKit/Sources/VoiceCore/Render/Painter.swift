@@ -1,7 +1,8 @@
 // The SwiftUI painter: draws a finished frame into a Canvas. Ink frames
 // (dots, depth-faded strokes) are batched by quantised colour — one path
 // per batch, as the web painter does — so a 900-dot orb is a few dozen
-// fills, not 900. Luminous frames go to `paintLight`.
+// fills, not 900. Luminous frames go to `paintLight`, tube frames to
+// `paintTube`.
 
 import SwiftUI
 
@@ -53,6 +54,8 @@ public func paintFrame(_ context: inout GraphicsContext, _ frame: OrbFrame, styl
 private func paintMarks(_ context: inout GraphicsContext, _ frame: OrbFrame, style: PaintStyle) {
     if let light = frame.light {
         paintLight(&context, frame, light, dark: style.dark, glow: style.glow)
+    } else if let tube = frame.tube {
+        paintTube(&context, frame.strokes, tube, dark: style.dark, glow: style.glow)
     } else {
         let ramp = style.colors.flatMap { $0.saturation > 0 ? ColorRamp($0) : nil }
         paintStrokes(&context, frame.strokes, dark: style.dark, ramp: ramp)

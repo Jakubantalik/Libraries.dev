@@ -1,9 +1,10 @@
 # VoiceRingKit
 
-A ring of light that listens: a few glassy rings bundled into one ribbon,
-a conic spectrum running round it, bending with the voice and leaning
-toward whoever speaks. The `aura` type of Voice orbs, as a library of its
-own, in SwiftUI.
+A ring that listens, in two types. `.ring`: a few glassy rings bundled into one
+ribbon, a conic spectrum running round it, bending with the voice and leaning
+toward whoever speaks. `.mono`: two loops of grey tube that a voice opens into
+a turning globe. The aura types of Voice orbs, as a library of their own, in
+SwiftUI.
 
 iOS 17+ / macOS 14+. Build through Xcode: the edge lens is a Metal shader,
 compiled by Xcode's build system. Add `NSMicrophoneUsageDescription` to your
@@ -30,6 +31,7 @@ struct VoiceScreen: View {
 }
 ```
 
+- The type comes first: `VoiceRing(.mono, state: .listening)`. Left out, it's `.ring`.
 - `state`: `.idle`, `.listening` (follows the source), `.speaking`, `.processing`
   (sources ignored; the spectrum spins with its highlight running round).
 - `source`: `.meter(meter)`, `.level { yourLevel }` (0–1, read every frame) or `.silence`.

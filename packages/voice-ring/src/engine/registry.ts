@@ -4,6 +4,7 @@
 
 import type { TypeFrame } from './types';
 import { frameAura } from './aura';
+import { frameAuraMono } from './auraMono';
 import { framePixel } from './pixel';
 import { frameOrbit } from './orbit';
 import { frameSash } from './sash';
@@ -11,17 +12,18 @@ import { frameSignal } from './signal';
 import { frameSwell } from './swell';
 
 /**
- * The six orb types:
+ * The seven orb types:
  * - `orbit`   — particles on tilted orbits in perspective; a voice zooms it toward you
  * - `sash`    — an undulating band of dotted lanes; a voice deepens the wave
  * - `signal`  — a wireframe of great circles; a voice deforms it like a skin
  * - `swell`   — a halftone sphere of drifting clouds; a voice bulges its surface
  * - `pixel`   — a ball of square pixels, halftone shaded; a voice bulges it and lights it in rings
+ * - `aura-mono` — the aura's rings as two loops of grey tube; a voice opens them into a turning globe
  * - `aura`    — signal's rings drawn in light: a blooming spectrum; a voice bends and brightens it
  */
-export type VoiceOrbType = 'orbit' | 'sash' | 'signal' | 'swell' | 'pixel' | 'aura';
+export type VoiceOrbType = 'orbit' | 'sash' | 'signal' | 'swell' | 'pixel' | 'aura-mono' | 'aura';
 
-export const VOICE_ORB_TYPES: readonly VoiceOrbType[] = ['orbit', 'sash', 'signal', 'swell', 'pixel', 'aura'];
+export const VOICE_ORB_TYPES: readonly VoiceOrbType[] = ['orbit', 'sash', 'signal', 'swell', 'pixel', 'aura-mono', 'aura'];
 
 export const TYPE_FRAMES: Record<VoiceOrbType, TypeFrame> = {
   orbit: frameOrbit,
@@ -29,5 +31,6 @@ export const TYPE_FRAMES: Record<VoiceOrbType, TypeFrame> = {
   signal: frameSignal,
   swell: frameSwell,
   pixel: framePixel,
+  'aura-mono': frameAuraMono,
   aura: frameAura
 };

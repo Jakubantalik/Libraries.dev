@@ -26,6 +26,9 @@ export interface Stroke {
   /** Width in CSS px. */
   w: number;
   closed?: boolean;
+  /** Depth per point, −1 far … 1 near: a tube frame's draw order and
+   *  thickness where the line passes in front of itself. */
+  z?: number[];
 }
 
 /**
@@ -38,10 +41,40 @@ export interface OrbFrame {
   strokes: Stroke[];
   /** Present on luminous types: paint the strokes as coloured light. */
   light?: FrameLight;
+  /** Present on tube types: paint the strokes as lit tubes, each stroke's
+   *  `a` its light (0 … 1) and `z` its depth. */
+  tube?: FrameTube;
   /** Paint the dots as squares, `r` their half side: pixels, not points. */
   square?: boolean;
   /** Set by the lean while the orb presses on the screen's edge. */
   contact?: OrbContact;
+}
+
+/** How a tube frame is lit. */
+export interface FrameTube {
+  /** The strength of the highlight running along the tube. @default 1 */
+  shine: number;
+  /** Stretches the light between the tube's lit and shadowed parts. @default 1 */
+  contrast: number;
+  /** How much thinner the far side is: 0 even … 0.5 the far side vanishing. @default 0.15 */
+  depth?: number;
+  /** An emotion's colour on the tube: 0 grey … 1 full … 2 deeper still. @default 1 */
+  saturation?: number;
+  /** How far the colour fades into the neutral grey round the orb: 0 the
+   *  colour all round … 1 grey on the far side. @default 1 */
+  gradient?: number;
+  /** Where round the orb the colour is fullest, degrees. @default 0 */
+  gradientAngle?: number;
+  /** How fast the fade turns round the orb, degrees a second. @default 20 */
+  gradientSpin?: number;
+  /** The coloured tube's lightness: below 1 deeper, above 1 paler. @default 1 */
+  colorBrightness?: number;
+  /** Each emotion's own brightness on top of `colorBrightness`: positive's
+   *  green, negative's red, calm's blue. A colour between them takes a
+   *  blend, by how near it is to each. @default 1 */
+  positiveBrightness?: number;
+  negativeBrightness?: number;
+  calmBrightness?: number;
 }
 
 /** Where a leaning orb meets the screen's edge, and how hard it presses. */

@@ -7,6 +7,7 @@ import type { Dot, OrbFrame, Stroke } from './core';
 import { TAU, clamp01, smoothstep, vnoise3 } from './core';
 import { type ColorRamp, type OrbColors, colorRamp } from './colors';
 import { paintLight } from './light';
+import { paintTube } from './tube';
 import { refractEdge } from './refract';
 
 /** Optional ink tint, resolved to an RGB triple (0–255 each). */
@@ -175,6 +176,7 @@ export function paintFrame(
   // colourful mode is for the ink types; a luminous frame has its own spectrum
   const ramp = colors && colors.saturation > 0 && !frame.light ? colorRamp(colors) : undefined;
   if (frame.light) paintLight(ctx, frame, frame.light, dark, tint, glow);
+  else if (frame.tube) paintTube(ctx, frame.strokes, frame.tube, dark, tint, glow);
   else if (frame.strokes.length) paintStrokes(ctx, frame.strokes, dark, tint, glow, ramp);
   paintDots(ctx, frame.dots, dark, tint, glow, ramp, frame.square);
   // refracted into the edge where the orb presses on it
