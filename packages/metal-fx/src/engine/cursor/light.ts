@@ -289,7 +289,7 @@ export function setCursorSprite(next: CursorSprite | null): void {
   const dprNow = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
   spriteDpr = dprNow >= 1.5 ? 2 : 1;
   hideCursor();
-  if (!next || typeof Image === 'undefined') return;
+  if (!next || typeof Image === 'undefined') { kick(); return; }
   const img = new Image();
   img.decoding = 'async';
   img.onload = () => { if (sprite === next) { analyseSprite(img, next); spriteImg = img; kick(); } };
@@ -339,6 +339,11 @@ function cursorSwapAllowed(): boolean {
   const vv = window.visualViewport;
   if (vv && Math.abs(vv.scale - 1) > 0.001) return false;
   return true;
+}
+
+function hasVisibleEffect(): boolean {
+  const cfg = CURSOR_LIGHT;
+  return cfg.enabled && (cfg.catchLight || cfg.spill || (cfg.cursor && cursorSwapAllowed()));
 }
 
 function ensureTracking(): void {
@@ -404,11 +409,18 @@ function onKey(): void {
 
 function onLeave(): void {
   px = py = Number.NaN;
+  if (document.hidden) {
+    if (raf !== 0) { cancelAnimationFrame(raf); raf = 0; }
+    hideCursor();
+    hideSpill();
+    return;
+  }
   kick();
 }
 
 function kick(): void {
-  if (!tracking || raf !== 0) return;
+  // Skip idle work when there is nothing to show; let an existing light fade out.
+  if (!tracking || raf !== 0 || document.hidden || (!hasVisibleEffect() && !near)) return;
   last = performance.now();
   raf = requestAnimationFrame(step);
 }
@@ -688,7 +700,7 @@ function hideSpill(): void {
 
 function step(now: number): void {
   raf = 0;
-  if (!tracking) return;
+  if (!tracking || document.hidden) return;
   // Own work only — `now` is the frame timestamp and includes whatever else
   // ran in this frame (React renders, other rAF callbacks), which is not
   // ours to be blamed for.
@@ -721,7 +733,7 @@ function stepInner(now: number): void {
   // Nearest ring within reach.
   let best: MetalFxInstance | null = null;
   let u = 0, uC = 0;
-  if (cfg.enabled && SHARED && !Number.isNaN(px)) {
+  if (hasVisibleEffect() && SHARED && !Number.isNaN(px)) {
     let bestAbs = Number.POSITIVE_INFINITY;
     const reachA = Math.max(1, cfg.reach);
     const reachC = cfg.cursor && cursorSwapAllowed() ? Math.max(1, cfg.cursorDistance) : 0;
@@ -747,7 +759,7 @@ function stepInner(now: number): void {
     }
     if (best) {
       if (bestAbs <= reachA) { const t = 1 - bestAbs / reachA; u = t * t * (3 - 2 * t); }
-      if (bestAbs <= reachC) uC = Math.min(1, (1 - bestAbs / reachC) * 3);
+      if (reachC > 0 && bestAbs <= reachC) uC = Math.min(1, (1 - bestAbs / reachC) * 3);
       if (best.mask) {
         // Metal text: the light is the word itself, not its box edge. Point
         // the light at the box centre and keep the unmasked sheet around for
