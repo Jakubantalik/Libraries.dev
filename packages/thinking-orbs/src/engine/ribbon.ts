@@ -72,9 +72,11 @@ export const frameRibbon: ModeFrame = (size, t, o) => {
       // pinch inward. Ribbon keeps the original out-of-plane sash wobble.
       const radial = o.faceOn ? 1 + wob : 1;
       const off = o.faceOn ? laneOff : laneOff + wob;
-      const x = ux * Math.cos(a) + vx * Math.sin(a) + nx * off;
-      const y = uy * Math.cos(a) + vy * Math.sin(a) + ny * off;
-      const z = uz * Math.cos(a) + vz * Math.sin(a) + nz * off;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      const x = ux * ca + vx * sa + nx * off;
+      const y = uy * ca + vy * sa + ny * off;
+      const z = uz * ca + vz * sa + nz * off;
       const l = Math.sqrt(x * x + y * y + z * z);
       const rr = baseR * radial;
       const [px, py, zr] = pt((x / l) * rr, (y / l) * rr, (z / l) * rr);
