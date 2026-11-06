@@ -1,11 +1,11 @@
 # BotAvatarsKit — bot-avatars for SwiftUI
 
 The animated bot avatars from [bot-avatars](../../../README.md), rebuilt for
-iOS 17+ on SwiftUI's `Canvas`. Same eighteen shapes, faces and states, same
+iOS 17+ and macOS 14+ on SwiftUI's `Canvas`. Same eighteen shapes, faces and states, same
 rig (a line-for-line port of the web engine), same plastic material — the
 baked pillow form, the matcap with its bin hysteresis and cross-fade, the
 per-texel cap and the matcap-sampled sides — with a tap for the click and a
-finger for the pointer.
+finger (or, on the Mac, the mouse) for the pointer.
 
 ```swift
 import BotAvatarsKit
@@ -43,7 +43,7 @@ BotAvatarStage {                       // one canvas for the whole roster
 | `warmBotAvatarPlastic`                  | `warmBotAvatarPlastic(_:devicePx:depth:)`                   |
 | `DrawConfig.sides` vector / sprite      | `BotAvatarDrawConfig.sides` `.auto` / `.vector` / `.merged` |
 | —                                       | `BotAvatarStage { … }`: one canvas for every avatar inside  |
-| —                                       | `.botAvatarPointer()`: a drag over a larger view is the pointer |
+| —                                       | `.botAvatarPointer()`: a drag (or hover) over a larger view is the pointer |
 
 ### Touch instead of a pointer
 There is no pointer on a phone, so `interactive` (the default) means: a tap
@@ -56,6 +56,12 @@ by three). Put `.botAvatarPointer()` on a grid or a card to let a drag
 anywhere over it be the pointer for all the avatars in it; the gesture is
 simultaneous, so taps and scrolling still work. Set
 `BotAvatarPointer.shared.location` yourself to drive it from anything else.
+
+On the Mac the mouse is the pointer again: hovering over an avatar (or over
+a view with `.botAvatarPointer()`) feeds the same location, a click is the
+tap, and a drag still works. The clock runs on the main screen's display
+link (`NSScreen.displayLink`); frames are timed by their timestamps, so a
+window on a screen with another refresh rate moves at the right speed.
 
 ### Layout
 The view lays out `size` square. Its canvas is 1.5× that and sits a tenth
@@ -98,7 +104,7 @@ stage's canvas reaches beyond the container by enough for a hop.
   strokes per segment, for the same reason.
 
 ## What differs from the web
-- The pointer is a finger: see above. Hovering does not exist.
+- On iOS the pointer is a finger: see above. Hovering does not exist there.
 - The whirl's trail is a band under a conic gradient rather than a chain
   of stroked segments: the same widths, colours and fades, sampled at the
   same 34 segments, without the butt joins between them.
