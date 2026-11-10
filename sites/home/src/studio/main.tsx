@@ -8,6 +8,7 @@ import { MetalStudio } from "./metal";
 import { ImageStudio } from "./image";
 import { VoiceStudio } from "./voice";
 import { VoiceRingStudio } from "./voice-ring";
+import { DistortionWavesStudio } from "./distortion-waves";
 import { AvatarsStudio } from "./avatars";
 import { StudioThemeContext } from "./controls";
 
@@ -434,6 +435,7 @@ const LIBS = [
   { id: "gooey", label: "Gooey", icon: "/assets/icons/figma-gooey.svg" },
   { id: "voice", label: "Voice", icon: "/assets/icons/figma-voice.png" },
   { id: "voice-ring", label: "Voice ring", icon: "/assets/icons/figma-voice-ring.svg" },
+  { id: "distortion-waves", label: "Distortion waves", icon: "/assets/icons/figma-distortion-waves.svg" },
   { id: "avatars", label: "Bot avatars", icon: "/assets/icons/figma-avatars.svg" },
   { id: "metal", label: "Metal", icon: "/assets/icons/figma-metal.png" },
   { id: "image", label: "Image", icon: "/assets/icons/figma-image.png" },
@@ -508,6 +510,7 @@ function Workbench({ theme }: { theme: StudioTheme }) {
         <div hidden={lib !== "image"}><ImageStudio visible={lib === "image"} theme={theme} /></div>
         <div hidden={lib !== "voice"}><VoiceStudio visible={lib === "voice"} theme={theme} /></div>
         <div hidden={lib !== "voice-ring"}><VoiceRingStudio visible={lib === "voice-ring"} theme={theme} /></div>
+        <div hidden={lib !== "distortion-waves"}><DistortionWavesStudio visible={lib === "distortion-waves"} theme={theme} /></div>
         {LIBS.map((l) =>
           "Component" in l ? (
             <div key={l.id} hidden={lib !== l.id}><l.Component visible={lib === l.id} theme={theme} /></div>

@@ -1,0 +1,81 @@
+/* Distortion waves — the DOM over the preview's canvas: the button and the
+   edge handle the wave opens from. The badge and the sheet's texts are drawn
+   on the canvas itself, inside the wave, as in the app. */
+.dw-phone { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.dw-phone button { -webkit-tap-highlight-color: transparent; outline: none; }
+
+.dw-button-wrap { position: absolute; }
+.dw-button {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: 29px;
+  background: #f8f8f8;
+  color: #0d0d0d;
+  font: 500 17px Inter, "SF Pro Text", -apple-system, system-ui, sans-serif;
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+.dw-button:active { transform: scale(0.965); }
+/* Pulled in with everything else through the anticipation, then let go. */
+.dw-button.is-gulp { transform: scale(0.93); transition: transform var(--dw-gulp, 0.5s) cubic-bezier(0.4, 0, 0.6, 1); }
+/* Confirm to Done, as the app's blur replace. */
+.dw-button-title.is-swapped { animation: dw-swap 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes dw-swap {
+  from { opacity: 0; filter: blur(6px); transform: scale(0.9); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+
+.dw-edge { position: absolute; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.dw-edge::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 5px;
+  height: 64px;
+  margin-top: -32px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.32);
+  transition: background 0.2s ease-out;
+}
+.dw-edge.is-lit::after { background: rgba(255, 255, 255, 0.7); }
+
+/* The phone: no bezel. The stage's CSS phone (body and island on its
+   pseudo-elements) is turned off here, and the screen itself is the phone,
+   with the Dynamic Island on it and the mockup's hairline and shadow round
+   it. Centred on the stage by its flex, at any stage height. */
+.pg-stage[data-device="phone"]:has(> .dw-phone)::before,
+.pg-stage[data-device="phone"]:has(> .dw-phone)::after { display: none; }
+.pg-stage[data-device="phone"]:has(> .dw-phone) { min-height: calc(582px + 64px); }
+.dw-phone { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 64px rgba(0, 0, 0, 0.28); }
+html[data-theme="light"] .dw-phone { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 24px 64px rgba(0, 0, 0, 0.18); }
+.dw-island {
+  position: absolute;
+  left: 50%;
+  top: 15.7px;
+  width: 122.9px;
+  height: 35.7px;
+  margin-left: -61.45px;
+  border-radius: 18.6px;
+  background: #000;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* The phone's own button sits where the stage's Play goes on other
+   libraries: here Play moves to the stage's corner, off the phone. */
+.pg-stage:has(> .dw-phone) > .pg-play {
+  left: 20px;
+  right: auto;
+  transform: none;
+  bottom: 20px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-button { transition: none; }
+  .dw-button-title.is-swapped { animation: none; }
+}

@@ -143,6 +143,8 @@ html[data-theme="light"] .docs-link-icon[src*="figma-voice."],
 html[data-theme="light"] .st-lib-ico img[src*="figma-voice."] { content: url("/assets/icons/figma-voice-light.png"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-voice-ring"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-voice-ring"] { content: url("/assets/icons/figma-voice-ring-light.svg"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-distortion-waves"],
+html[data-theme="light"] .st-lib-ico img[src*="figma-distortion-waves"] { content: url("/assets/icons/figma-distortion-waves-light.svg"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-magnetic"] { content: url("/assets/icons/figma-magnetic-light.svg"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-directional"] { content: url("/assets/icons/figma-directional-light.svg"); }
 
@@ -1059,30 +1061,30 @@ html[data-theme="dark"] .pg-stage { background: #171717; }
 
 /* ── Phone mockup ────────────────────────────────────────────
    With SwiftUI or React Native picked (page head or Studio bar), the stage
-   draws a plain vector iPhone and the effect sits on its screen: body and
-   bezel on ::before, the Dynamic Island on ::after, home indicator as the
-   body's last background layer. Pure CSS on the stage, so the React tree
-   inside never changes. The effect runs at 0.7 zoom — phone scale — so the
-   widest demo (Voice, ~370px) still fits the 274px screen. */
+   draws a plain iPhone and the effect sits on its screen. Distortion
+   waves' style: no bezel - the screen is the phone, a 1px hairline and a
+   soft drop shadow round it - with the Dynamic Island on ::after. Pure CSS
+   on the stage, so the React tree inside never changes. The effect runs
+   at 0.7 zoom — phone scale — so the widest demo (Voice, ~370px) still
+   fits the 274px screen. */
 .pg-stage[data-device="phone"] {
-  --phone-w: 292px;
-  --phone-h: 600px;
-  --phone-bezel: 9px;
-  --phone-body: #0b0b0c;
-  --phone-edge: rgba(255, 255, 255, 0.12);
-  --phone-screen: #171717;
+  --phone-w: 274px;
+  --phone-h: 582px;
+  --phone-bezel: 0px;
+  --phone-radius: 43px;
+  --phone-edge: rgba(255, 255, 255, 0.1);
+  --phone-shadow: rgba(0, 0, 0, 0.28);
+  --phone-screen: #0d0d0d;
   --phone-island: #000;
-  --phone-home: rgba(255, 255, 255, 0.55);
   min-height: calc(var(--phone-h) + 64px);
   /* Own stacking context: the body paints at z -1, above the stage's
      background and under the effect, without repositioning any child. */
   isolation: isolate;
 }
 html[data-theme="light"] .pg-stage[data-device="phone"] {
-  --phone-body: #f4f4f5;
   --phone-edge: rgba(0, 0, 0, 0.12);
+  --phone-shadow: rgba(0, 0, 0, 0.18);
   --phone-screen: var(--stage-bg);
-  --phone-home: rgba(0, 0, 0, 0.45);
 }
 .pg-stage[data-device="phone"]::before,
 .pg-stage[data-device="phone"]::after {
@@ -1098,12 +1100,9 @@ html[data-theme="light"] .pg-stage[data-device="phone"] {
   height: var(--phone-h);
   box-sizing: border-box;
   transform: translate(-50%, -50%);
-  border: var(--phone-bezel) solid var(--phone-body);
-  border-radius: 52px;
-  background:
-    linear-gradient(var(--phone-home), var(--phone-home)) center bottom 8px / 108px 4px no-repeat,
-    var(--phone-screen);
-  box-shadow: 0 0 0 1px var(--phone-edge), 0 24px 64px rgba(0, 0, 0, 0.28);
+  border-radius: var(--phone-radius);
+  background: var(--phone-screen);
+  box-shadow: 0 0 0 1px var(--phone-edge), 0 24px 64px var(--phone-shadow);
 }
 .pg-stage[data-device="phone"]::after {
   z-index: 3;
@@ -1114,7 +1113,7 @@ html[data-theme="light"] .pg-stage[data-device="phone"] {
   transform: translate(-50%, calc(var(--phone-h) / -2 + var(--phone-bezel) + 11px));
 }
 .pg-stage[data-device="phone"] > :not(.pg-play):not(.pg-toolbar) { zoom: 0.7; }
-/* Play moves onto the screen, above the home indicator. */
+/* Play moves onto the screen, near its foot. */
 .pg-stage[data-device="phone"] > .pg-play { bottom: calc(50% - var(--phone-h) / 2 + 36px); }
 
 /* ── Studio control tokens ────────────────────────────────────

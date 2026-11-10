@@ -95,6 +95,7 @@ export default mergeConfig(defineConfig({
         "voice-position": resolve(__dirname, "voice-position.html"),
         voice: resolve(__dirname, "voice.html"),
         "voice-ring": resolve(__dirname, "voice-ring.html"),
+        "distortion-waves": resolve(__dirname, "distortion-waves.html"),
         "voice-phone": resolve(__dirname, "voice-phone.html"),
         "skill-demo": resolve(__dirname, "skill-demo.html"),
         pro: resolve(__dirname, "pro.html"),

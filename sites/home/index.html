@@ -477,12 +477,11 @@
     /* ── Library grid cards (Figma 1413-37519): icon + meta row ── */
     .lib-card-hit { position: absolute; inset: 0; z-index: 6; border-radius: 24px; }
     .lib-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    /* The beam and orb clips are 1.66:1, wider than the card's 1.17 slot,
-       so they crop at the sides. Their subject sits at the left edge -
-       anchor there rather than centring, which was cutting the composer
-       in half. */
-    .lib-card[data-lib="beam"] .lib-video,
-    .lib-card[data-lib="orb"] .lib-video { object-position: left center; }
+    /* Distortion waves' card is a still of the whole sheet, so it fits
+       rather than crops: where the stage is wider than the still (one
+       column on phones) the sides carry on in the still's own #131313. */
+    .lib-card[data-lib="distortion-waves"] .vid { background: #131313; }
+    .lib-card[data-lib="distortion-waves"] .lib-video { object-fit: contain; }
     /* The two models draw their cards instead of playing a clip (the same
        illustrations as Voice orbs' demo/thumbs/models.html): Magnetic UI, a
        still magnet whose field swells out in dotted waves; Voice position,
@@ -1221,7 +1220,7 @@
       <article class="card lib-card" data-lib="beam" data-kind="library">
         <a class="lib-card-hit" href="/beam.html" aria-label="Border beam playground"></a>
         <div class="card-stage">
-          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAALABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECBv/EAB0QAAICAQUAAAAAAAAAAAAAAAABEiECETFBUWH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A5xRirWpK8MlnkuQI9wJPsAf/2Q==&quot;)"><video class="lib-video" src="/assets/videos/beam-main-card.mp4" poster="/assets/videos/posters/beam-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECBv/EABsQAQADAAMBAAAAAAAAAAAAAAABAhESIUFh/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AOaivW6cfpFrRGb1C7X3QZFnN9AQAAAH/9k=&quot;)"><video class="lib-video" src="/assets/videos/beam-main-card-narrow.mp4" poster="/assets/videos/posters/beam-main-card-narrow.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
         </div>
         <div class="lib-meta">
           <span class="lib-ico"><img src="/assets/icons/tile-beam.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
@@ -1235,7 +1234,7 @@
       <article class="card lib-card" data-lib="orb" data-kind="library">
         <a class="lib-card-hit" href="/orbs.html" aria-label="Thinking orbs playground"></a>
         <div class="card-stage">
-          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAALABQDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAEG/8QAGhAAAwADAQAAAAAAAAAAAAAAAAERITFBUf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwDMqdLzCq9hAm1psABQB//Z&quot;)"><video class="lib-video" src="/assets/videos/orb-main-card.mp4" poster="/assets/videos/posters/orb-main-card.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
+          <div class="vid" style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeLkpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY3/wAARCAARABQDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAEG/8QAGxABAQACAwEAAAAAAAAAAAAAAAEhMRFBcZH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AzMluotk43nxFlncv0EDAAAAAD//Z&quot;)"><video class="lib-video" src="/assets/videos/orb-main-card-narrow.mp4" poster="/assets/videos/posters/orb-main-card-narrow.jpg" muted loop playsinline preload="auto" aria-hidden="true" onerror="this.style.display=&quot;none&quot;"></video></div>
         </div>
         <div class="lib-meta">
           <span class="lib-ico"><img src="/assets/icons/tile-orbs.png" alt="" width="46" height="46" loading="lazy" decoding="async" /></span>
@@ -1287,6 +1286,22 @@
           <span class="lib-meta-text">
             <span class="lib-name">Voice ring</span>
             <span class="lib-desc">Light that bends with your voice</span>
+          </span>
+        </div>
+      </article>
+      <article class="card lib-card" data-lib="distortion-waves" data-kind="library">
+        <a class="lib-card-hit" href="/distortion-waves.html" aria-label="Distortion waves"></a>
+        <div class="card-stage">
+          <!-- A still rendered by DistortionWavesKit: a simplified USDC sheet in
+               the card's proportions, inside it, the green ring leaving its edges;
+               swap in a clip like the other cards when one is recorded. -->
+          <div class="vid" data-ready style="--lqip: url(&quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAARABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDgdqiBWKZLE859KV1jQIFKOWUMSMjafSrVuUNghW4jSRJGO1jg845py75htlvYQjHndIKm5FzPkULIwHQGipLry/tUvlNuj3HafUUVSKWxF2ooooGJRRRQB//Z&quot;)"><img class="lib-video" src="/assets/videos/posters/distortion-waves-main-card.jpg" alt="" width="960" height="825" loading="lazy" decoding="async" /></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico lib-ico--tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_dwaves_card)"><path d="M3.5 13.75A8.5 8.5 0 0 1 20.5 13.75A1.1 1.1 0 0 1 18.3 13.75A6.3 6.3 0 0 0 5.7 13.75A1.1 1.1 0 0 1 3.5 13.75ZM8.5 16.45H15.5A1.15 1.15 0 0 1 15.5 18.75H8.5A1.15 1.15 0 0 1 8.5 16.45Z" fill="url(#paint0_linear_dwaves_card)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_dwaves_card" x="3.5" y="5.25" width="17" height="13.5" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_dwaves_card"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_dwaves_card" result="effect2_innerShadow_dwaves_card"/></filter><linearGradient id="paint0_linear_dwaves_card" x1="6.4" y1="23" x2="17.3" y2="-7.5" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Distortion waves</span>
+            <span class="lib-desc">A wave that carries one screen into the next</span>
           </span>
         </div>
       </article>
@@ -1555,6 +1570,7 @@
             <a href="/gooey.html">Gooey</a>
             <a href="/voice.html">Voice</a>
             <a href="/voice-ring.html">Voice ring</a>
+            <a href="/distortion-waves.html">Distortion waves</a>
             <a href="/bots.html">Bot avatars</a>
             <a href="/metal.html">Metal</a>
             <a href="/image.html">Image</a>

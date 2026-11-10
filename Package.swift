@@ -29,6 +29,7 @@ let package = Package(
         .library(name: "VoiceRingKit", targets: ["VoiceRingKit"]),
         .library(name: "VoiceRingEmotion", targets: ["VoiceRingEmotion"]),
         .library(name: "VoicePositionKit", targets: ["VoicePositionKit"]),
+        .library(name: "DistortionWavesKit", targets: ["DistortionWavesKit"]),
     ],
     targets: [
         .target(
@@ -90,6 +91,12 @@ let package = Package(
             name: "VoicePositionKit",
             dependencies: ["VoiceCore"],
             path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoicePositionKit"
+        ),
+        // Distortion waves: SwiftUI only, no web package.
+        .target(
+            name: "DistortionWavesKit",
+            path: "packages/distortion-waves/ports/ios/DistortionWavesKit/Sources/DistortionWavesKit",
+            resources: [.process("DistortionWaveShaders.metal")]
         ),
     ]
 )

@@ -13,6 +13,7 @@ Each one installs from npm and drops into your app as a single component that wr
 | [Voice](packages/voice-glow) | A glow that rises with your voice from the bottom of a chat input or phone screen | `npm install voice-glow` | [libraries.dev/voice](https://libraries.dev/voice) |
 | [Metal](packages/metal-fx) | Liquid metal for buttons, icons, text and badges, with reflections and cursor light | `npm install metal-fx` | [libraries.dev/metal](https://libraries.dev/metal) |
 | [Image](packages/img-fx) | A loader that becomes the image — a WebGL pixel mosaic that settles into the picture | `npm install img-fx` | [libraries.dev/image](https://libraries.dev/image) |
+| [Distortion waves](packages/distortion-waves) | A colourful wave that carries one screen into another — vertical, horizontal or center (SwiftUI) | `.product(name: "DistortionWavesKit", package: "Libraries.dev")` | [libraries.dev/distortion-waves](https://libraries.dev/distortion-waves) |
 
 Try each one on [libraries.dev](https://libraries.dev): a live preview to play with, the install command, the usage code, and a playground that copies the exact configuration.
 

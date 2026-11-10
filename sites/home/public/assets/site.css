@@ -1087,19 +1087,14 @@ html[data-theme="dark"] .skill-btn--secondary:active {
   gap: 24px;
   align-items: start;
 }
-/* Two rows of three: six libraries fill the six tracks evenly, where the
-   old lead pair of Beam and Orb left the sixth card alone on a third row.
-   The cards drop their fixed 320px so the tracks size them. */
+/* Rows of three: every library a third of the row, Beam and Orb included,
+   so the nine libraries fill three rows with nothing left over. The cards
+   drop their fixed 320px so the tracks size them. */
 .cards > .lib-card { width: auto; grid-column: span 2; }
-/* Beam and Orb lead at half the row each, as they did before the grid
-   evened out — their clips are the widest and carry the section. Only on
-   the six-track layout; the narrow grids below set their own spans. */
+/* Only on the six-track layout (the narrow grids below set their own
+   spans): the two models sit as a wide pair, half the row each, one row
+   above the last. */
 @media (min-width: 1101px) {
-  .cards > .lib-card[data-lib="beam"],
-  .cards > .lib-card[data-lib="orb"] { grid-column: span 3; }
-  /* The two models sit the same way, as a wide pair, one row above the
-     last, so the libraries around them fill rows of three with nothing
-     left over. */
   .cards > .lib-card[data-lib="magnetic"],
   .cards > .lib-card[data-lib="voice-position"] { grid-column: span 3; }
 }
