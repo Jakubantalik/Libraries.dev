@@ -16,3 +16,8 @@
 # The Voice direction model became Voice position on 5 November 2026.
 /voice-direction       /voice-position  301
 /voice-direction.html  /voice-position  301
+
+# The Distortion waves page moved from /distortion-waves to /waves on
+# 10 November 2026.
+/distortion-waves       /waves  301
+/distortion-waves.html  /waves  301
