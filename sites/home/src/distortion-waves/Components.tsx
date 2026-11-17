@@ -107,6 +107,9 @@ const REVIEW_ROWS: [string, string][] = [
   ["Note", "Studio rent"],
 ];
 
+/** The time of day, as the sent review shows when the money arrived. */
+const clockTime = (at: Date) => at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
 /** How a component runs: tuned from the panel, playing by itself (the
     detail page's Play), and for the vertical wave, whether it leans toward
     the press. */
@@ -121,6 +124,8 @@ function useLatest<T>(value: T) {
 
 function SendMoney({ tweak = NO_TWEAK, play = false, lean }: RunProps) {
   const [sent, setSent] = useState(false);
+  // When it was sent, for the sent review's "Arrived" row.
+  const [sentAt, setSentAt] = useState(() => clockTime(new Date()));
   const [done, setDone] = useState(false);
   const [lit, setLit] = useState(false);
   const [gulp, setGulp] = useState(false);
@@ -141,6 +146,7 @@ function SendMoney({ tweak = NO_TWEAK, play = false, lean }: RunProps) {
     r.on = true;
     r.landed = false;
     clear();
+    setSentAt(clockTime(new Date()));
     setSent(true);
     if (still()) {
       later(0.15, () => setDone(true));
@@ -196,7 +202,7 @@ function SendMoney({ tweak = NO_TWEAK, play = false, lean }: RunProps) {
       revealed={sent}
       source={button}
       onFinish={onFinish}
-      revealedContent={<Review done badge={done} onClose={toRest} />}
+      revealedContent={<Review done arrived={sentAt} badge={done} />}
       overlay={
         <>
           <Hairline />
@@ -216,18 +222,18 @@ function SendMoney({ tweak = NO_TWEAK, play = false, lean }: RunProps) {
         </>
       }
     >
-      <Review badge={done} onClose={toRest} />
+      <Review badge={done} />
     </DistortionWave>
   );
 }
 
-/** The review, sending or sent. `badge` turns the avatar into the check: as
-    in the app, it does as the button's title does, with the front 18% of
-    its way up. */
-function Review({ done, badge, onClose }: { done?: boolean; badge: boolean; onClose: () => void }) {
+/** The review, sending or sent; sent, it says when the money arrived.
+    `badge` turns the avatar into the check: as in the app, it does as the
+    button's title does, with the front 18% of its way up. */
+function Review({ done, arrived, badge }: { done?: boolean; arrived?: string; badge: boolean }) {
+  const rows: [string, string][] = done && arrived ? REVIEW_ROWS.map(([label, value]) => (label === "Arrives" ? ["Arrived", arrived] : [label, value])) : REVIEW_ROWS;
   return (
-    <div className="wc-view">
-      <Close onClick={onClose} />
+    <div className="wc-view wc-view--send">
       <div className="wc-review-head">
         <BadgeSlot kind="send" size={48} done={badge} />
         <div className="wc-amount">
@@ -240,8 +246,8 @@ function Review({ done, badge, onClose }: { done?: boolean; badge: boolean; onCl
       </div>
       <div className="wc-body">
         <div className="wc-box">
-          {REVIEW_ROWS.map(([label, value], i) => (
-            <div key={label}>
+          {rows.map(([label, value], i) => (
+            <div key={i}>
               {i > 0 ? <span className="wc-divider" /> : null}
               <div className="wc-row">
                 <span className="wc-label">{label}</span>
@@ -330,7 +336,7 @@ function AddCredits({ tweak = NO_TWEAK, play = false }: RunProps) {
       revealed={sent}
       source={token}
       onFinish={onFinish}
-      revealedContent={<Credits done badge={badge} onClose={toRest} />}
+      revealedContent={<Credits done badge={badge} />}
       overlay={
         <>
           <Hairline />
@@ -353,15 +359,14 @@ function AddCredits({ tweak = NO_TWEAK, play = false }: RunProps) {
         </>
       }
     >
-      <Credits badge={badge} tokenRef={token} onClose={toRest} />
+      <Credits badge={badge} tokenRef={token} />
     </DistortionWave>
   );
 }
 
-function Credits({ done, badge, tokenRef, onClose }: { done?: boolean; badge: { done: boolean; dip: boolean }; tokenRef?: RefObject<HTMLSpanElement>; onClose: () => void }) {
+function Credits({ done, badge, tokenRef }: { done?: boolean; badge: { done: boolean; dip: boolean }; tokenRef?: RefObject<HTMLSpanElement> }) {
   return (
     <div className="wc-view wc-view--credits">
-      <Close onClick={onClose} />
       <div className="wc-credits-head">
         <div className="wc-credits-title">
           <BadgeSlot kind="credits" size={46} {...badge} slotRef={tokenRef} />
@@ -677,14 +682,6 @@ function Document({ doc }: { doc: Doc }) {
 }
 
 /* ── Parts ────────────────────────────────────────────────────── */
-
-function Close({ onClick }: { onClick: () => void }) {
-  return (
-    <button type="button" className="wc-close" aria-label="Close" onClick={onClick}>
-      <img src={`${A}xmark.svg`} width={14} height={14} alt="" />
-    </button>
-  );
-}
 
 /** The card's 1px stroke, on its outermost pixel: the wave's edge line
     lights up right under it. */

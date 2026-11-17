@@ -138,23 +138,6 @@
   pointer-events: none;
 }
 
-.wc-close {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  margin: 0;
-  border: 0;
-  padding: 0;
-  border-radius: 50%;
-  background: none;
-  opacity: 0.5;
-  cursor: pointer;
-}
-
 .wc-body {
   display: flex;
   flex-direction: column;
@@ -275,14 +258,28 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   cursor: pointer;
-  transition: opacity 0.15s ease-in-out;
+  transition:
+    opacity 0.15s ease-in-out,
+    background-color 0.15s ease-out;
+}
+
+/* A touch darker under the pointer. */
+@media (hover: hover) {
+  .wc-cta:hover {
+    background: #e4e4e4;
+  }
 }
 
 .wc-cta.is-busy {
   opacity: 0.8;
 }
 
-/* ── Send money: 437 = 21 + 128 + 20 + 247 + 21 ───────────────── */
+/* ── Send money: 447 = 31 + 128 + 20 + 247 + 21 ───────────────── */
+
+/* The avatar as far from the top as the credits token. */
+.wc-view--send {
+  padding-top: 31px;
+}
 
 .wc-review-head {
   display: flex;

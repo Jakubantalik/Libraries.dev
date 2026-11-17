@@ -180,7 +180,9 @@ function Playground() {
   const open = entitled || chosenType === "vertical" || chosenType === "center";
   const type: PageType = open ? chosenType : "vertical";
   const lean = entitled && chosenLean === "on";
-  const leans = !phone && type === "vertical";
+  // The waves a touch starts: the vertical one, and on the phone the
+  // horizontal one too, from its edge handle (React's toast plays itself).
+  const leans = type === "vertical" || (phone && type === "horizontal");
 
   /* The type's tuned defaults, round the phone's (or the sheet's) corners.
      The diagonal type is the center ring, from a corner. */
@@ -194,8 +196,10 @@ function Playground() {
       s.palette = PALETTES.mono;
     }
     s.cornerRadius = type === "center" ? SHEET.radius : PHONE.radius;
+    // Touch orientation off: the wave leaves the source evenly.
+    if (!lean) s.orientation = 0;
     return s;
-  }, [type, waveType]);
+  }, [type, waveType, lean]);
 
   /* Colour and duration, locked: the Studio tunes them. */
   const teaser: TeaserRow[] = [
@@ -222,33 +226,26 @@ function Playground() {
         </div>
 
         <div className="pg-controls" id="playground-controls">
-          {phone ? (
+          <div>
+            <PgTabs label="Type" options={pageTypes(entitled)} value={type} onChange={setType} />
+            <span className="pg-note">{phone ? SWIFT_NOTE[type] : REACT_NOTE[type]}</span>
+          </div>
+          {leans ? (
             <div>
-              <PgTabs label="Type" options={pageTypes(entitled)} value={type} onChange={setType} />
-              <span className="pg-note">{SWIFT_NOTE[type]}</span>
+              <PgTabs
+                label="Touch orientation"
+                options={[
+                  { value: "off", label: "Off" },
+                  { value: "on", label: "On", locked: entitled ? undefined : "Available with Pro" },
+                ]}
+                value={lean ? "on" : "off"}
+                onChange={setLean}
+              />
+              <span className="pg-note">
+                The wave leans toward where you {phone ? "touch" : "click"} {type === "horizontal" ? "the handle" : "the button"}, from the moment it leaves it.
+              </span>
             </div>
-          ) : (
-            <>
-              <div>
-                <PgTabs label="Type" options={pageTypes(entitled)} value={type} onChange={setType} />
-                <span className="pg-note">{REACT_NOTE[type]}</span>
-              </div>
-              {leans ? (
-                <div>
-                  <PgTabs
-                    label="Touch orientation"
-                    options={[
-                      { value: "off", label: "Off" },
-                      { value: "on", label: "On", locked: entitled ? undefined : "Available with Pro" },
-                    ]}
-                    value={lean ? "on" : "off"}
-                    onChange={setLean}
-                  />
-                  <span className="pg-note">The wave leans toward where you click the button, from the moment it leaves it.</span>
-                </div>
-              ) : null}
-            </>
-          )}
+          ) : null}
           <StudioTeaser rows={teaser} />
         </div>
       </div>
