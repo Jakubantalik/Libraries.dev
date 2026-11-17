@@ -77,9 +77,11 @@ export function WaveComponents() {
   );
 }
 
-/** One of the components on its own, for the detail page's playground:
-    `playing` runs it round by itself, `lean` turns the vertical wave's lean
-    toward the press on or off. */
+/** One of the components on its own, for the detail page's playground, where
+    each stands for a type: Send money vertical, Add credits center, Toast
+    horizontal (its wave crosses it from the token) and Document diagonal (a
+    ring from its top left corner). `playing` runs it round by itself, `lean`
+    turns the vertical wave's lean toward the press on or off. */
 export function WaveVariant({ which, playing, lean }: { which: Which; playing: boolean; lean: boolean }) {
   return (
     <div className="wc-stage">
@@ -88,7 +90,7 @@ export function WaveVariant({ which, playing, lean }: { which: Which; playing: b
       ) : which === "credits" ? (
         <AddCredits play={playing} />
       ) : which === "toast" ? (
-        <Toast play={playing} />
+        <Toast play={playing} sideways />
       ) : (
         <DocumentCard play={playing} />
       )}
@@ -387,14 +389,18 @@ function Credits({ done, badge, tokenRef, onClose }: { done?: boolean; badge: { 
 
 /* ── Toast: sending, then sent ────────────────────────────────── */
 
-function Toast({ tweak = NO_TWEAK, play = true }: RunProps) {
+/** The toast's wave crossing it from the token, left to right: the detail
+    page's horizontal type. */
+const SIDEWAYS_TOAST = defaultStyle("horizontal");
+
+function Toast({ tweak = NO_TWEAK, play = true, sideways = false }: RunProps & { sideways?: boolean }) {
   const [sent, setSent] = useState(false);
   const [done, setDone] = useState(false);
   const api = useRef<DistortionWaveHandle>(null);
   const token = useRef<HTMLSpanElement>(null);
   const run = useRef({ on: false });
   const { later, clear } = useTimers();
-  const { input, style } = tuned(BASES.toast, tweak);
+  const { input, style } = tuned(sideways ? SIDEWAYS_TOAST : BASES.toast, tweak);
   const playing = useLatest(play);
   // Read by the timers, so a change in the panel reaches the next round.
   const morph = useRef(morphAfter(style));
@@ -448,7 +454,8 @@ function Toast({ tweak = NO_TWEAK, play = true }: RunProps) {
       ref={api}
       className="wc-toast"
       role="status"
-      type="center"
+      type={sideways ? "horizontal" : "center"}
+      palette={sideways ? "green" : undefined}
       waveStyle={input}
       revealed={sent}
       source={token}

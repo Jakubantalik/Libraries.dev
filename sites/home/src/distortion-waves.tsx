@@ -4,7 +4,6 @@ import { CodeBlock } from "./examples/CodeCopy";
 import { StudioTeaser, useEntitled, type TeaserRow } from "./examples/StudioTeaser";
 import { PgTabs } from "./examples/PgTabs";
 import { DistortionWavePreview } from "./distortion-waves/Preview";
-import { DistortionWaveDesktop } from "./distortion-waves/Desktop";
 import { WaveVariant } from "./distortion-waves/Components";
 import type { Which } from "./distortion-waves/WaveControls";
 import { defaultStyle as packageStyle } from "distortion-waves";
@@ -15,49 +14,50 @@ import { PHONE, SHEET } from "./distortion-waves/scenes";
    controls) and the live snippet under it. The library has two ports, and
    the page's platform tabs (site.js) choose which one the stage shows:
 
-   - React: the `distortion-waves` package itself, on a dialog of real DOM
-     (./distortion-waves/Desktop).
+   - React: the `distortion-waves` package itself, on the wave components
+     (./distortion-waves/Components, WaveVariant), all real DOM.
    - SwiftUI: DistortionWavesKit, shown as a phone that a WebGL port of the
      Swift shaders draws, from the same timeline (./distortion-waves/Preview).
 
-   The page tunes nothing but the type, and shows two of the three: vertical
-   and center (horizontal is the Studio's). On React the stage can also show
-   one of the four components of the wave components page (Send money, Add
-   credits, Toast, Document) as a variant, and the vertical wave's lean
-   toward the press is an on/off switch that only Pro opens. Colour and
-   duration show locked, as the Studio's own controls, under its teaser. The
-   stage starts PAUSED, like every other library's. */
+   The page tunes nothing but the type. On React each type shows one of the
+   wave components (Send money, Add credits, Toast, Document), and the
+   vertical wave's lean toward the press is an on/off switch that only Pro
+   opens. The phone shows vertical and center. Colour and duration show
+   locked, as the Studio's own controls, under its teaser. The stage starts
+   PAUSED, like every other library's. */
 
-type PageType = Exclude<WaveType, "horizontal">;
+/* The phone shows two of the library's types, vertical and center
+   (horizontal is the Studio's). The React stage shows each type on one of
+   the wave components: Send money, Add credits, Toast and Document, whose
+   ring from the corner reads as a fourth, diagonal type. */
+type PhoneType = Exclude<WaveType, "horizontal">;
+type PageType = PhoneType | "horizontal" | "diagonal";
 type Port = "react" | "swift";
 
-const TYPE_OPTIONS = [
+const PHONE_TYPES = [
   { value: "vertical", label: "Vertical" },
   { value: "center", label: "Center" },
 ] as const;
 
-type Variant = "dialog" | Which;
-
-const VARIANT_OPTIONS = [
-  { value: "dialog", label: "Dialog" },
-  { value: "send", label: "Send money" },
-  { value: "credits", label: "Add credits" },
-  { value: "toast", label: "Toast" },
-  { value: "doc", label: "Document" },
+const REACT_TYPES = [
+  { value: "vertical", label: "Vertical" },
+  { value: "center", label: "Center" },
+  { value: "horizontal", label: "Horizontal" },
+  { value: "diagonal", label: "Diagonal" },
 ] as const;
 
-/** The type each component's wave is. */
-const VARIANT_TYPE: Record<Which, PageType> = { send: "vertical", credits: "center", toast: "center", doc: "center" };
+/** The component each type shows on the React stage. */
+const TYPE_COMPONENT: Record<PageType, Which> = { vertical: "send", center: "credits", horizontal: "toast", diagonal: "doc" };
 
-const VARIANT_NOTE: Record<Which, string> = {
-  send: "Click Confirm: the wave goes up the modal from the button, and the avatar turns into the check as the front passes it.",
-  credits: "Click Buy: after a moment of processing, the token squeezes, a ring leaves it, and it turns into the check.",
-  toast: "Press Play: the spinner turns for a second, then a ring leaves the token as it turns into the check.",
-  doc: "Click Rewrite: after a moment of rewriting, a grey ring sweeps the new text in from the card's corner.",
+const REACT_NOTE: Record<PageType, string> = {
+  vertical: "Click Confirm: the wave goes up the modal from the button, and the avatar turns into the check as the front passes it.",
+  center: "Click Buy: after a moment of processing, the token squeezes, a ring leaves it, and it turns into the check.",
+  horizontal: "Press Play: the spinner turns for a second, then the wave crosses the toast from the token as it turns into the check.",
+  diagonal: "Click Rewrite: after a moment of rewriting, a grey ring sweeps the new text in from the card's corner.",
 };
 
-const VARIANT_SNIPPET: Record<Which, string> = {
-  send: `import { DistortionWave } from "distortion-waves";
+const REACT_SNIPPET: Record<PageType, string> = {
+  vertical: `import { DistortionWave } from "distortion-waves";
 
 <DistortionWave
   revealed={sent}
@@ -67,19 +67,19 @@ const VARIANT_SNIPPET: Record<Which, string> = {
 >
   <Review />
 </DistortionWave>`,
-  credits: `import { DistortionWave } from "distortion-waves";
+  center: `import { DistortionWave } from "distortion-waves";
 
 <DistortionWave type="center" revealed={bought} source={token} revealedContent={<Credits added />}>
   <Credits tokenRef={token} />
 </DistortionWave>`,
-  toast: `import { DistortionWave } from "distortion-waves";
+  horizontal: `import { DistortionWave } from "distortion-waves";
 
-<DistortionWave type="center" role="status" revealed={sent} source={token} revealedContent={<Toast sent />}>
+<DistortionWave type="horizontal" palette="green" role="status" revealed={sent} source={token} revealedContent={<Toast sent />}>
   <Toast tokenRef={token} />
 </DistortionWave>`,
-  doc: `import { DistortionWave } from "distortion-waves";
+  diagonal: `import { DistortionWave } from "distortion-waves";
 
-// From the card's top left corner, with no anticipation.
+// A ring from the card's top left corner, with no anticipation.
 <DistortionWave
   type="center"
   palette="mono"
@@ -92,47 +92,20 @@ const VARIANT_SNIPPET: Record<Which, string> = {
 </DistortionWave>`,
 };
 
-/* The lean toward the press: Pro opens it, everyone else sees it locked. */
-type Lean = "off" | "on";
-
-const SOURCE_NOTE: Record<Port, Record<PageType, string>> = {
-  react: {
-    vertical: "Click Confirm: the wave goes up the card from the button.",
-    center: "Click Send: after a moment of processing, a ring leaves the token as it becomes the check.",
-  },
-  swift: {
-    vertical: "Touch Confirm: the wave goes up the screen from the button.",
-    center: "Touch Send: after a moment of processing, a ring leaves the token as it becomes the check.",
-  },
+const SWIFT_NOTE: Record<PhoneType, string> = {
+  vertical: "Touch Confirm: the wave goes up the screen from the button.",
+  center: "Touch Send: after a moment of processing, a ring leaves the token as it becomes the check.",
 };
 
-const SNIPPET: Record<Port, Record<PageType, string>> = {
-  react: {
-    vertical: `import { DistortionWave } from "distortion-waves";
-
-<DistortionWave
-  revealed={sent}
-  source={button}
-  revealedContent={<Receipt />}
-  overlay={<button ref={button} onClick={() => setSent(true)}>Confirm</button>}
->
-  <Review />
-</DistortionWave>`,
-    center: `import { DistortionWave } from "distortion-waves";
-
-<DistortionWave type="center" revealed={done} source={token} revealedContent={<Sheet sent />}>
-  <Sheet tokenRef={token} />
-</DistortionWave>`,
-  },
-  swift: {
-    vertical: `import DistortionWavesKit
+const SWIFT_SNIPPET: Record<PhoneType, string> = {
+  vertical: `import DistortionWavesKit
 
 DistortionWave(isRevealed: sent, source: buttonFrame, focus: touch, style: .vertical) {
     ReviewScreen()
 } revealed: {
     ReceiptScreen()
 }`,
-    center: `import DistortionWavesKit
+  center: `import DistortionWavesKit
 
 var style = DistortionWaveStyle.center
 style.cornerRadius = 48   // the sheet's corners
@@ -142,8 +115,10 @@ DistortionWave(isRevealed: done, source: tokenFrame, style: style) {
 } revealed: {
     Sheet(sent: true)
 }`,
-  },
 };
+
+/* The lean toward the press: Pro opens it, everyone else sees it locked. */
+type Lean = "off" | "on";
 
 /** The platform site.js is about to choose: the saved one if this page has
     it, else the page's first. Read before the first paint, so a visitor who
@@ -175,34 +150,30 @@ function usePhone(stage: RefObject<HTMLDivElement>) {
 }
 
 function Playground() {
-  const [chosenType, setChosenType] = useState<PageType>("vertical");
-  const [chosenVariant, setVariant] = useState<Variant>("dialog");
+  const [chosenType, setType] = useState<PageType>("vertical");
   const [chosenLean, setLean] = useState<Lean>("off");
   const [paused, setPaused] = useState(true);
   const stage = useRef<HTMLDivElement>(null);
   const phone = usePhone(stage);
   const entitled = useEntitled();
-  const port: Port = phone ? "swift" : "react";
-  // The components are React's; the phone shows the type alone.
-  const variant: Variant = phone ? "dialog" : chosenVariant;
-  const type: PageType = variant === "dialog" ? chosenType : VARIANT_TYPE[variant];
+  // The phone has two of the four types: the others show it vertical.
+  const phoneType: PhoneType = chosenType === "center" ? "center" : "vertical";
+  const type: PageType = phone ? phoneType : chosenType;
   const lean = entitled && chosenLean === "on";
   const leans = !phone && type === "vertical";
-  const chooseType = (t: PageType) => {
-    setChosenType(t);
-    setVariant("dialog");
-  };
 
-  /* The type's tuned defaults, round the phone's (or the sheet's) corners. */
+  /* The type's tuned defaults, round the phone's (or the sheet's) corners.
+     The diagonal type is the center ring, from a corner. */
+  const waveType: WaveType = type === "diagonal" ? "center" : type;
   const style = useMemo(() => {
-    const s = defaultStyle(type);
-    s.cornerRadius = type === "center" ? SHEET.radius : PHONE.radius;
+    const s = defaultStyle(waveType);
+    s.cornerRadius = waveType === "center" ? SHEET.radius : PHONE.radius;
     return s;
-  }, [type]);
+  }, [waveType]);
 
   /* Colour and duration, locked: the Studio tunes them. */
   const teaser: TeaserRow[] = [
-    { kind: "swatches", label: "Colour", colors: [style.palette, PALETTES.ocean, PALETTES.sunset, PALETTES.mono, type === "center" ? PALETTES.colorful : PALETTES.green].map((p) => rgbToHex(p.colors[0])) },
+    { kind: "swatches", label: "Colour", colors: [style.palette, PALETTES.ocean, PALETTES.sunset, PALETTES.mono, waveType === "center" ? PALETTES.colorful : PALETTES.green].map((p) => rgbToHex(p.colors[0])) },
     { kind: "slider", label: "Duration", value: `${duration(style).toFixed(2)}s`, fill: Math.round((style.travel / 4.5) * 100) },
     { kind: "slider", label: "Swell", value: `${style.amplitude}pt`, fill: Math.round((style.amplitude / 80) * 100) },
     { kind: "slider", label: "Edges", value: `${style.rimWidth}pt`, fill: Math.round((style.rimWidth / 60) * 100) },
@@ -216,10 +187,8 @@ function Playground() {
         <div className="pg-stage" id="playground-stage" ref={stage}>
           {phone ? (
             <DistortionWavePreview style={style} playing={!paused} />
-          ) : variant === "dialog" ? (
-            <DistortionWaveDesktop type={type} playing={!paused} waveStyle={type === "vertical" ? { orientation: lean ? packageStyle("vertical").orientation : 0 } : undefined} />
           ) : (
-            <WaveVariant key={variant} which={variant} playing={!paused} lean={lean} />
+            <WaveVariant key={type} which={TYPE_COMPONENT[type]} playing={!paused} lean={lean} />
           )}
           <button type="button" className="btn-animate pg-play" onClick={() => setPaused((p) => !p)} aria-pressed={!paused}>
             {paused ? "Play" : "Pause"}
@@ -229,15 +198,14 @@ function Playground() {
         <div className="pg-controls" id="playground-controls">
           {phone ? (
             <div>
-              <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={chooseType} />
-              <span className="pg-note">{SOURCE_NOTE[port][type]}</span>
+              <PgTabs label="Type" options={PHONE_TYPES} value={phoneType} onChange={setType} />
+              <span className="pg-note">{SWIFT_NOTE[phoneType]}</span>
             </div>
           ) : (
             <>
-              <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={chooseType} />
               <div>
-                <PgTabs label="Variant" options={VARIANT_OPTIONS} value={variant} onChange={setVariant} />
-                <span className="pg-note">{variant === "dialog" ? SOURCE_NOTE[port][type] : VARIANT_NOTE[variant]}</span>
+                <PgTabs label="Type" options={REACT_TYPES} value={type} onChange={setType} />
+                <span className="pg-note">{REACT_NOTE[type]}</span>
               </div>
               {leans ? (
                 <div>
@@ -259,7 +227,7 @@ function Playground() {
         </div>
       </div>
 
-      <CodeBlock code={variant === "dialog" ? SNIPPET[port][type] : VARIANT_SNIPPET[variant]} label="Copy playground code" className="pg-snippet" />
+      <CodeBlock code={phone ? SWIFT_SNIPPET[phoneType] : REACT_SNIPPET[type]} label="Copy playground code" className="pg-snippet" />
     </>
   );
 }
