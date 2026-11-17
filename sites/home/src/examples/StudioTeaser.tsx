@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
    opens the Studio instead. pro-client.js resolves /me after the page has
    mounted and fires "pro:me" on every change, so the button reads the
    state at mount and again whenever it moves. */
-function useEntitled() {
+export function useEntitled() {
   const [entitled, setEntitled] = useState(false);
   useEffect(() => {
     const read = () => {

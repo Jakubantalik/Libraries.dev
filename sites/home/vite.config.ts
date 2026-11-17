@@ -96,6 +96,7 @@ export default mergeConfig(defineConfig({
         voice: resolve(__dirname, "voice.html"),
         "voice-ring": resolve(__dirname, "voice-ring.html"),
         waves: resolve(__dirname, "waves.html"),
+        "wave-components": resolve(__dirname, "wave-components.html"),
         "voice-phone": resolve(__dirname, "voice-phone.html"),
         "skill-demo": resolve(__dirname, "skill-demo.html"),
         pro: resolve(__dirname, "pro.html"),

@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import type { WaveStyleInput } from "distortion-waves";
 import { ControlsPanel, PgTabs, PgSlider, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { DistortionWavePreview } from "../distortion-waves/Preview";
+import { DistortionWaveDesktop } from "../distortion-waves/Desktop";
 import {
   defaultStyle,
   duration,
@@ -14,13 +16,14 @@ import {
 } from "../distortion-waves/model";
 import { PHONE, SHEET } from "../distortion-waves/scenes";
 
-/* Studio — Distortion waves workbench. The library is SwiftUI only
-   (DistortionWavesKit), so React shows greyed and the stage is the phone;
-   the WebGL port draws the wave from the same timeline. Every knob is a
-   DistortionWaveStyle property under its own name, so the Install tab writes
-   `style.<knob> = value` for exactly what was moved from the type's tuned
-   defaults. Each type keeps its own values as the bench switches between
-   them. */
+/* Studio — Distortion waves workbench. The library has two ports and the
+   bar's platform chooses the stage: React is the `distortion-waves` package
+   itself on a dialog of real DOM, SwiftUI (DistortionWavesKit) is the phone,
+   which a WebGL port of the Swift shaders draws from the same timeline.
+   Every knob is a style property under its own name on both, so the code
+   tabs write exactly what was moved from the type's tuned defaults:
+   `waveStyle={{ knob: value }}` for React, `style.knob = value` for Swift.
+   Each type keeps its own values as the bench switches between them. */
 
 const TYPE_OPTIONS = [
   { value: "vertical", label: "Vertical" },
@@ -137,6 +140,27 @@ const SWATCHES = (Object.keys(PALETTES) as PaletteName[]).map((name) => {
   return { value: name, label: PALETTE_LABEL[name], swatch: `conic-gradient(${[...cs, cs[0]].join(", ")})` };
 });
 
+/** True while the bar has the stage in its phone frame (SwiftUI). */
+function usePhone(stage: RefObject<HTMLDivElement>) {
+  const [phone, setPhone] = useState(() => {
+    try {
+      return localStorage.getItem("ldev:platform") === "swift";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const read = () => setPhone(el.getAttribute("data-device") === "phone");
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(el, { attributes: true, attributeFilter: ["data-device"] });
+    return () => watch.disconnect();
+  }, [stage]);
+  return phone;
+}
+
 type Values = Record<WaveType, Record<string, number>>;
 const initialValues = (): Values =>
   Object.fromEntries((["vertical", "horizontal", "center"] as WaveType[]).map((t) => {
@@ -161,6 +185,8 @@ export function DistortionWavesStudio({ visible = true }: { visible?: boolean; t
   const [processing, setProcessing] = useState(1.2);
   const [resetAfter, setResetAfter] = useState(2);
 
+  const stage = useRef<HTMLDivElement>(null);
+  const phone = usePhone(stage);
   const typeRef = useRef(type);
   typeRef.current = type;
   const v = values[type];
@@ -172,12 +198,36 @@ export function DistortionWavesStudio({ visible = true }: { visible?: boolean; t
     return s;
   }, [type, v, colour]);
 
+  /* The same knobs for the React element, which takes its corners from the
+     element it is on. */
+  const waveStyle = useMemo(() => Object.fromEntries(KNOBS.map((k) => [k.key, v[k.key]])) as WaveStyleInput, [v]);
+
   const set = (key: string, value: number) => setValues((prev) => ({ ...prev, [type]: { ...prev[type], [key]: value } }));
 
-  /* SwiftUI: only what moved from the type's tuned defaults. */
+  /* Both snippets: only what moved from the type's tuned defaults. */
   const defaults = stageDefaults(type);
   const moved = KNOBS.filter((k) => Math.abs(v[k.key] - (defaults[k.key] as number)) > 1e-6);
-  const lines = moved.map((k) => `style.${k.key} = ${k.unit === "n" ? Math.round(v[k.key]) : num(v[k.key])}`);
+  const written = (k: Knob) => (k.unit === "n" ? Math.round(v[k.key]) : num(v[k.key]));
+
+  const pairs = moved.map((k) => `${k.key}: ${written(k)}`);
+  const tuned = [
+    ...(pairs.length > 2 ? ["  waveStyle={{", ...pairs.map((x) => `    ${x},`), "  }}"] : pairs.length ? [`  waveStyle={{ ${pairs.join(", ")} }}`] : []),
+    ...(colour !== defaultColour(type) ? [`  palette="${colour}"`] : []),
+  ];
+  const reactUsage = [
+    'import { DistortionWave } from "distortion-waves";',
+    "",
+    "<DistortionWave",
+    ...(type === "vertical" ? [] : [`  type="${type}"`]),
+    ...(type === "center"
+      ? ["  revealed={done}", "  source={token}", ...tuned, "  revealedContent={<Sheet sent />}", ">", "  <Sheet tokenRef={token} />"]
+      : type === "horizontal"
+        ? ["  revealed={sent}", "  source={edge}", ...tuned, "  revealedContent={<Receipt />}", '  overlay={<button ref={edge} aria-label="Send" onClick={() => setSent(true)} />}', ">", "  <Review />"]
+        : ["  revealed={sent}", "  source={button}", ...tuned, "  revealedContent={<Receipt />}", "  overlay={<button ref={button} onClick={() => setSent(true)}>Confirm</button>}", ">", "  <Review />"]),
+    "</DistortionWave>",
+  ].join("\n");
+
+  const lines = moved.map((k) => `style.${k.key} = ${written(k)}`);
   if (colour !== defaultColour(type)) {
     lines.push(isPreset(colour) ? `style.palette = .${colour}` : `style.palette = .single(DistortionWaveColor(hex: 0x${colour.replace("#", "").toUpperCase()}))`);
   }
@@ -234,11 +284,16 @@ export function DistortionWavesStudio({ visible = true }: { visible?: boolean; t
     <div className="pg">
       <StageBar
         library="Distortion waves"
-        prompt={{ pkg: "", docsPath: "/distortion-waves.html", snippet: swiftUsage, web: false, platforms }}
+        prompt={{ pkg: "distortion-waves", docsPath: "/waves", snippet: reactUsage, platforms }}
         agent={{ libraryId: "distortion-waves", params, labels: LABELS, onApply: applyParams }}
       />
-      <div className="pg-stage">
-        {visible && <DistortionWavePreview style={style} playing={!paused} processing={processing} resetAfter={resetAfter} />}
+      <div className="pg-stage" ref={stage}>
+        {visible &&
+          (phone ? (
+            <DistortionWavePreview style={style} playing={!paused} processing={processing} resetAfter={resetAfter} />
+          ) : (
+            <DistortionWaveDesktop type={type} waveStyle={waveStyle} palette={colour} playing={!paused} processing={processing} resetAfter={resetAfter} />
+          ))}
         <button type="button" className="btn-animate pg-play" onClick={() => setPaused((p) => !p)} aria-pressed={!paused}>
           {paused ? "Play" : "Pause"}
         </button>
@@ -287,7 +342,7 @@ export function DistortionWavesStudio({ visible = true }: { visible?: boolean; t
         </PgGroup>
       </ControlsPanel>
 
-      <Snippet code={swiftUsage} />
+      <Snippet code={phone ? swiftUsage : reactUsage} />
     </div>
   );
 }

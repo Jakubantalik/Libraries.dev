@@ -116,7 +116,7 @@ public struct DistortionWaveStyle: Sendable {
     /// evenly from the whole source, 1 opens from under the finger and leans its
     /// way, so a touch on the right climbs the right side first. The center
     /// type never leans.
-    public var orientation = 0.91
+    public var orientation = 0.5
 
     // Particles
     /// How many dots fall into the source and fly out of it with the wave.

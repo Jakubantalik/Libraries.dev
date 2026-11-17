@@ -126,11 +126,15 @@ struct WaveFront: Equatable {
         let crossed = reach + (style.swell + Self.coverZone) * fullSquash
         let settling = 1 - Self.smooth(Self.settleStart, Self.settleEnd, x)
 
+        // The lean toward the touch is in place as the front leaves the
+        // source: it turns in over the first tenth of the move, not while the
+        // front opens.
+        let facing = Self.smooth(0, 0.1, moved)
         self.origin = CGPoint(
-            x: Double(source.midX) + fullShift * opening * Double(spineAxis.dx),
-            y: Double(source.midY) + fullShift * opening * Double(spineAxis.dy)
+            x: Double(source.midX) + fullShift * facing * Double(spineAxis.dx),
+            y: Double(source.midY) + fullShift * facing * Double(spineAxis.dy)
         )
-        self.tilt = turned + fullLean * opening
+        self.tilt = turned + fullLean * facing
         // The pill opens into an arc only as the front travels, so its sides
         // never pull back in while the radius is still small.
         self.spine = startSpine * (1 - opening)

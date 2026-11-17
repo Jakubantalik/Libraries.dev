@@ -24,14 +24,14 @@
 
   <meta name="color-scheme" content="dark" />
 
-  <title>Distortion Waves: a colourful screen transition for SwiftUI | Libraries.dev</title>
+  <title>Distortion Waves: a colourful screen transition for React and SwiftUI | Libraries.dev</title>
   <meta
     name="description"
-    content="Distortion waves for SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one screen into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT, iOS 17+."
+    content="Distortion waves for React and SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one view into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT."
   />
   <meta
     name="keywords"
-    content="swiftui transition, distortion effect swiftui, metal shader swiftui, screen transition ios, success animation swiftui, payment confirmation animation, chromatic aberration swiftui, distortion-waves"
+    content="react transition, webgl distortion react, react view transition, swiftui transition, distortion effect swiftui, metal shader swiftui, screen transition ios, success animation swiftui, payment confirmation animation, chromatic aberration swiftui, distortion-waves"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -53,16 +53,16 @@
   <meta property="og:site_name" content="Libraries.dev" />
   <meta property="og:url" content="https://libraries.dev/waves" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Distortion Waves: a colourful screen transition for SwiftUI" />
-  <meta property="og:description" content="Distortion waves for SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one screen into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT, iOS 17+." />
+  <meta property="og:title" content="Distortion Waves: a colourful screen transition for React and SwiftUI" />
+  <meta property="og:description" content="Distortion waves for React and SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one view into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
-  <meta name="twitter:title" content="Distortion Waves: a colourful screen transition for SwiftUI" />
-  <meta name="twitter:description" content="Distortion waves for SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one screen into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT, iOS 17+." />
+  <meta name="twitter:title" content="Distortion Waves: a colourful screen transition for React and SwiftUI" />
+  <meta name="twitter:description" content="Distortion waves for React and SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one view into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT." />
 
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -110,8 +110,9 @@
     .code-copy .icon-check { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-copy { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(3px); }
     .code-copy[data-copied="true"] .icon-check { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
-    /* Distortion waves: a whole phone screen, centred on the stage (the
-       phone itself is the preview's own, see src/distortion-waves). */
+    /* Distortion waves: a dialog (React) or a whole phone screen (SwiftUI),
+       centred on the stage; both are the preview's own, see
+       src/distortion-waves. */
     /* The teaser grows to the panel's foot: its scrim then resolves into the
        surface at the real bottom edge. */
     #playground .pg-teaser { flex: 1; }
@@ -136,14 +137,15 @@
       {
         "@type": "SoftwareSourceCode",
         "@id": "https://libraries.dev/waves#library",
-        "name": "Distortion Waves (DistortionWavesKit)",
-        "description": "Distortion waves for SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one screen into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT, iOS 17+.",
+        "name": "Distortion Waves (distortion-waves, DistortionWavesKit)",
+        "description": "Distortion waves for React and SwiftUI: a colourful wave that opens from a button, a screen edge or an avatar and carries one view into another, with a quick pull, a soft swell, progressive blur, chromatic aberration and colour that stays on the edges. Three types: vertical, horizontal and center. Free, MIT.",
         "url": "https://libraries.dev/waves",
         "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
         "programmingLanguage": [
+          "TypeScript",
           "Swift"
         ],
-        "runtimePlatform": "SwiftUI",
+        "runtimePlatform": ["React", "SwiftUI"],
         "license": "https://opensource.org/licenses/MIT",
         "isAccessibleForFree": true,
         "author": {
@@ -333,7 +335,7 @@
           <div class="detail-titles">
             <span class="detail-icon detail-tile" aria-hidden="true"><svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_dwaves)"><path d="M3.5 13.75A8.5 8.5 0 0 1 20.5 13.75A1.1 1.1 0 0 1 18.3 13.75A6.3 6.3 0 0 0 5.7 13.75A1.1 1.1 0 0 1 3.5 13.75ZM8.5 16.45H15.5A1.15 1.15 0 0 1 15.5 18.75H8.5A1.15 1.15 0 0 1 8.5 16.45Z" fill="url(#paint0_linear_dwaves)" fill-opacity="0.7"/></g><defs><filter id="filter0_ii_dwaves" x="3.5" y="5.25" width="17" height="13.5" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.7"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_dwaves"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.348614"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_dwaves" result="effect2_innerShadow_dwaves"/></filter><linearGradient id="paint0_linear_dwaves" x1="6.4" y1="23" x2="17.3" y2="-7.5" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
             <h1 class="detail-title">Distortion waves</h1>
-            <p class="detail-sub">A colourful wave that carries one screen into the next. The screen pulls toward the button first, then the wave leaves from where it was touched, leaning that way, and leaves its colour on the edges. Vertical, horizontal and center. SwiftUI.</p>
+            <p class="detail-sub">A colourful wave that carries one screen into the next. The screen pulls toward the button first, then the wave leaves from where it was touched, leaning that way, and leaves its colour on the edges. Vertical, horizontal and center. React and SwiftUI.</p>
           </div>
 
           <div class="detail-head-row">
@@ -344,12 +346,12 @@
             </div>
 
             <div class="detail-head-actions">
-              <!-- Platform: SwiftUI ships; React and React Native show greyed
-                   with "Coming soon" (site.js skips them, and the phone frame
-                   goes on the stage). -->
+              <!-- Platform: React and SwiftUI ship; React Native shows greyed
+                   with "Coming soon" (site.js skips it). React shows the
+                   package on a dialog, SwiftUI the phone. -->
               <div class="st-platform-tabs detail-platforms" role="tablist" aria-label="Platform" data-head-platforms>
-                <button type="button" class="st-platform-tab" role="tab" data-head-platform="react" aria-selected="false" aria-disabled="true" data-soon>React<span class="detail-platform-tip" role="tooltip">Coming soon</span></button>
-                <button type="button" class="st-platform-tab" role="tab" data-head-platform="swift" aria-selected="true" data-active="true">SwiftUI</button>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="react" aria-selected="true" data-active="true">React</button>
+                <button type="button" class="st-platform-tab" role="tab" data-head-platform="swift" aria-selected="false">SwiftUI</button>
                 <button type="button" class="st-platform-tab" role="tab" data-head-platform="rn" aria-selected="false" aria-disabled="true" data-soon>React Native<span class="detail-platform-tip" role="tooltip">Coming soon</span></button>
               </div>
 
@@ -359,7 +361,7 @@
                 <span class="t-pro-btn-label">Tune in Studio</span>
               </a>
 
-              <button type="button" class="detail-prompt" data-prompt-target="#agent-prompt-swift" aria-label="Copy agent prompt">
+              <button type="button" class="detail-prompt" data-prompt-target="#agent-prompt-react" aria-label="Copy agent prompt">
                 <span class="detail-prompt-ico" aria-hidden="true">
                   <!-- copy-03, exported from Figma 1419:38547. -->
                   <svg class="icon-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -378,11 +380,118 @@
             <div id="playground-root"></div>
           </div>
 
-          <!-- Install & Usage: SwiftUI, the one port so far. -->
+          <!-- Install & Usage, per port: React and SwiftUI. -->
           <div class="detail-panel detail-panel--code" data-detail-panel="code" hidden>
           <div class="st-stage-panel">
 
-          <div class="detail-platform" data-platform="swift">
+          <div class="st-platform-tabs" role="tablist" aria-label="Platform" data-detail-platforms>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="react" aria-selected="true" data-active="true">React</button>
+            <button type="button" class="st-platform-tab" role="tab" data-platform-tab="swift" aria-selected="false">SwiftUI</button>
+          </div>
+
+          <div class="detail-platform" data-platform="react">
+            <div class="st-code-group">
+              <span class="st-code-title">Installation</span>
+              <div class="code-block">
+              <pre>npm install distortion-waves</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">React 18+. One clear WebGL2 canvas over your own markup: Chrome, Safari and Firefox. Without WebGL2, and under Reduce Motion, the wave is a crossfade.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Usage</span>
+              <div class="code-block">
+              <pre>import { useRef, useState } from &quot;react&quot;;
+import { DistortionWave } from &quot;distortion-waves&quot;;
+
+function Transfer() {
+  const [sent, setSent] = useState(false);
+  const button = useRef&lt;HTMLButtonElement&gt;(null);
+
+  return (
+    &lt;DistortionWave
+      revealed={sent}
+      source={button}
+      revealedContent={&lt;Receipt /&gt;}
+      overlay={
+        &lt;button ref={button} onClick={() =&gt; setSent(true)}&gt;
+          Confirm
+        &lt;/button&gt;
+      }
+      style={{ width: 620, borderRadius: 28, overflow: &quot;hidden&quot; }}
+    &gt;
+      &lt;Review /&gt;
+    &lt;/DistortionWave&gt;
+  );
+}
+
+// Set revealed back to false to collapse the wave into the source.
+// A click on the source leans the wave toward the pointer.</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy usage example">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            <span class="st-code-note">Both views are your own DOM, laid on top of each other; the element takes the size of the larger. Give them an opaque background. The wave bends a picture of them, taken ahead of the run, so what animates inside a view stands still while it passes: put the button that starts it, a spinner or a video in <code>overlay</code>, which stays live above the wave. Images and fonts from another origin need CORS to be in the picture; iframes are left out.</span>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Types</span>
+              <div class="code-block">
+              <pre>// Up the element from a button at the bottom (the default):
+&lt;DistortionWave revealed={sent} source={button} revealedContent={&lt;Receipt /&gt;}&gt;…&lt;/DistortionWave&gt;
+
+// Across the element from a tall source at the left: an edge, a side tab:
+&lt;DistortionWave type=&quot;horizontal&quot; revealed={next} source={tab} revealedContent={&lt;Next /&gt;}&gt;…&lt;/DistortionWave&gt;
+
+// A ring out from an avatar or icon, inside a dialog or card. The source is
+// held sharp at the ring&#x27;s centre, so it can change in place:
+&lt;DistortionWave type=&quot;center&quot; revealed={done} source={avatar} revealedContent={&lt;Sheet done /&gt;}&gt;…&lt;/DistortionWave&gt;
+
+// One view: the wave carries the element into itself. Start it from a ref.
+const wave = useRef&lt;DistortionWaveHandle&gt;(null);
+&lt;DistortionWave ref={wave} onFinish={() =&gt; setSaved(true)}&gt;…&lt;/DistortionWave&gt;
+wave.current?.play({ source: button });</pre>
+              <button type="button" class="code-copy" data-copy-static aria-label="Copy the three types">
+                <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
+              </button>
+            </div>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">Options</span>
+              <ul class="dw-list">
+                <li><code>type</code> <code>"vertical"</code> (the default), <code>"horizontal"</code> or <code>"center"</code>: each has its own tuned defaults.</li>
+                <li><code>revealed</code> Sends the wave out when it turns true, collapses it into the source when it turns false. <code>revealedContent</code> is the view it leaves behind; without one the wave carries the element into itself.</li>
+                <li><code>source</code> The element, ref or rect the wave opens from. Without one: the control that was just pressed. <code>focus</code> is the point it leans toward (by default, where the source was clicked).</li>
+                <li><code>overlay</code> Stays above the wave, unbent and live, over both views.</li>
+                <li><code>palette</code> <code>"colorful"</code>, <code>"green"</code>, <code>"ocean"</code>, <code>"sunset"</code>, <code>"mono"</code>, one colour as a hex string, or your own palette.</li>
+                <li><code>waveStyle</code> Every knob of the SwiftUI kit, by the same names: <code>anticipation</code>, <code>travel</code>, <code>returnSpeed</code>, <code>amplitude</code>, <code>lensWidth</code>, <code>aberration</code>, <code>blur</code>, <code>rimWidth</code>, <code>particleCount</code>, <code>orientation</code>… Lengths are in points of a 393 × 852 screen and scale with the element (<code>scale</code>).</li>
+                <li><code>cornerRadius</code> The corners the colour follows. By default the element's own <code>border-radius</code>.</li>
+                <li><code>scrub</code> Holds the wave at a progress 0–1. <code>onFinish(revealed)</code> is called once it has left and the edges have cleared; not for a run that was turned back.</li>
+                <li><code>live</code> <code>true</code> (the default) pictures a view again when its DOM changes during the wave; <code>"animations"</code> does so every frame while something animates (costly); <code>false</code> never.</li>
+                <li><code>resolution</code> Canvas pixels per CSS pixel; by default the display's. <code>prewarm</code> takes the first picture when the browser is next idle after mounting, so the first wave has its lens from the start (on by default). <code>reducedMotion</code> <code>"system"</code>, <code>"always"</code> or <code>"never"</code>.</li>
+                <li><code>ref</code> <code>play({ source, focus })</code>, <code>reverse()</code>, <code>reset()</code>, <code>prepare()</code>.</li>
+              </ul>
+            </div>
+            <div class="st-code-group">
+              <span class="st-code-title">License</span>
+              <span class="st-code-note">distortion-waves is MIT.</span>
+            </div>
+          </div>
+
+          <div class="detail-platform" data-platform="swift" hidden>
             <div class="st-code-group">
               <span class="st-code-title">Installation</span>
               <div class="code-block">
@@ -483,8 +592,50 @@ DistortionWave(isRevealed: done, source: avatarFrame, style: style) { Sheet() } 
     </div>
 
 
-    <!-- Agent prompt source for the Copy prompt button (SwiftUI). A hidden
-         <pre> so escaped text reaches the clipboard as written. -->
+    <!-- Agent prompt sources for the Copy prompt button, one per port
+         (#agent-prompt-<platform>). Hidden <pre>s so escaped text reaches
+         the clipboard as written. -->
+    <pre id="agent-prompt-react" hidden>
+Add Distortion waves from Libraries.dev to my React app: a colourful wave
+that opens from the element that started it and carries one view into
+another, bending my own DOM as it passes.
+
+Install: npm install distortion-waves (React 18+, WebGL2).
+
+Usage:
+import { useRef, useState } from "react";
+import { DistortionWave } from "distortion-waves";
+
+function Transfer() {
+  const [sent, setSent] = useState(false);
+  const button = useRef&lt;HTMLButtonElement&gt;(null);
+  return (
+    &lt;DistortionWave
+      revealed={sent}
+      source={button}
+      revealedContent={&lt;Receipt /&gt;}
+      overlay={&lt;button ref={button} onClick={() =&gt; setSent(true)}&gt;Confirm&lt;/button&gt;}
+      style={{ width: 620, borderRadius: 28, overflow: "hidden" }}
+    &gt;
+      &lt;Review /&gt;
+    &lt;/DistortionWave&gt;
+  );
+}
+
+- revealed: true sends the wave out, false collapses it into the source.
+- children / revealedContent: the two views, my own DOM, stacked; give both an opaque background. With no revealedContent the wave carries the element into itself (start it with ref.play()).
+- source: the element, ref or rect it opens from (the button, edge or avatar). Default: the control that was just pressed. A click on the source leans the wave toward the pointer; focus sets that point by hand.
+- overlay: content that stays above the wave, unbent and live (the button that starts it, a spinner, a video). The wave bends a picture of the views, so anything animating inside them stands still while it passes.
+- type: "vertical" (up from a button at the bottom), "horizontal" (right from a tall source at the left) or "center" (a ring from an avatar or icon in a dialog, the source held sharp so it can change in place).
+- palette: "colorful" | "green" | "ocean" | "sunset" | "mono" | a hex colour. waveStyle: anticipation, travel, returnSpeed, amplitude, lensWidth, aberration, blur, rimWidth, particleCount…
+- cornerRadius defaults to the element's own border-radius: give the element its corners and overflow: hidden.
+- onFinish(revealed), scrub (0–1), live, resolution, reducedMotion; ref: play(), reverse(), reset(), prepare().
+- Images and fonts from another origin need CORS to appear in the picture; iframes are left out.
+
+Match it to my app: pick the type from where the action starts, pass the element that starts it as source, and keep that element in overlay if it should stay live.
+
+The package is MIT. Docs: https://libraries.dev/waves
+    </pre>
     <pre id="agent-prompt-swift" hidden>
 Add Distortion waves from Libraries.dev to my SwiftUI app: a colourful
 wave that opens from the view that started it and carries one screen into

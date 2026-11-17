@@ -13,6 +13,7 @@
   "dependencies": {
     "border-beam": "*",
     "bot-avatars": "*",
+    "distortion-waves": "*",
     "img-fx": "*",
     "liquid-gooey": "*",
     "metal-fx": "*",

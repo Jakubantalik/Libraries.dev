@@ -1,0 +1,727 @@
+/* The wave components page (wave-components.html, Components.tsx): four
+   components from the Portfolio file in Figma, frame 2125:5368. Sizes, colours
+   and type are the design's own; the comments give the sums that land on its
+   heights.
+
+   Everything a wave pictures follows the house rule: no pseudo-elements, no
+   backdrop filters, an opaque fill on each view. */
+
+.wc-page,
+.wc-stage {
+  --wc-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --wc-border: rgba(235, 235, 235, 0.1);
+  --wc-surface: #202020;
+  --wc-muted: #8f8f8f;
+
+  font-family: var(--wc-font);
+}
+
+.wc-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  justify-items: center;
+  gap: 72px 85px;
+  padding: 96px 32px;
+}
+
+/* One component on the detail page's stage (WaveVariant), in the middle. */
+.pg-stage:has(> .wc-stage) {
+  /* As tall as the phone's stage, so a change of platform moves nothing. */
+  min-height: calc(582px + 64px);
+  box-sizing: border-box;
+  padding: 24px 24px 76px;
+  container: wc-stage / inline-size;
+}
+
+.wc-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* A narrow stage: the cards keep their design size and scale as a whole. */
+@container wc-stage (max-width: 420px) {
+  .wc-stage > .wc-card {
+    scale: 0.84;
+  }
+}
+
+@media (max-width: 1759px) {
+  .wc-page {
+    grid-template-columns: repeat(2, max-content);
+  }
+}
+
+@media (max-width: 909px) {
+  .wc-page {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+    padding: 48px 16px;
+  }
+}
+
+.wc-page button,
+.wc-stage button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wc-page button,
+.wc-page img,
+.wc-page svg,
+.wc-stage button,
+.wc-stage img,
+.wc-stage svg {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.wc-page img,
+.wc-stage img {
+  display: block;
+  flex: none;
+}
+
+.wc-page button:focus-visible,
+.wc-stage button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 3px;
+}
+
+/* ── The card: both modals and the document ───────────────────── */
+
+/* The wave's own element. It has no border of its own: the wave draws on
+   the padding box, so a border would hold its edge, and the line that lights
+   up along it, one pixel inside the card's. The design's inside stroke is
+   .wc-hairline instead, on the card's outermost pixel, where the wave's edge
+   now is too. The views carry the padding, with that pixel counted in. */
+.wc-card {
+  --wc-radius: 38px;
+
+  box-sizing: border-box;
+  width: 380px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--wc-radius);
+  background: var(--wc-surface);
+  color: #fff;
+  font: 400 14px/17px var(--wc-font);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.wc-view {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 21px;
+  background: var(--wc-surface);
+}
+
+/* The design's 1px inside stroke. It sits in the wave's overlay, so it is
+   not pictured and stays put, on top of the wave's own edge line. */
+.wc-hairline {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--wc-radius);
+  box-shadow: inset 0 0 0 1px var(--wc-border);
+  pointer-events: none;
+}
+
+.wc-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: none;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.wc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Details and features: 1 border + 1 padding, the 44px rows and their 1px
+   dividers, 1 padding + 1 border. */
+.wc-box {
+  box-sizing: border-box;
+  border: 1px solid var(--wc-border);
+  border-radius: 24px;
+  padding: 1px 14px;
+  background: rgba(48, 48, 48, 0.5);
+}
+
+.wc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+}
+
+.wc-label {
+  color: var(--wc-muted);
+}
+
+.wc-value {
+  font-weight: 500;
+}
+
+.wc-divider {
+  display: block;
+  height: 1px;
+  background: rgba(235, 235, 235, 0.05);
+}
+
+.wc-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+}
+
+.wc-feature-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── The badge: an avatar or a token turning into the check ───── */
+
+/* Each view keeps a place for the badge, and draws it there on a canvas the
+   wave reads every frame (data-dw-live), so the front bends and tints the
+   badge as it morphs, as it does the rest of the view. The canvas reaches
+   past the place by BADGE_PAD (Components.tsx) for the hop, pop and blur. */
+.wc-badge-slot {
+  position: relative;
+  display: block;
+  flex: none;
+}
+
+.wc-badge-canvas {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ── The call to action ───────────────────────────────────────── */
+
+/* Each view keeps the button's place; the button itself sits in the wave's
+   overlay, over that place, so it stays sharp and pressable above the wave. */
+.wc-cta-space {
+  display: block;
+  flex: none;
+  height: 48px;
+}
+
+/* The press scales this wrapper, not the button, so a beam around the button
+   stays on its edge. */
+.wc-action {
+  position: absolute;
+  left: 21px;
+  right: 21px;
+  bottom: 21px;
+  height: 48px;
+  transition: transform 0.28s cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+
+.wc-action:active,
+.wc-action.is-gulp {
+  transform: scale(0.97);
+}
+
+.wc-action:active {
+  transition: transform 0.28s cubic-bezier(0.34, 1, 0.64, 1);
+}
+
+/* Held down through the wave's anticipation. */
+.wc-action.is-gulp {
+  transition: transform var(--wc-gulp, 0.5s) cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.wc-cta {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  border-radius: 999px;
+  background: #f8f8f8;
+  color: #0d0d0d;
+  font: 500 15px/18px var(--wc-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  cursor: pointer;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.wc-cta.is-busy {
+  opacity: 0.8;
+}
+
+/* ── Send money: 437 = 21 + 128 + 20 + 247 + 21 ───────────────── */
+
+.wc-review-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.wc-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.wc-recipient {
+  display: flex;
+  gap: 4px;
+  color: var(--wc-muted);
+}
+
+.wc-name {
+  color: #d0d0d0;
+}
+
+.wc-sum {
+  font-size: 32px;
+  line-height: 39px;
+  letter-spacing: -0.7px;
+}
+
+/* ── Add credits: 386 = 31 + 111 + 20 + 203 + 21 ──────────────── */
+
+.wc-view--credits {
+  padding-top: 31px;
+}
+
+.wc-credits-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.wc-credits-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The disc and the coins on it, in one cell. */
+
+.wc-title {
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: -0.7px;
+}
+
+.wc-subtitle {
+  color: var(--wc-muted);
+}
+
+/* ── Toast: 296 × 66 ──────────────────────────────────────────── */
+
+/* As the card: no border, the stroke is .wc-hairline. */
+.wc-toast {
+  --wc-radius: 999px;
+
+  box-sizing: border-box;
+  width: 296px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--wc-radius);
+  background: var(--wc-surface);
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.2),
+    0 12px 16px rgba(0, 0, 0, 0.32);
+  color: #fff;
+  font: 400 14px/17px var(--wc-font);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.wc-toast-view {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px 13px 13px;
+  background: var(--wc-surface);
+}
+
+.wc-toast-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wc-toast-title,
+.wc-toast-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wc-toast-title {
+  font-weight: 500;
+}
+
+.wc-toast-meta {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--wc-muted);
+}
+
+/* The spinner's place in the view; the spinner itself turns in the overlay,
+   since a pictured view stands still. */
+.wc-toast-slot {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+
+.wc-toast-progress {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.wc-toast-progress.is-done {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.wc-view-button {
+  box-sizing: border-box;
+  flex: none;
+  height: 36px;
+  margin: 0;
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.24),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: 500 13px/16px var(--wc-font);
+  cursor: pointer;
+}
+
+/* ── Document card: 347 = 21 + 40 + 16 + 25 + 16 + 144 + 16 + 48 + 21 */
+
+.wc-view--doc {
+  gap: 16px;
+}
+
+.wc-doc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wc-doc-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 2px 2px -2px rgba(0, 0, 0, 0.04),
+    0 2px 6px -1px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    inset 0 2px 1px -2px rgba(255, 255, 255, 0.24),
+    inset 1px 2px 1px -2px rgba(255, 255, 255, 0.24),
+    inset -1px -2px 1px -2px rgba(255, 255, 255, 0.24),
+    inset 0 -2px 1px -2px rgba(255, 255, 255, 0.24);
+}
+
+.wc-doc-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wc-doc-name {
+  font-weight: 500;
+}
+
+.wc-doc-meta {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--wc-muted);
+}
+
+.wc-doc-heading {
+  overflow: hidden;
+  font-weight: 500;
+  font-size: 21px;
+  line-height: 25px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wc-doc-body {
+  height: 144px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.wc-doc-body p {
+  margin: 0;
+}
+
+.wc-doc-body p + p {
+  margin-top: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wc-action,
+  .wc-action:active,
+  .wc-action.is-gulp,
+  .wc-cta,
+  .wc-toast-progress {
+    transition: none;
+  }
+}
+
+/* ── Wave controls: the tuning panel ─────────────────────────── */
+
+.wcc {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-height: calc(100vh - 32px);
+  border-radius: 16px;
+  background: #161616;
+  box-shadow:
+    inset 0 0 0 1px var(--wc-border),
+    0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font: 400 13px/16px var(--wc-font);
+  overflow: hidden;
+}
+
+.wcc:not(.is-open) {
+  width: auto;
+}
+
+.wcc-toggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 500 13px/16px var(--wc-font);
+  cursor: pointer;
+}
+
+.wcc-toggle svg {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wcc.is-open .wcc-toggle svg {
+  transform: rotate(180deg);
+}
+
+.wcc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 14px 14px;
+  overflow-y: auto;
+}
+
+.wcc-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.wcc-tab {
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--wc-muted);
+  font: 500 11px/14px var(--wc-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.wcc-tab[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.wcc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wcc-section h3 {
+  margin: 0 0 2px;
+  color: var(--wc-muted);
+  font: 500 11px/14px var(--wc-font);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wcc-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 52px;
+  align-items: center;
+  gap: 8px;
+}
+
+.wcc-label {
+  color: #d6d6d6;
+}
+
+.wcc-value {
+  color: var(--wc-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.wcc-row input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: #fff;
+}
+
+.wcc-curve {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.wcc-graph {
+  flex: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.wcc-axis {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-dasharray: 2 3;
+}
+
+.wcc-handle {
+  stroke: rgba(255, 255, 255, 0.35);
+}
+
+.wcc-path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.wcc-dot {
+  fill: #fff;
+}
+
+.wcc-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wcc-preset,
+.wcc-action {
+  height: 26px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d6d6d6;
+  font: 500 11px/14px var(--wc-font);
+  cursor: pointer;
+}
+
+.wcc-preset[aria-pressed="true"] {
+  background: #fff;
+  color: #111;
+}
+
+.wcc-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.wcc-action {
+  height: 32px;
+  font-size: 12px;
+}
+
+.wcc-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.wcc button:focus-visible,
+.wcc input:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 1px;
+}

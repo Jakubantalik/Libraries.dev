@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Distortion waves — bench</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0b0c0f;
+        --soft: #5d6370;
+        --faint: #9aa0ad;
+        --line: #e8eaef;
+        --page: #eef0f4;
+        --card: #ffffff;
+        --tint: #f5f6f9;
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+        font-synthesis: none;
+        -webkit-font-smoothing: antialiased;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: var(--page); color: var(--ink); }
+      button { font: inherit; color: inherit; }
+
+      .bench { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 24px 40px; }
+      .bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12px; color: var(--soft); }
+      .bar .group { display: flex; gap: 2px; padding: 2px; background: #e2e5eb; border-radius: 9px; }
+      .bar button { border: 0; background: transparent; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; color: var(--soft); }
+      .bar button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(15, 20, 35, 0.12); }
+      .bar input[type="range"] { width: 200px; }
+      .bar label { display: flex; align-items: center; gap: 6px; }
+      pre.stats { margin: 0; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--soft); white-space: pre-wrap; max-width: 980px; }
+
+      .card {
+        background: var(--card);
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(15, 20, 35, 0.06), 0 18px 50px -18px rgba(15, 20, 35, 0.28);
+      }
+
+      /* ── Send money: review and receipt ── */
+      .view { display: grid; grid-template-rows: auto 1fr auto; height: 100%; background: var(--card); }
+      .head { display: flex; align-items: center; justify-content: space-between; padding: 22px 28px 0; }
+      .head h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+      .ghost { border: 0; background: var(--tint); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; color: var(--soft); transition: background 0.15s; }
+      .ghost:hover { background: #e9ebf0; }
+      .body { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 22px 28px; align-items: start; }
+      .sum { display: flex; flex-direction: column; gap: 14px; }
+      .amount { font-size: 56px; font-weight: 650; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+      .amount small { font-size: 26px; color: var(--faint); font-weight: 600; }
+      .to { display: flex; align-items: center; gap: 12px; }
+      .avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 650; font-size: 15px; background: linear-gradient(135deg, #7a5cff, #ff6fa8 60%, #ffb347); }
+      .to b { display: block; font-size: 15px; font-weight: 600; }
+      .to span { font-size: 13px; color: var(--soft); }
+      .note { padding: 12px 14px; border-radius: 14px; background: var(--tint); font-size: 13px; color: var(--soft); line-height: 1.45; }
+      .rows { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+      .row { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; font-size: 13.5px; border-top: 1px solid var(--line); }
+      .row:first-child { border-top: 0; }
+      .row span { color: var(--soft); }
+      .row b { font-weight: 550; }
+      .foot { display: flex; gap: 10px; padding: 0 28px 26px; }
+      .primary { flex: 1; height: 54px; border: 0; border-radius: 17px; background: var(--ink); color: #fff; font-size: 15.5px; font-weight: 600; cursor: pointer; transition: transform 0.16s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.16s; }
+      .primary:hover { background: #20232b; }
+      .primary:active { transform: scale(0.985); }
+      .secondary { height: 54px; padding: 0 22px; border: 0; border-radius: 17px; background: var(--tint); font-size: 15px; font-weight: 550; cursor: pointer; transition: background 0.15s; }
+      .secondary:hover { background: #e9ebf0; }
+
+      .primary.float { position: absolute; left: 111px; right: 28px; bottom: 26px; }
+      .primary.float.is-done { background: #0f7a49; }
+
+      .receipt { background: #f4fbf7; }
+      .receipt .body { grid-template-columns: 1fr 1fr; }
+      .done { display: flex; flex-direction: column; gap: 14px; }
+      .tick { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: #19b36b; color: #fff; }
+      .done h3 { margin: 0; font-size: 34px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.05; }
+      .done p { margin: 0; font-size: 14.5px; color: var(--soft); line-height: 1.45; }
+      .receipt .rows { background: #fff; border-color: #dcefe5; }
+      .receipt .row { border-color: #dcefe5; }
+      .receipt .primary { background: #0f7a49; }
+      .receipt .primary:hover { background: #0c693f; }
+
+      /* ── One view: the wave passes over it ── */
+      .board { display: grid; grid-template-rows: auto 1fr; height: 100%; background: var(--card); }
+      .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 20px 28px 28px; }
+      .tile { border-radius: 18px; background: var(--tint); padding: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+      .tile i { font-style: normal; font-size: 12px; color: var(--soft); }
+      .tile b { font-size: 26px; font-weight: 650; letter-spacing: -0.03em; }
+      .tile.wide { grid-column: span 2; background: linear-gradient(120deg, #111319, #2a2f3d); color: #fff; }
+      .tile.wide i { color: #aeb4c2; }
+      .spark { height: 44px; border-radius: 10px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 6px, transparent 6px 12px); }
+      .tile .primary { flex: none; height: 44px; border-radius: 14px; font-size: 14px; }
+
+      /* ── Many nodes: what a picture of a big table costs ── */
+      .table { height: 100%; overflow: auto; background: var(--card); }
+      .table table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+      .table th, .table td { padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+      .table th { position: sticky; top: 0; background: var(--tint); font-weight: 600; color: var(--soft); }
+      .table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+      .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e7f6ee; color: #0f7a49; font-size: 11px; font-weight: 600; }
+      .pill.late { background: #fdeee4; color: #b0531a; }
+      .table .primary { height: 30px; padding: 0 12px; border-radius: 9px; font-size: 12px; flex: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

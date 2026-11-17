@@ -1,0 +1,150 @@
+/* The desktop demo of the Distortion waves page (Desktop.tsx): a dialog of
+   real DOM inside the library's <DistortionWave>. The views avoid what a
+   picture of the element cannot carry: no pseudo-elements, no backdrop
+   filters, an opaque fill behind everything. The button reuses the phone's
+   .dw-button (preview.css). */
+
+.pg-stage:has(> .dw-desk) {
+  /* As tall as the phone's stage, so a change of platform moves nothing. */
+  min-height: calc(582px + 64px);
+  box-sizing: border-box;
+  padding: 24px 24px 76px;
+  container: dw-stage / inline-size;
+}
+
+.dw-desk {
+  flex: none;
+  overflow: hidden;
+  color: #fff;
+  font-family: Inter, "SF Pro Text", -apple-system, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 400;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 64px rgba(0, 0, 0, 0.28);
+}
+html[data-theme="light"] .dw-desk { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 24px 64px rgba(0, 0, 0, 0.18); }
+
+/* The wave takes its corners from the element's own. */
+.dw-desk[data-type="vertical"],
+.dw-desk[data-type="horizontal"] { width: min(100%, 620px); border-radius: 28px; background: #0d0d0d; }
+.dw-desk[data-type="center"] { width: min(100%, 400px); border-radius: 40px; background: #161616; }
+
+/* The words are a page's words and can be selected; the controls and the
+   pictures cannot, so a double click on the button marks nothing. */
+.dw-desk button,
+.dw-desk img,
+.dw-desk svg { user-select: none; -webkit-user-select: none; }
+.dw-desk button { -webkit-tap-highlight-color: transparent; }
+.dw-desk button:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.72); outline-offset: 3px; }
+
+.dw-view { position: relative; box-sizing: border-box; height: 100%; }
+
+/* ── Round buttons: back, close ── */
+.dw-round {
+  position: absolute;
+  top: 20px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 0.75px rgba(255, 255, 255, 0.14);
+}
+.dw-round svg { display: block; }
+.dw-round--back { left: 20px; }
+.dw-round--close { right: 20px; cursor: pointer; }
+
+/* ── The transfer ── */
+.dw-transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 76px 24px 106px;
+  background: #0d0d0d;
+}
+/* One box for both views, filled from the top: the check lands where the
+   face was. */
+.dw-hero { display: flex; flex-direction: column; align-items: center; height: 176px; text-align: center; white-space: nowrap; }
+.dw-face { display: grid; place-items: center; flex: none; width: 76px; height: 76px; }
+.dw-avatar { display: block; box-sizing: border-box; width: 76px; height: 76px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 50%; object-fit: cover; }
+.dw-to { margin-top: 18px; font-weight: 500; color: #8f8f8f; }
+.dw-name { color: #d0d0d0; }
+.dw-amount { margin-top: 10px; font-size: 44px; line-height: 52px; font-weight: 500; letter-spacing: -1.4px; }
+.dw-sum { font-size: 21px; line-height: 28px; font-weight: 500; }
+.dw-sum--first { margin-top: 14px; }
+.dw-sum--faint { color: #8f8f8f; }
+
+/* ── The sheet ── */
+.dw-sheet { display: flex; flex-direction: column; align-items: center; padding: 55px 21px 95px; background: #161616; text-align: center; white-space: nowrap; }
+.dw-token { display: grid; place-items: center; flex: none; width: 64px; height: 64px; }
+.dw-coin { display: block; }
+.dw-status { margin-top: 16px; font-weight: 500; line-height: 19px; color: #8f8f8f; }
+.dw-usdc { margin-top: 2px; font-size: 36px; line-height: 44px; font-weight: 500; letter-spacing: -0.8px; }
+.dw-date { margin-top: 2px; font-size: 15px; line-height: 18px; color: #8f8f8f; }
+.dw-sheet .dw-details { align-self: stretch; margin-top: 26px; padding: 1px 0; text-align: left; }
+
+.dw-check { display: grid; place-items: center; flex: none; border-radius: 50%; background: #35ba00; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.dw-check svg { display: block; }
+
+/* ── Details ── */
+.dw-details { border: 1px solid rgba(235, 235, 235, 0.1); border-radius: 24px; background: rgba(48, 48, 48, 0.5); }
+.dw-row { display: flex; align-items: center; gap: 8px; height: 54px; margin: 0 18px; border-top: 1px solid rgba(235, 235, 235, 0.1); white-space: nowrap; }
+.dw-row:first-child { border-top: 0; }
+.dw-row svg { display: block; flex: none; }
+.dw-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #8f8f8f; }
+.dw-value { flex: none; font-weight: 500; }
+
+/* ── The button, above the wave ── */
+.dw-desk-action { left: 24px; right: 24px; bottom: 24px; height: 58px; }
+.dw-desk[data-type="center"] .dw-desk-action { left: 21px; right: 21px; bottom: 21px; }
+/* The handle the sideways wave leaves from: the phone's .dw-edge, at the
+   card's left edge. */
+.dw-desk-edge { left: 0; top: 50%; width: 24px; height: 180px; margin-top: -90px; }
+/* The press: the button and its beam as one, to 97% and no further. The
+   beam is drawn at the size of its wrapper, so a button that shrank alone
+   inside it would leave the lit ring standing off its edge. Held at the same
+   97% through the anticipation, so a quick tap reads as a press too. */
+.dw-desk .dw-desk-action { transition: transform 0.28s cubic-bezier(0.34, 1.35, 0.64, 1); }
+.dw-desk .dw-desk-action:active,
+.dw-desk .dw-desk-action.is-gulp { transform: scale(0.97); }
+/* Down without the spring's overshoot, which would pass 97%; the spring is
+   for the way back. */
+.dw-desk .dw-desk-action:active { transition: transform 0.28s cubic-bezier(0.34, 1, 0.64, 1); }
+.dw-desk .dw-desk-action.is-gulp { transition: transform var(--dw-gulp, 0.5s) cubic-bezier(0.4, 0, 0.6, 1); }
+.dw-desk .dw-button,
+.dw-desk .dw-button:active { transform: none; }
+.dw-desk-send { transition: opacity 0.15s ease-in-out; }
+.dw-desk-send.is-busy { opacity: 0.8; }
+
+.dw-spinner { display: block; flex: none; animation: dw-spin 0.8s linear infinite; }
+@keyframes dw-spin { to { transform: rotate(360deg); } }
+
+/* ── Text swap: out and up, then in from below ── */
+.dw-text { display: inline-flex; align-items: center; gap: 8px; }
+.dw-text.is-out { animation: dw-text-out 0.15s ease-in-out both; }
+.dw-text.is-in { animation: dw-text-in 0.15s ease-in-out both; }
+@keyframes dw-text-out { to { opacity: 0; filter: blur(2px); transform: translateY(-4px); } }
+@keyframes dw-text-in { from { opacity: 0; filter: blur(2px); transform: translateY(4px); } }
+
+/* ── A narrow stage: the transfer in one column ── */
+@container dw-stage (max-width: 599px) {
+  .dw-desk[data-type="vertical"],
+  .dw-desk[data-type="horizontal"] { width: min(100%, 400px); }
+  .dw-transfer { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-text.is-out,
+  .dw-text.is-in { animation: none; }
+  .dw-desk-send,
+  .dw-desk .dw-desk-action,
+  .dw-desk .dw-desk-action.is-gulp { transition: none; }
+}

@@ -1,0 +1,6 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Spinner">
+<circle id="overall" cx="10" cy="10" r="9" stroke-width="2" stroke="white" stroke-opacity="0.18"/>
+<path id="active" d="M10 1C11.4203 1 12.8204 1.33614 14.0859 1.98094C15.3514 2.62574 16.4463 3.56089 17.2812 4.70993C18.116 5.85897 18.667 7.18928 18.8892 8.59209C19.1114 9.9949 18.9984 11.4304 18.5595 12.7812" stroke-width="2" stroke-linecap="round" stroke="white"/>
+</g>
+</svg>

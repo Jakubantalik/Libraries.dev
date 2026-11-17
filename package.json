@@ -20,6 +20,7 @@
     "build:voice": "npm run build -w voice-glow",
     "build:avatars": "npm run build -w bot-avatars",
     "build:ring": "npm run build -w voice-ring",
-    "build:site-home": "npm run build:beam && npm run build:orbs && npm run build:gooey && npm run build:metal && npm run build:image && npm run build:voice && npm run build:ring && npm run build:avatars && npm run build -w @sites/home"
+    "build:waves": "npm run build -w distortion-waves",
+    "build:site-home": "npm run build:beam && npm run build:orbs && npm run build:gooey && npm run build:metal && npm run build:image && npm run build:voice && npm run build:ring && npm run build:waves && npm run build:avatars && npm run build -w @sites/home"
   }
 }
