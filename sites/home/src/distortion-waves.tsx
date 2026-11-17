@@ -22,29 +22,28 @@ import { PHONE, SHEET } from "./distortion-waves/scenes";
    The page tunes nothing but the type. On React each type shows one of the
    wave components (Send money, Add credits, Toast, Document), and the
    vertical wave's lean toward the press is an on/off switch that only Pro
-   opens. The phone shows vertical and center. Colour and duration show
+   opens. Horizontal and diagonal are Pro's on both ports. Colour and duration show
    locked, as the Studio's own controls, under its teaser. The stage starts
    PAUSED, like every other library's. */
 
-/* The phone shows two of the library's types, vertical and center
-   (horizontal is the Studio's). The React stage shows each type on one of
-   the wave components: Send money, Add credits, Toast and Document, whose
-   ring from the corner reads as a fourth, diagonal type. */
-type PhoneType = Exclude<WaveType, "horizontal">;
-type PageType = PhoneType | "horizontal" | "diagonal";
+/* Four types on both ports: the library's vertical, center and horizontal,
+   and a diagonal one, the center ring from a corner. The React stage shows
+   each on one of the wave components (Send money, Add credits, Toast and
+   Document); the phone on the SwiftUI demo's screens. */
+type PageType = WaveType | "diagonal";
 type Port = "react" | "swift";
 
-const PHONE_TYPES = [
-  { value: "vertical", label: "Vertical" },
-  { value: "center", label: "Center" },
-] as const;
+/** The diagonal type's numbers over the center ring's: no anticipation and
+    no pull, in grey at half strength, as the Document's. */
+const DIAGONAL = { anticipation: 0, pull: 0, inhale: 0, gatherGlow: 0, gatherDots: 0 };
 
-const REACT_TYPES = [
-  { value: "vertical", label: "Vertical" },
-  { value: "center", label: "Center" },
-  { value: "horizontal", label: "Horizontal" },
-  { value: "diagonal", label: "Diagonal" },
-] as const;
+/** The types: horizontal and diagonal are Pro's. */
+const pageTypes = (entitled: boolean) => [
+  { value: "vertical" as const, label: "Vertical" },
+  { value: "center" as const, label: "Center" },
+  { value: "horizontal" as const, label: "Horizontal", locked: entitled ? undefined : "Available with Pro" },
+  { value: "diagonal" as const, label: "Diagonal", locked: entitled ? undefined : "Available with Pro" },
+];
 
 /** The component each type shows on the React stage. */
 const TYPE_COMPONENT: Record<PageType, Which> = { vertical: "send", center: "credits", horizontal: "toast", diagonal: "doc" };
@@ -92,12 +91,14 @@ const REACT_SNIPPET: Record<PageType, string> = {
 </DistortionWave>`,
 };
 
-const SWIFT_NOTE: Record<PhoneType, string> = {
+const SWIFT_NOTE: Record<PageType, string> = {
   vertical: "Touch Confirm: the wave goes up the screen from the button.",
   center: "Touch Send: after a moment of processing, a ring leaves the token as it becomes the check.",
+  horizontal: "Touch the handle on the left edge: the wave crosses the screen from it.",
+  diagonal: "Touch Confirm: a grey ring sweeps the screen from its top left corner, with no anticipation.",
 };
 
-const SWIFT_SNIPPET: Record<PhoneType, string> = {
+const SWIFT_SNIPPET: Record<PageType, string> = {
   vertical: `import DistortionWavesKit
 
 DistortionWave(isRevealed: sent, source: buttonFrame, focus: touch, style: .vertical) {
@@ -114,6 +115,25 @@ DistortionWave(isRevealed: done, source: tokenFrame, style: style) {
     Sheet(sent: false)
 } revealed: {
     Sheet(sent: true)
+}`,
+  horizontal: `import DistortionWavesKit
+
+DistortionWave(isRevealed: sent, source: edgeFrame, focus: touch, style: .horizontal) {
+    ReviewScreen()
+} revealed: {
+    ReceiptScreen()
+}`,
+  diagonal: `import DistortionWavesKit
+
+var style = DistortionWaveStyle.center
+style.anticipation = 0   // no pull before it leaves
+style.palette = .mono
+
+// A ring from the screen's top left corner.
+DistortionWave(isRevealed: sent, source: CGRect(x: -1, y: -1, width: 2, height: 2), style: style) {
+    ReviewScreen()
+} revealed: {
+    ReceiptScreen()
 }`,
 };
 
@@ -156,9 +176,9 @@ function Playground() {
   const stage = useRef<HTMLDivElement>(null);
   const phone = usePhone(stage);
   const entitled = useEntitled();
-  // The phone has two of the four types: the others show it vertical.
-  const phoneType: PhoneType = chosenType === "center" ? "center" : "vertical";
-  const type: PageType = phone ? phoneType : chosenType;
+  // A Pro type picked before signing out goes back to vertical.
+  const open = entitled || chosenType === "vertical" || chosenType === "center";
+  const type: PageType = open ? chosenType : "vertical";
   const lean = entitled && chosenLean === "on";
   const leans = !phone && type === "vertical";
 
@@ -167,9 +187,15 @@ function Playground() {
   const waveType: WaveType = type === "diagonal" ? "center" : type;
   const style = useMemo(() => {
     const s = defaultStyle(waveType);
-    s.cornerRadius = waveType === "center" ? SHEET.radius : PHONE.radius;
+    if (type === "diagonal") {
+      Object.assign(s, DIAGONAL);
+      s.strength *= 0.5;
+      s.rimStrength *= 0.5;
+      s.palette = PALETTES.mono;
+    }
+    s.cornerRadius = type === "center" ? SHEET.radius : PHONE.radius;
     return s;
-  }, [waveType]);
+  }, [type, waveType]);
 
   /* Colour and duration, locked: the Studio tunes them. */
   const teaser: TeaserRow[] = [
@@ -186,7 +212,7 @@ function Playground() {
       <div className="pg">
         <div className="pg-stage" id="playground-stage" ref={stage}>
           {phone ? (
-            <DistortionWavePreview style={style} playing={!paused} />
+            <DistortionWavePreview style={style} playing={!paused} diagonal={type === "diagonal"} />
           ) : (
             <WaveVariant key={type} which={TYPE_COMPONENT[type]} playing={!paused} lean={lean} />
           )}
@@ -198,13 +224,13 @@ function Playground() {
         <div className="pg-controls" id="playground-controls">
           {phone ? (
             <div>
-              <PgTabs label="Type" options={PHONE_TYPES} value={phoneType} onChange={setType} />
-              <span className="pg-note">{SWIFT_NOTE[phoneType]}</span>
+              <PgTabs label="Type" options={pageTypes(entitled)} value={type} onChange={setType} />
+              <span className="pg-note">{SWIFT_NOTE[type]}</span>
             </div>
           ) : (
             <>
               <div>
-                <PgTabs label="Type" options={REACT_TYPES} value={type} onChange={setType} />
+                <PgTabs label="Type" options={pageTypes(entitled)} value={type} onChange={setType} />
                 <span className="pg-note">{REACT_NOTE[type]}</span>
               </div>
               {leans ? (
@@ -227,7 +253,7 @@ function Playground() {
         </div>
       </div>
 
-      <CodeBlock code={phone ? SWIFT_SNIPPET[phoneType] : REACT_SNIPPET[type]} label="Copy playground code" className="pg-snippet" />
+      <CodeBlock code={phone ? SWIFT_SNIPPET[type] : REACT_SNIPPET[type]} label="Copy playground code" className="pg-snippet" />
     </>
   );
 }

@@ -12,6 +12,8 @@ import "./preview.css";
    - Horizontal: the same screen; the handle on the left edge sends it across.
    - Center: the USDC sheet; Send processes for a moment, then a ring of
      green leaves the token as it becomes the success check.
+   - Diagonal (`diagonal`, a center style): the transfer review; Confirm
+     sends a ring across the screen from its top left corner.
 
    As in the app, the screen morphs in place while the wave passes over it,
    and every change keeps the app's timing from the moment of the touch: one
@@ -28,14 +30,20 @@ export interface PreviewProps {
   resetAfter?: number;
   /** Seconds the sheet says Processing… before the ring (center). */
   processing?: number;
+  /** A center style's ring from the screen's top left corner, over the
+      transfer review, instead of from the sheet's token. */
+  diagonal?: boolean;
 }
+
+/** Just outside the screen's top left corner. */
+const CORNER: Rect = { x: -1, y: -1, w: 2, h: 2 };
 
 /** The text changes this long before the badge, as the app's textLead. */
 const TEXT_LEAD = 0.2;
 
 /** When each thing happens, s from the touch, for this style. */
-function timeline(style: WaveStyle, processing: number) {
-  const center = style.type === "center";
+function timeline(style: WaveStyle, processing: number, diagonal = false) {
+  const center = style.type === "center" && !diagonal;
   const waveStart = center ? processing : 0;
   const launch = waveStart + style.anticipation;
   // Just after the front has passed the hero (or left the token).
@@ -58,9 +66,12 @@ function zoomOf(el: HTMLElement | null) {
   return Number.isFinite(z) && z > 0 ? z : 1;
 }
 
-export function DistortionWavePreview({ style, playing, resetAfter = 2, processing = 1.2 }: PreviewProps) {
+export function DistortionWavePreview({ style, playing, resetAfter = 2, processing = 1.2, diagonal = false }: PreviewProps) {
   const type = style.type;
-  const center = type === "center";
+  // The sheet, for the center type; the diagonal ring goes over the review.
+  const center = type === "center" && !diagonal;
+  const diagonalRef = useRef(diagonal);
+  diagonalRef.current = diagonal;
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WaveRenderer | null>(null);
@@ -85,7 +96,9 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
   const screenRef = useRef<ReturnType<typeof screenCanvas> | null>(null);
 
   const area = center ? { w: SHEET.w, h: SHEET.h } : { w: PHONE.w, h: PHONE.h };
-  const source: Rect = center
+  const source: Rect = diagonal
+    ? CORNER
+    : center
     ? { x: LAYOUT.token.x, y: LAYOUT.token.y, w: LAYOUT.token.w, h: LAYOUT.token.h }
     : type === "horizontal"
       ? { x: LAYOUT.edge.x, y: LAYOUT.edge.y, w: LAYOUT.edge.w, h: LAYOUT.edge.h }
@@ -143,7 +156,7 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
     const r = rendererRef.current;
     const scr = screenRef.current;
     if (!r || !scr) return;
-    const tl = timeline(styleRef.current, optsRef.current.processing);
+    const tl = timeline(styleRef.current, optsRef.current.processing, diagonalRef.current);
     const since = (at: number) => (elapsed !== null && elapsed >= at ? elapsed - at : null);
     if (center) {
       drawSheet(scr.ctx, { tap: elapsed, text: since(tl.text), badge: since(tl.morph), clock: elapsed ?? 0 });
@@ -158,7 +171,7 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
     const r = rendererRef.current;
     if (!r) return;
     const s = styleRef.current;
-    const tl = timeline(s, optsRef.current.processing);
+    const tl = timeline(s, optsRef.current.processing, diagonalRef.current);
     // The screen moves from the touch (the sheet) or the text morph (the
     // transfer) until the badge has landed; then it holds still.
     const from = center ? 0 : tl.text;
@@ -223,7 +236,7 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
     if (start === null || start < 0) return;
     const elapsed = (performance.now() - start) / 1000;
     frame(elapsed);
-    const tl = timeline(styleRef.current, optsRef.current.processing);
+    const tl = timeline(styleRef.current, optsRef.current.processing, diagonalRef.current);
     if (elapsed < tl.end) {
       run.current.raf = requestAnimationFrame(tick);
     } else {
@@ -235,7 +248,7 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
     if (run.current.start !== null || !rendererRef.current) return;
     clearTimers();
     const s = styleRef.current;
-    const tl = timeline(s, optsRef.current.processing);
+    const tl = timeline(s, optsRef.current.processing, diagonalRef.current);
     run.current.focus = focus;
     run.current.start = performance.now();
     run.current.drawnUntil = -1;
@@ -266,7 +279,7 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
       clearTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, scale]);
+  }, [type, diagonal, scale]);
 
   /* Play starts the loop from rest; Pause lets the current wave finish. */
   useEffect(() => {
@@ -310,7 +323,7 @@ export function DistortionWavePreview({ style, playing, resetAfter = 2, processi
       clearTimers();
       run.current.start = -1;
       const s = styleRef.current;
-      const tl = timeline(s, optsRef.current.processing);
+      const tl = timeline(s, optsRef.current.processing, diagonalRef.current);
       const elapsed = tl.waveStart + p * duration(s);
       paintScreen(elapsed);
       run.current.drawnUntil = Infinity;
