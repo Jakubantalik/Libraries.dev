@@ -38,19 +38,36 @@
   container: wc-stage / inline-size;
 }
 
+/* The card keeps its design width even where the stage is narrower, so its
+   one column is wider than the stage: justify-content centres that column,
+   letting the card spill evenly into both paddings instead of off the
+   right. */
 .wc-stage {
   display: grid;
   place-items: center;
+  justify-content: center;
   width: 100%;
   text-align: left;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* A narrow stage: the cards keep their design size and scale as a whole. */
+/* A narrow stage: the cards keep their design size and scale as a whole,
+   from their centre. 380 × 0.84 = 319 fits a 375 phone's stage with 16px
+   each side; below 280 (phones under 352) they go to 0.72 = 274. */
 @container wc-stage (max-width: 420px) {
   .wc-stage > .wc-card {
     scale: 0.84;
+  }
+}
+
+@container wc-stage (max-width: 280px) {
+  .wc-stage > .wc-card {
+    scale: 0.72;
+  }
+
+  .wc-stage > .wc-toast {
+    scale: 0.86;
   }
 }
 
