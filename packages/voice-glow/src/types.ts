@@ -418,6 +418,15 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   colors?: string[];
 
   /**
+   * Dots and lines: the ink, grey or white on its own, tinted toward this
+   * colour (any CSS hex or rgb), e.g. a mood. The glow and the pixel looks
+   * take `colors` instead.
+   */
+  tint?: string;
+  /** How far the ink takes `tint`, 0–1. Default 1. */
+  tintAmount?: number;
+
+  /**
    * The band's colours: the core ridge and its chromatic fringes above,
    * between and below. Any CSS hex or rgb; unset ones keep the theme's
    * defaults (white core with red / green / blue fringes on dark, a pink

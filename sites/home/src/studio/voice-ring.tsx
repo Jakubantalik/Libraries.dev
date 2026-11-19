@@ -319,15 +319,18 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
       <ControlsPanel library="Voice ring">
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
         <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />
-        <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
-        {isMic && MIC_STATUS[mic.state] && (
-          <div className="pg-field">
-            <span style={{ display: "block", fontSize: 12, opacity: 0.7 }} role="status">{MIC_STATUS[mic.state]}</span>
-          </div>
-        )}
-        {source === "manual" && (
-          <PgSlider label="Level" value={level} min={0} max={100} step={1} display={`${level}%`} onChange={setLevel} />
-        )}
+        {/* The source and what belongs to it (mic status, level) fold together. */}
+        <PgGroup label="Source">
+          <PgTabs label="Source" hideLabel options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
+          {isMic && MIC_STATUS[mic.state] && (
+            <div className="pg-field">
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7 }} role="status">{MIC_STATUS[mic.state]}</span>
+            </div>
+          )}
+          {source === "manual" && (
+            <PgSlider label="Level" value={level} min={0} max={100} step={1} display={`${level}%`} onChange={setLevel} />
+          )}
+        </PgGroup>
         <PgGroup label="Motion">
           <PgSlider label="Speed" value={speed} min={0.25} max={3} step={0.05} display={`${num(speed)}×`} onChange={setSpeed} />
           <PgSlider label="Sensitivity" value={sensitivity} min={0.25} max={4} step={0.05} display={`${num(sensitivity)}×`} onChange={setSensitivity} />

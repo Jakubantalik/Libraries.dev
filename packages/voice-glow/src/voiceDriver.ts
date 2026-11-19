@@ -61,6 +61,10 @@ export interface VoiceDriverConfig {
   rangeWidth: number;
   rangeHeight: number;
   theme: 'dark' | 'light';
+  /** Dots and lines: the ink's tint as an `[r, g, b]` triple (null: plain
+   *  grey / white) and how far the ink takes it, 0–1. */
+  tint: [number, number, number] | null;
+  tintAmount: number;
   /** Band colours as `r, g, b` triples: the core and its fringes. */
   bandColors: { core: string; above: string; mid: string; below: string };
   /** Horizontal distortion of the glow under the band, 0–1. */

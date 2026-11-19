@@ -3,6 +3,7 @@ import { describePatch, streamAgentTurn, type AgentImage, type ChatTurn } from "
 import type { CoreWiring } from "./core";
 import { useScrollFade } from "../examples/useScrollFade";
 import { ThinkingOrb } from "thinking-orbs";
+import { PgTabs as BasePgTabs } from "../examples/PgTabs";
 
 /* App-level theme plumbing: the Studio shell provides it, and every
    ControlsPanel renders the dark/light toggle in its own top-right corner.
@@ -166,6 +167,13 @@ export function PanelSep() {
     slider that would otherwise sit under the previous section's title. */
 /** A titled group of controls that folds away: the chevron at the title's
     right collapses its body (grid rows to 0, so the height animates). */
+/* Where a control sits: straight in a ControlsPanel ("top"), inside a
+   PgGroup ("nested"), or outside the Studio panel ("none", the default).
+   At the top, a labelled row (tabs, toggles, swatches) becomes its own
+   collapsible section, so every section of every library folds the same
+   way; inside a group it stays a plain row. */
+const PanelLevel = createContext<"top" | "nested" | "none">("none");
+
 export function PgGroup({ label, children, defaultOpen = true }: { label: string; children: ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   // A folded body leaves the tab order and the accessibility tree (React 18
@@ -191,15 +199,27 @@ export function PgGroup({ label, children, defaultOpen = true }: { label: string
         </span>
       </button>
       <div className="pg-group-body" ref={bodyRef}>
-        <div className="pg-group-inner">{children}</div>
+        <div className="pg-group-inner">
+          <PanelLevel.Provider value="nested">{children}</PanelLevel.Provider>
+        </div>
       </div>
     </div>
   );
 }
 
 /* The pill radio tabs live with the detail pages now, so the Studio
-   and the public playgrounds share one component. */
-export { PgTabs } from "../examples/PgTabs";
+   and the public playgrounds share one component. In the Studio panel a
+   top-level row of them is a collapsible section. */
+export function PgTabs<T extends string>(props: Parameters<typeof BasePgTabs<T>>[0]) {
+  const top = useContext(PanelLevel) === "top" && !props.hideLabel;
+  return top ? (
+    <PgGroup label={props.label}>
+      <BasePgTabs {...props} hideLabel />
+    </PgGroup>
+  ) : (
+    <BasePgTabs {...props} />
+  );
+}
 
 /** Value slider + input (Figma 1418:38136): the fill grows inside a 32px
     block, the label rides the fill, the value sits at the right. The
@@ -254,13 +274,22 @@ export function PgSlider({
 export function PgToggles({
   label,
   options,
+  hideLabel,
 }: {
   label: string;
   options: ReadonlyArray<{ label: string; active: boolean; onToggle: () => void }>;
+  hideLabel?: boolean;
 }) {
+  if (useContext(PanelLevel) === "top" && !hideLabel) {
+    return (
+      <PgGroup label={label}>
+        <PgToggles label={label} options={options} hideLabel />
+      </PgGroup>
+    );
+  }
   return (
-    <div className="pg-field">
-      <span className="pg-label">{label}</span>
+    <div className="pg-field" role="group" aria-label={label}>
+      {!hideLabel && <span className="pg-label">{label}</span>}
       <div className="pg-tabs">
         {options.map((o) => (
           <button
@@ -485,8 +514,16 @@ export function PgSwatches({
       group's title already names it. The aria-label stays either way. */
   hideLabel?: boolean;
 }) {
+  const top = useContext(PanelLevel) === "top" && !hideLabel;
   const isCustom = allowCustom && !options.some((o) => o.value === value);
   const [pickerOpen, setPickerOpen] = useState(false);
+  if (top) {
+    return (
+      <PgGroup label={label}>
+        <PgSwatches label={label} options={options} value={value} onChange={onChange} allowCustom={allowCustom} hideLabel />
+      </PgGroup>
+    );
+  }
   return (
     <div className="pg-field" role="radiogroup" aria-label={label} style={{ position: "relative" }}>
       {!hideLabel && <span className="pg-label">{label}</span>}
@@ -1914,7 +1951,7 @@ export function ControlsPanel({
             </button>
           </div>
         )}
-        {children}
+        <PanelLevel.Provider value="top">{children}</PanelLevel.Provider>
       </div>
       <div className="st-panel-body st-panel-body--chat" hidden={tab !== "agent"}>
         <AgentChat library={library} wiring={agent} />

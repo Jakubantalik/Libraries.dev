@@ -301,16 +301,19 @@ export function DistortionWavesStudio({ visible = true }: { visible?: boolean; t
 
       <ControlsPanel library="Distortion waves">
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
-        <PgSwatches
-          label="Colour"
-          options={SWATCHES}
-          value={colour}
-          onChange={(c) => setColours((prev) => ({ ...prev, [type]: c }))}
-          allowCustom
-        />
-        <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "-4px 0 6px" }}>
-          {isPreset(colour) ? PALETTE_LABEL[colour] : `One colour, ${colour}`} · whole wave {duration(style).toFixed(2)}s
-        </span>
+        <PgGroup label="Colour">
+          <PgSwatches
+            label="Colour"
+            hideLabel
+            options={SWATCHES}
+            value={colour}
+            onChange={(c) => setColours((prev) => ({ ...prev, [type]: c }))}
+            allowCustom
+          />
+          <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "-4px 0 6px" }}>
+            {isPreset(colour) ? PALETTE_LABEL[colour] : `One colour, ${colour}`} · whole wave {duration(style).toFixed(2)}s
+          </span>
+        </PgGroup>
         {GROUPS.filter((g) => !(g.arcOnly && type === "center")).map((g) => (
           <div key={g.label}>
             <PanelSep />

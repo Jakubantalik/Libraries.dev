@@ -17,6 +17,7 @@ export function PgTabs<T extends string>({
   onChange,
   open,
   extra,
+  hideLabel,
 }: {
   label: string;
   /* `locked` is the note the option shows instead of being selectable. */
@@ -29,6 +30,9 @@ export function PgTabs<T extends string>({
   /* Labels for choices the page cannot offer at all — they belong to the
      Studio, so they have no value here — shown behind the same fade. */
   extra?: readonly string[];
+  /* Drop the visible label (the Studio's collapsible section already
+     shows it); the radiogroup keeps it as its accessible name. */
+  hideLabel?: boolean;
 }) {
   const live = open === undefined ? options : options.slice(0, open);
   const locked = [
@@ -39,7 +43,7 @@ export function PgTabs<T extends string>({
   const behind = inline.length > 0 ? [] : locked;
   return (
     <div className="pg-field" role="radiogroup" aria-label={label}>
-      <span className="pg-label">{label}</span>
+      {!hideLabel && <span className="pg-label">{label}</span>}
       <div className="pg-tabs">
         {live.map((o) => (
           /* A locked option keeps the button — `disabled` would take it out

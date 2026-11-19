@@ -319,21 +319,31 @@ let clearStyle = '';
 let bucketStyleKey = '';
 const bucketScale = BUCKETS / (1 - S_MIN);
 
-/** Grey and alpha for a tone: faint a translucent grey, lit solid white — near-black ink on the light theme. */
-function ink(s: number, alpha: number, dark: boolean): string {
-  const g = dark ? Math.round(185 + 70 * s) : Math.round(120 - 105 * s);
-  return `rgba(${g},${g},${g},${alpha.toFixed(3)})`;
+/** Grey and alpha for a tone: faint a translucent grey, lit solid white — near-black ink on the light theme.
+ *  With a tint, the grey moves `amount` of the way to the tint at the same lightness: the tint brought to
+ *  full brightness, then scaled by the grey's level, so the ink keeps its tones. */
+function ink(s: number, alpha: number, dark: boolean, tint: [number, number, number] | null, amount: number): string {
+  const g = dark ? 185 + 70 * s : 120 - 105 * s;
+  let r = g, gr = g, b = g;
+  if (tint && amount > 0) {
+    const k = g / Math.max(1, tint[0], tint[1], tint[2]);
+    r += (tint[0] * k - g) * amount;
+    gr += (tint[1] * k - g) * amount;
+    b += (tint[2] * k - g) * amount;
+  }
+  return `rgba(${Math.round(r)},${Math.round(gr)},${Math.round(b)},${alpha.toFixed(3)})`;
 }
 
-function inkStyles(dark: boolean): void {
-  const key = dark ? 'd' : 'l';
+function inkStyles(dark: boolean, tint: [number, number, number] | null, amount: number): void {
+  const a = tint ? Math.round(amount * 100) / 100 : 0;
+  const key = (dark ? 'd' : 'l') + (a > 0 && tint ? `${tint.join(',')}@${a}` : '');
   if (bucketStyleKey === key) return;
   for (let b = 0; b < BUCKETS; b++) {
     const s = S_MIN + ((b + 0.5) / BUCKETS) * (1 - S_MIN);
-    bucketStyle[b] = ink(s, 0.08 + 0.92 * Math.pow(s, 1.05), dark);
+    bucketStyle[b] = ink(s, 0.08 + 0.92 * Math.pow(s, 1.05), dark, tint, a);
   }
   // A line fades out through its own grey, not through black.
-  clearStyle = ink(S_MIN, 0, dark);
+  clearStyle = ink(S_MIN, 0, dark, tint, a);
   bucketStyleKey = key;
 }
 
@@ -583,7 +593,7 @@ export function drawSurface(st: SurfaceState, config: VoiceDriverConfig, f: Surf
     PR[i] = (0.28 + 0.92 * near + 0.32 * lifted) * rBase;
   }
 
-  inkStyles(dark);
+  inkStyles(dark, config.tint, config.tintAmount);
   if (lines) paintLines(st, config, sc);
   else paintDots(st, config.dotShape === 'square');
 }

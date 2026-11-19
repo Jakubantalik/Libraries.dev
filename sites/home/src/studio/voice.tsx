@@ -17,22 +17,34 @@ import {
   type VoiceBeamType,
   type VoiceGeometry,
 } from "voice-glow";
-import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, CodeBlock, num, StageBar, PgGroup } from "./controls";
+import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { checkCss, tpl, type CoreWiring } from "./core";
 import { useVoiceProcessing, processingDefaults, lookHasProcessing, type ProcessingTuning } from "./voice-processing";
 import { MOOD_PRESETS, moodBand, moodColors, type MoodPoint, type MoodPreset } from "./voice-mood";
+import { useSpeechTranscript, useVoiceEmotion } from "./voice-emotion";
 
-/* Emotion (SwiftUI only): a preview of the colours the SwiftUI glow takes
-   for a mood. The web glow has no emotion; the preview rides its `colors`
-   and `bandColors`, and the web snippet never includes it. */
+/* Emotion. On (Pro, web): the mood of what is said — live speech with
+   the Microphone source — scored by the tiny word
+   model in voice-emotion.ts. Happy / Calm / Angry / Sad: a preview of the
+   colours the SwiftUI glow takes for a fixed mood (its live detection is
+   SwiftUI Pro); that preview rides `colors` / `bandColors` and never
+   reaches the web snippet. */
 const EMOTION_OPTIONS = [
   { value: "off", label: "Off" },
+  { value: "words", label: "On" },
   { value: "happy", label: "Happy" },
   { value: "calm", label: "Calm" },
   { value: "angry", label: "Angry" },
   { value: "sad", label: "Sad" },
 ] as const;
 type Emotion = (typeof EMOTION_OPTIONS)[number]["value"];
+const SPEECH_STATUS: Record<string, string> = {
+  off: "Speech recognition starts when the microphone is live.",
+  listening: "Listening for words…",
+  unsupported: "This browser has no speech recognition (try Chrome, Edge or Safari). Type instead with another source.",
+  denied: "Speech recognition was refused. Allow the microphone for this page and pick Microphone again.",
+  error: "Speech recognition stopped (offline, or the language is not supported).",
+};
 const SWIFT_TYPE: Record<string, string> = { default: ".standard", pill: ".pill", mobile: ".mobile" };
 
 /* The mood plane: drag to set valence (→ positive) and arousal (↑ excited). */
@@ -309,12 +321,12 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const [breathe, setBreathe] = useState(5.2);
   /* The processing state (Pro): its tuning, reset with the host type. */
   const [proc, setProc] = useState<ProcessingTuning>(processingDefaults("default"));
-  /* Emotion preview (SwiftUI only). */
+  /* Emotion: On (Pro, live from the words) or a fixed mood preview. */
   const [emotion, setEmotion] = useState<Emotion>("off");
   const [moodPoint, setMoodPoint] = useState<MoodPoint>(MOOD_PRESETS.happy);
   const chooseEmotion = (next: Emotion) => {
     setEmotion(next);
-    if (next !== "off") setMoodPoint(MOOD_PRESETS[next as MoodPreset]);
+    if (next !== "off" && next !== "words") setMoodPoint(MOOD_PRESETS[next as MoodPreset]);
   };
   /* Dragging the pad lights the tab of the nearest mood. */
   const dragMood = (p: MoodPoint) => {
@@ -580,6 +592,15 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const processingMotion = useVoiceProcessing(processing, { ...proc, type, look });
   const stream = isMic ? mic.stream : null;
 
+  /* Emotion › On (Pro): the browser's speech recognition while the
+     Microphone source is live, the demo's transcript otherwise. */
+  const isWords = emotion === "words";
+  const heard = useSpeechTranscript(isWords && isMic && visible && !paused);
+  const voiceEmotion = useVoiceEmotion(isMic ? heard.transcript : transcript.join(" "), { enabled: isWords, colors: lobeColors, theme });
+  /* The live mood's palette, while it holds the glow (eases out after Off). */
+  const wordsPalette = voiceEmotion.colors ? moodColors(voiceEmotion.mood, theme !== "light") : null;
+  const wordsAmount = voiceEmotion.colors ? voiceEmotion.mood.amount : 0;
+
   /* Leaving the Microphone source releases the device; nothing else
      should keep a live microphone open on a page that isn't showing it. */
   useEffect(() => {
@@ -713,37 +734,36 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
       .join(", ");
     props.push(`style={{ ${varLines} }}`);
   }
+  /* Words: the glow's colours come from the hook, which blends the palette
+     (the custom one when set) into the mood. */
+  if (isWords && isSurface) props.push("tint={emotion.tint}", "tintAmount={emotion.mood.amount}");
+  else if (isWords) {
+    const custom = props.findIndex((p) => p.startsWith("colors={"));
+    if (custom >= 0) props[custom] = "colors={emotion.colors ?? palette}";
+    else props.push("colors={emotion.colors}");
+  }
   const attrs = "\n  " + props.join("\n  ") + "\n";
   const imports = (isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';")
-    + (processing ? "\n// Pro: the processing state (the Pro skill adds it to your project)\nimport { useVoiceProcessing } from './voice-processing';" : "");
+    + (processing ? "\n// Pro: the processing state (the Pro skill adds it to your project)\nimport { useVoiceProcessing } from './voice-processing';" : "")
+    + (isWords ? `\n// Pro: emotion from the words (the Pro skill adds it to your project)\nimport { ${isMic ? "useSpeechTranscript, " : ""}useVoiceEmotion } from './voice-emotion';` : "");
+  const paletteChanged = !isSurface && lobeColors.some((c, i) => c !== paletteDefault[i]);
+  const emotionOpts = [paletteChanged ? "colors: palette" : "", theme === "light" ? "theme: 'light'" : ""].filter(Boolean).join(", ");
+  const wordsDecl = !isWords
+    ? ""
+    : (paletteChanged ? `const palette = [${lobeColors.map((c) => `'${c}'`).join(", ")}];\n` : "")
+      + (isMic
+        ? `const heard = useSpeechTranscript(mic.state === 'live');\nconst emotion = useVoiceEmotion(heard.transcript${emotionOpts ? `, { ${emotionOpts} }` : ""});\n\n`
+        : `// Any text: your speech-to-text, a chat message…\nconst emotion = useVoiceEmotion(transcript${emotionOpts ? `, { ${emotionOpts} }` : ""});\n\n`);
   /* Processing: only the tuning that differs from the type's own. */
   const procDefaults = processingDefaults(type, look);
   const procDiff = (Object.keys(proc) as Array<keyof ProcessingTuning>)
     .filter((k) => proc[k] !== procDefaults[k])
     .map((k) => `${k}: ${num(proc[k])}`);
   const procArgs = [type !== "default" ? `type: '${type}'` : "", lookHasProcessing(look) ? `look: '${look}'` : "", ...procDiff].filter(Boolean).join(", ");
-  const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "")
+  const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "") + wordsDecl
     + (processing ? `const processing = useVoiceProcessing(isThinking${procArgs ? `, { ${procArgs} }` : ""});\n\n` : "");
-  const emotionColors = emotion !== "off" && !isSurface ? moodColors(moodPoint, theme !== "light") : null;
-  const swiftSnippet = `// SwiftUI only — VoiceGlow Pro.
-// Models: run models/setup.sh once.
-import VoiceGlowKit
-import VoiceGlowEmotion
-
-VoiceGlow(
-  type: ${SWIFT_TYPE[type] ?? ".standard"},
-  meter: meter,
-  mood: .blend(
-    tone: tone.mood,
-    meaning: words.mood
-  )
-) {
-  ${CHILD_BY_TYPE[type].replace(/[<>/ ]/g, "")}()
-}
-
-// This preview's mood:
-// VoiceMood(valence: ${num(moodPoint.valence)},
-//           arousal: ${num(moodPoint.arousal)})`;
+  /* The fixed SwiftUI mood preview (Happy / Calm / Angry / Sad). */
+  const emotionColors = emotion !== "off" && emotion !== "words" ? moodColors(moodPoint, theme !== "light") : null;
   /* Install & Usage › Swift UI: the free VoiceGlowKit from the same knobs.
      The port takes the type, the palette, the theme, the corner radius and
      the response / shape options; emotion and processing are VoiceGlow Pro. */
@@ -838,8 +858,11 @@ VoiceGlow(
             motion={processingMotion}
             bands={bands}
             colorVariant={colorVariant}
-            colors={emotionColors ?? lobeColors}
-            bandColors={emotionColors ? moodBand(bandCols, emotionColors) : bandCols}
+            colors={emotionColors ?? voiceEmotion.colors ?? lobeColors}
+            /* Dots and lines have no palette: the mood tints their ink. */
+            tint={isSurface ? (emotionColors?.[0] ?? wordsPalette?.[0]) : undefined}
+            tintAmount={emotionColors ? 1 : wordsAmount}
+            bandColors={emotionColors ? moodBand(bandCols, emotionColors) : wordsPalette ? moodBand(bandCols, wordsPalette, wordsAmount) : bandCols}
             theme={theme}
             css={core || undefined}
             paused={paused}
@@ -853,7 +876,7 @@ VoiceGlow(
             className={type === "mobile" ? "mock-phone-host" : undefined}
             brightness={brightness}
             saturation={saturation}
-            hueRange={emotionColors ? hueRange * 0.3 : hueRange}
+            hueRange={emotionColors ? hueRange * 0.3 : hueRange * (1 - 0.7 * wordsAmount)}
             hueDuration={hueDuration}
             staticColors={staticColors}
             style={isSurface || isPixel ? ({ ...(beamStyle ?? {}), "--mock-btn-blur": `${buttonBlur}px` } as CSSProperties) : beamStyle}
@@ -864,7 +887,7 @@ VoiceGlow(
             ) : type === "mobile" ? (
               <div className="mock-phone-scale">
                 <div className="mock-phone-scale-inner">
-                  <PhoneScreen promptKey={runKey} transcript={transcript} closed={!voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
+                  <PhoneScreen promptKey={runKey} transcript={isWords && isMic && heard.state === "listening" ? heard.transcript.split(" ").filter(Boolean) : transcript} closed={!voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
                 </div>
               </div>
             ) : (
@@ -921,8 +944,56 @@ VoiceGlow(
           core: coreWiring,
         }}
       >
+        {/* Source first (what drives the glow), then the host type, the look
+            and the mood it takes. Each section folds; a section's own extras
+            (mic status, level, processing, the mood pad) fold with it. */}
+        <PgGroup label="Source">
+          <PgTabs label="Source" hideLabel options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
+          {isMic && MIC_STATUS[mic.state] && (
+            <div className="pg-field">
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7 }} role="status">
+                {MIC_STATUS[mic.state]}
+              </span>
+            </div>
+          )}
+          {source === "manual" && (
+            <PgSlider label="Level" value={manualLevel} min={0} max={100} step={1} display={`${manualLevel}%`} onChange={setManualLevel} />
+          )}
+          {processing && (
+            <>
+              <PgSlider label="Pass duration" value={proc.duration} min={0.3} max={3} step={0.05} display={`${num(proc.duration)}s`} onChange={setP("duration")} />
+              <PgSlider label="Held level" value={proc.level} min={0} max={1} step={0.01} display={`${Math.round(proc.level * 100)}%`} onChange={setP("level")} />
+              <PgSlider label="Travel" value={proc.travel} min={0} max={2} step={0.05} display={`${num(proc.travel)}×`} onChange={setP("travel")} />
+              <PgSlider label="Turn ease" value={proc.curve} min={1} max={4} step={0.05} display={`${num(proc.curve)}`} onChange={setP("curve")} />
+              <PgSlider label="Corner follow" value={proc.cornerFollow} min={0} max={1} step={0.05} display={`${Math.round(proc.cornerFollow * 100)}%`} onChange={setP("cornerFollow")} />
+              <PgSlider label="Morph" value={proc.ease} min={0.1} max={2} step={0.05} display={`${num(proc.ease)}s`} onChange={setP("ease")} />
+            </>
+          )}
+        </PgGroup>
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
         {VOICE_SURFACE_LOOKS && <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={chooseLook} />}
+        <PgGroup label="Emotion">
+          <PgTabs label="Emotion" hideLabel options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />
+          <div className="pg-field">
+            {isWords && isMic && (
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7, minHeight: 18, marginBottom: 6 }} role="status">
+                {heard.transcript ? `“${heard.transcript}”` : SPEECH_STATUS[heard.state]}
+              </span>
+            )}
+            <span style={{ display: "block", fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+              Libraries&apos; own model reads the mood of what is said, right in the page: green for positive
+              words, red for negative. Speak with the Microphone source.
+            </span>
+          </div>
+          {emotionColors && (
+            <div className="pg-field">
+              <MoodPad value={moodPoint} onChange={dragMood} />
+              <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "8px 0" }}>
+                Drag to preview any mood&apos;s colours.
+              </span>
+            </div>
+          )}
+        </PgGroup>
         {isPixel && (
           <PgGroup label={look === "mosaic" ? "Mosaic" : "Dither"}>
             <PgSlider label="Cell size" value={geo.pixelSize} min={0.5} max={2.5} step={0.05} display={`${num(geo.pixelSize)}×`} onChange={setG("pixelSize")} />
@@ -966,38 +1037,6 @@ VoiceGlow(
             <PgSlider label="Gravity" value={gravity} min={0.2} max={3} step={0.05} display={`${num(gravity)}×`} onChange={setGravity} />
             <PgSlider label="Button blur" value={buttonBlur} min={0} max={30} step={1} display={`${buttonBlur}px`} onChange={setButtonBlur} />
           </PgGroup>
-        )}
-        <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
-        {!isSurface && <PgTabs label="Emotion (SwiftUI)" options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />}
-        {emotionColors && (
-          <div className="pg-field">
-            <MoodPad value={moodPoint} onChange={dragMood} />
-            <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "8px 0" }}>
-              A preview of the SwiftUI glow&apos;s mood colours. Emotion detection — from the tone of the voice and
-              the words — runs on the iPhone with VoiceGlow Pro; the web glow keeps its palette.
-            </span>
-            <CodeBlock code={swiftSnippet} label="Copy SwiftUI code" />
-          </div>
-        )}
-        {isMic && MIC_STATUS[mic.state] && (
-          <div className="pg-field">
-            <span style={{ display: "block", fontSize: 12, opacity: 0.7 }} role="status">
-              {MIC_STATUS[mic.state]}
-            </span>
-          </div>
-        )}
-        {source === "manual" && (
-          <PgSlider label="Level" value={manualLevel} min={0} max={100} step={1} display={`${manualLevel}%`} onChange={setManualLevel} />
-        )}
-        {processing && (
-          <>
-            <PgSlider label="Pass duration" value={proc.duration} min={0.3} max={3} step={0.05} display={`${num(proc.duration)}s`} onChange={setP("duration")} />
-            <PgSlider label="Held level" value={proc.level} min={0} max={1} step={0.01} display={`${Math.round(proc.level * 100)}%`} onChange={setP("level")} />
-            <PgSlider label="Travel" value={proc.travel} min={0} max={2} step={0.05} display={`${num(proc.travel)}×`} onChange={setP("travel")} />
-            <PgSlider label="Turn ease" value={proc.curve} min={1} max={4} step={0.05} display={`${num(proc.curve)}`} onChange={setP("curve")} />
-            <PgSlider label="Corner follow" value={proc.cornerFollow} min={0} max={1} step={0.05} display={`${Math.round(proc.cornerFollow * 100)}%`} onChange={setP("cornerFollow")} />
-            <PgSlider label="Morph" value={proc.ease} min={0.1} max={2} step={0.05} display={`${num(proc.ease)}s`} onChange={setP("ease")} />
-          </>
         )}
         {!isSurface && (
           <>

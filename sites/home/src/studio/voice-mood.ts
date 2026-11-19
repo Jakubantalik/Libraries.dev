@@ -92,12 +92,21 @@ export function moodColors(p: MoodPoint, dark: boolean): string[] {
   });
 }
 
-/* The band's fringes take the mood too (75% of the way, as on SwiftUI);
-   its core stays. */
-export function moodBand<T extends { core: string; above: string; mid: string; below: string }>(band: T, colors: string[]): T {
+/* The band's fringes take the mood too (75% of the way, as on SwiftUI,
+   times `amount` while a live mood eases in); its core stays. */
+export function moodBand<T extends { core: string; above: string; mid: string; below: string }>(band: T, colors: string[], amount = 1): T {
   const tint = (c: string, m: string) => {
     const a = parse(c), b = parse(m);
-    return a && b ? hex(toRgb(mix(toLab(a), toLab(b), 0.75))) : c;
+    return a && b ? hex(toRgb(mix(toLab(a), toLab(b), 0.75 * amount))) : c;
   };
   return { ...band, above: tint(band.above, colors[1]), mid: tint(band.mid, colors[0]), below: tint(band.below, colors[2]) };
+}
+
+/* The glow's own palette moved `amount` of the way into the mood's, in
+   OKLab per lobe (as VoiceGlowEngine blends them). */
+export function blendColors(base: string[], mood: string[], amount: number): string[] {
+  return base.map((c, i) => {
+    const a = parse(c), b = parse(mood[i % mood.length]);
+    return a && b ? hex(toRgb(mix(toLab(a), toLab(b), Math.max(0, Math.min(1, amount))))) : c;
+  });
 }
