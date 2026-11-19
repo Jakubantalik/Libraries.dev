@@ -34,11 +34,11 @@ const SOURCE_OPTIONS = [
 ] as const;
 const SOURCES_LOCKED = ["Manual drive"];
 
-/* Emotion is the Voice library's Pro feature here too: emotion2vec+ reads
-   the tone of the voice on the iPhone and the ring takes its colour. */
+/* Emotion is Pro here too, as on the Voice page: Libraries' own model
+   reads the mood of what is said and the ring takes its colour. */
 const EMOTION_OPTIONS = [
   { value: "off", label: "Off" },
-  { value: "emotion", label: "Emotion", locked: "SwiftUI only, with Pro plan" },
+  { value: "emotion", label: "On", locked: "Available with Pro plan" },
 ] as const;
 
 /* Direction detection is Pro as well: the Voice position model reads
@@ -184,15 +184,21 @@ function RingPlayground() {
         </div>
 
         <div className="pg-controls" id="playground-controls">
-          <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
-          <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />
+          {/* The Voice page's order: Source first, then Type, State, Emotion. */}
           <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} extra={SOURCES_LOCKED} />
           {isMic && MIC_STATUS[mic.state] && (
             <div className="pg-field">
               <span className="pg-note" role="status">{MIC_STATUS[mic.state]}</span>
             </div>
           )}
+          <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
+          <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />
           <PgTabs label="Emotion" options={EMOTION_OPTIONS} value="off" onChange={() => {}} />
+          <div className="pg-field">
+            <span className="pg-note">
+              Libraries&apos; own model reads the mood of what is said: green for positive words, red for negative.
+            </span>
+          </div>
           <div>
             <PgTabs label="Direction detection" options={DIRECTION_OPTIONS} value="off" onChange={() => {}} />
             <span className="pg-note">

@@ -29,6 +29,15 @@ const TYPE_OPTIONS = [
 /* The recording pill is a Studio host; it shows here, locked. */
 const TYPES_LOCKED = ["Recording pill"];
 
+/* How the voice is drawn. The glow and the dither are free here; mosaic,
+   dots and lines show locked (they are Pro, in the Studio). */
+type PageLook = "glow" | "dither";
+const LOOK_OPTIONS = [
+  { value: "glow", label: "Glow" },
+  { value: "dither", label: "Dither" },
+] as const;
+const LOOKS_LOCKED = ["Mosaic", "Dots", "Lines"];
+
 /* Demo plays a synthetic speech envelope so the effect can be judged
    without a microphone; Microphone asks for the real thing through the
    library's own hook. Processing (the gathered beam travelling its range
@@ -39,13 +48,13 @@ const SOURCE_OPTIONS = [
 ] as const;
 const SOURCES_LOCKED = ["Processing", "Manual drive"];
 
-/* Pro features shown here, locked: emotion colouring (the SwiftUI port —
-   the glow takes the colour of the voice's emotion, from its tone and its
-   words) and the live transcript (real speech-to-text, word by word). The
-   free choice is the one the stage shows. */
-const COLOUR_OPTIONS = [
-  { value: "palette", label: "Palette" },
-  { value: "emotion", label: "Emotion", locked: "SwiftUI only, with Pro plan" },
+/* Pro features shown here, locked: emotion (Libraries' own model reads the
+   mood of what is said and colours the glow; live in the Studio with Pro)
+   and the live transcript (real speech-to-text, word by word). The free
+   choice is the one the stage shows. */
+const EMOTION_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "on", label: "On", locked: "Available with Pro plan" },
 ] as const;
 const TRANSCRIPT_OPTIONS = [
   { value: "demo", label: "Demo" },
@@ -156,7 +165,7 @@ function ChatExample() {
   return (
     <div ref={ref} className="voice-fit">
       <VoiceBeam type="default" level={demoGetter} theme="dark" scale={scale}>
-        <ChatInputMock />
+        <ChatInputMock listening />
       </VoiceBeam>
     </div>
   );
@@ -164,6 +173,7 @@ function ChatExample() {
 
 function VoicePlayground() {
   const [type, setType] = useState<PageType>("default");
+  const [look, setLook] = useState<PageLook>("glow");
   const [source, setSource] = useState<Source>("demo");
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. Paused on arrival, like every other
@@ -209,6 +219,7 @@ function VoicePlayground() {
   /* Live snippet: only non-default props survive. */
   const props: string[] = [];
   if (type !== "default") props.push(`type="${type}"`);
+  if (look !== "glow") props.push(`look="${look}"`);
   if (isMic) props.push("stream={mic.stream}");
   else props.push("level={() => yourLevel}");
   if (paused) props.push("paused");
@@ -220,7 +231,7 @@ function VoicePlayground() {
   const [fitRef, fitScale] = useFitScale();
   const beam =
     type === "mobile" ? (
-      <VoiceBeam type="mobile" stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
+      <VoiceBeam type="mobile" look={look} stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
         <div className="mock-phone-scale">
           <div className="mock-phone-scale-inner">
             <PhoneScreen promptKey={runKey} transcript={transcript} />
@@ -229,8 +240,8 @@ function VoicePlayground() {
       </VoiceBeam>
     ) : (
       <div ref={fitRef} className="voice-fit">
-        <VoiceBeam type="default" stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
-          <ChatInputMock />
+        <VoiceBeam type="default" look={look} stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
+          <ChatInputMock listening />
         </VoiceBeam>
       </div>
     );
@@ -265,15 +276,22 @@ function VoicePlayground() {
         </div>
 
         <div className="pg-controls" id="playground-controls">
-          <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} extra={TYPES_LOCKED} />
+          {/* The Studio's order: Source, Type, Look, Emotion. */}
           <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} extra={SOURCES_LOCKED} />
-          <PgTabs label="Colour" options={COLOUR_OPTIONS} value="palette" onChange={() => {}} />
-          <PgTabs label="Transcript" options={TRANSCRIPT_OPTIONS} value="demo" onChange={() => {}} />
           {isMic && MIC_STATUS[mic.state] && (
             <div className="pg-field">
               <span className="pg-note" role="status">{MIC_STATUS[mic.state]}</span>
             </div>
           )}
+          <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} extra={TYPES_LOCKED} />
+          <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} extra={LOOKS_LOCKED} />
+          <PgTabs label="Emotion" options={EMOTION_OPTIONS} value="off" onChange={() => {}} />
+          <div className="pg-field">
+            <span className="pg-note">
+              Libraries&apos; own model reads the mood of what is said: green for positive words, red for negative.
+            </span>
+          </div>
+          <PgTabs label="Transcript" options={TRANSCRIPT_OPTIONS} value="demo" onChange={() => {}} />
           <StudioTeaser
             rows={[
               { kind: "tabs", label: "Color theme", options: ["Colorful", "Ocean"] },

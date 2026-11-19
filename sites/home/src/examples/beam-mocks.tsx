@@ -440,6 +440,7 @@ export function ChatInputMock({
   radius = 20,
   agent = true,
   closed = false,
+  listening = false,
   onClose,
   closeRef,
 }: {
@@ -447,6 +448,8 @@ export function ChatInputMock({
   agent?: boolean;
   /** Voice mode is off: the close button becomes the start button. */
   closed?: boolean;
+  /** Voice mode is on: the field reads "Listening..." instead of its prompt. */
+  listening?: boolean;
   onClose?: () => void;
   closeRef?: (el: HTMLButtonElement | null) => void;
 }) {
@@ -459,7 +462,7 @@ export function ChatInputMock({
     <form className="mock-vchat" aria-label="Chat input UI example" style={radius !== 20 ? { borderRadius: radius } : undefined} onSubmit={(e) => e.preventDefault()}>
       {/* A real field and real buttons, so the mock can be typed into and
           pressed while the beam runs; nothing is sent anywhere. */}
-      <input className="mock-vchat-input" type="text" placeholder="Ask me anything.." aria-label="Message" autoComplete="off" spellCheck={false} />
+      <input className="mock-vchat-input" type="text" placeholder={listening ? "Listening..." : "Ask me anything.."} aria-label="Message" autoComplete="off" spellCheck={false} />
       <div className="mock-vchat-row">
         <button type="button" className="mock-vchat-btn" aria-label="Add">
           <span className="mk-ico mk-ico-plus" />

@@ -77,7 +77,7 @@ function App() {
       <VoiceBeam type={type} level={level} paused={paused} theme={theme} borderRadius={RADIUS[type]} onLevel={onLevel}>
         {type === "pill" ? <RecordingPill running paused={paused} resetKey={runKey} />
           : type === "mobile" ? <PhoneScreen promptKey={runKey} transcript={transcript} />
-          : <ChatInputMock radius={RADIUS.default} />}
+          : <ChatInputMock radius={RADIUS.default} listening />}
       </VoiceBeam>
       <div className="vp-bar">
         <B on={type === "default"} onClick={() => setType("default")}>Chat</B>
