@@ -302,6 +302,8 @@ export interface SurfaceFrame {
   dt: number;
   /** Unwrapped flow travel, px — the ripple rides it. */
   drift: number;
+  /** Processing's gather, 0–1: the horizon sinks while it runs. */
+  gather?: number;
 }
 
 // Per-frame scratch, shared: frames are painted one at a time.
@@ -339,6 +341,9 @@ function bucketOf(s: number): number {
   const b = Math.floor((Math.min(s, 0.99999) - S_MIN) * bucketScale);
   return b < 0 ? 0 : b;
 }
+
+/** How much lower the sheet sits while processing (its reach above the edge). */
+const PROCESSING_REACH = 0.3;
 
 export function drawSurface(st: SurfaceState, config: VoiceDriverConfig, f: SurfaceFrame): void {
   const { cw, ch } = f;
@@ -403,6 +408,9 @@ export function drawSurface(st: SurfaceState, config: VoiceDriverConfig, f: Surf
   }
   const { depth, hillZ, persp, rows, rowZ } = st;
   const y0 = ch - 1.5 * sc;
+  // While processing, the whole sheet — horizon and hills — sits lower:
+  // its height above the bottom edge drops by up to PROCESSING_REACH.
+  const reach = 1 - PROCESSING_REACH * Math.max(0, Math.min(1, f.gather ?? 0));
 
   // The arc: the sheet falls away toward the sides and the far edge, so its
   // rows bow like a horizon — `surfaceCurve` times; below 0 it cups instead.
@@ -557,7 +565,7 @@ export function drawSurface(st: SurfaceState, config: VoiceDriverConfig, f: Surf
     if (rippleAmp > 0) {
       Y += (vnoise((X - drift) * iRx, Z * iRz + t * 0.33) - 0.5) * 2 * rippleAmp;
     }
-    const sy = y0 - (Z * sinT + Y * cosT) * kz;
+    const sy = y0 - (Z * sinT + Y * cosT) * kz * reach;
     if (!lines && (sy < -4 || sy > ch + 4)) {
       PS[i] = -1;
       continue;

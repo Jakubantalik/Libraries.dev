@@ -38,6 +38,34 @@ export const PROCESSING_DEFAULTS: Record<VoiceBeamType, ProcessingTuning> = {
   mobile: { duration: 1.05, level: 0.35, travel: 1, curve: 2.1, cornerFollow: 0.4, ease: 0.6 },
 };
 
+/* The canvas looks on a host type, tuned by hand over the type's own: the
+   pixel looks (mosaic, dither) a quicker, longer pass, the surface looks
+   (dots, lines) a lower held level. */
+type CanvasLook = "mosaic" | "dither" | "dots" | "lines";
+const LOOK_PROCESSING: Record<CanvasLook, Partial<Record<VoiceBeamType, Partial<ProcessingTuning>>>> = {
+  mosaic: {
+    default: { duration: 1, level: 0.59, travel: 1.25, curve: 2.05, cornerFollow: 0.3, ease: 0.6 },
+    mobile: { level: 0.45, cornerFollow: 0.15 },
+  },
+  dither: {
+    default: { duration: 1, level: 0.59, travel: 1.25, curve: 2.05, cornerFollow: 0.3, ease: 0.6 },
+    mobile: { level: 0.45, cornerFollow: 0.15 },
+  },
+  dots: { default: { level: 0.23 } },
+  lines: { default: { level: 0.23 } },
+};
+
+/* Whether a look has processing defaults of its own (the hook then takes it). */
+export function lookHasProcessing(look?: string): boolean {
+  return !!look && look in LOOK_PROCESSING;
+}
+
+/* The defaults for a type and look. */
+export function processingDefaults(type: VoiceBeamType, look?: string): ProcessingTuning {
+  const own = lookHasProcessing(look) ? LOOK_PROCESSING[look as CanvasLook][type] : undefined;
+  return { ...PROCESSING_DEFAULTS[type], ...own };
+}
+
 function follow(prev: number, target: number, dt: number, attack: number, release: number): number {
   const tau = target > prev ? attack : release;
   return prev + (target - prev) * (1 - Math.exp(-dt / Math.max(0.001, tau)));
@@ -85,14 +113,14 @@ export function createVoiceProcessing() {
    so turning processing on or off never re-renders the beam. */
 export function useVoiceProcessing(
   active: boolean,
-  tuning: Partial<ProcessingTuning> & { type?: VoiceBeamType; reducedMotion?: boolean } = {}
+  tuning: Partial<ProcessingTuning> & { type?: VoiceBeamType; look?: string; reducedMotion?: boolean } = {}
 ): () => VoiceBeamMotion {
   const driver = useRef(createVoiceProcessing());
   const activeRef = useRef(active);
   activeRef.current = active;
-  const { type = "default", reducedMotion = false, ...overrides } = tuning;
-  const tuningRef = useRef<ProcessingTuning>(PROCESSING_DEFAULTS[type]);
-  tuningRef.current = { ...PROCESSING_DEFAULTS[type], ...overrides };
+  const { type = "default", look, reducedMotion = false, ...overrides } = tuning;
+  const tuningRef = useRef<ProcessingTuning>(processingDefaults(type, look));
+  tuningRef.current = { ...processingDefaults(type, look), ...overrides };
   const reducedRef = useRef(reducedMotion);
   reducedRef.current = reducedMotion;
   return useCallback(() => driver.current(activeRef.current, tuningRef.current, reducedRef.current), []);

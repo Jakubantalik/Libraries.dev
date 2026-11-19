@@ -10,7 +10,7 @@ export type { UseMicrophoneOptions, UseMicrophoneResult, MicrophoneState } from 
 export { getAudioContext, isAudioSupported } from './audio';
 export { parseRgb } from './color';
 
-export { voiceDefaults, voiceTypePresets, voiceTypeStyle, resolveVoiceDefaults, resolveVoiceStyle } from './presets';
+export { voiceDefaults, voiceTypePresets, voiceTypeStyle, resolveVoiceDefaults, resolveVoiceStyle, pixelGlowDefault, pixelDustDefault, pixelDomeDefault } from './presets';
 export type { VoiceGeometry, VoiceTypeStyle } from './presets';
 
 export type {

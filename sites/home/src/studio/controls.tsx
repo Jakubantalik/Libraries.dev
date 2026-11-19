@@ -164,11 +164,35 @@ export function PanelSep() {
 /** Titled group: gives a section its own label (and so the hairline above
     it) when the controls inside carry their own inline labels — e.g. a lone
     slider that would otherwise sit under the previous section's title. */
-export function PgGroup({ label, children }: { label: string; children: ReactNode }) {
+/** A titled group of controls that folds away: the chevron at the title's
+    right collapses its body (grid rows to 0, so the height animates). */
+export function PgGroup({ label, children, defaultOpen = true }: { label: string; children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  // A folded body leaves the tab order and the accessibility tree (React 18
+  // has no `inert` prop, so it is set on the element).
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bodyRef.current?.toggleAttribute("inert", !open);
+  }, [open]);
   return (
-    <div className="pg-field pg-group" role="group" aria-label={label}>
+    <div className="pg-field pg-group" role="group" aria-label={label} data-collapsed={open ? undefined : ""}>
       <span className="pg-label">{label}</span>
-      {children}
+      <button
+        type="button"
+        className="pg-group-toggle"
+        aria-expanded={open}
+        aria-label={open ? `Collapse ${label}` : `Expand ${label}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="pg-group-chevron">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M5 7l3 3 3-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+      <div className="pg-group-body" ref={bodyRef}>
+        <div className="pg-group-inner">{children}</div>
+      </div>
     </div>
   );
 }

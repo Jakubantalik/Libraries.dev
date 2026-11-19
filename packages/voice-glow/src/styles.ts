@@ -330,8 +330,8 @@ export interface GenerateVoiceStylesOptions {
   distortion?: boolean;
   /** The effect's overall scale, for the px values not carried by a multiplier. */
   scale?: number;
-  /** 'dots' and 'lines' drop the glow's layers for the surface's one canvas. */
-  look?: 'glow' | 'dots' | 'lines';
+  /** 'dots', 'lines', 'mosaic' and 'dither' drop the glow's layers for one canvas. */
+  look?: 'glow' | 'dots' | 'lines' | 'mosaic' | 'dither';
 }
 
 /**
@@ -340,7 +340,7 @@ export interface GenerateVoiceStylesOptions {
  * the glow's layers exist, so nothing here reads the per-frame custom
  * properties but the fade.
  */
-function generateSurfaceCSS(id: string, borderRadius: number): string {
+function generateSurfaceCSS(id: string, borderRadius: number, scale = 1): string {
   return `
 @property --vb-opacity-${id} {
   syntax: "<number>";
@@ -374,6 +374,49 @@ function generateSurfaceCSS(id: string, borderRadius: number): string {
   border-radius: inherit;
   pointer-events: none;
   z-index: 4;
+}
+
+/* The pixels that fly into the closing button: above the content, and not
+   faded with the effect — they outlive it by their flight. */
+[data-voice-beam="${id}"] [data-voice-beam-flyers] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* With the surface, under the host's content (z 5): the flyers pass
+     beneath the buttons' fills, as the wave does. Later in the DOM than
+     the surface, so they still cross over the wave. */
+  z-index: 4;
+  /* The surface's strength, but not its fade: the flyers are its pixels. */
+  opacity: var(--voice-strength, 1);
+}
+
+/* Opening from a button: the pixels fly out first and the wave fades in
+   behind them, landing as they land. */
+[data-voice-beam="${id}"][data-active][data-arriving] {
+  animation-delay: 0.22s;
+  animation-duration: 0.65s;
+}
+
+/* The mosaic's and the dither's halo: a small copy of the picture beneath
+   it, stretched and blurred into a soft glow of its own colours. */
+[data-voice-beam="${id}"] [data-voice-beam-pixel-glow] {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 4;
+  filter: blur(${Math.round(7 * Math.sqrt(scale) * 10) / 10}px) saturate(1.3);
+}
+
+[data-voice-beam="${id}"][data-active] [data-voice-beam-pixel-glow],
+[data-voice-beam="${id}"][data-fading] [data-voice-beam-pixel-glow] {
+  display: block;
+  opacity: calc(var(--vb-opacity-${id}, 1) * var(--voice-strength, 1) * var(--vb-pixel-glow-${id}, 0.6));
 }
 
 [data-voice-beam="${id}"][data-active] [data-voice-beam-surface],
@@ -414,7 +457,27 @@ function generateSurfaceCSS(id: string, borderRadius: number): string {
  * range is — the processing travel) and `--vb-hue` (drift).
  */
 export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): string {
-  if (__VOICE_SURFACE__ && (options.look === 'dots' || options.look === 'lines')) return generateSurfaceCSS(options.id, options.borderRadius);
+  if (__VOICE_SURFACE__ && (options.look === 'mosaic' || options.look === 'dither')) {
+    // The pixel looks keep the glow's 1px edge stroke — the same light
+    // hairline along the bottom, driven by the same per-frame properties —
+    // with the canvas in place of the glow's inner light and bloom. The
+    // stroke sits over the canvas (its pixels reach the edge) and under
+    // the host's content.
+    const { id } = options;
+    return `${generateVoiceBeamCSS({ ...options, look: 'glow', distortion: false })}
+${generateSurfaceCSS(id, options.borderRadius, options.scale)}
+[data-voice-beam="${id}"]::before,
+[data-voice-beam="${id}"][data-active]::before,
+[data-voice-beam="${id}"][data-fading]::before {
+  content: none !important;
+}
+[data-voice-beam="${id}"][data-active]::after,
+[data-voice-beam="${id}"][data-fading]::after {
+  z-index: 4;
+}
+`;
+  }
+  if (__VOICE_SURFACE__ && options.look && options.look !== 'glow') return generateSurfaceCSS(options.id, options.borderRadius, options.scale);
   const {
     id,
     borderRadius,

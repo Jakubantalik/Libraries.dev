@@ -1066,7 +1066,7 @@ html[data-theme="light"] .st-lib-ico img[src*="figma-voice."] { content: url("/a
   font-size: 13px;
   font-weight: 500;
   line-height: 16px;
-  color: #878787;
+  color: rgba(255, 255, 255, 0.5);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   z-index: 5;
@@ -1123,6 +1123,24 @@ html[data-theme="light"] .st-lib-ico img[src*="figma-voice."] { content: url("/a
   width: 402px;
   transform: translateY(-237.7px) scale(0.68);
   transform-origin: top left;
+}
+/* On a phone stage (SwiftUI / React Native picked) the stage is itself the
+   phone, 274×582 at 0.7 zoom: the screen fills it whole — 402 wide at
+   274 / 0.7 (×0.9737), its top 19.6px trimmed to the phone's height —
+   centred, with the device's corners all round (the Studio sets the
+   beam's scale and radius to match). */
+.pg-stage[data-device="phone"] .mock-phone-host {
+  align-self: center;
+  margin-top: 0;
+  border-top-left-radius: calc(43px / 0.7) !important;
+  border-top-right-radius: calc(43px / 0.7) !important;
+}
+.pg-stage[data-device="phone"] .mock-phone-scale {
+  width: calc(274px / 0.7);
+  height: calc(582px / 0.7);
+}
+.pg-stage[data-device="phone"] .mock-phone-scale-inner {
+  transform: translateY(-19.6px) scale(0.9737);
 }
 .mock-phone {
   position: relative;
@@ -1195,7 +1213,7 @@ html[data-theme="light"] .st-lib-ico img[src*="figma-voice."] { content: url("/a
   position: absolute;
   left: 32px;
   right: 32px;
-  top: 781px;
+  top: 745px;
   height: 44px;
   z-index: 5;
   display: flex;
@@ -1260,6 +1278,19 @@ html[data-theme="dark"] .mock-phone-btn {
 .mock-phone-btn img {
   display: block;
 }
+/* The close / start buttons are real buttons: no UA chrome. */
+button.mock-phone-btn,
+button.mock-pill-stop {
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: #efefef;
+  cursor: pointer;
+}
+button.mock-pill-stop { color: rgba(217, 217, 217, 0.85); }
+.mock-pill-stop[data-closed]::after { content: none; }
+html[data-theme="light"] button.mock-phone-btn,
+html[data-theme="light"] button.mock-pill-stop { color: #0d0d0d; }
 .mock-phone-close {
   position: relative;
   width: 22px;
@@ -1348,31 +1379,31 @@ html[data-theme="light"] .mock-phone-close::after { background: #0d0d0d; }
 
 /* The phone is scaled with a transform, which makes it its own stacking
    context: the effect's layers paint over all of it, buttons included. For
-   the surface looks (dots, lines), the screen's fill moves onto the host and
+   the canvas looks (dots, lines, mosaic, dither), the screen's fill moves onto the host and
    the phone's content rises above the surface canvas (z 4), so the surface
    runs between the screen and its controls — and the frosted buttons below
    have it to blur. */
-:is([data-voice-look="dots"], [data-voice-look="lines"]).mock-phone-host {
+:is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]).mock-phone-host {
   background: #111111;
 }
-html[data-theme="light"] :is([data-voice-look="dots"], [data-voice-look="lines"]).mock-phone-host {
+html[data-theme="light"] :is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]).mock-phone-host {
   background: #fbfbfc;
 }
-:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-scale {
+:is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]) .mock-phone-scale {
   z-index: 5;
 }
 /* html-prefixed to outrank the light theme's own fill. */
-html :is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone {
+html :is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]) .mock-phone {
   background: transparent;
 }
 
 /* Over the surface the controls are frosted: a backdrop blur (10px unless
    the host sets --mock-btn-blur — the Studio's Button blur knob) softens the
    dots or lines passing behind them. The glow look keeps them clear. */
-:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-vchat-btn,
-:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-pill-stop,
-:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-agent,
-:is([data-voice-look="dots"], [data-voice-look="lines"]) .mock-phone-btn {
+:is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]) .mock-vchat-btn,
+:is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]) .mock-pill-stop,
+:is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]) .mock-phone-agent,
+:is([data-voice-look="dots"], [data-voice-look="lines"], [data-voice-look="mosaic"], [data-voice-look="dither"]) .mock-phone-btn {
   -webkit-backdrop-filter: blur(var(--mock-btn-blur, 10px));
   backdrop-filter: blur(var(--mock-btn-blur, 10px));
 }
@@ -1496,3 +1527,58 @@ html[data-demo-names="off"] .ex-avatars-name { display: none; }
 .mock-thread-live { position: absolute; inset: 1px 0 0; display: flex; align-items: flex-start; }
 .mock-thread-body .t-shimmer { font-size: 13px; line-height: 18px; }
 .mock-thread-reply { margin: 0; font-size: 13px; line-height: 18px; color: var(--c-mock-text); }
+
+/* ── Gooey merge (voice close / start) ──
+   The mic folds into the close button through a goo-filtered blob layer
+   (see useGooMerge in beam-mocks.tsx), timed like the Gooey PlusMenu
+   prototype. At rest the layer is hidden; the
+   closed state hides the mic, keeping its slot so the × stays put. */
+.mock-goo-host {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: inherit;
+}
+.mock-vchat-actions > .mock-goo-host { gap: 12px; }
+.mock-goo-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.mock-goo {
+  position: absolute;
+  inset: -24px;
+  pointer-events: none;
+  visibility: hidden;
+}
+/* Solid: the filter recolours the silhouette to the button's fill. */
+.mock-goo > span {
+  position: absolute;
+  border-radius: 999px;
+  background: #fff;
+}
+/* One frost for the whole liquid, clipped to its merged shape per frame. */
+.mock-goo-frost {
+  position: absolute;
+  inset: -24px;
+  pointer-events: none;
+  visibility: hidden;
+}
+.mock-goo-host[data-goo] > .mock-goo,
+.mock-goo-host[data-goo] > .mock-goo-frost { visibility: visible; }
+.mock-goo-host[data-goo] > [data-goo-part] {
+  /* The liquid draws fill, shadow and frost meanwhile. */
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.mock-goo-host > [data-goo-part] { position: relative; }
+.mock-goo-host[data-closed]:not([data-goo]) > [data-goo-part="mic"] { visibility: hidden; }
+.mock-swap-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.mock-goo-host[data-closed] [data-icon="x"],
+.mock-goo-host:not([data-closed]) [data-icon="start"] { opacity: 0; }
+.mock-phone-actions.mock-goo-host { gap: 18px; }

@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   VoiceBeam,
   useMicrophone,
   resolveVoiceDefaults,
+  pixelGlowDefault,
+  pixelDustDefault,
+  pixelDomeDefault,
   resolveVoiceStyle,
   voicePalettes,
   parseRgb,
@@ -16,7 +19,7 @@ import {
 } from "voice-glow";
 import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, CodeBlock, num, StageBar, PgGroup } from "./controls";
 import { checkCss, tpl, type CoreWiring } from "./core";
-import { useVoiceProcessing, PROCESSING_DEFAULTS, type ProcessingTuning } from "./voice-processing";
+import { useVoiceProcessing, processingDefaults, lookHasProcessing, type ProcessingTuning } from "./voice-processing";
 import { MOOD_PRESETS, moodBand, moodColors, type MoodPoint, type MoodPreset } from "./voice-mood";
 
 /* Emotion (SwiftUI only): a preview of the colours the SwiftUI glow takes
@@ -71,7 +74,7 @@ export function MoodPad({ value, onChange }: { value: MoodPoint; onChange: (p: M
   );
 }
 import { ChatInputMock } from "../examples/beam-mocks";
-import { RecordingPill, PhoneScreen, DEMO_TRANSCRIPT, demoGetter, MIC_STATUS } from "../examples/voice-mocks";
+import { RecordingPill, PhoneScreen, DEMO_TRANSCRIPT, demoGetterFrom, MIC_STATUS } from "../examples/voice-mocks";
 
 /* Studio — Voice workbench. Every prop on the component is a knob
    here: the input chain (sensitivity, gate, attack, release), the shape
@@ -108,11 +111,16 @@ function stockVoiceCss(): string {
   return (style.textContent ?? "").split(id).join("{id}");
 }
 
-/* Dots and lines are not released yet: only a build with VOICE_SURFACE=1
-   carries them (see packages/voice-glow/LOOKS.md), and only then does the
-   Studio offer them. */
+/* Dots, lines, mosaic and dither are not released yet: only a build with
+   VOICE_SURFACE=1 carries them (see packages/voice-glow/LOOKS.md), and only
+   then does the Studio offer them. */
+/** The library's pixelMagnet default per look. */
+const magnetDefault = (look: string) => (look === "mosaic" ? 0.4 : 0.7);
+
 const LOOK_OPTIONS = [
   { value: "glow", label: "Glow" },
+  { value: "dither", label: "Dither" },
+  { value: "mosaic", label: "Mosaic" },
   { value: "dots", label: "Dots" },
   { value: "lines", label: "Lines" },
 ] as const;
@@ -139,6 +147,12 @@ const SURFACE_DEFAULTS = {
 const RADIUS_BY_TYPE: Record<VoiceBeamType, number> = { default: 20, pill: 106, mobile: 66 };
 /* The phone mock is 402×874 shown at 0.68 in a 273×357 crop; the beam wraps the crop. */
 const PHONE_CROP = 0.68;
+/* With SwiftUI or React Native picked the stage is itself a phone (274×582
+   at 0.7 zoom, playground.css), so the mobile mock fills its screen whole
+   instead of the crop: 402 wide at 274 / 0.7, its top trimmed to the
+   phone's height, corners the device's 43px. */
+const PHONE_DEVICE_FIT = 274 / 0.7 / 402;
+const PHONE_DEVICE_RADIUS = 43 / 0.7;
 const CHILD_BY_TYPE: Record<VoiceBeamType, string> = {
   default: "<ChatInput />",
   pill: "<RecordingPill />",
@@ -169,7 +183,7 @@ const BAND_SLOTS: Array<[keyof (typeof BAND_DEFAULTS)["dark"], string]> = [
 
 /* Geometry keys in the order the snippet lists them. */
 const GEOMETRY_KEYS: ReadonlyArray<keyof VoiceGeometry> = [
-  "scale", "glowSize", "idle", "reach", "spread", "flow", "bend",
+  "scale", "pixelSize", "glowSize", "idle", "reach", "spread", "flow", "bend",
   "bandStrength", "bandWidth", "bandPosition", "bandCurve", "bandSpread", "bandSkew", "bandOffset", "bandTail", "bandTailPosition", "bandTailCurve", "bandTailOverflow", "bandAberration",
   "distortion", "distortionDetail",
   "glowWidth", "glowHeight", "lobeSpacing", "rangeWidth", "rangeHeight", "softness", "coreSize", "coreLight", "coreLightWidth", "coreLightHeight",
@@ -189,6 +203,11 @@ const SOURCE_OPTIONS = [
 const VOICE_PARAM_LABELS: Record<string, string> = {
   type: "Type",
   look: "Look",
+  pixelSize: "Cell size",
+  pixelGlow: "Glow",
+  pixelDust: "Dust trail",
+  pixelDome: "Dome",
+  pixelMagnet: "Magnet",
   dotSize: "Dot size",
   dotGap: "Dot spacing",
   dotShape: "Dot shape",
@@ -289,7 +308,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const [geo, setGeo] = useState<VoiceGeometry>(() => resolveVoiceDefaults("default", theme));
   const [breathe, setBreathe] = useState(5.2);
   /* The processing state (Pro): its tuning, reset with the host type. */
-  const [proc, setProc] = useState<ProcessingTuning>(PROCESSING_DEFAULTS.default);
+  const [proc, setProc] = useState<ProcessingTuning>(processingDefaults("default"));
   /* Emotion preview (SwiftUI only). */
   const [emotion, setEmotion] = useState<Emotion>("off");
   const [moodPoint, setMoodPoint] = useState<MoodPoint>(MOOD_PRESETS.happy);
@@ -313,8 +332,36 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   /* Pause holds the effect where it is (the library's `paused`); the
      effect itself stays on. */
   const [paused, setPaused] = useState(false);
+  /* Voice mode: the mock's close button turns it off (the effect fades, a
+     few pixels fly into the button on mosaic and dither) and becomes the
+     start button that turns it back on. */
+  const [voiceOn, setVoiceOn] = useState(true);
+  /* The platform the stage bar picked, as it marks the stage: SwiftUI and
+     React Native draw the stage as a phone. */
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [onDevice, setOnDevice] = useState(false);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const read = () => setOnDevice(el.getAttribute("data-device") === "phone");
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(el, { attributes: true, attributeFilter: ["data-device"] });
+    return () => watch.disconnect();
+  }, []);
+  const [closeEl, setCloseEl] = useState<HTMLButtonElement | null>(null);
+  const toggleVoice = useCallback(() => {
+    // Back on: a fresh run (the prompt replays, the pill's counter restarts).
+    if (!voiceOn) setRunKey((k) => k + 1);
+    setVoiceOn(!voiceOn);
+  }, [voiceOn]);
   /* The look: coloured light, or the voice as a surface of dots or lines. */
   const [look, setLook] = useState<VoiceBeamLook>("glow");
+  /* Mosaic and dither: the glow sampled into glyphs or dithered pixels. */
+  const [pixelGlow, setPixelGlow] = useState(0.6);
+  const [pixelDust, setPixelDust] = useState(1.1);
+  const [pixelDome, setPixelDome] = useState(0);
+  const [pixelMagnet, setPixelMagnet] = useState(0.7);
   const [dotSize, setDotSize] = useState(1);
   const [dotGap, setDotGap] = useState(1);
   const [dotShape, setDotShape] = useState<VoiceBeamDotShape>("round");
@@ -336,6 +383,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const isDots = look === "dots";
   const isLines = look === "lines";
   const isSurface = isDots || isLines;
+  const isPixel = look === "mosaic" || look === "dither";
   /* A stylesheet the agent rewrote, appended after the generated one; "" is
      the stock effect. */
   const [core, setCore] = useState("");
@@ -355,14 +403,27 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
      the mock's own, so the snippet starts minimal. */
   const handleTypeChange = useCallback((next: VoiceBeamType) => {
     setType(next);
-    setGeo(resolveVoiceDefaults(next, theme));
-    setProc(PROCESSING_DEFAULTS[next]);
+    setGeo(resolveVoiceDefaults(next, theme, look));
+    setProc(processingDefaults(next, look));
+    setPixelGlow(pixelGlowDefault(next, look));
+    setPixelDust(pixelDustDefault(next));
+    setPixelDome(pixelDomeDefault(next));
     setStrength(defaultStrength(next, theme));
     setRadius(RADIUS_BY_TYPE[next]);
     setBrightness(resolveVoiceStyle(next, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
     setSaturation(resolveVoiceStyle(next, theme).saturation ?? (theme === "light" ? 1.6 : 1.2));
     setRunKey((k) => k + 1);
-  }, [theme]);
+  }, [theme, look]);
+
+  /* Mosaic and dither carry their own tuning: a look change starts the
+     geometry from that look's defaults for the type, as a type change does. */
+  const chooseLook = useCallback((next: VoiceBeamLook) => {
+    setLook(next);
+    setGeo(resolveVoiceDefaults(type, theme, next));
+    setPixelMagnet(magnetDefault(next));
+    setProc(processingDefaults(type, next));
+    setPixelGlow(pixelGlowDefault(type, next));
+  }, [type, theme]);
 
   /* Agent tab. The geometry lives in one object and the rest in their own
      pieces of state; the agent sees one flat set of props, the same names
@@ -371,6 +432,11 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const agentParams: Record<string, unknown> = {
     type,
     look,
+    pixelSize: geo.pixelSize,
+    pixelGlow,
+    pixelDust,
+    pixelDome,
+    pixelMagnet,
     dotSize,
     dotGap,
     dotShape,
@@ -432,7 +498,12 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     /* Type first: it re-tunes the geometry, so anything else in the same
        patch must land on top of the new defaults. */
     if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
-    if (patch.look === "glow" || (VOICE_SURFACE_LOOKS && (patch.look === "dots" || patch.look === "lines"))) setLook(patch.look);
+    if (patch.look === "glow" || (VOICE_SURFACE_LOOKS && (patch.look === "dots" || patch.look === "lines" || patch.look === "mosaic" || patch.look === "dither"))) chooseLook(patch.look);
+    if (typeof patch.pixelSize === "number") setGeo((g) => ({ ...g, pixelSize: patch.pixelSize as number }));
+    if (typeof patch.pixelGlow === "number") setPixelGlow(patch.pixelGlow);
+    if (typeof patch.pixelDust === "number") setPixelDust(patch.pixelDust);
+    if (typeof patch.pixelDome === "number") setPixelDome(patch.pixelDome);
+    if (typeof patch.pixelMagnet === "number") setPixelMagnet(patch.pixelMagnet);
     if (typeof patch.dotSize === "number") setDotSize(patch.dotSize);
     if (typeof patch.dotGap === "number") setDotGap(patch.dotGap);
     if (patch.dotShape === "round" || patch.dotShape === "square") setDotShape(patch.dotShape);
@@ -490,7 +561,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
       if (typeof v === "number") procPatch[field] = v;
     }
     if (Object.keys(procPatch).length) setProc((p) => ({ ...p, ...procPatch }));
-  }, [handleTypeChange]);
+  }, [handleTypeChange, chooseLook]);
 
   useEffect(() => {
     setBrightness(resolveVoiceStyle(type, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
@@ -499,14 +570,14 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     setHueDuration(theme === "light" ? 8.5 : 12);
     setHueShift(0);
     setStrength(defaultStrength(type, theme));
-    setGeo(resolveVoiceDefaults(type, theme));
+    setGeo(resolveVoiceDefaults(type, theme, look));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
 
   const mic = useMicrophone();
   const isMic = source === "mic";
   const processing = source === "processing";
-  const processingMotion = useVoiceProcessing(processing, { ...proc, type });
+  const processingMotion = useVoiceProcessing(processing, { ...proc, type, look });
   const stream = isMic ? mic.stream : null;
 
   /* Leaving the Microphone source releases the device; nothing else
@@ -567,6 +638,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     setTranscript([]);
   }, [runKey]);
 
+  // The demo voice restarts with each start of voice mode, opening quiet.
+  const demoGetter = useMemo(() => demoGetterFrom(performance.now()), [voiceOn, source]); // eslint-disable-line react-hooks/exhaustive-deps
   const level = source === "manual" ? manualLevel / 100 : source === "demo" ? demoGetter : 0;
 
   const defaultBrightness = resolveVoiceStyle(type, theme).brightness ?? (theme === "light" ? 0.95 : 1.1);
@@ -583,7 +656,11 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   /* Live snippet: only non-default props survive. */
   const props: string[] = [];
-  if (isSurface) props.push(`look="${look}"`);
+  if (isSurface || isPixel) props.push(`look="${look}"`);
+  if (isPixel && pixelGlow !== pixelGlowDefault(type, look)) props.push(`pixelGlow={${num(pixelGlow)}}`);
+  if (isPixel && processing && pixelDust !== pixelDustDefault(type)) props.push(`pixelDust={${num(pixelDust)}}`);
+  if (isPixel && pixelDome !== pixelDomeDefault(type)) props.push(`pixelDome={${num(pixelDome)}}`);
+  if (isPixel && pixelMagnet !== magnetDefault(look)) props.push(`pixelMagnet={${num(pixelMagnet)}}`);
   if (isDots && dotShape !== "round") props.push(`dotShape="${dotShape}"`);
   if (isDots && dotSize !== 1) props.push(`dotSize={${num(dotSize)}}`);
   if (isDots && dotGap !== 1) props.push(`dotGap={${num(dotGap)}}`);
@@ -621,7 +698,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   if (theme === "light") props.push(`theme="light"`);
   if (strength !== defaultStrength(type, theme)) props.push(`strength={${num(strength / 100)}}`);
   if (radius !== RADIUS_BY_TYPE[type]) props.push(`borderRadius={${num(radius)}}`);
-  const preset = resolveVoiceDefaults(type, theme);
+  const preset = resolveVoiceDefaults(type, theme, look);
   for (const key of GEOMETRY_KEYS) if (geo[key] !== preset[key]) props.push(`${key}={${num(geo[key])}}`);
   if (brightness !== defaultBrightness) props.push(`brightness={${num(brightness)}}`);
   if (saturation !== defaultSaturation) props.push(`saturation={${num(saturation)}}`);
@@ -640,11 +717,11 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const imports = (isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';")
     + (processing ? "\n// Pro: the processing state (the Pro skill adds it to your project)\nimport { useVoiceProcessing } from './voice-processing';" : "");
   /* Processing: only the tuning that differs from the type's own. */
-  const procDefaults = PROCESSING_DEFAULTS[type];
+  const procDefaults = processingDefaults(type, look);
   const procDiff = (Object.keys(proc) as Array<keyof ProcessingTuning>)
     .filter((k) => proc[k] !== procDefaults[k])
     .map((k) => `${k}: ${num(proc[k])}`);
-  const procArgs = [type !== "default" ? `type: '${type}'` : "", ...procDiff].filter(Boolean).join(", ");
+  const procArgs = [type !== "default" ? `type: '${type}'` : "", lookHasProcessing(look) ? `look: '${look}'` : "", ...procDiff].filter(Boolean).join(", ");
   const decl = (core ? `const voiceCss = ${tpl(core)};\n\n` : "") + (isMic ? "const mic = useMicrophone();\n\n" : "")
     + (processing ? `const processing = useVoiceProcessing(isThinking${procArgs ? `, { ${procArgs} }` : ""});\n\n` : "");
   const emotionColors = emotion !== "off" && !isSurface ? moodColors(moodPoint, theme !== "light") : null;
@@ -725,11 +802,17 @@ VoiceGlow(
   return (
     <div className="pg">
       <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet, platforms }} agent={{ libraryId: "voice", params: agentParams, labels: VOICE_PARAM_LABELS, onApply: applyAgentParams }} />
-      <div className="pg-stage">
+      <div className="pg-stage" ref={stageRef}>
         {visible && (
           <VoiceBeam
             type={type}
             look={look}
+            active={voiceOn}
+            pixelExitTarget={closeEl}
+            pixelGlow={pixelGlow}
+            pixelDust={pixelDust}
+            pixelDome={pixelDome}
+            pixelMagnet={pixelMagnet}
             dotSize={dotSize}
             dotGap={dotGap}
             dotShape={dotShape}
@@ -765,27 +848,27 @@ VoiceGlow(
             /* The phone host wraps its crop (273×357 of the 402×874
                screen), so the glow runs at the crop's 0.68 of the knobs;
                the snippet keeps the real phone's values. */
-            scale={type === "mobile" ? geo.scale * PHONE_CROP : geo.scale}
-            borderRadius={type === "mobile" ? radius * PHONE_CROP : radius}
+            scale={type === "mobile" ? geo.scale * (onDevice ? PHONE_DEVICE_FIT : PHONE_CROP) : geo.scale}
+            borderRadius={type === "mobile" ? (onDevice ? PHONE_DEVICE_RADIUS : radius * PHONE_CROP) : radius}
             className={type === "mobile" ? "mock-phone-host" : undefined}
             brightness={brightness}
             saturation={saturation}
             hueRange={emotionColors ? hueRange * 0.3 : hueRange}
             hueDuration={hueDuration}
             staticColors={staticColors}
-            style={isSurface ? ({ ...(beamStyle ?? {}), "--mock-btn-blur": `${buttonBlur}px` } as CSSProperties) : beamStyle}
+            style={isSurface || isPixel ? ({ ...(beamStyle ?? {}), "--mock-btn-blur": `${buttonBlur}px` } as CSSProperties) : beamStyle}
             onLevel={onLevel}
           >
             {type === "pill" ? (
-              <RecordingPill running={!processing} paused={paused} resetKey={runKey} />
+              <RecordingPill running={!processing && voiceOn} paused={paused} resetKey={runKey} closed={!voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
             ) : type === "mobile" ? (
               <div className="mock-phone-scale">
                 <div className="mock-phone-scale-inner">
-                  <PhoneScreen promptKey={runKey} transcript={transcript} />
+                  <PhoneScreen promptKey={runKey} transcript={transcript} closed={!voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
                 </div>
               </div>
             ) : (
-              <ChatInputMock radius={radius} />
+              <ChatInputMock radius={radius} agent={false} closed={!voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
             )}
           </VoiceBeam>
         )}
@@ -839,7 +922,21 @@ VoiceGlow(
         }}
       >
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
-        {VOICE_SURFACE_LOOKS && <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} />}
+        {VOICE_SURFACE_LOOKS && <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={chooseLook} />}
+        {isPixel && (
+          <PgGroup label={look === "mosaic" ? "Mosaic" : "Dither"}>
+            <PgSlider label="Cell size" value={geo.pixelSize} min={0.5} max={2.5} step={0.05} display={`${num(geo.pixelSize)}×`} onChange={setG("pixelSize")} />
+            <PgSlider label="Glow" value={pixelGlow} min={0} max={1} step={0.01} display={`${Math.round(pixelGlow * 100)}%`} onChange={setPixelGlow} />
+            <PgSlider label="Dome" value={pixelDome} min={0} max={1} step={0.05} display={`${Math.round(pixelDome * 100)}%`} onChange={setPixelDome} />
+            {processing && (
+              <PgSlider label="Dust trail" value={pixelDust} min={0} max={4} step={0.05} display={pixelDust === 0 ? "Off" : `${num(pixelDust)}s`} onChange={setPixelDust} />
+            )}
+            {isPixel && (
+              <PgSlider label="Magnet" value={pixelMagnet} min={0} max={1} step={0.01} display={`${Math.round(pixelMagnet * 100)}%`} onChange={setPixelMagnet} />
+            )}
+            <PgSlider label="Button blur" value={buttonBlur} min={0} max={30} step={1} display={`${buttonBlur}px`} onChange={setButtonBlur} />
+          </PgGroup>
+        )}
         {isDots && (
           <PgGroup label="Dots">
             <PgTabs label="Shape" options={DOT_SHAPE_OPTIONS} value={dotShape} onChange={setDotShape} />

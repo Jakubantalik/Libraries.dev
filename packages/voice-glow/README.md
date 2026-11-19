@@ -4,6 +4,8 @@
 
 Sound-reactive glow for React. A centered, colorful beam along the bottom edge of any element — a chat input, a search bar, a card — that rises and blooms with the intensity of a voice. Feed it a microphone stream, or drive it yourself.
 
+On iOS it is native too: [`VoiceGlowKit`](ports/ios/VoiceGlowKit) is the same glow as a SwiftUI package — see [SwiftUI](#swiftui).
+
 It is the voice-shaped sibling of [`border-beam`](../border-beam)'s `line` type: the same three-layer construction (edge stroke, inner light, blurred bloom), the same eight palettes, but the glow sits still at the center and its height follows the sound instead of traveling.
 
 ## Install
@@ -36,6 +38,29 @@ function Composer() {
 ```
 
 The component wraps your content and overlays the glow. It auto-detects the `border-radius` of the first child element. Call `mic.start()` from a click: browsers only grant the microphone — and Safari only starts audio — inside a user gesture.
+
+## SwiftUI
+
+The same glow, native on iOS: [`VoiceGlowKit`](ports/ios/VoiceGlowKit), a Swift package that lives next to the web source in [`ports/ios`](ports/ios). It is SwiftUI all the way down, no web view: the glow's layers are Metal shaders applied with `.colorEffect`, the microphone is read with `AVAudioEngine` and analysed with Accelerate, the same way the web version reads its `AnalyserNode`, so the two react alike. iOS 17+.
+
+```swift
+import VoiceGlowKit
+
+struct VoiceScreen: View {
+    @State private var meter = VoiceMeter()
+
+    var body: some View {
+        VoiceGlow(type: .mobile, meter: meter, cornerRadius: 55) {
+            Conversation()
+        }
+        .task { try? await meter.start() }   // asks for the microphone
+    }
+}
+```
+
+Add it as a local Swift package — in Xcode, File › Add Package Dependencies… › Add Local…, or `.package(path: "packages/voice-glow/ports/ios/VoiceGlowKit")` in your `Package.swift`. [`VoiceGlowDemo`](ports/ios/VoiceGlowDemo) is a SwiftUI demo app: `./run.sh` opens it in the simulator, `./run-device.sh` on a paired iPhone. The package's [README](ports/ios/VoiceGlowKit/README.md) covers the API, the `mood` input and what is ported so far.
+
+Emotion detection (from the tone of the voice and from the words), the live transcript and the processing state are VoiceGlow Pro ([libraries.dev](https://libraries.dev) Pro), built on this package.
 
 ## Types
 
@@ -345,6 +370,9 @@ voice-glow/
 │   ├── voiceDriver.ts     # Shared rAF loop: analysis, envelope, custom properties
 │   ├── audio.ts           # Shared AudioContext and analyser leases
 │   └── useMicrophone.ts   # getUserMedia hook
+├── ports/ios/
+│   ├── VoiceGlowKit/      # The SwiftUI package: Swift + Metal shaders
+│   └── VoiceGlowDemo/     # SwiftUI demo app (simulator or iPhone)
 ├── dist/                  # Built output (ESM + CJS + types)
 ├── package.json
 ├── LICENSE

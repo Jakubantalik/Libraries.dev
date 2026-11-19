@@ -46,6 +46,9 @@ packages/border-beam/ports/ios/BorderBeamShowcase/BorderBeamShowcase.xcodeproj/
 packages/voice-glow/ports/ios/VoiceGlowKit/.build/
 packages/voice-glow/ports/ios/VoiceGlowDemo/VoiceGlowDemo.xcodeproj/
 packages/voice-glow/ports/ios/VoiceGlowDemo/build/
+packages/voice-glow/ports/ios/VoicePillDemo/VoicePillDemo.xcodeproj/
+packages/voice-glow/ports/ios/VoicePillDemo/build/
+packages/voice-glow/ports/ios/VoicePillDemo/Model/
 # voice-ring iOS port: build output
 packages/voice-ring/ports/ios/VoiceRingKit/.build/
 packages/voice-ring/ports/ios/VoiceRingKit/.swiftpm/

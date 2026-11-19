@@ -1,6 +1,6 @@
 # Surface looks — not released yet
 
-`look="dots"` and `look="lines"` are built and working but **not shipped**:
+`look="dots"`, `look="lines"`, `look="mosaic"` and `look="dither"` are built and working but **not shipped**:
 the default build (npm, the libraries.dev site and Studio) compiles them out.
 They ship after the SwiftUI Voice release. To work on them locally:
 
@@ -84,3 +84,31 @@ The colour props (`colorVariant`, `colors`, `bandColors`, `saturation`, the hue 
 | `surfaceTailPosition` | `number` | `0.6` | Where the tails start, as a share of the way from the centre to the side (dots, lines) |
 | `surfaceTailCurve` | `number` | `2.4` | The tails' exponent: 1 a ramp, higher a hook (dots, lines) |
 | `surfaceFade` | `number` | `0.2` | How far in from the sides the sheet dissolves, share of its half-width (dots, lines) |
+
+## Mosaic and dither
+
+The glow itself, sampled onto a canvas instead of painted as gradients: the
+same lobes, flow, gathered beam, palette (custom `colors` included) and hue
+drift, so every glow prop still applies.
+
+- `look="mosaic"` — a glyph per cell in the colour and the shape of the lobe
+  that lights it most (dot, square, plus, ring, diamond, bars, frame), sized
+  by the glow's brightness; where two colours meet their glyphs interleave.
+- `look="dither"` — small square pixels, on or off by a 4×4 ordered dither of
+  the glow's brightness, its blended colours cut to five levels per channel.
+
+```tsx
+<VoiceBeam look="mosaic" colorVariant="sunset" stream={mic.stream}>
+  <ChatInput />
+</VoiceBeam>
+
+<VoiceBeam look="dither" pixelSize={1.4}>  {/* larger pixels */}
+  <VoiceScreen />
+</VoiceBeam>
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `pixelSize` | `number` | `1` | Cell size multiplier (`look="mosaic"`, `look="dither"`) |
+
+Both are painted in `src/pixel.ts`, on the surface looks' canvas.

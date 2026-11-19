@@ -1,4 +1,4 @@
-import type { VoiceBeamType } from './types';
+import type { VoiceBeamLook, VoiceBeamType } from './types';
 
 /**
  * The geometry and response knobs a `type` preset may retune. Everything
@@ -53,6 +53,8 @@ export interface VoiceGeometry {
   innerHeight: number;
   bloomScale: number;
   bloomHeight: number;
+  /** Cell size of the mosaic and the dither, as a multiplier (see the `pixelSize` prop). */
+  pixelSize: number;
 }
 
 /**
@@ -98,6 +100,7 @@ export const voiceDefaults: VoiceGeometry = {
   innerHeight: 1,
   bloomScale: 1,
   bloomHeight: 1,
+  pixelSize: 1,
 };
 
 /**
@@ -217,7 +220,116 @@ const lightTypeOverrides: Partial<Record<VoiceBeamType, Partial<VoiceGeometry>>>
   mobile: { bandStrength: 1.7 },
 };
 
-export function resolveVoiceDefaults(type: VoiceBeamType = 'default', theme: 'dark' | 'light' = 'dark'): VoiceGeometry {
+/**
+ * Mosaic and dither tuning, set by hand on the phone (`type="mobile"`, dark)
+ * in the Studio: a smaller, softer-topped glow with a stronger, higher band,
+ * so the cells read as a mound under a bright line rather than a wall.
+ */
+const PIXEL_LOOK_MOBILE: Partial<VoiceGeometry> = {
+  scale: 1.05,
+  spread: 0.6,
+  bandStrength: 3,
+  bandPosition: 0.44,
+  glowWidth: 1.2,
+  rangeHeight: 0.85,
+  softness: 1.09,
+  innerHeight: 1.2,
+  bloomHeight: 0.35,
+};
+
+/** The dither's own on top of that, also set on the phone: a gentler band —
+ *  weaker, a touch wider, unskewed — and a slightly lower bend, since its
+ *  pixels already carry the light the mosaic's glyphs leave to the band. */
+const DITHER_LOOK_MOBILE: Partial<VoiceGeometry> = {
+  bend: 68,
+  bandStrength: 1.3,
+  bandWidth: 2.45,
+  bandSkew: 0,
+};
+
+/** Values set by hand for one look on one host, over everything above. */
+const PIXEL_LOOK_TYPE: Record<'mosaic' | 'dither', Partial<Record<VoiceBeamType, Partial<VoiceGeometry>>>> = {
+  mosaic: { default: { pixelSize: 0.75 } },
+  // The ratio left the pill's dither too small to read; tuned in the Studio.
+  // The phone's own dither, tuned in the Studio as a whole: only the phone
+  // takes it (the other hosts keep their ratios on the shared tuning).
+  dither: {
+    pill: { scale: 0.5 },
+    default: { pixelSize: 0.85 },
+    mobile: {
+      scale: 1,
+      spread: 0.9,
+      flow: 56,
+      bend: 19,
+      bandStrength: 1.05,
+      bandWidth: 3,
+      bandPosition: 0.5,
+      bandTailPosition: 0.21,
+      glowWidth: 1.6,
+      glowHeight: 3,
+      lobeSpacing: 1.2,
+      softness: 0.84,
+      coreSize: 0.85,
+      innerHeight: 1.6,
+      bloomHeight: 0.3,
+    },
+  },
+};
+
+/** The pixel looks' halo (`pixelGlow`) by look and host, where tuned by
+ *  hand; 0.6 everywhere else. */
+const PIXEL_GLOW: Partial<Record<'mosaic' | 'dither', Partial<Record<VoiceBeamType, number>>>> = {
+  dither: { default: 0.38 },
+};
+
+export function pixelGlowDefault(type: VoiceBeamType, look?: string): number {
+  return (look === 'mosaic' || look === 'dither' ? PIXEL_GLOW[look]?.[type] : undefined) ?? 0.6;
+}
+
+/** How long processing's dust lingers (`pixelDust`), s, by host where
+ *  tuned by hand; 1.1 everywhere else. The phone's tall screen carries a
+ *  longer trail. */
+const PIXEL_DUST: Partial<Record<VoiceBeamType, number>> = { mobile: 1.5 };
+
+export function pixelDustDefault(type: VoiceBeamType): number {
+  return PIXEL_DUST[type] ?? 1.1;
+}
+
+/** The pixel looks' dome (`pixelDome`) by host: the phone's field stands
+ *  tallest in the middle and lower toward its sides; the wide hosts stay
+ *  level. */
+const PIXEL_DOME: Partial<Record<VoiceBeamType, number>> = { mobile: 0.6 };
+
+export function pixelDomeDefault(type: VoiceBeamType): number {
+  return PIXEL_DOME[type] ?? 0;
+}
+
+/** The pixel looks' defaults for a type: the phone's tuning exactly on the
+ *  phone, and the same changes as ratios on every other host's preset (an
+ *  absolute where the phone's own value is 0, as the skew's is not). */
+function pixelLookDefaults(g: VoiceGeometry, type: VoiceBeamType, theme: 'dark' | 'light', look: 'mosaic' | 'dither'): VoiceGeometry {
+  const tuning = look === 'dither' ? { ...PIXEL_LOOK_MOBILE, ...DITHER_LOOK_MOBILE } : PIXEL_LOOK_MOBILE;
+  const own = PIXEL_LOOK_TYPE[look][type];
+  if (type === 'mobile' && theme === 'dark') return { ...g, ...tuning, ...own };
+  const phone = resolveVoiceDefaults('mobile', 'dark');
+  const out = { ...g };
+  for (const key of Object.keys(tuning) as Array<keyof VoiceGeometry>) {
+    const want = tuning[key] as number;
+    out[key] = phone[key] ? Math.round(g[key] * (want / phone[key]) * 1000) / 1000 : want;
+  }
+  return { ...out, ...own };
+}
+
+export function resolveVoiceDefaults(
+  type: VoiceBeamType = 'default',
+  theme: 'dark' | 'light' = 'dark',
+  look: VoiceBeamLook = 'glow'
+): VoiceGeometry {
+  const g = resolveTypeDefaults(type, theme);
+  return look === 'mosaic' || look === 'dither' ? pixelLookDefaults(g, type, theme, look) : g;
+}
+
+function resolveTypeDefaults(type: VoiceBeamType, theme: 'dark' | 'light'): VoiceGeometry {
   const typePreset = voiceTypePresets[type];
   const themeOverrides: Partial<VoiceGeometry> = {};
   if (theme === 'light') {

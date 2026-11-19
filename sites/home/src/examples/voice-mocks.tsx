@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { GooLayer, VoiceStartIcon, useGooMerge } from "./beam-mocks";
 
 /* The Voice library's mock hosts, shared by the Studio's Voice bench and
    the Voice detail page: the recording pill and the phone screen (the
@@ -9,7 +10,22 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 
 /* Recording pill (Figma 1561:44248): mic, a live mm:ss counter that runs
    while the beam is listening, and the stop button. */
-export function RecordingPill({ running, paused, resetKey }: { running: boolean; paused: boolean; resetKey: number }) {
+export function RecordingPill({
+  running,
+  paused,
+  resetKey,
+  closed = false,
+  onClose,
+  closeRef,
+}: {
+  running: boolean;
+  paused: boolean;
+  resetKey: number;
+  /** Recording is off: the stop button becomes the start button. */
+  closed?: boolean;
+  onClose?: () => void;
+  closeRef?: (el: HTMLButtonElement | null) => void;
+}) {
   const [seconds, setSeconds] = useState(0);
   const elapsed = useRef(0);
   useEffect(() => {
@@ -33,7 +49,16 @@ export function RecordingPill({ running, paused, resetKey }: { running: boolean;
     <div className="mock-pill" role="img" aria-label="Recording pill UI example with voice beam effect">
       <span className="mock-pill-mic mk-ico mk-ico-mic" />
       <span className="mock-pill-time">{mm}:{ss}</span>
-      <span className="mock-pill-stop" />
+      <button
+        type="button"
+        className="mock-pill-stop"
+        data-closed={closed ? "" : undefined}
+        aria-label={closed ? "Start voice" : "Stop"}
+        onClick={onClose}
+        ref={closeRef}
+      >
+        {closed && <VoiceStartIcon size={14} />}
+      </button>
     </div>
   );
 }
@@ -93,8 +118,26 @@ export const DEMO_TRANSCRIPT = "Set a timer for ten minutes and remind me to wat
    Agent (auto), mic and close. Rendered at 402×874 and scaled to fit the
    stage by the wrapper around the beam — the scale sits OUTSIDE the beam
    so the glow layers measure the real screen. */
-export function PhoneScreen({ promptKey, transcript }: { promptKey: number; transcript: string[] }) {
+export function PhoneScreen({
+  promptKey,
+  transcript,
+  closed = false,
+  onClose,
+  closeRef,
+}: {
+  promptKey: number;
+  transcript: string[];
+  /** Voice mode is off: the close button becomes the start button. */
+  closed?: boolean;
+  onClose?: () => void;
+  closeRef?: (el: HTMLButtonElement | null) => void;
+}) {
   const speaking = transcript.length > 0;
+  const goo = useGooMerge(closed);
+  const setClose = useCallback((el: HTMLButtonElement | null) => {
+    (goo.close as React.MutableRefObject<HTMLButtonElement | null>).current = el;
+    closeRef?.(el);
+  }, [closeRef]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="mock-phone" role="img" aria-label="Phone voice screen UI example with voice beam effect">
       {/* Two layers at the same spot, cross-blurring: the prompt while
@@ -111,15 +154,17 @@ export function PhoneScreen({ promptKey, transcript }: { promptKey: number; tran
           {/* Masked so the chevron takes a theme colour the flat SVG can't. */}
           <span className="mock-phone-chevron" />
         </div>
-        <div className="mock-phone-actions">
-          <div className="mock-phone-btn">
+        <div className="mock-phone-actions mock-goo-host" ref={goo.host} data-closed={closed ? "" : undefined}>
+          <GooLayer id={goo.filterId} blobsRef={goo.blobs} filterRef={goo.filter} frostRef={goo.frost} />
+          <div className="mock-phone-btn" data-goo-part="mic" ref={goo.mic as React.RefObject<HTMLDivElement>}>
             <img src="/assets/icons/voice-mic-20.svg" alt="" width={20} height={20} draggable={false} />
           </div>
-          <div className="mock-phone-btn">
+          <button type="button" className="mock-phone-btn" data-goo-part="close" aria-label={closed ? "Start voice" : "Close"} onClick={onClose} ref={setClose}>
             {/* The Figma export of the plus glyph collapsed to a 1px path,
                 so the × is two CSS bars at the design's 2px / #EFEFEF. */}
-            <span className="mock-phone-close" />
-          </div>
+            <span className="mock-swap-icon" data-icon="x"><span className="mock-phone-close" /></span>
+            <span className="mock-swap-icon" data-icon="start"><VoiceStartIcon size={20} /></span>
+          </button>
         </div>
       </div>
     </div>
@@ -140,6 +185,20 @@ export function demoLevel(t: number): number {
 }
 
 export const demoGetter = () => demoLevel(performance.now() / 1000);
+
+/** The demo voice from a start: quiet for the first half second — a low
+    murmur, so only a little of the effect shows at the bottom while it
+    opens — then easing into the voice from the top of a phrase. */
+export const DEMO_QUIET_S = 0.5;
+export function demoGetterFrom(startMs: number): () => number {
+  return () => {
+    const t = (performance.now() - startMs) / 1000;
+    if (t < DEMO_QUIET_S) return 0.04 + 0.02 * Math.sin(t * 9);
+    const u = Math.min(1, (t - DEMO_QUIET_S) / 0.4);
+    const ease = u * u * (3 - 2 * u);
+    return 0.04 * (1 - ease) + demoLevel(t - DEMO_QUIET_S) * ease;
+  };
+}
 
 export const MIC_STATUS: Record<string, string> = {
   idle: "",

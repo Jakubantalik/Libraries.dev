@@ -29,10 +29,18 @@ export type VoiceBeamTheme = 'dark' | 'light' | 'auto';
  *   the depth, or a grid — solid, so a raised ridge hides the lines behind
  *   it, and falling back as smooth curves.
  *
+ * - 'mosaic': the glow itself, sampled on a grid of glyphs — each cell in
+ *   the colour and the shape (dot, square, plus, ring, diamond, bars,
+ *   frame) of the lobe that lights it most, sized by its brightness.
+ * - 'dither': the glow as small square pixels, on or off by an ordered
+ *   dither of its brightness, its blended colours cut to a few levels.
+ *
  * Dots and lines share the surface props (`surfaceHeight`, `surfaceCurve`,
- * the `surfaceTail` set, `surfaceFade`, `texture`, `gravity`).
+ * the `surfaceTail` set, `surfaceFade`, `texture`, `gravity`). Mosaic and
+ * dither keep every glow prop — palette, colours, hue drift, shape, flow —
+ * and add `pixelSize`.
  */
-export type VoiceBeamLook = 'glow' | 'dots' | 'lines';
+export type VoiceBeamLook = 'glow' | 'dots' | 'lines' | 'mosaic' | 'dither';
 
 /** A dot's shape, for `look="dots"`. */
 export type VoiceBeamDotShape = 'round' | 'square';
@@ -125,11 +133,67 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   type?: VoiceBeamType;
 
   /**
-   * How the voice is drawn: coloured light, or a surface of dots or lines
-   * that the voice raises and gravity brings down.
+   * How the voice is drawn: coloured light, a surface of dots or lines that
+   * the voice raises and gravity brings down, or the glow as a mosaic of
+   * glyphs or dithered pixels.
    * @default 'glow'
    */
   look?: VoiceBeamLook;
+
+  /**
+   * Cell size of the mosaic and the dither, as a multiplier. `look="mosaic"`
+   * and `look="dither"` only.
+   * @default 1 (0.75 for the dither on the `default` type)
+   */
+  pixelSize?: number;
+
+  /**
+   * The mosaic's and the dither's glow, 0–1: a soft halo of their own
+   * colours around the lit cells. 0 is crisp pixels on the bare surface.
+   * `look="mosaic"` and `look="dither"` only.
+   * @default 0.6 (0.38 for the dither on the chat input)
+   */
+  pixelGlow?: number;
+
+  /**
+   * How long the mosaic's and the dither's dust lingers while processing,
+   * seconds: the travelling beam leaves a trail of specks behind it that
+   * thins out pixel by pixel, densest just behind the beam. Longer is a
+   * longer tail; 0 turns it off. `look="mosaic"` and `look="dither"` only.
+   * @default 1.1 (1.5 on the phone screen, `type="mobile"`)
+   */
+  pixelDust?: number;
+
+  /**
+   * The mosaic's and the dither's dome, 0–1: how much lower the field stands
+   * toward the host's sides than in its middle, so the pixels always rise
+   * highest at the centre. 0 is level. `look="mosaic"` and `look="dither"`
+   * only.
+   * @default 0 (0.6 on the phone screen, `type="mobile"`)
+   */
+  pixelDome?: number;
+
+  /**
+   * The pixel looks' magnet, 0–1: the few lit pixels (or mosaic glyphs)
+   * nearest the pointer (up to sixteen at 1) leave their places and fly
+   * toward it, each on its own spring, and spring home with a little
+   * overshoot as it moves on; the rest of the field stays put. 0 turns it
+   * off. Off under `prefers-reduced-motion`.
+   * `look="mosaic"` and `look="dither"` only.
+   * @default 0.4 for mosaic, 0.7 for dither
+   */
+  pixelMagnet?: number;
+
+  /**
+   * The button the mosaic's or the dither's pixels fly into and out of:
+   * set an element (the close / start button, say) and, as `active` turns
+   * false, a few of the wave's own pixels leave it and fly into the button
+   * while the rest fades; as `active` turns true again, a few start out in
+   * the button and fly to their places as the wave fades in. Unset, the
+   * picture simply fades. `look="mosaic"` and `look="dither"` only; off
+   * under `prefers-reduced-motion`.
+   */
+  pixelExitTarget?: HTMLElement | null;
 
   /**
    * Dot radius, as a multiplier on the tuned size. `look="dots"` only.

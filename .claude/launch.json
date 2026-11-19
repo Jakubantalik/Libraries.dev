@@ -9,6 +9,13 @@
       "autoPort": true
     },
     {
+      "name": "home-lan",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@sites/home", "--", "--host"],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "studio-agent",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "services/studio-agent", "run", "dev"],

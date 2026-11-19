@@ -1,6 +1,7 @@
 import { acquireAnalyser } from './audio';
 import { voiceLobes, LOBE_SPAN } from './styles';
 import { createSurfaceState, drawSurface, type SurfaceState } from './surface';
+import { arrivePixels, createPixelState, drawPixels, flyPixels, type PixelPort, type PixelState } from './pixel';
 
 /**
  * Shared driver for the voice reaction.
@@ -76,8 +77,25 @@ export interface VoiceDriverConfig {
   reducedMotion: boolean;
   /** Hold the frame: the clock stops and the source is not read, but a changed config still repaints. */
   paused: boolean;
-  /** How the voice is drawn: the stylesheet's glow, or a surface of dots or lines painted on a canvas. */
-  look: 'glow' | 'dots' | 'lines';
+  /** How the voice is drawn: the stylesheet's glow, a surface of dots or
+   *  lines, or the glow itself sampled into glyphs (mosaic) or dithered
+   *  pixels — the last four painted on a canvas. */
+  look: 'glow' | 'dots' | 'lines' | 'mosaic' | 'dither';
+  /** The pixel looks: the lobes' colours as [r, g, b] 0–255 (the palette with
+   *  any custom colours), the filter the stylesheet runs on them, the theme's
+   *  hue base, and the cell size multiplier. */
+  palette: Array<[number, number, number]>;
+  saturation: number;
+  hueBase: number;
+  pixelSize: number;
+  /** The pixel looks' halo, 0–1. */
+  pixelGlow: number;
+  /** How long processing's dust lingers, s (0 off). */
+  pixelDust: number;
+  /** How much the pixel looks' field dips toward the sides, 0–1+. */
+  pixelDome: number;
+  /** How strongly the mosaic's and the dither's pixels follow the pointer, 0–1. */
+  pixelMagnet: number;
   /** The dots: radius and spacing multipliers, and their shape. */
   dotSize: number;
   dotGap: number;
@@ -198,6 +216,13 @@ interface VoiceInstance {
   cssBlur: string | null;
   /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped while gathered. */
   warpOff: boolean;
+  /** The pixel looks' canvas (`look="mosaic"` / `"dither"`). */
+  pixel: PixelState | null;
+  /** The pointer over the host, element px; null when it is away. */
+  pointer: { x: number; y: number } | null;
+  /** The host's `--voice-hue-base` in degrees (null: the theme's), read every so often, and when. */
+  hueBaseOverride: number | null;
+  hueBaseReadAt: number;
   /** The surface's canvas and lattice, for `look="dots"` and `look="lines"`. */
   surface: SurfaceState | null;
 }
@@ -214,6 +239,10 @@ function stateFor(el: HTMLElement): VoiceState {
 }
 
 const instances = new Set<VoiceInstance>();
+/** The pixel looks' per-frame lobes. */
+const pixelLobeX = new Float32Array(voiceLobes.length);
+const pixelLobeY = new Float32Array(voiceLobes.length);
+const pixelLobeL = new Float32Array(voiceLobes.length);
 /** The surface's per-frame lobes; frames are painted one instance at a time. */
 const surfaceLobeX = new Float32Array(voiceLobes.length);
 const surfaceLobeL = new Float32Array(voiceLobes.length);
@@ -778,6 +807,7 @@ function frame(ts: number): void {
           t: tSec,
           dt,
           drift: s.drift,
+          gather: morph,
         });
       }
       el.style.setProperty(`--vb-level-${config.id}`, s.level.toFixed(3));
@@ -855,10 +885,15 @@ function frame(ts: number): void {
       const lobe = voiceLobes[i];
       const x = wrapX(lobe.x * config.lobeSpacing + s.phase, span);
       const bandLift = config.bands ? 0.6 + 0.7 * s.bands[lobe.band] : 1;
+      const lobeL = bandLift * edgeEnvelope(x, span);
       el.style.setProperty(`--vb-x${i}-${config.id}`, `${(x * gather).toFixed(1)}px`);
-      el.style.setProperty(`--vb-l${i}-${config.id}`, (bandLift * edgeEnvelope(x, span)).toFixed(3));
+      el.style.setProperty(`--vb-l${i}-${config.id}`, lobeL.toFixed(3));
       const lobeAbsX = cw / 2 + (cx + x * gather) * w;
-      el.style.setProperty(`--vb-y${i}-${config.id}`, `${(-cornerLift(lobeAbsX, cw, arcRadius, lobeReach) * cornerBlend).toFixed(1)}px`);
+      const lobeY = -cornerLift(lobeAbsX, cw, arcRadius, lobeReach) * cornerBlend;
+      el.style.setProperty(`--vb-y${i}-${config.id}`, `${lobeY.toFixed(1)}px`);
+      pixelLobeX[i] = lobeAbsX;
+      pixelLobeY[i] = lobeY;
+      pixelLobeL[i] = lobeL;
     }
 
     // ── Hue drift ────────────────────────────────────────────────────
@@ -867,6 +902,50 @@ function frame(ts: number): void {
         ? 0
         : -config.hueRange + 2 * config.hueRange * pingPong(tSec / config.hueDuration);
     el.style.setProperty(`--vb-hue-${config.id}`, `${hue.toFixed(2)}deg`);
+
+    // ── Mosaic and dither: the same glow, sampled onto a canvas ──────
+    if (__VOICE_SURFACE__ && inst.pixel && cw && ch) {
+      // The host can turn the palette with --voice-hue-base, as it does the
+      // glow's filter; read it twice a second rather than every frame.
+      if (ts - inst.hueBaseReadAt > 500) {
+        inst.hueBaseReadAt = ts;
+        const raw = getComputedStyle(el).getPropertyValue('--voice-hue-base').trim();
+        const deg = raw ? parseFloat(raw) : NaN;
+        inst.hueBaseOverride = Number.isFinite(deg) ? deg : null;
+      }
+      drawPixels(inst.pixel, config, {
+        cw,
+        ch,
+        lobeX: pixelLobeX,
+        lobeY: pixelLobeY,
+        lobeL: pixelLobeL,
+        w,
+        h,
+        maskWidth,
+        lift,
+        cy: -cornerLift(beamAbsX, cw, arcRadius, lobeReach * 1.4) * cornerBlend,
+        glow,
+        beamX: beamAbsX,
+        hue: (inst.hueBaseOverride ?? config.hueBase) + hue,
+        // The band, drawn into the cells too, so its height, width, tail
+        // and fringes shape these looks as they do the glow.
+        band: config.bandStrength > 0 ? bandPoints(config, frame, cw, ch) : null,
+        bandAlpha: bendA,
+        bandSplit: (4 + 12 * config.bandAberration * (0.35 + 0.65 * s.level)) * config.scale,
+        level: s.level,
+        dt,
+        pointer: inst.pointer,
+        gather: morph,
+      });
+      // Opening from a button: once the first frame has lit pixels, a few
+      // of them start out in the button and fly to their places.
+      const arrival = pendingArrivals.get(inst.el);
+      if (arrival && inst.pixel.litN > 0) {
+        pendingArrivals.delete(inst.el);
+        const fc = inst.el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-flyers]');
+        if (fc && performance.now() - arrival.at < 1500) arrivePixels(inst.pixel, fc, arrival.origin, config.reducedMotion, arrival.at + WAVE_ARRIVE_FULL_MS);
+      }
+    }
 
     inst.onLevel?.(s.level);
     inst.paintedConfig = config;
@@ -886,6 +965,50 @@ function stopLoopIfIdle(): void {
   if (instances.size === 0 && rafId != null) {
     cancelAnimationFrame(rafId);
     rafId = null;
+  }
+}
+
+/**
+ * The effect on `el` is closing toward `target` (a point in `el`, px): a
+ * few of its pixels fly there (`look="mosaic"` / `"dither"` only).
+ */
+/**
+ * The effect on `el` is opening again: it starts from silence, not from the
+ * level it held when it last closed (the state outlives the instance, and
+ * would otherwise ease down from that level for its first moments).
+ */
+export function resetVoiceLevel(el: HTMLElement): void {
+  const s = stateByElement.get(el);
+  if (!s) return;
+  s.level = 0;
+  s.fast = 0;
+  s.bands = [0, 0, 0];
+  s.fastBands = [0, 0, 0];
+}
+
+/** When the wave has faded in after an opening flight: the stylesheet's
+ *  [data-arriving] delay (0.22s) plus its fade (0.65s), with a margin. */
+const WAVE_ARRIVE_FULL_MS = 950;
+
+const pendingArrivals = new WeakMap<HTMLElement, { origin: PixelPort; at: number }>();
+
+/**
+ * The effect on `el` is opening from `origin` (a point in `el`, px): on its
+ * first frame a few of its pixels start out there and fly to their places
+ * (`look="mosaic"` / `"dither"` only).
+ */
+export function summonVoicePixels(el: HTMLElement, origin: PixelPort): void {
+  if (!__VOICE_SURFACE__) return;
+  pendingArrivals.set(el, { origin, at: performance.now() });
+}
+
+export function releaseVoicePixels(el: HTMLElement, target: PixelPort): void {
+  if (!__VOICE_SURFACE__) return;
+  for (const inst of instances) {
+    if (inst.el !== el || !inst.pixel) continue;
+    const canvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-flyers]');
+    if (canvas) flyPixels(inst.pixel, canvas, target, inst.config.reducedMotion);
+    return;
   }
 }
 
@@ -924,8 +1047,17 @@ export function registerVoiceInstance(
     // Match the mark a previous registration may have left on the element.
     warpOff: el.hasAttribute('data-voice-warp'),
     surface: null,
+    pixel: null,
+    pointer: null,
+    hueBaseOverride: null,
+    hueBaseReadAt: 0,
   };
-  if (__VOICE_SURFACE__ && config.look !== 'glow') {
+  if (__VOICE_SURFACE__ && (config.look === 'mosaic' || config.look === 'dither')) {
+    const pixelCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-surface]');
+    const glowCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-pixel-glow]');
+    if (pixelCanvas) inst.pixel = createPixelState(pixelCanvas, glowCanvas);
+    el.style.setProperty(`--vb-pixel-glow-${config.id}`, config.pixelGlow.toFixed(3));
+  } else if (__VOICE_SURFACE__ && config.look !== 'glow') {
     const surfaceCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-surface]');
     if (surfaceCanvas) inst.surface = createSurfaceState(surfaceCanvas);
   }
@@ -957,10 +1089,34 @@ export function registerVoiceInstance(
     }
   }
 
+  // The pixel looks' magnet follows the pointer over the host. Passive, and on
+  // the host (the canvas lets every event through to the content).
+  let unlisten: (() => void) | null = null;
+  if (__VOICE_SURFACE__ && inst.pixel && config.pixelMagnet > 0) {
+    const move = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      inst.pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
+    };
+    const leave = () => {
+      inst.pointer = null;
+    };
+    el.addEventListener('pointermove', move, { passive: true });
+    el.addEventListener('pointerdown', move, { passive: true });
+    el.addEventListener('pointerleave', leave, { passive: true });
+    el.addEventListener('pointercancel', leave, { passive: true });
+    unlisten = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerdown', move);
+      el.removeEventListener('pointerleave', leave);
+      el.removeEventListener('pointercancel', leave);
+    };
+  }
+
   instances.add(inst);
   startLoop();
 
   return () => {
+    unlisten?.();
     instances.delete(inst);
     inst.releaseAnalyser?.();
     stopLoopIfIdle();

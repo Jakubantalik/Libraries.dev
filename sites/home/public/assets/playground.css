@@ -1715,6 +1715,70 @@ html[data-theme="dark"] .detail-code-copy:hover { background: var(--chip-bg-hove
 .pg-group .pg-field > .pg-label { padding: 12px 0 6px; margin-bottom: 0; }
 .pg-group .pg-field::before { content: none; }
 
+/* Collapsible groups: the chevron sits at the title's right, and the body
+   folds on its grid row (0fr ↔ 1fr) so the height animates without
+   measuring. The group's own gap moves inside the body, so a folded group
+   is only its title. */
+.pg-group { position: relative; gap: 0; }
+/* The whole title row is the toggle: a see-through button laid over the
+   title, the chevron at its right end. */
+.pg-group-toggle {
+  position: absolute;
+  top: -5px;
+  left: -6px;
+  right: -6px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pg-label);
+  cursor: pointer;
+}
+.pg-group-chevron {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+.pg-group-toggle:hover .pg-group-chevron { color: var(--pg-title); background: var(--pg-rule); }
+.pg-group > .pg-label { transition: color 150ms ease-out; }
+.pg-group:has(> .pg-group-toggle:hover) > .pg-label { color: var(--pg-title); }
+.pg-group-toggle:focus-visible { outline: 2px solid var(--pg-title); outline-offset: 1px; }
+.pg-group-toggle svg { transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); }
+.pg-group[data-collapsed] .pg-group-toggle svg { transform: rotate(-90deg); }
+.pg-group-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 250ms ease-in-out;
+}
+.pg-group[data-collapsed] .pg-group-body { grid-template-rows: 0fr; opacity: 0; }
+.pg-group-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Room inside the fold's clip for what draws past a control's box (the
+     selected swatch's ring), taken back by the margins so the layout is
+     unchanged and a folded body still adds nothing. */
+  padding: 0 6px 6px;
+  margin: 0 -6px -6px;
+}
+/* The air under the title is the first control's margin, not padding, so a
+   folded body really is 0 tall. */
+.pg-group-inner > :first-child { margin-top: 12px; }
+/* A folded title keeps its own air below, as the next rule needs. */
+.st-panel-body > .pg-group[data-collapsed] > .pg-label { margin-bottom: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .pg-group-body, .pg-group-toggle svg { transition: none; }
+}
+
 /* Color swatch row */
 .pg-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
 /* A swatch is a panel-coloured disc with the colour painted on its

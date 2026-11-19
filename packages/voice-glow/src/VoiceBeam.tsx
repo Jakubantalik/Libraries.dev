@@ -2,6 +2,7 @@ import {
   forwardRef,
   useId,
   useEffect,
+  useLayoutEffect,
   useState,
   useCallback,
   useMemo,
@@ -12,10 +13,10 @@ import {
   type MutableRefObject,
 } from 'react';
 import type { VoiceBeamProps, VoiceBeamTheme } from './types';
-import { themePresets, generateVoiceBeamCSS } from './styles';
-import { registerVoiceInstance, type VoiceDriverConfig } from './voiceDriver';
-import { resolveVoiceDefaults, resolveVoiceStyle } from './presets';
-import { toTriple } from './color';
+import { themePresets, voicePalettes, generateVoiceBeamCSS } from './styles';
+import { registerVoiceInstance, releaseVoicePixels, resetVoiceLevel, summonVoicePixels, type VoiceDriverConfig } from './voiceDriver';
+import { pixelDomeDefault, pixelDustDefault, pixelGlowDefault, resolveVoiceDefaults, resolveVoiceStyle } from './presets';
+import { parseRgb, toTriple } from './color';
 
 /** Band colour defaults per theme, as `r, g, b` triples. */
 const BAND_COLORS = {
@@ -108,6 +109,12 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       children,
       type = 'default',
       look: lookProp = 'glow',
+      pixelSize: pixelSizeProp,
+      pixelGlow: pixelGlowProp,
+      pixelDust: pixelDustProp,
+      pixelDome: pixelDomeProp,
+      pixelMagnet: pixelMagnetProp,
+      pixelExitTarget,
       dotSize = 1,
       dotGap = 1,
       dotShape = 'round',
@@ -208,9 +215,16 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
 
     // The type preset supplies the geometry defaults; an explicit prop
     // wins; `scale` then multiplies every pixel dimension as one.
-    const d = resolveVoiceDefaults(type, resolvedTheme);
+    // Mosaic and dither carry their own tuning on top of the type's.
+    const d = resolveVoiceDefaults(type, resolvedTheme, __VOICE_SURFACE__ ? lookProp : 'glow');
     const sc = Math.max(0.05, scaleProp ?? d.scale);
     const glowSize = glowSizeProp ?? d.glowSize;
+    const pixelSize = pixelSizeProp ?? d.pixelSize;
+    // The mosaic's bigger glyphs read a lighter pull as strong as the dither's.
+    const pixelMagnet = pixelMagnetProp ?? (lookProp === 'mosaic' ? 0.4 : 0.7);
+    const pixelGlow = pixelGlowProp ?? pixelGlowDefault(type, lookProp);
+    const pixelDust = pixelDustProp ?? pixelDustDefault(type);
+    const pixelDome = pixelDomeProp ?? pixelDomeDefault(type);
     const strokeOpacityMul = strokeOpacityProp ?? d.strokeOpacity;
     const innerOpacityMul = innerOpacityProp ?? d.innerOpacity;
     const bloomOpacityMul = bloomOpacityProp ?? d.bloomOpacity;
@@ -272,8 +286,11 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
     // Not released yet: without the build switch every look is the glow.
     const look = __VOICE_SURFACE__ ? lookProp : 'glow';
     const isSurface = __VOICE_SURFACE__ && (look === 'dots' || look === 'lines');
+    // Mosaic and dither: the glow itself, sampled onto the same canvas.
+    const isPixel = __VOICE_SURFACE__ && (look === 'mosaic' || look === 'dither');
+    const onCanvas = isSurface || isPixel;
     // The WebKit gate is about the SVG warp's cost; the surface has no warp.
-    const distortion = !isSurface && IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
+    const distortion = onCanvas ? 0 : IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
 
     // Auto-detect child border radius when no explicit value is provided
     useEffect(() => {
@@ -302,6 +319,31 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         setIsFading(true);
       }
     }, [active, isActive, isFading]);
+
+    // Mosaic and dither: as the effect closes, a few pixels fly into the
+    // element that closed it; as it opens again, a few fly out of it to
+    // their places. A layout effect, so a close runs while the driver still
+    // has this instance — before any passive effect's cleanup.
+    const wasActive = useRef(active);
+    useLayoutEffect(() => {
+      const closing = wasActive.current && !active;
+      const opening = !wasActive.current && active;
+      wasActive.current = active;
+      const el = internalRef.current;
+      if (opening && el) resetVoiceLevel(el);
+      if (!(closing || opening) || !isPixel || !el || !pixelExitTarget) return;
+      const host = el.getBoundingClientRect();
+      const t = pixelExitTarget.getBoundingClientRect();
+      const point = { x: t.left + t.width / 2 - host.left, y: t.top + t.height / 2 - host.top, w: t.width, h: t.height };
+      if (closing) releaseVoicePixels(el, point);
+      else if (!reducedMotion) {
+        summonVoicePixels(el, point);
+        // The wave holds back a beat so the pixels lead (see the stylesheet).
+        el.setAttribute('data-arriving', '');
+        window.setTimeout(() => el.removeAttribute('data-arriving'), 1200);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active]);
 
     // Stop the per-frame work while the element is scrolled offscreen.
     useEffect(() => {
@@ -458,6 +500,19 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         reducedMotion,
         paused,
         look,
+        // The pixel looks paint the palette themselves: the variant's
+        // colours with any custom ones in their slots, as the stylesheet has.
+        palette: voicePalettes[colorVariant][resolvedTheme].map((c, i) => {
+          const custom = colors?.[i];
+          return (custom && parseRgb(custom)) || parseRgb(c) || [255, 255, 255];
+        }),
+        saturation: finalSaturation,
+        hueBase: preset.hueBase ?? 0,
+        pixelSize: Math.max(0.3, pixelSize),
+        pixelGlow: Math.max(0, Math.min(1, pixelGlow)),
+        pixelDust: Math.max(0, pixelDust),
+        pixelDome: Math.max(0, pixelDome),
+        pixelMagnet: Math.max(0, Math.min(1, pixelMagnet)),
         dotSize: Math.max(0.1, dotSize),
         dotGap: Math.max(0.3, dotGap),
         dotShape: dotShape === 'square' ? 'square' : 'round',
@@ -530,6 +585,14 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         reducedMotion,
         paused,
         look,
+        pixelSize,
+        pixelGlow,
+        pixelDust,
+        pixelDome,
+        pixelMagnet,
+        colorsKey,
+        finalSaturation,
+        preset,
         dotSize,
         dotGap,
         dotShape,
@@ -624,9 +687,11 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           onAnimationEnd={handleAnimationEnd}
         >
           {children}
-          {isSurface && <canvas data-voice-beam-surface aria-hidden="true" />}
-          {!isSurface && <div data-voice-beam-bloom />}
-          {!isSurface && distortion > 0 && (
+          {isPixel && <canvas data-voice-beam-pixel-glow aria-hidden="true" />}
+          {onCanvas && <canvas data-voice-beam-surface aria-hidden="true" />}
+          {isPixel && <canvas data-voice-beam-flyers aria-hidden="true" />}
+          {!onCanvas && <div data-voice-beam-bloom />}
+          {!onCanvas && distortion > 0 && (
             <>
               {/* Mirrors of the inner light and bloom, clipped to below the
                   band line and carrying the displacement filter. */}
@@ -634,17 +699,17 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
               <div data-voice-beam-warp="bloom" />
             </>
           )}
-          {!isSurface && !CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
-          {!isSurface && <canvas data-voice-beam-band aria-hidden="true" />}
+          {!onCanvas && !CANVAS_FILTER && <canvas data-voice-beam-band-halo aria-hidden="true" />}
+          {!onCanvas && <canvas data-voice-beam-band aria-hidden="true" />}
           {/* After the band canvases, so the wash sits over the band's halo
               under the line (it is clipped to below the line, so the ridge
               itself stays) while the host's own content stays above it. */}
-          {!isSurface && coreLight > 0 && (
+          {!onCanvas && coreLight > 0 && (
             <div data-voice-beam-core>
               <div />
             </div>
           )}
-          {!isSurface && distortion > 0 && (
+          {!onCanvas && distortion > 0 && (
             /* The distortion filter: drifting fractal noise, its green
                channel pinned to 0.5 so only x displaces, driven per frame by
                the driver (scale and offset), which also narrows the region
