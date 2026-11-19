@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Four more looks, alongside `look="glow"`: `"mosaic"` and `"dither"` sample the glow itself onto a grid of glyphs or dithered pixels (same palette, flow and hue drift), and `"dots"` and `"lines"` draw the voice as a domed sheet it raises and gravity brings down. See [Looks](README.md#looks).
+- The pixel looks' props: `pixelSize`, `pixelGlow`, `pixelDust` (the processing beam's trail), `pixelDome`, `pixelMagnet` (pixels fly toward the pointer) and `pixelExitTarget` (pixels fly into and out of a button as `active` changes).
+- `tint` / `tintAmount`: colour the dots' and lines' ink, e.g. with a mood.
+- New exports: `pixelGlowDefault`, `pixelDustDefault`, `pixelDomeDefault`, and `VOICE_SURFACE_LOOKS` (true).
+
 ## 0.3.0
 
 - **Breaking:** the processing state moved to Libraries Pro. `processing`, `processingDuration`, `processingLevel`, `processingEase`, `processingTravel`, `processingCurve` and `cornerFollow` are gone, and the wrapper no longer carries `data-processing`.

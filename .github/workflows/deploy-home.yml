@@ -43,14 +43,9 @@ jobs:
         run: npm ci
 
       # The home site imports every library from the workspace, so they
-      # have to be built before Vite resolves them. VOICE_SURFACE=1 builds
-      # voice-glow with its extra looks (dither, mosaic, dots, lines): live
-      # on the site and in the Studio, while the npm package still compiles
-      # them out (packages/voice-glow/LOOKS.md).
+      # have to be built before Vite resolves them.
       - name: Build home site
         run: npm run build:site-home
-        env:
-          VOICE_SURFACE: '1'
 
       # Runs inside sites/home so wrangler picks up sites/home/functions, the
       # Pages Functions that gate the Studio app at the edge.

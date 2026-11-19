@@ -4,10 +4,10 @@ import dts from 'vite-plugin-dts';
 import { resolve } from 'path';
 
 export default defineConfig({
-  // The surface looks (dots, lines) are not released yet: compiled out
-  // unless VOICE_SURFACE=1 (see src/env.d.ts).
+  // The extra looks (mosaic, dither, dots, lines) ship since 0.4.0;
+  // VOICE_SURFACE=0 still compiles them out (see src/env.d.ts).
   define: {
-    __VOICE_SURFACE__: JSON.stringify(process.env.VOICE_SURFACE === '1'),
+    __VOICE_SURFACE__: JSON.stringify(process.env.VOICE_SURFACE !== '0'),
   },
   plugins: [
     react(),

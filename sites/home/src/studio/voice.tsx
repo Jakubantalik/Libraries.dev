@@ -123,9 +123,8 @@ function stockVoiceCss(): string {
   return (style.textContent ?? "").split(id).join("{id}");
 }
 
-/* Dots, lines, mosaic and dither are not released yet: only a build with
-   VOICE_SURFACE=1 carries them (see packages/voice-glow/LOOKS.md), and only
-   then does the Studio offer them. */
+/* Dots, lines, mosaic and dither ship since voice-glow 0.4.0; a build with
+   VOICE_SURFACE=0 compiles them out, and then the Studio hides the Look row. */
 /** The library's pixelMagnet default per look. */
 const magnetDefault = (look: string) => (look === "mosaic" ? 0.4 : 0.7);
 
