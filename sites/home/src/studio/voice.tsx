@@ -124,6 +124,8 @@ type StudioLook = "glow" | "dither" | "mosaic" | "dots" | "lines";
 const PRO_LOOKS = ["mosaic", "dots", "lines"] as const;
 type ProLook = (typeof PRO_LOOKS)[number];
 const isProLook = (look: string): look is ProLook => (PRO_LOOKS as readonly string[]).includes(look);
+/* Magnetic hover's On, off the pixel looks: the glow, dots and lines have no pixels to pull. */
+const MAGNET_LOOKS_NOTE = "Works with Dither and Mosaic";
 /** The library's pixelMagnet default for a look (a pixel look brings its own). */
 const magnetDefault = (look: VoiceBeamLook | VoiceLook) => (typeof look === "object" && look.kind === "pixel" ? look.magnet ?? 0.7 : 0.7);
 
@@ -1027,6 +1029,17 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
               </span>
             </div>
           )}
+          {/* The magnet on and off (its strength is the pixel group's
+              Magnet slider). Only the pixel looks have pixels to pull. */}
+          <PgTabs
+            label="Magnetic hover"
+            options={[
+              { value: "off", label: "Off" },
+              { value: "on", label: "On", locked: isPixel ? undefined : MAGNET_LOOKS_NOTE },
+            ]}
+            value={isPixel && pixelMagnet > 0 ? "on" : "off"}
+            onChange={(v) => setPixelMagnet(v === "on" ? magnetDefault(lookValue) : 0)}
+          />
         </PgGroup>
         <PgGroup label="Emotion">
           <PgTabs label="Emotion" hideLabel options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />

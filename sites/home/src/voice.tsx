@@ -56,6 +56,15 @@ const EMOTION_OPTIONS = [
   { value: "off", label: "Off" },
   { value: "on", label: "On", locked: "Available with Pro plan" },
 ] as const;
+/* Magnetic hover (Pro): the pixel looks' few pixels nearest the pointer fly
+   to it and spring back. Shown here, locked; the free stage keeps it off.
+   The glow has no pixels to pull, so there On says which looks it is for. */
+const MAGNET_LOOKS_NOTE = "Works with Dither and Mosaic";
+const magnetOptions = (pixelLook: boolean) =>
+  [
+    { value: "off", label: "Off" },
+    { value: "on", label: "On", locked: pixelLook ? "Available with Pro plan" : MAGNET_LOOKS_NOTE },
+  ] as const;
 const TRANSCRIPT_OPTIONS = [
   { value: "demo", label: "Demo" },
   { value: "live", label: "Live", locked: "Available with Pro plan" },
@@ -231,7 +240,7 @@ function VoicePlayground() {
   const [fitRef, fitScale] = useFitScale();
   const beam =
     type === "mobile" ? (
-      <VoiceBeam type="mobile" look={look} stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
+      <VoiceBeam type="mobile" look={look} pixelMagnet={0} stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={PHONE_SCALE} borderRadius={PHONE_RADIUS} className="mock-phone-host">
         <div className="mock-phone-scale">
           <div className="mock-phone-scale-inner">
             <PhoneScreen promptKey={runKey} transcript={transcript} />
@@ -240,7 +249,7 @@ function VoicePlayground() {
       </VoiceBeam>
     ) : (
       <div ref={fitRef} className="voice-fit">
-        <VoiceBeam type="default" look={look} stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
+        <VoiceBeam type="default" look={look} pixelMagnet={0} stream={stream} level={level} theme="dark" paused={paused} onLevel={onLevel} scale={fitScale}>
           <ChatInputMock listening />
         </VoiceBeam>
       </div>
@@ -276,7 +285,7 @@ function VoicePlayground() {
         </div>
 
         <div className="pg-controls" id="playground-controls">
-          {/* The Studio's order: Source, Type, Look, Emotion. */}
+          {/* The Studio's order: Source, Type, Look (and its magnet), Emotion. */}
           <PgTabs label="Source" options={SOURCE_OPTIONS} value={source} onChange={chooseSource} extra={SOURCES_LOCKED} />
           {isMic && MIC_STATUS[mic.state] && (
             <div className="pg-field">
@@ -285,6 +294,10 @@ function VoicePlayground() {
           )}
           <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} extra={TYPES_LOCKED} />
           <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={setLook} extra={LOOKS_LOCKED} />
+          <PgTabs label="Magnetic hover" options={magnetOptions(look === "dither")} value="off" onChange={() => {}} />
+          <div className="pg-field">
+            <span className="pg-note">Pixels near the pointer fly to it and spring back. Dither and Mosaic.</span>
+          </div>
           <PgTabs label="Emotion" options={EMOTION_OPTIONS} value="off" onChange={() => {}} />
           <div className="pg-field">
             <span className="pg-note">
