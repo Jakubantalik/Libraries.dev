@@ -1076,7 +1076,8 @@ html[data-theme="dark"] .pg-stage { background: #171717; }
   --phone-shadow: rgba(0, 0, 0, 0.28);
   --phone-screen: #0d0d0d;
   --phone-island: #000;
-  min-height: calc(var(--phone-h) + 64px);
+  /* Room under the phone for Play: 12px off its foot, 16px off the stage's. */
+  min-height: calc(var(--phone-h) + 120px);
   /* Own stacking context: the body paints at z -1, above the stage's
      background and under the effect, without repositioning any child. */
   isolation: isolate;
@@ -1112,9 +1113,12 @@ html[data-theme="light"] .pg-stage[data-device="phone"] {
   background: var(--phone-island);
   transform: translate(-50%, calc(var(--phone-h) / -2 + var(--phone-bezel) + 11px));
 }
-.pg-stage[data-device="phone"] > :not(.pg-play):not(.pg-toolbar) { zoom: 0.7; }
-/* Play moves onto the screen, near its foot. */
-.pg-stage[data-device="phone"] > .pg-play { bottom: calc(50% - var(--phone-h) / 2 + 36px); }
+.pg-stage[data-device="phone"] > :not(.pg-play):not(.pg-toolbar):not(.pg-meter) { zoom: 0.7; }
+/* Play sits under the phone, 12px off its foot, never on the screen. */
+.pg-stage[data-device="phone"] > .pg-play { bottom: calc(50% - var(--phone-h) / 2 - 44px); }
+/* Voice's level meter: over Play on the stage, at the screen's foot on a phone. */
+.pg-meter { bottom: 64px; width: 120px; }
+.pg-stage[data-device="phone"] > .pg-meter { bottom: calc(50% - var(--phone-h) / 2 + 10px); width: 84px; }
 
 /* ── Studio control tokens ────────────────────────────────────
    Light values follow transitions.dev's page palette (--bg / --card-bg

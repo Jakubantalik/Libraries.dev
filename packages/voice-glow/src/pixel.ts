@@ -1,8 +1,10 @@
 import { voiceLobes } from './styles';
 import type { VoiceDriverConfig } from './voiceDriver';
+import type { VoicePixelKit } from './look';
 
 /**
- * The pixel looks — `look="mosaic"` and `look="dither"`.
+ * The pixel engine — `look="dither"`, and the pixel looks that plug in
+ * (`VoicePixelLook`, see look.ts).
  *
  * The glow itself, sampled on a grid instead of painted as gradients: the
  * same lobes in the same places, moving with the same voice, flow and
@@ -10,12 +12,11 @@ import type { VoiceDriverConfig } from './voiceDriver';
  * driver hands over what it writes as custom properties for the glow; this
  * evaluates the stylesheet's lobe gradients and its range mask at each cell.
  *
- * - mosaic: a glyph per cell, in the colour of the lobe that lights it most
- *   and that lobe's shape (dot, square, plus, ring, diamond, bars, frame),
- *   sized by how bright the glow is there.
  * - dither: small square pixels, each on or off by a 4×4 ordered dither of
  *   the glow's brightness, in its blended colour cut to a few levels; the
  *   pixels left off still show, faintly, as a grid.
+ * - a plugged-in look paints its own cells through a `VoicePixelKit`: the
+ *   same sampling, colour, magnet, dust and flying pixels.
  *
  * Both glow: every frame the picture is copied at a quarter of its size onto
  * a second canvas beneath it, which the stylesheet blurs into a halo of its
@@ -24,16 +25,9 @@ import type { VoiceDriverConfig } from './voiceDriver';
 
 const DPR_MAX = 2;
 /** Cell pitch at scale 1, px. */
-const MOSAIC_CELL = 8;
 const DITHER_CELL = 3.2;
-/** Below this a cell is empty. */
-const MOSAIC_MIN = 0.05;
-/** Colour levels per channel: fine in the mosaic, a few in the dither (the
- *  ordered dither spreads the steps between them either way). */
-const MOSAIC_LEVELS = 16;
+/** Colour levels per channel (the ordered dither spreads the steps between them). */
 const DITHER_LEVELS = 6;
-/** Glyph sizes, as a share of the cell, by brightness. */
-const MOSAIC_SIZES = [0.28, 0.42, 0.56, 0.7, 0.84, 0.98];
 
 /** A fixed 0–1 value per cell, so a cell's choices hold from frame to frame. */
 function hash(c: number, r: number): number {
@@ -229,8 +223,8 @@ let bandEnds = 0.18;
 /** The band's light at the last sampled point, 0–1, and its colour's pull on each of its three strands. */
 let bandV = 0;
 const bandPull = new Float32Array(3);
-/** The dither's band pixels, by colour, kept for the halo: the band glows
- *  as strongly as the mosaic's, whose whole picture feeds its halo twice. */
+/** The dither's band pixels, by colour, kept for the halo, so the band
+ *  line glows stronger than the field around it. */
 const ditherBand = new Map<number, Path2D>();
 let ditherStyle: (key: number) => string = () => '';
 /** Below this band light a dither pixel is not part of the band's glow. */
@@ -537,7 +531,8 @@ export function drawPixels(st: PixelState, config: VoiceDriverConfig, f: PixelFr
   if (bandAlpha > 0.004) for (let i = 0; i < bandLen; i++) top = Math.min(top, bandYs[i] - 3 * bandSigma - bandDy);
   top = Math.max(0, top);
 
-  if (config.look === 'mosaic') drawMosaic(st, ctx, config, f, fade, mrx, mry, presence, top);
+  const plugin = config.lookPlugin?.kind === 'pixel' ? config.lookPlugin : null;
+  if (plugin) plugin.paint(kitFor(st, ctx, config, f, fade, mrx, mry, presence, top));
   else drawDither(st, ctx, config, f, fade, mrx, mry, presence, top);
 
   // The halo: the picture, small, for the stylesheet to blur.
@@ -554,15 +549,18 @@ export function drawPixels(st: PixelState, config: VoiceDriverConfig, f: PixelFr
       glowCtx.imageSmoothingEnabled = true;
       glowCtx.imageSmoothingQuality = 'high';
       glowCtx.drawImage(canvas, 0, 0, gw, gh);
-      // The mosaic's glyphs cover less of each cell than the dither's
-      // pixels: added twice, its halo reads as strong.
-      if (config.look === 'mosaic') {
-        glowCtx.globalCompositeOperation = 'lighter';
-        glowCtx.drawImage(canvas, 0, 0, gw, gh);
-        glowCtx.globalCompositeOperation = 'source-over';
+      // A plugged-in look can feed its halo more than once (sparse cells
+      // read a weaker halo than the dither's dense pixels).
+      if (plugin) {
+        const passes = Math.max(1, Math.min(4, Math.round(plugin.halo ?? 1)));
+        if (passes > 1) {
+          glowCtx.globalCompositeOperation = 'lighter';
+          for (let pass = 1; pass < passes; pass++) glowCtx.drawImage(canvas, 0, 0, gw, gh);
+          glowCtx.globalCompositeOperation = 'source-over';
+        }
       } else if (ditherBand.size) {
-        // The dither's band, added again on its own, so its line blooms like
-        // the mosaic's without lifting the rest of the field.
+        // The dither's band, added again on its own, so its line blooms
+        // without lifting the rest of the field.
         glowCtx.save();
         glowCtx.setTransform(gw / cw, 0, 0, gh / ch, 0, 0);
         glowCtx.globalCompositeOperation = 'lighter';
@@ -577,67 +575,6 @@ export function drawPixels(st: PixelState, config: VoiceDriverConfig, f: PixelFr
     }
   }
 }
-
-// ── Mosaic ──────────────────────────────────────────────────────────────
-
-/** Each lobe's glyph, centred on the cell, `s` across. */
-function glyph(path: Path2D, kind: number, x: number, y: number, s: number): void {
-  const r = s / 2;
-  switch (kind) {
-    case 0: // dot
-      path.moveTo(x + r, y);
-      path.arc(x, y, r, 0, Math.PI * 2);
-      break;
-    case 1: // square
-      path.rect(x - r, y - r, s, s);
-      break;
-    case 2: {
-      // plus
-      const t = s * 0.34;
-      path.rect(x - r, y - t / 2, s, t);
-      path.rect(x - t / 2, y - r, t, (s - t) / 2);
-      path.rect(x - t / 2, y + t / 2, t, (s - t) / 2);
-      break;
-    }
-    case 3: // ring with a dot (evenodd)
-      path.moveTo(x + r, y);
-      path.arc(x, y, r, 0, Math.PI * 2);
-      path.moveTo(x + r * 0.62, y);
-      path.arc(x, y, r * 0.62, 0, Math.PI * 2);
-      path.moveTo(x + r * 0.3, y);
-      path.arc(x, y, r * 0.3, 0, Math.PI * 2);
-      break;
-    case 4: // diamond in a square frame (evenodd)
-      path.rect(x - r, y - r, s, s);
-      path.moveTo(x, y - r * 0.82);
-      path.lineTo(x + r * 0.82, y);
-      path.lineTo(x, y + r * 0.82);
-      path.lineTo(x - r * 0.82, y);
-      path.closePath();
-      path.moveTo(x, y - r * 0.42);
-      path.lineTo(x + r * 0.42, y);
-      path.lineTo(x, y + r * 0.42);
-      path.lineTo(x - r * 0.42, y);
-      path.closePath();
-      break;
-    case 5: {
-      // bars
-      const t = s / 5;
-      for (let k = 0; k < 3; k++) path.rect(x - r, y - r + k * 2 * t, s, t);
-      break;
-    }
-    default: {
-      // a frame round a small square (evenodd)
-      path.rect(x - r, y - r, s, s);
-      const i1 = r * 0.6;
-      path.rect(x - i1, y - i1, i1 * 2, i1 * 2);
-      const i2 = r * 0.28;
-      path.rect(x - i2, y - i2, i2 * 2, i2 * 2);
-    }
-  }
-}
-/** Glyphs drawn with the even-odd rule, so their holes stay open. */
-const EVENODD = [false, false, false, true, true, false, true];
 
 // ── Processing's dust ───────────────────────────────────────────────────
 // While processing, the travelling beam leaves a trail behind it, like the
@@ -697,7 +634,7 @@ function dustDraw(ctx: CanvasRenderingContext2D, st: PixelState, m: number, c: n
   return true;
 }
 
-// ── Magnet, shared by the mosaic and the dither ─────────────────────────
+// ── Magnet, shared by every pixel look ──────────────────────────────────
 
 interface MagnetFrame {
   px: number;
@@ -792,104 +729,6 @@ function magnetCell(st: PixelState, mf: MagnetFrame, m: number, c: number, r: nu
   return [ox, oy];
 }
 
-function drawMosaic(
-  st: PixelState,
-  ctx: CanvasRenderingContext2D,
-  config: VoiceDriverConfig,
-  f: PixelFrame,
-  fade: number,
-  mrx: number,
-  mry: number,
-  presence: number,
-  top: number
-): void {
-  const { cw, ch } = f;
-  const cell = MOSAIC_CELL * Math.sqrt(Math.max(0.05, config.scale)) * Math.max(0.3, config.pixelSize);
-  const cols = Math.ceil(cw / cell);
-  const rows = Math.ceil(ch / cell);
-  // Cells line up from the bottom edge, where the glow sits.
-  const y0 = ch - rows * cell;
-  const x0 = (cw - cols * cell) / 2;
-  // One path per glyph shape and quantised colour.
-  const paths = new Map<number, Path2D>();
-  // The magnet (see the dither): the glyphs nearest the pointer fly to it.
-  const mf = magnetBegin(st, config, f, cols, rows, cell, x0, y0);
-  dustBegin(st, cols, rows, f.dt, config.pixelDust);
-  // No dust left at all when it is turned off.
-  const gather = config.pixelDust > 0 ? f.gather ?? 0 : 0;
-  const dustSize = cell * 0.3;
-  st.litN = 0;
-  const hole = lifted(st);
-  const last = MOSAIC_SIZES.length - 1;
-  const q = MOSAIC_LEVELS - 1;
-  for (let r = rows - 1; r >= 0; r--) {
-    const y = y0 + (r + 0.5) * cell;
-    if (y + cell < top) break;
-    for (let c = 0; c < cols; c++) {
-      const x = x0 + (c + 0.5) * cell;
-      const m = r * cols + c;
-      const [ox, oy] = magnetCell(st, mf, m, c, r, x, y);
-      const gx = x + ox;
-      const gy = y + oy;
-      const v = 1 - (1 - sample(x, y, f, fade, mrx, mry) * presence) * (1 - bandV);
-      if (v < MOSAIC_MIN) {
-        dustDraw(ctx, st, m, c, r, x, y, dustSize);
-        continue;
-      }
-      // The lobe that draws the cell, chosen by its share of the light
-      // against the cell's own fixed draw: where two colours meet their
-      // glyphs interleave, as in a mosaic, instead of meeting on a line.
-      let sum = 0;
-      for (let i = 0; i < LOBES; i++) sum += hues[i] * hues[i];
-      let pick = hash(c, r) * sum;
-      // A cell only the band lights (its tails in the corners) is a dot.
-      let best = sum > 1e-6 ? LOBES - 1 : 0;
-      if (sum > 1e-6) {
-        for (let i = 0; i < LOBES; i++) {
-          pick -= hues[i] * hues[i];
-          if (pick <= 0) {
-            best = i;
-            break;
-          }
-        }
-      }
-      const step = Math.min(last, Math.floor(((v - MOSAIC_MIN) / (1 - MOSAIC_MIN)) * (last + 1.6)));
-      // The colour is the glow's blend at the cell, not the lobe's own, so
-      // the hues run into each other; cut to levels on the cell's dither
-      // threshold, which spreads the steps between them.
-      if (!blend()) continue;
-      const t = BAYER[(r & 3) * 4 + (c & 3)];
-      const lv = (u: number) => Math.min(q, Math.floor(u * q + t));
-      const key = ((best * MOSAIC_LEVELS + lv(mix[0])) * MOSAIC_LEVELS + lv(mix[1])) * MOSAIC_LEVELS + lv(mix[2]);
-      const c8 = (u: number) => Math.round((lv(u) / q) * 255);
-      const rgb = (c8(mix[0]) << 16) | (c8(mix[1]) << 8) | c8(mix[2]);
-      // A cell whose pixel is in flight: still counted as lit (a flight
-      // follows it), but left out of the picture.
-      if (hole && hole.has(m)) {
-        pushLit(st, gx, gy, MOSAIC_SIZES[step] * cell, v, rgb, m);
-        continue;
-      }
-      let p = paths.get(key);
-      if (!p) {
-        p = new Path2D();
-        paths.set(key, p);
-      }
-      glyph(p, best, gx, gy, MOSAIC_SIZES[step] * cell);
-      pushLit(st, gx, gy, MOSAIC_SIZES[step] * cell, v, rgb, m);
-      dustDeposit(st, m, v, gather, rgb);
-    }
-  }
-  paths.forEach((p, key) => {
-    const b = key % MOSAIC_LEVELS;
-    const g = Math.floor(key / MOSAIC_LEVELS) % MOSAIC_LEVELS;
-    const r = Math.floor(key / (MOSAIC_LEVELS * MOSAIC_LEVELS)) % MOSAIC_LEVELS;
-    const kind = Math.floor(key / (MOSAIC_LEVELS * MOSAIC_LEVELS * MOSAIC_LEVELS));
-    const c = (u: number) => Math.round((u / q) * 255);
-    ctx.fillStyle = `rgb(${c(r)},${c(g)},${c(b)})`;
-    ctx.fill(p, EVENODD[kind] ? 'evenodd' : 'nonzero');
-  });
-}
-
 // ── Dither ──────────────────────────────────────────────────────────────
 
 function drawDither(
@@ -977,8 +816,8 @@ function drawDither(
         p = new Path2D();
         into.set(key, p);
       }
-      // Pixels on the band line swell with its light, as the mosaic's
-      // glyphs do — up to a little past the cell, so the line reads solid.
+      // Pixels on the band line swell with its light, up to a little past
+      // the cell, so the line reads solid.
       const s = on ? size * (1 + BAND_GROW * bandV) : ghostSize;
       p.rect(dxp - s / 2, dyp - s / 2, s, s);
       if (on && bandV > BAND_GLOW_MIN) {
@@ -1015,6 +854,81 @@ function drawDither(
     ctx.fillStyle = style(key);
     ctx.fill(p);
   });
+}
+
+// ── Plugged-in pixel looks ──────────────────────────────────────────────
+// The engine's pieces as a `VoicePixelKit` (look.ts): one object, reused
+// every frame, so a look costs nothing to call into.
+
+let kitSt: PixelState | null = null;
+let kitF: PixelFrame | null = null;
+let kitFade = 1;
+let kitMrx = 1;
+let kitMry = 1;
+let kitPresence = 1;
+let kitGather = 0;
+let kitMagnet: MagnetFrame = { px: NaN, py: NaN, steps: 0, h: 0 };
+let kitHole: Set<number> | null = null;
+
+const kit: VoicePixelKit = {
+  ctx: null as unknown as CanvasRenderingContext2D,
+  config: null as unknown as VoiceDriverConfig,
+  cw: 0,
+  ch: 0,
+  top: 0,
+  lobes: hues,
+  rgb: mix,
+  light(x, y) {
+    return 1 - (1 - sample(x, y, kitF!, kitFade, kitMrx, kitMry) * kitPresence) * (1 - bandV);
+  },
+  blend,
+  hash,
+  bayer: (c, r) => BAYER[(r & 3) * 4 + (c & 3)],
+  grid(cols, rows, cell, x0, y0) {
+    const st = kitSt!;
+    const f = kitF!;
+    kitMagnet = magnetBegin(st, kit.config, f, cols, rows, cell, x0, y0);
+    dustBegin(st, cols, rows, f.dt, kit.config.pixelDust);
+    // No dust left at all when it is turned off.
+    kitGather = kit.config.pixelDust > 0 ? f.gather ?? 0 : 0;
+    st.litN = 0;
+    kitHole = lifted(st);
+  },
+  pull: (m, c, r, x, y) => magnetCell(kitSt!, kitMagnet, m, c, r, x, y),
+  away: (m) => kitHole !== null && kitHole.has(m),
+  lit(x, y, size, v, rgb, m) {
+    pushLit(kitSt!, x, y, size, v, rgb, m);
+    if (!(kitHole && kitHole.has(m))) dustDeposit(kitSt!, m, v, kitGather, rgb);
+  },
+  dust: (m, c, r, x, y, size) => dustDraw(kit.ctx, kitSt!, m, c, r, x, y, size),
+};
+
+function kitFor(
+  st: PixelState,
+  ctx: CanvasRenderingContext2D,
+  config: VoiceDriverConfig,
+  f: PixelFrame,
+  fade: number,
+  mrx: number,
+  mry: number,
+  presence: number,
+  top: number
+): VoicePixelKit {
+  kitSt = st;
+  kitF = f;
+  kitFade = fade;
+  kitMrx = mrx;
+  kitMry = mry;
+  kitPresence = presence;
+  kit.ctx = ctx;
+  kit.config = config;
+  kit.cw = f.cw;
+  kit.ch = f.ch;
+  kit.top = top;
+  // Until the look lays out its grid, nothing is lit or in flight.
+  st.litN = 0;
+  kitHole = null;
+  return kit;
 }
 
 // ── Closing: a few pixels fly into the button that closed it ────────────

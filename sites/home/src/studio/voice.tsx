@@ -9,23 +9,24 @@ import {
   resolveVoiceStyle,
   voicePalettes,
   parseRgb,
-  VOICE_SURFACE_LOOKS,
   type VoiceBeamColorVariant,
   type VoiceBeamDotShape,
   type VoiceBeamLinePattern,
   type VoiceBeamLook,
   type VoiceBeamType,
   type VoiceGeometry,
+  type VoiceLook,
 } from "voice-glow";
 import { ControlsPanel, PgTabs, PgSlider, PgToggles, PgSwatches, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { checkCss, tpl, type CoreWiring } from "./core";
 import { useVoiceProcessing, processingDefaults, lookHasProcessing, type ProcessingTuning } from "./voice-processing";
 import { MOOD_PRESETS, moodBand, moodColors, type MoodPoint, type MoodPreset } from "./voice-mood";
-import { useSpeechTranscript, useVoiceEmotion } from "./voice-emotion";
+import { SPEECH_STATUS, useSpeechTranscript } from "./voice-speech";
+import { NO_EMOTION, PRO_LOAD_NOTE, VoiceEmotionProbe, loadVoiceGlowPro, useVoiceGlowPro, type VoiceEmotionResult } from "./pro-runtime";
 
 /* Emotion. On (Pro, web): the mood of what is said — live speech with
-   the Microphone source — scored by the tiny word
-   model in voice-emotion.ts. Happy / Calm / Angry / Sad: a preview of the
+   the Microphone source — scored by Libraries' own word model, which
+   loads with the Pro module (pro-runtime.tsx). Happy / Calm / Angry / Sad: a preview of the
    colours the SwiftUI glow takes for a fixed mood (its live detection is
    SwiftUI Pro); that preview rides `colors` / `bandColors` and never
    reaches the web snippet. */
@@ -38,13 +39,6 @@ const EMOTION_OPTIONS = [
   { value: "sad", label: "Sad" },
 ] as const;
 type Emotion = (typeof EMOTION_OPTIONS)[number]["value"];
-const SPEECH_STATUS: Record<string, string> = {
-  off: "Speech recognition starts when the microphone is live.",
-  listening: "Listening for words…",
-  unsupported: "This browser has no speech recognition (try Chrome, Edge or Safari). Type instead with another source.",
-  denied: "Speech recognition was refused. Allow the microphone for this page and pick Microphone again.",
-  error: "Speech recognition stopped (offline, or the language is not supported).",
-};
 const SWIFT_TYPE: Record<string, string> = { default: ".standard", pill: ".pill", mobile: ".mobile" };
 
 /* The mood plane: drag to set valence (→ positive) and arousal (↑ excited). */
@@ -123,10 +117,15 @@ function stockVoiceCss(): string {
   return (style.textContent ?? "").split(id).join("{id}");
 }
 
-/* Dots, lines, mosaic and dither ship since voice-glow 0.4.0; a build with
-   VOICE_SURFACE=0 compiles them out, and then the Studio hides the Look row. */
-/** The library's pixelMagnet default per look. */
-const magnetDefault = (look: string) => (look === "mosaic" ? 0.4 : 0.7);
+/* Glow and dither are built into voice-glow; mosaic, dots and lines are
+   Libraries Pro looks, objects the Studio loads with the Pro module
+   (pro-runtime.tsx) and passes as `look`. */
+type StudioLook = "glow" | "dither" | "mosaic" | "dots" | "lines";
+const PRO_LOOKS = ["mosaic", "dots", "lines"] as const;
+type ProLook = (typeof PRO_LOOKS)[number];
+const isProLook = (look: string): look is ProLook => (PRO_LOOKS as readonly string[]).includes(look);
+/** The library's pixelMagnet default for a look (a pixel look brings its own). */
+const magnetDefault = (look: VoiceBeamLook | VoiceLook) => (typeof look === "object" && look.kind === "pixel" ? look.magnet ?? 0.7 : 0.7);
 
 const LOOK_OPTIONS = [
   { value: "glow", label: "Glow" },
@@ -326,6 +325,10 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   const chooseEmotion = (next: Emotion) => {
     setEmotion(next);
     if (next !== "off" && next !== "words") setMoodPoint(MOOD_PRESETS[next as MoodPreset]);
+    if (next === "words") {
+      setProAsk("emotion");
+      loadVoiceGlowPro().catch(() => {});
+    }
   };
   /* Dragging the pad lights the tab of the nearest mood. */
   const dragMood = (p: MoodPoint) => {
@@ -366,8 +369,17 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     if (!voiceOn) setRunKey((k) => k + 1);
     setVoiceOn(!voiceOn);
   }, [voiceOn]);
-  /* The look: coloured light, or the voice as a surface of dots or lines. */
-  const [look, setLook] = useState<VoiceBeamLook>("glow");
+  /* The look: coloured light, the dither, or a Pro look (mosaic, or the
+     voice as a surface of dots or lines), once the Pro module is in. */
+  const [look, setLook] = useState<StudioLook>("glow");
+  const { pro, state: proState } = useVoiceGlowPro();
+  const proRef = useRef(pro);
+  proRef.current = pro;
+  /* Which control last asked for the Pro module, for its loading note. */
+  const [proAsk, setProAsk] = useState<"look" | "emotion" | null>(null);
+  /* What VoiceBeam takes for a look: the name, or the Pro look's object. */
+  const lookOf = useCallback((l: StudioLook): VoiceBeamLook | VoiceLook => (isProLook(l) ? proRef.current?.[l] ?? "glow" : l), []);
+  const lookValue = lookOf(look);
   /* Mosaic and dither: the glow sampled into glyphs or dithered pixels. */
   const [pixelGlow, setPixelGlow] = useState(0.6);
   const [pixelDust, setPixelDust] = useState(1.1);
@@ -414,7 +426,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
      the mock's own, so the snippet starts minimal. */
   const handleTypeChange = useCallback((next: VoiceBeamType) => {
     setType(next);
-    setGeo(resolveVoiceDefaults(next, theme, look));
+    setGeo(resolveVoiceDefaults(next, theme, lookOf(look)));
     setProc(processingDefaults(next, look));
     setPixelGlow(pixelGlowDefault(next, look));
     setPixelDust(pixelDustDefault(next));
@@ -424,17 +436,31 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     setBrightness(resolveVoiceStyle(next, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
     setSaturation(resolveVoiceStyle(next, theme).saturation ?? (theme === "light" ? 1.6 : 1.2));
     setRunKey((k) => k + 1);
-  }, [theme, look]);
+  }, [theme, look, lookOf]);
 
-  /* Mosaic and dither carry their own tuning: a look change starts the
-     geometry from that look's defaults for the type, as a type change does. */
-  const chooseLook = useCallback((next: VoiceBeamLook) => {
+  /* The pixel looks carry their own tuning: a look change starts the
+     geometry from that look's defaults for the type, as a type change does.
+     A Pro look applies once the Pro module is in; the latest pick wins. */
+  const wantLook = useRef<StudioLook>("glow");
+  const applyLook = useCallback((next: StudioLook, value: VoiceBeamLook | VoiceLook) => {
     setLook(next);
-    setGeo(resolveVoiceDefaults(type, theme, next));
-    setPixelMagnet(magnetDefault(next));
+    setGeo(resolveVoiceDefaults(type, theme, value));
+    setPixelMagnet(magnetDefault(value));
     setProc(processingDefaults(type, next));
     setPixelGlow(pixelGlowDefault(type, next));
   }, [type, theme]);
+  const chooseLook = useCallback((next: StudioLook) => {
+    wantLook.current = next;
+    if (!isProLook(next)) return applyLook(next, next);
+    setProAsk("look");
+    if (proRef.current) return applyLook(next, proRef.current[next]);
+    loadVoiceGlowPro().then(
+      (p) => {
+        if (wantLook.current === next) applyLook(next, p[next]);
+      },
+      () => {}
+    );
+  }, [applyLook]);
 
   /* Agent tab. The geometry lives in one object and the rest in their own
      pieces of state; the agent sees one flat set of props, the same names
@@ -506,10 +532,16 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   };
 
   const applyAgentParams = useCallback((patch: Record<string, unknown>) => {
+    /* A Pro look needs the Pro module first: the whole patch waits for it,
+       so its other values still land on top of the look's defaults. */
+    if (typeof patch.look === "string" && isProLook(patch.look) && !proRef.current) {
+      loadVoiceGlowPro().then(() => applyAgentParamsRef.current(patch), () => {});
+      return;
+    }
     /* Type first: it re-tunes the geometry, so anything else in the same
        patch must land on top of the new defaults. */
     if (typeof patch.type === "string") handleTypeChange(patch.type as VoiceBeamType);
-    if (patch.look === "glow" || (VOICE_SURFACE_LOOKS && (patch.look === "dots" || patch.look === "lines" || patch.look === "mosaic" || patch.look === "dither"))) chooseLook(patch.look);
+    if (patch.look === "glow" || patch.look === "dither" || (typeof patch.look === "string" && isProLook(patch.look))) chooseLook(patch.look as StudioLook);
     if (typeof patch.pixelSize === "number") setGeo((g) => ({ ...g, pixelSize: patch.pixelSize as number }));
     if (typeof patch.pixelGlow === "number") setPixelGlow(patch.pixelGlow);
     if (typeof patch.pixelDust === "number") setPixelDust(patch.pixelDust);
@@ -573,6 +605,8 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     }
     if (Object.keys(procPatch).length) setProc((p) => ({ ...p, ...procPatch }));
   }, [handleTypeChange, chooseLook]);
+  const applyAgentParamsRef = useRef(applyAgentParams);
+  applyAgentParamsRef.current = applyAgentParams;
 
   useEffect(() => {
     setBrightness(resolveVoiceStyle(type, theme).brightness ?? (theme === "light" ? 0.95 : 1.1));
@@ -581,7 +615,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     setHueDuration(theme === "light" ? 8.5 : 12);
     setHueShift(0);
     setStrength(defaultStrength(type, theme));
-    setGeo(resolveVoiceDefaults(type, theme, look));
+    setGeo(resolveVoiceDefaults(type, theme, lookOf(look)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
 
@@ -595,7 +629,9 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
      Microphone source is live, the demo's transcript otherwise. */
   const isWords = emotion === "words";
   const heard = useSpeechTranscript(isWords && isMic && visible && !paused);
-  const voiceEmotion = useVoiceEmotion(isMic ? heard.transcript : transcript.join(" "), { enabled: isWords, colors: lobeColors, theme });
+  /* The Pro hook's result, reported by its probe (rendered below once the
+     Pro module is in). */
+  const [voiceEmotion, setVoiceEmotion] = useState<VoiceEmotionResult>(NO_EMOTION);
   /* The live mood's palette, while it holds the glow (eases out after Off). */
   const wordsPalette = voiceEmotion.colors ? moodColors(voiceEmotion.mood, theme !== "light") : null;
   const wordsAmount = voiceEmotion.colors ? voiceEmotion.mood.amount : 0;
@@ -676,11 +712,12 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
 
   /* Live snippet: only non-default props survive. */
   const props: string[] = [];
-  if (isSurface || isPixel) props.push(`look="${look}"`);
+  if (isProLook(look)) props.push(`look={${look}}`);
+  else if (isPixel) props.push(`look="${look}"`);
   if (isPixel && pixelGlow !== pixelGlowDefault(type, look)) props.push(`pixelGlow={${num(pixelGlow)}}`);
   if (isPixel && processing && pixelDust !== pixelDustDefault(type)) props.push(`pixelDust={${num(pixelDust)}}`);
   if (isPixel && pixelDome !== pixelDomeDefault(type)) props.push(`pixelDome={${num(pixelDome)}}`);
-  if (isPixel && pixelMagnet !== magnetDefault(look)) props.push(`pixelMagnet={${num(pixelMagnet)}}`);
+  if (isPixel && pixelMagnet !== magnetDefault(lookValue)) props.push(`pixelMagnet={${num(pixelMagnet)}}`);
   if (isDots && dotShape !== "round") props.push(`dotShape="${dotShape}"`);
   if (isDots && dotSize !== 1) props.push(`dotSize={${num(dotSize)}}`);
   if (isDots && dotGap !== 1) props.push(`dotGap={${num(dotGap)}}`);
@@ -718,7 +755,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   if (theme === "light") props.push(`theme="light"`);
   if (strength !== defaultStrength(type, theme)) props.push(`strength={${num(strength / 100)}}`);
   if (radius !== RADIUS_BY_TYPE[type]) props.push(`borderRadius={${num(radius)}}`);
-  const preset = resolveVoiceDefaults(type, theme, look);
+  const preset = resolveVoiceDefaults(type, theme, lookValue);
   for (const key of GEOMETRY_KEYS) if (geo[key] !== preset[key]) props.push(`${key}={${num(geo[key])}}`);
   if (brightness !== defaultBrightness) props.push(`brightness={${num(brightness)}}`);
   if (saturation !== defaultSaturation) props.push(`saturation={${num(saturation)}}`);
@@ -742,9 +779,12 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
     else props.push("colors={emotion.colors}");
   }
   const attrs = "\n  " + props.join("\n  ") + "\n";
+  /* The Pro pieces the snippet uses, from the Pro skill's voice-glow-pro folder. */
+  const proNames = [...(isProLook(look) ? [look] : []), ...(isWords ? [...(isMic ? ["useSpeechTranscript"] : []), "useVoiceEmotion"] : [])];
+  const proWhat = [isProLook(look) ? `the ${look} look` : "", isWords ? "emotion from the words" : ""].filter(Boolean).join(" and ");
   const imports = (isMic ? "import { VoiceBeam, useMicrophone } from 'voice-glow';" : "import { VoiceBeam } from 'voice-glow';")
     + (processing ? "\n// Pro: the processing state (the Pro skill adds it to your project)\nimport { useVoiceProcessing } from './voice-processing';" : "")
-    + (isWords ? `\n// Pro: emotion from the words (the Pro skill adds it to your project)\nimport { ${isMic ? "useSpeechTranscript, " : ""}useVoiceEmotion } from './voice-emotion';` : "");
+    + (proNames.length ? `\n// Pro: ${proWhat} (the Pro skill adds voice-glow-pro to your project)\nimport { ${proNames.join(", ")} } from './voice-glow-pro';` : "");
   const paletteChanged = !isSurface && lobeColors.some((c, i) => c !== paletteDefault[i]);
   const emotionOpts = [paletteChanged ? "colors: palette" : "", theme === "light" ? "theme: 'light'" : ""].filter(Boolean).join(", ");
   const wordsDecl = !isWords
@@ -825,7 +865,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         {visible && (
           <VoiceBeam
             type={type}
-            look={look}
+            look={lookValue}
             active={voiceOn}
             pixelExitTarget={closeEl}
             pixelGlow={pixelGlow}
@@ -890,22 +930,22 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
                 </div>
               </div>
             ) : (
-              <ChatInputMock radius={radius} agent={false} closed={!voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
+              <ChatInputMock radius={radius} agent={false} closed={!voiceOn} listening={voiceOn} onClose={toggleVoice} closeRef={setCloseEl} />
             )}
           </VoiceBeam>
         )}
         {/* Level meter: a hairline above the Play button that the driver
             scales every frame, so what the knobs do to the envelope is
             visible even when the glow is turned down. Sits 12px over the
-            32px button, which rests 20px off the stage's bottom. */}
+            32px button, which rests 20px off the stage's bottom; on a phone
+            stage, at the screen's foot (.pg-meter, playground.css). */}
         <div
           aria-hidden="true"
+          className="pg-meter"
           style={{
             position: "absolute",
             left: "50%",
-            bottom: 64,
             transform: "translateX(-50%)",
-            width: 120,
             height: 2,
             borderRadius: 1,
             background: "rgba(128, 128, 128, 0.22)",
@@ -933,6 +973,14 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
         </button>
       </div>
 
+      {pro && (
+        <VoiceEmotionProbe
+          pro={pro}
+          transcript={isMic ? heard.transcript : transcript.join(" ")}
+          options={{ enabled: isWords, colors: lobeColors, theme }}
+          onChange={setVoiceEmotion}
+        />
+      )}
       <ControlsPanel
         library="Voice"
         agent={{
@@ -970,11 +1018,25 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
           )}
         </PgGroup>
         <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={handleTypeChange} />
-        {VOICE_SURFACE_LOOKS && <PgTabs label="Look" options={LOOK_OPTIONS} value={look} onChange={chooseLook} />}
+        <PgGroup label="Look">
+          <PgTabs label="Look" hideLabel options={LOOK_OPTIONS} value={look} onChange={chooseLook} />
+          {proAsk === "look" && PRO_LOAD_NOTE[proState] && (
+            <div className="pg-field">
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7, marginBottom: 8 }} role="status">
+                {PRO_LOAD_NOTE[proState]}
+              </span>
+            </div>
+          )}
+        </PgGroup>
         <PgGroup label="Emotion">
           <PgTabs label="Emotion" hideLabel options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />
           <div className="pg-field">
-            {isWords && isMic && (
+            {isWords && !pro && proAsk === "emotion" && PRO_LOAD_NOTE[proState] && (
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7, minHeight: 18, marginBottom: 6 }} role="status">
+                {PRO_LOAD_NOTE[proState]}
+              </span>
+            )}
+            {isWords && isMic && pro && (
               <span style={{ display: "block", fontSize: 12, opacity: 0.7, minHeight: 18, marginBottom: 6 }} role="status">
                 {heard.transcript ? `“${heard.transcript}”` : SPEECH_STATUS[heard.state]}
               </span>

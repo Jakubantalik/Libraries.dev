@@ -330,12 +330,14 @@ export interface GenerateVoiceStylesOptions {
   distortion?: boolean;
   /** The effect's overall scale, for the px values not carried by a multiplier. */
   scale?: number;
-  /** 'dots', 'lines', 'mosaic' and 'dither' drop the glow's layers for one canvas. */
-  look?: 'glow' | 'dots' | 'lines' | 'mosaic' | 'dither';
+  /** Which engine draws the voice: the stylesheet's glow, the pixel canvas
+   *  (the dither and plugged-in pixel looks), or a surface look's canvas. */
+  look?: 'glow' | 'pixel' | 'surface';
 }
 
 /**
- * The stylesheet for the surface looks (`dots`, `lines`): the root, the fade
+ * The stylesheet for the canvas looks (a surface look, and under the pixel
+ * looks' edge stroke): the root, the fade
  * in and out, and the one canvas the driver paints the surface on. None of
  * the glow's layers exist, so nothing here reads the per-frame custom
  * properties but the fade.
@@ -399,7 +401,7 @@ function generateSurfaceCSS(id: string, borderRadius: number, scale = 1): string
   animation-duration: 0.65s;
 }
 
-/* The mosaic's and the dither's halo: a small copy of the picture beneath
+/* The pixel looks' halo: a small copy of the picture beneath
    it, stretched and blurred into a soft glow of its own colours. */
 [data-voice-beam="${id}"] [data-voice-beam-pixel-glow] {
   display: none;
@@ -457,7 +459,7 @@ function generateSurfaceCSS(id: string, borderRadius: number, scale = 1): string
  * range is — the processing travel) and `--vb-hue` (drift).
  */
 export function generateVoiceBeamCSS(options: GenerateVoiceStylesOptions): string {
-  if (__VOICE_SURFACE__ && (options.look === 'mosaic' || options.look === 'dither')) {
+  if (options.look === 'pixel') {
     // The pixel looks keep the glow's 1px edge stroke — the same light
     // hairline along the bottom, driven by the same per-frame properties —
     // with the canvas in place of the glow's inner light and bloom. The
@@ -477,7 +479,7 @@ ${generateSurfaceCSS(id, options.borderRadius, options.scale)}
 }
 `;
   }
-  if (__VOICE_SURFACE__ && options.look && options.look !== 'glow') return generateSurfaceCSS(options.id, options.borderRadius, options.scale);
+  if (options.look === 'surface') return generateSurfaceCSS(options.id, options.borderRadius, options.scale);
   const {
     id,
     borderRadius,

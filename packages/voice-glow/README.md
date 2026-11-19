@@ -248,76 +248,47 @@ Slots you leave out keep the variant's colour for the theme. Light mode ships a 
 
 ## Looks
 
-Five ways to draw the same voice. `look="glow"` (the default) is coloured light: soft gradients, a band of light along the glow's ceiling and a blurred bloom. `look="mosaic"` and `look="dither"` are that glow sampled onto a grid of pixels (see [Mosaic and dither](#mosaic-and-dither)). `look="dots"` is a gently domed sheet of dots seen in perspective along the bottom of the element, in the dotted language of [thinking-orbs](https://libraries.dev/orbs) — white on the dark theme, near-black ink on the light one. `look="lines"` is the same sheet drawn as lines.
+Two looks are built in. `look="glow"` (the default) is coloured light: soft gradients, a band of light along the glow's ceiling and a blurred bloom. `look="dither"` is that same glow sampled onto a canvas as small square pixels, each on or off by a 4×4 ordered dither of the glow's brightness, its blended colours cut to a few levels per channel. The dither keeps every glow prop (palette, custom `colors`, hue drift, shape, flow, `motion`) and adds the pixel props below.
 
 ```tsx
-<VoiceBeam look="dots" stream={mic.stream}>
-  <ChatInput />
-</VoiceBeam>
-
-<VoiceBeam
-  look="dots"
-  dotSize={1.2}      // bolder dots
-  dotGap={0.85}      // a denser, finer sheet
-  dotShape="square"  // a pixel grid
-  texture={0.8}      // more ripple carried by the flow
-  gravity={1.6}      // drops like sand
->
-  <ChatInput />
-</VoiceBeam>
-
-<VoiceBeam
-  look="lines"
-  linePattern="grid" // rows across, columns into the depth, or both
-  lineWidth={1.4}
-  lineGap={1.2}
->
+<VoiceBeam look="dither" pixelSize={1.4} stream={mic.stream}>  {/* larger pixels */}
   <ChatInput />
 </VoiceBeam>
 ```
 
-The voice raises hills out of the sheet, one per lobe, so the spectrum reads as a landscape that drifts with the flow; while the glow is gathered (`motion`) they draw together into one mound. Every point of the sheet carries its own height and velocity: it is lifted toward the voice on a fast spring, keeps its momentum when the voice stops, then falls under gravity and lands with a small bounce — so a falling hill comes down as a shower of dots, or as lines settling back like strings, rather than easing away. Depth is carried by size and ink, and lifted parts catch the light. `texture` sets a slow ripple across the sheet; `gravity` how hard it falls.
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `pixelSize` | `number` | `1` (`0.85` for the dither on `default`) | Cell size multiplier |
+| `pixelGlow` | `number` | `0.6` (`0.38` for the dither on `default`) | A soft halo of the pixels' own, 0–1 |
+| `pixelDust` | `number` | `1.1` (`1.5` on `mobile`) | Seconds the processing beam's trail of specks lingers; 0 turns it off |
+| `pixelDome` | `number` | `0` (`0.6` on `mobile`) | How much lower the field stands toward the sides, 0–1 |
+| `pixelMagnet` | `number` | `0.7` | The few lit pixels nearest the pointer fly toward it, 0–1 |
+| `pixelExitTarget` | `HTMLElement \| null` | — | A button the pixels fly into as `active` turns false, and out of as it turns true |
 
-Lines run across the sheet (`linePattern="rows"`, a ridgeline landscape), into the depth (`"columns"`, converging with the perspective) or both (`"grid"`). The sheet is solid: a raised ridge hides the lines behind it. `seeThrough` draws it as a wireframe instead.
+The dither is painted in `src/pixel.ts`, on one canvas with plain 2D paths.
 
-The sheet's own shape is yours to set, for dots and lines alike:
+### Libraries Pro looks
 
-```tsx
-<VoiceBeam
-  look="lines"
-  surfaceHeight={1.4}        // stands taller, covering more of the host
-  surfaceCurve={0.5}         // a flatter arc (0 is flat, below 0 cups upward)
-  surfaceTail={0.8}          // the ends curl up into the corners (below 0 they drop away)
-  surfaceTailPosition={0.5}  // from halfway out to either side
-  surfaceTailCurve={3}       // as a hook that whips up at the edge
-  surfaceFade={0.1}          // runs nearly all the way to the sides before dissolving
->
-  <VoiceScreen />
-</VoiceBeam>
-```
-
-The colour props (`colorVariant`, `colors`, `bandColors`, `saturation`, the hue drift), the band and `css` do not apply to dots or lines. Their ink is grey or white; `tint` colours it (a mood, a brand colour) and `tintAmount` sets how far, 0–1:
+Mosaic, dots and lines are [Libraries Pro](https://libraries.dev) looks (built into 0.4.0, Pro since 0.5.0). The Pro skill (`npx libraries-dev skill --pro`) adds a `voice-glow-pro` folder to your project; pass a look from it as `look`:
 
 ```tsx
-<VoiceBeam look="dots" tint="#46e678" tintAmount={0.8}>
-  <ChatInput />
-</VoiceBeam>
+import { mosaic, dots, lines } from './voice-glow-pro';
+
+<VoiceBeam look={mosaic} stream={mic.stream}>…</VoiceBeam>
 ```
 
-They are painted on one 2D canvas with plain paths — no filters — so every engine draws the same picture, and they cost less than the glow.
-
-### Look props
+- **Mosaic** is the glow as glyphs, each cell in the colour and shape of the lobe that lights it most. It runs on the dither's pixel engine and takes the pixel props above.
+- **Dots** and **lines** are a gently domed sheet the voice raises and gravity brings down, drawn as dots or as lines. They take the surface props below; the colour props do not apply to them, and `tint` colours their ink.
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `look` | `'glow' \| 'mosaic' \| 'dither' \| 'dots' \| 'lines'` | `'glow'` | Coloured light, the glow as pixels, or a surface of dots or lines the voice raises and gravity brings down (see [Looks](#looks)) |
-| `dotSize` | `number` | `1` | Dot radius multiplier (`look="dots"`) |
-| `dotGap` | `number` | `1` | Dot spacing multiplier; below 1 is denser (`look="dots"`) |
-| `dotShape` | `'round' \| 'square'` | `'round'` | The dots' shape (`look="dots"`) |
-| `lineWidth` | `number` | `1` | Line width multiplier (`look="lines"`) |
-| `lineGap` | `number` | `1` | Line spacing multiplier, rows and columns alike (`look="lines"`) |
-| `linePattern` | `'rows' \| 'columns' \| 'grid'` | `'rows'` | Lines across the sheet, into the depth, or both (`look="lines"`) |
-| `seeThrough` | `boolean` | `false` | Show the lines behind a raised ridge instead of hiding them (`look="lines"`) |
+| `dotSize` | `number` | `1` | Dot radius multiplier (dots) |
+| `dotGap` | `number` | `1` | Dot spacing multiplier; below 1 is denser (dots) |
+| `dotShape` | `'round' \| 'square'` | `'round'` | The dots' shape (dots) |
+| `lineWidth` | `number` | `1` | Line width multiplier (lines) |
+| `lineGap` | `number` | `1` | Line spacing multiplier, rows and columns alike (lines) |
+| `linePattern` | `'rows' \| 'columns' \| 'grid'` | `'rows'` | Lines across the sheet, into the depth, or both (lines) |
+| `seeThrough` | `boolean` | `false` | Show the lines behind a raised ridge instead of hiding them (lines) |
 | `texture` | `number` | `0.6` | Ripple across the sheet, 0–1 (dots, lines) |
 | `gravity` | `number` | `1` | How hard the sheet falls when the voice drops (dots, lines) |
 | `surfaceHeight` | `number` | `1` | How tall the sheet stands, as a multiplier (dots, lines) |
@@ -329,38 +300,16 @@ They are painted on one 2D canvas with plain paths — no filters — so every e
 | `tint` | `string` | — | Colour the ink takes, any CSS hex or rgb (dots, lines) |
 | `tintAmount` | `number` | `1` | How far the ink takes `tint`, 0–1 (dots, lines) |
 
-## Mosaic and dither
+A look name that is not built in (`look="mosaic"` from 0.4) draws the glow and logs a warning once.
 
-The glow itself, sampled onto a canvas instead of painted as gradients: the
-same lobes, flow, gathered beam, palette (custom `colors` included) and hue
-drift, so every glow prop still applies.
+### Your own look
 
-- `look="mosaic"` — a glyph per cell in the colour and the shape of the lobe
-  that lights it most (dot, square, plus, ring, diamond, bars, frame), sized
-  by the glow's brightness; where two colours meet their glyphs interleave.
-- `look="dither"` — small square pixels, on or off by a 4×4 ordered dither of
-  the glow's brightness, its blended colours cut to five levels per channel.
+A look is an object (`VoiceLook`, exported as types from `src/look.ts`), so you can write one:
 
-```tsx
-<VoiceBeam look="mosaic" colorVariant="sunset" stream={mic.stream}>
-  <ChatInput />
-</VoiceBeam>
+- `{ kind: 'pixel', name, paint(kit) }` paints the glow onto the pixel canvas. `kit.light(x, y)` reads the glow, `kit.blend()` its colour there, and `kit.grid()`, `kit.pull()`, `kit.lit()` and `kit.dust()` bring the dither's magnet, flying pixels and processing dust with it.
+- `{ kind: 'surface', name, create(canvas), draw(state, config, frame) }` owns its canvas and paints the voice from the lobes, the level and the clock in `frame`.
 
-<VoiceBeam look="dither" pixelSize={1.4}>  {/* larger pixels */}
-  <VoiceScreen />
-</VoiceBeam>
-```
-
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `pixelSize` | `number` | `1` (`0.75` for the dither on `default`) | Cell size multiplier |
-| `pixelGlow` | `number` | `0.6` (`0.38` for the dither on `default`) | A soft halo of the pixels' own, 0–1 |
-| `pixelDust` | `number` | `1.1` (`1.5` on `mobile`) | Seconds the processing beam's trail of specks lingers; 0 turns it off |
-| `pixelDome` | `number` | `0` (`0.6` on `mobile`) | How much lower the field stands toward the sides, 0–1 |
-| `pixelMagnet` | `number` | `0.4` mosaic, `0.7` dither | The few lit pixels nearest the pointer fly toward it, 0–1 |
-| `pixelExitTarget` | `HTMLElement \| null` | — | A button the pixels fly into as `active` turns false, and out of as it turns true |
-
-Both are painted in `src/pixel.ts`, on the surface looks' canvas.
+Define it once at module level: a new object every render rebuilds the effect.
 
 ## Props
 
@@ -368,7 +317,7 @@ Both are painted in `src/pixel.ts`, on the surface looks' canvas.
 |------|------|---------|-------------|
 | `children` | `ReactNode` | — | Content to wrap |
 | `type` | `'default' \| 'pill' \| 'mobile'` | `'default'` | Host preset; sets the geometry defaults |
-| `look` | `'glow' \| 'mosaic' \| 'dither' \| 'dots' \| 'lines'` | `'glow'` | How the voice is drawn; the other looks' props are under [Look props](#look-props) |
+| `look` | `'glow' \| 'dither' \| VoiceLook` | `'glow'` | How the voice is drawn; see [Looks](#looks) for the pixel and Pro looks' props |
 | `scale` | `number` | `1` | Size of the whole effect — every px dimension at once |
 | `stream` | `MediaStream \| null` | — | Audio to react to; wins over `level` |
 | `level` | `number \| () => number` | `0` | Manual drive, 0–1 |
@@ -485,6 +434,8 @@ voice-glow/
 │   ├── types.ts           # TypeScript type definitions
 │   ├── styles.ts          # CSS generation engine, palettes and lobe geometry
 │   ├── voiceDriver.ts     # Shared rAF loop: analysis, envelope, custom properties
+│   ├── pixel.ts           # The pixel engine: the dither, and pixel looks that plug in
+│   ├── look.ts            # The look plugin types (VoiceLook)
 │   ├── audio.ts           # Shared AudioContext and analyser leases
 │   └── useMicrophone.ts   # getUserMedia hook
 ├── ports/ios/

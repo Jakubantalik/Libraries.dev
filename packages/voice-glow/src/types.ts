@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode, HTMLAttributes } from 'react';
+import type { VoiceLook } from './look';
 
 /**
  * Host preset — retunes the glow's geometry for the element it wraps
@@ -16,37 +17,26 @@ export type VoiceBeamType = 'default' | 'pill' | 'mobile';
 export type VoiceBeamTheme = 'dark' | 'light' | 'auto';
 
 /**
- * How the voice is drawn
+ * How the voice is drawn — the built-in looks
  * - 'glow': coloured light — soft gradients, a band of light along the
  *   glow's ceiling and a blurred bloom (default)
- * - 'dots': a gently domed sheet of dots seen in perspective, in the
- *   dotted language of thinking-orbs. The voice raises hills out of it —
- *   the spectrum as a landscape, drifting with the flow — and when the
- *   voice drops the dots fall back under gravity, landing with a small
- *   bounce. White on the dark theme, near-black ink on the light one; the
- *   colour props do not apply.
- * - 'lines': the same sheet drawn as lines — rows across it, columns into
- *   the depth, or a grid — solid, so a raised ridge hides the lines behind
- *   it, and falling back as smooth curves.
- *
- * - 'mosaic': the glow itself, sampled on a grid of glyphs — each cell in
- *   the colour and the shape (dot, square, plus, ring, diamond, bars,
- *   frame) of the lobe that lights it most, sized by its brightness.
  * - 'dither': the glow as small square pixels, on or off by an ordered
- *   dither of its brightness, its blended colours cut to a few levels.
+ *   dither of its brightness, its blended colours cut to a few levels. It
+ *   keeps every glow prop — palette, colours, hue drift, shape, flow — and
+ *   adds the pixel props (`pixelSize`, `pixelGlow`, …).
  *
- * Dots and lines share the surface props (`surfaceHeight`, `surfaceCurve`,
- * the `surfaceTail` set, `surfaceFade`, `texture`, `gravity`). Mosaic and
- * dither keep every glow prop — palette, colours, hue drift, shape, flow —
- * and add `pixelSize`.
+ * Other looks plug in as objects (`VoiceLook`, see look.ts). Libraries Pro
+ * adds three this way: mosaic (a pixel look, like the dither), and dots and
+ * lines (a surface the voice raises and gravity brings down, which use the
+ * surface props below).
  */
-export type VoiceBeamLook = 'glow' | 'dots' | 'lines' | 'mosaic' | 'dither';
+export type VoiceBeamLook = 'glow' | 'dither';
 
-/** A dot's shape, for `look="dots"`. */
+/** A dot's shape, for the dots look (Libraries Pro). */
 export type VoiceBeamDotShape = 'round' | 'square';
 
 /**
- * Which way the lines run, for `look="lines"`
+ * Which way the lines run, for the lines look (Libraries Pro)
  * - 'rows': across the surface, one line per row — a ridgeline landscape (default)
  * - 'columns': into the depth, converging with the perspective
  * - 'grid': both, a wireframe sheet
@@ -133,132 +123,132 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   type?: VoiceBeamType;
 
   /**
-   * How the voice is drawn: coloured light, a surface of dots or lines that
-   * the voice raises and gravity brings down, or the glow as a mosaic of
-   * glyphs or dithered pixels.
+   * How the voice is drawn: coloured light, the glow as dithered pixels, or
+   * a look that plugs in as an object (Libraries Pro's mosaic, dots and
+   * lines). Pass a look object once, from module level: a new object each
+   * render rebuilds the effect.
    * @default 'glow'
    */
-  look?: VoiceBeamLook;
+  look?: VoiceBeamLook | VoiceLook;
 
   /**
-   * Cell size of the mosaic and the dither, as a multiplier. `look="mosaic"`
-   * and `look="dither"` only.
-   * @default 1 (0.75 for the dither on the `default` type)
+   * Cell size of the pixel looks (the dither, mosaic), as a multiplier.
+   * @default 1 (0.85 for the dither on the `default` type)
    */
   pixelSize?: number;
 
   /**
-   * The mosaic's and the dither's glow, 0–1: a soft halo of their own
+   * The pixel looks' glow, 0–1: a soft halo of their own
    * colours around the lit cells. 0 is crisp pixels on the bare surface.
-   * `look="mosaic"` and `look="dither"` only.
+   * The pixel looks only.
    * @default 0.6 (0.38 for the dither on the chat input)
    */
   pixelGlow?: number;
 
   /**
-   * How long the mosaic's and the dither's dust lingers while processing,
+   * How long the pixel looks' dust lingers while processing,
    * seconds: the travelling beam leaves a trail of specks behind it that
    * thins out pixel by pixel, densest just behind the beam. Longer is a
-   * longer tail; 0 turns it off. `look="mosaic"` and `look="dither"` only.
+   * longer tail; 0 turns it off. The pixel looks only.
    * @default 1.1 (1.5 on the phone screen, `type="mobile"`)
    */
   pixelDust?: number;
 
   /**
-   * The mosaic's and the dither's dome, 0–1: how much lower the field stands
+   * The pixel looks' dome, 0–1: how much lower the field stands
    * toward the host's sides than in its middle, so the pixels always rise
-   * highest at the centre. 0 is level. `look="mosaic"` and `look="dither"`
+   * highest at the centre. 0 is level. The pixel looks
    * only.
    * @default 0 (0.6 on the phone screen, `type="mobile"`)
    */
   pixelDome?: number;
 
   /**
-   * The pixel looks' magnet, 0–1: the few lit pixels (or mosaic glyphs)
+   * The pixel looks' magnet, 0–1: the few lit pixels (or cells)
    * nearest the pointer (up to sixteen at 1) leave their places and fly
    * toward it, each on its own spring, and spring home with a little
    * overshoot as it moves on; the rest of the field stays put. 0 turns it
    * off. Off under `prefers-reduced-motion`.
-   * `look="mosaic"` and `look="dither"` only.
-   * @default 0.4 for mosaic, 0.7 for dither
+   * The pixel looks only.
+   * @default 0.7 (the look's own, for a plugged-in pixel look: 0.4 for mosaic)
    */
   pixelMagnet?: number;
 
   /**
-   * The button the mosaic's or the dither's pixels fly into and out of:
+   * The button the pixel looks' pixels fly into and out of:
    * set an element (the close / start button, say) and, as `active` turns
    * false, a few of the wave's own pixels leave it and fly into the button
    * while the rest fades; as `active` turns true again, a few start out in
    * the button and fly to their places as the wave fades in. Unset, the
-   * picture simply fades. `look="mosaic"` and `look="dither"` only; off
+   * picture simply fades. The pixel looks only; off
    * under `prefers-reduced-motion`.
    */
   pixelExitTarget?: HTMLElement | null;
 
   /**
-   * Dot radius, as a multiplier on the tuned size. `look="dots"` only.
+   * Dot radius, as a multiplier on the tuned size. The dots look only.
    * @default 1
    */
   dotSize?: number;
 
   /**
    * Spacing between dots, as a multiplier — below 1 is a denser, finer
-   * surface, above 1 a sparser, coarser one. `look="dots"` only.
+   * surface, above 1 a sparser, coarser one. The dots look only.
    * @default 1
    */
   dotGap?: number;
 
   /**
-   * The dots' shape: round, or square for a pixel grid. `look="dots"` only.
+   * The dots' shape: round, or square for a pixel grid. The dots look only.
    * @default 'round'
    */
   dotShape?: VoiceBeamDotShape;
 
   /**
    * Line width, as a multiplier on the tuned width (lines thin out into the
-   * distance). `look="lines"` only.
+   * distance). The lines look only.
    * @default 1
    */
   lineWidth?: number;
 
   /**
    * Spacing between lines, as a multiplier — the rows and the columns alike.
-   * `look="lines"` only.
+   * The lines look only.
    * @default 1
    */
   lineGap?: number;
 
   /**
    * Which way the lines run: across the surface, into the depth, or both.
-   * `look="lines"` only.
+   * The lines look only.
    * @default 'rows'
    */
   linePattern?: VoiceBeamLinePattern;
 
   /**
    * Draw the lines as a wireframe: those behind a raised ridge show through
-   * it instead of being hidden by it. `look="lines"` only.
+   * it instead of being hidden by it. The lines look only.
    * @default false
    */
   seeThrough?: boolean;
 
   /**
    * Organic texture, 0–1: a slow ripple the flow carries across the
-   * surface. 0 is a still sheet that only the voice moves. Dots and lines.
+   * surface. 0 is a still sheet that only the voice moves. The surface looks (dots, lines).
    * @default 0.6
    */
   texture?: number;
 
   /**
    * How hard the surface falls when the voice drops, as a multiplier on its
-   * gravity. Lower floats down, higher drops like sand. Dots and lines.
+   * gravity. Lower floats down, higher drops like sand. The surface looks (dots, lines).
    * @default 1
    */
   gravity?: number;
 
   /**
    * How tall the surface stands along the bottom, as a multiplier — how far
-   * back the sheet runs, and so how much of the host it covers. Dots and lines.
+   * back the sheet runs, and so how much of the host it covers. The surface looks (dots, lines).
    * @default 1
    */
   surfaceHeight?: number;
@@ -266,7 +256,7 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   /**
    * How far the surface arcs, as a multiplier: its sides and far edge fall
    * away like a horizon. 0 is a flat sheet; below 0 it cups upward instead.
-   * Dots and lines.
+   * The surface looks (dots, lines).
    * @default 1
    */
   surfaceCurve?: number;
@@ -274,7 +264,7 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   /**
    * The surface's tails: how far its ends rise toward the corners, as a share
    * of the sheet's height — the ends curl up into the host's corners instead
-   * of running flat into its sides. Below 0 they drop away instead. Dots and lines.
+   * of running flat into its sides. Below 0 they drop away instead. The surface looks (dots, lines).
    * @default 0
    */
   surfaceTail?: number;
@@ -296,7 +286,7 @@ export interface VoiceBeamProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   /**
    * How far in from the sides the surface dissolves, as a share of its
    * half-width, 0–1. 0 runs it hard into the edges; 1 fades it from the
-   * centre out. Dots and lines.
+   * centre out. The surface looks (dots, lines).
    * @default 0.2
    */
   surfaceFade?: number;

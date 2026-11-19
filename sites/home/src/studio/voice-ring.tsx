@@ -3,6 +3,8 @@ import { VoiceRing, useMicrophone, type VoiceOrbState, type VoiceRingType } from
 import { ControlsPanel, PgTabs, PgSlider, PanelSep, Snippet, num, StageBar, PgGroup } from "./controls";
 import { MOOD_PRESETS, moodColors, type MoodPoint, type MoodPreset } from "./voice-mood";
 import { MoodPad } from "./voice";
+import { SPEECH_STATUS, useSpeechTranscript } from "./voice-speech";
+import { NO_EMOTION, PRO_LOAD_NOTE, VoiceEmotionProbe, loadVoiceGlowPro, useVoiceGlowPro, type VoiceEmotionResult } from "./pro-runtime";
 import { demoGetter, MIC_STATUS } from "../examples/voice-mocks";
 
 /* Studio — Voice ring workbench. The library ships for React (npm
@@ -12,13 +14,17 @@ import { demoGetter, MIC_STATUS } from "../examples/voice-mocks";
    the snippet carries only what was moved. The hover bend is React's
    alone, on a desktop pointer.
 
-   Two models plug into the ring, and both are previewed here by hand:
-   Emotion (emotion2vec+ on the iPhone, Pro, as on the Voice bench) tints
-   the spectrum toward a mood; Direction (our Voice position model,
-   free account) leans it toward the side the voice comes from. */
+   Two models plug into the ring. Emotion, as on the Voice bench: On runs
+   Libraries' own words model live (Pro, loaded with the Pro module,
+   pro-runtime.tsx), and Happy /
+   Calm / Angry / Sad preview a fixed mood (on the iPhone, VoiceRingEmotion
+   reads it); the spectrum tints toward it. Direction (our Voice position
+   model, free account) leans it toward the side the voice comes from. */
 
 type Source = "demo" | "mic" | "manual";
-type Emotion = "off" | MoodPreset;
+/* Off, On (Libraries' own words model, live from the microphone), or a
+   fixed mood to preview. */
+type Emotion = "off" | "words" | MoodPreset;
 type Direction = "off" | "manual";
 
 /* The web package's three emotions, from the bench's four moods. */
@@ -65,6 +71,7 @@ const SOURCE_OPTIONS = [
 
 const EMOTION_OPTIONS = [
   { value: "off", label: "Off" },
+  { value: "words", label: "On" },
   { value: "happy", label: "Happy" },
   { value: "calm", label: "Calm" },
   { value: "angry", label: "Angry" },
@@ -180,7 +187,8 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
 
   const chooseEmotion = (next: Emotion) => {
     setEmotion(next);
-    if (next !== "off") setMoodPoint(MOOD_PRESETS[next]);
+    if (next !== "off" && next !== "words") setMoodPoint(MOOD_PRESETS[next]);
+    if (next === "words") loadVoiceGlowPro().catch(() => {});
   };
   /* Dragging the pad lights the tab of the nearest mood (as on Voice). */
   const dragMood = (p: MoodPoint) => {
@@ -194,9 +202,17 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
     setEmotion(best);
   };
 
-  /* The mood's lead colour, as the web ring's emotion tint: the spectrum
-     shifts toward it, as VoiceRing(mood:) does on SwiftUI. */
-  const tint = emotion !== "off" ? hexToTint(moodColors(moodPoint, theme !== "light")[0]) : null;
+  /* A fixed mood: its lead colour, as the web ring's emotion tint — the
+     spectrum shifts toward it, as VoiceRing(mood:) does on SwiftUI. */
+  const preset = emotion !== "off" && emotion !== "words" ? emotion : null;
+  const tint = preset ? hexToTint(moodColors(moodPoint, theme !== "light")[0]) : null;
+  /* On: Libraries' own model reads the words the browser hears, and the
+     ring takes the mood as its named emotion (positive, negative, calm). */
+  const isWords = emotion === "words";
+  const heard = useSpeechTranscript(isWords && isMic && visible && !paused);
+  /* The Pro hook's result, reported by its probe once the Pro module is in. */
+  const { pro, state: proState } = useVoiceGlowPro();
+  const [voiceEmotion, setVoiceEmotion] = useState<VoiceEmotionResult>(NO_EMOTION);
 
   const typeKnobs = RING_KNOBS[type];
   const knob = (k: string) => knobs[`${type}.${k}`];
@@ -214,11 +230,12 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   else if (source === "manual") args.push(`source: .level { ${num(level / 100)} }`);
   else args.push("source: .level { yourLevel }");
   if (styleLines.length) args.push("style: style");
-  if (emotion !== "off") args.push(`mood: VoiceMood(valence: ${num(moodPoint.valence)}, arousal: ${num(moodPoint.arousal)})`);
+  if (preset) args.push(`mood: VoiceMood(valence: ${num(moodPoint.valence)}, arousal: ${num(moodPoint.arousal)})`);
   if (direction === "manual") args.push(`direction: ${num(lean)}`);
   args.push("size: 240");
   const notes: string[] = [];
-  if (emotion !== "off") notes.push("// A fixed mood here. Live emotion (Pro): import VoiceRingEmotion,\n// await emotion.start(meter: meter), then mood: emotion.mood.");
+  if (preset) notes.push("// A fixed mood here. Live emotion (Pro): import VoiceRingEmotion,\n// await emotion.start(meter: meter), then mood: emotion.mood.");
+  if (isWords) notes.push("// Live emotion (Pro): import VoiceRingEmotion,\n// await emotion.start(meter: meter), then mood: emotion.mood.");
   if (direction === "manual") notes.push("// A fixed lean here. On an iPhone, add VoicePosition.mfxl (Voice position)\n// to the app target and pass direction: voice.pan (VoicePositionKit): the ring follows the voice.");
   const swiftUsage = [
     "import VoiceRingKit",
@@ -238,14 +255,21 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
   if (sensitivity !== 0.85) props.push(`sensitivity={${num(sensitivity)}}`);
   if (theme === "light") props.push('theme="light"');
   if (moved.length) props.push(`opts={{ ${moved.map((k) => `${k}: ${num(knob(k))}`).join(", ")} }}`);
-  if (emotion !== "off") props.push(`emotion="${REACT_EMOTION[emotion]}"`);
+  if (preset) props.push(`emotion="${REACT_EMOTION[preset]}"`);
+  if (isWords) props.push("emotion={emotion.label}");
   if (direction === "manual") props.push(`direction={${num(lean)}}`);
   if (bend === "on") props.push("hoverBend");
   const reactUsage = [
     `import { VoiceRing${isMic ? ", useMicrophone" : ""} } from 'voice-ring';`,
     "",
+    ...(isWords ? ["// Pro: emotion from the words (the Pro skill adds voice-glow-pro to your project)", `import { ${isMic ? "useSpeechTranscript, " : ""}useVoiceEmotion } from './voice-glow-pro';`, ""] : []),
     ...(isMic ? ["const mic = useMicrophone();", ""] : []),
-    ...(emotion !== "off" ? ["// Your own emotion model's read of the voice: positive, negative or calm."] : []),
+    ...(isWords
+      ? isMic
+        ? ["const heard = useSpeechTranscript(mic.state === 'live');", "const emotion = useVoiceEmotion(heard.transcript);", ""]
+        : ["// Any text: your speech-to-text, a chat message…", "const emotion = useVoiceEmotion(transcript);", ""]
+      : []),
+    ...(preset ? ["// Your own emotion model's read of the voice: positive, negative or calm."] : []),
     ...(direction === "manual" ? ["// The side the voice comes from, -1 left … 1 right, from your own stereo or diarised input."] : []),
     `<VoiceRing\n  ${props.join("\n  ")}\n/>`,
     ...(isMic ? ["<button onClick={mic.start}>Listen</button>"] : []),
@@ -302,7 +326,7 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
             speed={speed}
             sensitivity={sensitivity}
             opts={moved.length ? opts : undefined}
-            emotion={tint ? "positive" : null}
+            emotion={tint ? "positive" : isWords ? voiceEmotion.label : null}
             emotionColors={tint ? { positive: tint } : undefined}
             direction={direction === "manual" ? lean : undefined}
             directionBounds={stageRef}
@@ -316,10 +340,11 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
         </button>
       </div>
 
+      {pro && (
+        <VoiceEmotionProbe pro={pro} transcript={isMic ? heard.transcript : ""} options={{ enabled: isWords, theme }} onChange={setVoiceEmotion} />
+      )}
       <ControlsPanel library="Voice ring">
-        <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
-        <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />
-        {/* The source and what belongs to it (mic status, level) fold together. */}
+        {/* Voice's order: Source first (with its mic status and level), then Type, State. */}
         <PgGroup label="Source">
           <PgTabs label="Source" hideLabel options={SOURCE_OPTIONS} value={source} onChange={chooseSource} />
           {isMic && MIC_STATUS[mic.state] && (
@@ -329,6 +354,35 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
           )}
           {source === "manual" && (
             <PgSlider label="Level" value={level} min={0} max={100} step={1} display={`${level}%`} onChange={setLevel} />
+          )}
+        </PgGroup>
+        <PgTabs label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
+        <PgTabs label="State" options={STATE_OPTIONS} value={state} onChange={setState} />
+        <PgGroup label="Emotion">
+          <PgTabs label="Emotion" hideLabel options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />
+          <div className="pg-field">
+            {isWords && !pro && PRO_LOAD_NOTE[proState] && (
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7, minHeight: 18, marginBottom: 6 }} role="status">
+                {PRO_LOAD_NOTE[proState]}
+              </span>
+            )}
+            {isWords && isMic && pro && (
+              <span style={{ display: "block", fontSize: 12, opacity: 0.7, minHeight: 18, marginBottom: 6 }} role="status">
+                {heard.transcript ? `“${heard.transcript}”` : SPEECH_STATUS[heard.state]}
+              </span>
+            )}
+            <span style={{ display: "block", fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+              Libraries&apos; own model reads the mood of what is said, right in the page: green for positive
+              words, red for negative. Speak with the Microphone source.
+            </span>
+          </div>
+          {preset && (
+            <div className="pg-field">
+              <MoodPad value={moodPoint} onChange={dragMood} />
+              <span style={{ display: "block", fontSize: 12, opacity: 0.6, margin: "8px 0" }}>
+                Drag to preview any mood&apos;s colours.
+              </span>
+            </div>
           )}
         </PgGroup>
         <PgGroup label="Motion">
@@ -349,24 +403,6 @@ export function VoiceRingStudio({ visible = true, theme = "dark" }: { visible?: 
               onChange={(v) => setKnobs((prev) => ({ ...prev, [`${type}.${k}`]: v }))}
             />
           ))}
-        </PgGroup>
-        <PanelSep />
-        <PgGroup label="Emotion (emotion2vec)">
-          {/* the models are separate downloads, so say so before the choice */}
-          <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "0 0 10px" }}>
-            Uses a separate model, downloaded with Pro: Emotion2Vec for the tone of the voice (about 90 MB), and
-            optionally TextEmotion for its words (about 120 MB). It runs on the iPhone, in the SwiftUI app.
-          </span>
-          <PgTabs label="Emotion" options={EMOTION_OPTIONS} value={emotion} onChange={chooseEmotion} />
-          {emotion !== "off" && (
-            <div className="pg-field">
-              <MoodPad value={moodPoint} onChange={dragMood} />
-              <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, opacity: 0.6, margin: "8px 0 0" }}>
-                A preview of the mood the ring&apos;s spectrum shifts toward. Detection runs on the iPhone with
-                VoiceRingEmotion: emotion2vec+ reads the tone of the voice, GoEmotions its words (Pro).
-              </span>
-            </div>
-          )}
         </PgGroup>
         <PanelSep />
         <PgGroup label="Direction (Voice position)">

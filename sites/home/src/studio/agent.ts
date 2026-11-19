@@ -36,7 +36,7 @@ export class AgentError extends Error {
    credentials the same way pro-client.js does. Falling back to the
    production host keeps the chat working on a page that loaded without
    pro-client.js, and localhost:8787 is the Worker's dev port. */
-function apiBase(): string {
+export function apiBase(): string {
   const injected = window.LibrariesPro?.apiBase;
   if (injected) return injected;
   return /^(localhost|127\.0\.0\.1)$/.test(location.hostname)

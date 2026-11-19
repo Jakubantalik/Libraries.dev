@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- **Breaking:** the mosaic, dots and lines looks moved to Libraries Pro. Built in are `look="glow"` and `look="dither"`; the Pro skill adds `mosaic`, `dots` and `lines` as look objects (`look={mosaic}`). An unknown look name (`look="mosaic"`) draws the glow and warns once.
+- Looks plug in: `look` also takes a `VoiceLook` object, either a pixel look painted on the dither's engine (sampling, colour, magnet, dust, flying pixels) or a surface look that owns its canvas. New types: `VoiceLook`, `VoicePixelLook`, `VoicePixelKit`, `VoiceSurfaceLook`, `VoiceSurfaceFrame`, `VoiceLookConfig`.
+- `resolveVoiceDefaults` takes a look object as well as a name.
+- Removed: `VOICE_SURFACE_LOOKS` and the `VOICE_SURFACE` build switch.
+
 ## 0.4.0
 
 - Four more looks, alongside `look="glow"`: `"mosaic"` and `"dither"` sample the glow itself onto a grid of glyphs or dithered pixels (same palette, flow and hue drift), and `"dots"` and `"lines"` draw the voice as a domed sheet it raises and gravity brings down. See [Looks](README.md#looks).

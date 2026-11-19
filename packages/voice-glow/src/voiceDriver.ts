@@ -1,6 +1,6 @@
 import { acquireAnalyser } from './audio';
 import { voiceLobes, LOBE_SPAN } from './styles';
-import { createSurfaceState, drawSurface, type SurfaceState } from './surface';
+import type { VoiceLook, VoiceSurfaceLook } from './look';
 import { arrivePixels, createPixelState, drawPixels, flyPixels, type PixelPort, type PixelState } from './pixel';
 
 /**
@@ -81,10 +81,12 @@ export interface VoiceDriverConfig {
   reducedMotion: boolean;
   /** Hold the frame: the clock stops and the source is not read, but a changed config still repaints. */
   paused: boolean;
-  /** How the voice is drawn: the stylesheet's glow, a surface of dots or
-   *  lines, or the glow itself sampled into glyphs (mosaic) or dithered
-   *  pixels — the last four painted on a canvas. */
-  look: 'glow' | 'dots' | 'lines' | 'mosaic' | 'dither';
+  /** How the voice is drawn: the stylesheet's glow, the glow dithered into
+   *  pixels, or a plugged-in look's name (`lookPlugin`) — all but the glow
+   *  painted on a canvas. */
+  look: string;
+  /** The plugged-in look (look.ts), or null for the glow and the dither. */
+  lookPlugin: VoiceLook | null;
   /** The pixel looks: the lobes' colours as [r, g, b] 0–255 (the palette with
    *  any custom colours), the filter the stylesheet runs on them, the theme's
    *  hue base, and the cell size multiplier. */
@@ -98,9 +100,9 @@ export interface VoiceDriverConfig {
   pixelDust: number;
   /** How much the pixel looks' field dips toward the sides, 0–1+. */
   pixelDome: number;
-  /** How strongly the mosaic's and the dither's pixels follow the pointer, 0–1. */
+  /** How strongly the pixel looks' pixels follow the pointer, 0–1. */
   pixelMagnet: number;
-  /** The dots: radius and spacing multipliers, and their shape. */
+  /** Surface looks (Libraries Pro's dots and lines). The dots: radius and spacing multipliers, and their shape. */
   dotSize: number;
   dotGap: number;
   dotShape: 'round' | 'square';
@@ -220,15 +222,15 @@ interface VoiceInstance {
   cssBlur: string | null;
   /** Whether the wrapper is marked `data-voice-warp="off"`: the distortion dropped while gathered. */
   warpOff: boolean;
-  /** The pixel looks' canvas (`look="mosaic"` / `"dither"`). */
+  /** The pixel engine's canvas (the dither, or a plugged-in pixel look). */
   pixel: PixelState | null;
   /** The pointer over the host, element px; null when it is away. */
   pointer: { x: number; y: number } | null;
   /** The host's `--voice-hue-base` in degrees (null: the theme's), read every so often, and when. */
   hueBaseOverride: number | null;
   hueBaseReadAt: number;
-  /** The surface's canvas and lattice, for `look="dots"` and `look="lines"`. */
-  surface: SurfaceState | null;
+  /** A plugged-in surface look and its state for this canvas. */
+  surface: { look: VoiceSurfaceLook<unknown>; state: unknown } | null;
 }
 
 const stateByElement = new WeakMap<HTMLElement, VoiceState>();
@@ -785,10 +787,10 @@ function frame(ts: number): void {
       s.drift += config.flow * eff * dt;
     }
 
-    // ── Dots and lines: the voice as a surface ───────────────────────
+    // ── A surface look: the voice painted on its own canvas ──────────
     // Everything below is the glow's stylesheet plumbing; the surface
     // takes the lobes straight and paints its canvas instead.
-    if (__VOICE_SURFACE__ && inst.surface) {
+    if (inst.surface) {
       for (let i = 0; i < voiceLobes.length; i++) {
         const lobe = voiceLobes[i];
         const x = wrapX(lobe.x * config.lobeSpacing + s.phase, span);
@@ -800,7 +802,7 @@ function frame(ts: number): void {
       }
       const fastVoiced = s.fast + (1 - s.fast) * config.idle * breathe;
       if (cw && ch) {
-        drawSurface(inst.surface, config, {
+        inst.surface.look.draw(inst.surface.state, config, {
           cw,
           ch,
           lobeX: surfaceLobeX,
@@ -907,8 +909,8 @@ function frame(ts: number): void {
         : -config.hueRange + 2 * config.hueRange * pingPong(tSec / config.hueDuration);
     el.style.setProperty(`--vb-hue-${config.id}`, `${hue.toFixed(2)}deg`);
 
-    // ── Mosaic and dither: the same glow, sampled onto a canvas ──────
-    if (__VOICE_SURFACE__ && inst.pixel && cw && ch) {
+    // ── Pixel looks: the same glow, sampled onto a canvas ────────────
+    if (inst.pixel && cw && ch) {
       // The host can turn the palette with --voice-hue-base, as it does the
       // glow's filter; read it twice a second rather than every frame.
       if (ts - inst.hueBaseReadAt > 500) {
@@ -974,7 +976,7 @@ function stopLoopIfIdle(): void {
 
 /**
  * The effect on `el` is closing toward `target` (a point in `el`, px): a
- * few of its pixels fly there (`look="mosaic"` / `"dither"` only).
+ * few of its pixels fly there (the pixel looks only).
  */
 /**
  * The effect on `el` is opening again: it starts from silence, not from the
@@ -999,15 +1001,13 @@ const pendingArrivals = new WeakMap<HTMLElement, { origin: PixelPort; at: number
 /**
  * The effect on `el` is opening from `origin` (a point in `el`, px): on its
  * first frame a few of its pixels start out there and fly to their places
- * (`look="mosaic"` / `"dither"` only).
+ * (the pixel looks only).
  */
 export function summonVoicePixels(el: HTMLElement, origin: PixelPort): void {
-  if (!__VOICE_SURFACE__) return;
   pendingArrivals.set(el, { origin, at: performance.now() });
 }
 
 export function releaseVoicePixels(el: HTMLElement, target: PixelPort): void {
-  if (!__VOICE_SURFACE__) return;
   for (const inst of instances) {
     if (inst.el !== el || !inst.pixel) continue;
     const canvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-flyers]');
@@ -1056,14 +1056,15 @@ export function registerVoiceInstance(
     hueBaseOverride: null,
     hueBaseReadAt: 0,
   };
-  if (__VOICE_SURFACE__ && (config.look === 'mosaic' || config.look === 'dither')) {
+  if (config.look === 'dither' || config.lookPlugin?.kind === 'pixel') {
     const pixelCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-surface]');
     const glowCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-pixel-glow]');
     if (pixelCanvas) inst.pixel = createPixelState(pixelCanvas, glowCanvas);
     el.style.setProperty(`--vb-pixel-glow-${config.id}`, config.pixelGlow.toFixed(3));
-  } else if (__VOICE_SURFACE__ && config.look !== 'glow') {
+  } else if (config.lookPlugin?.kind === 'surface') {
     const surfaceCanvas = el.querySelector<HTMLCanvasElement>(':scope > [data-voice-beam-surface]');
-    if (surfaceCanvas) inst.surface = createSurfaceState(surfaceCanvas);
+    const state = surfaceCanvas ? config.lookPlugin.create(surfaceCanvas) : null;
+    if (state) inst.surface = { look: config.lookPlugin, state };
   }
   if (config.distortion > 0) {
     inst.displace = el.querySelector<SVGFEDisplacementMapElement>(':scope > svg feDisplacementMap');
@@ -1096,7 +1097,7 @@ export function registerVoiceInstance(
   // The pixel looks' magnet follows the pointer over the host. Passive, and on
   // the host (the canvas lets every event through to the content).
   let unlisten: (() => void) | null = null;
-  if (__VOICE_SURFACE__ && inst.pixel && config.pixelMagnet > 0) {
+  if (inst.pixel && config.pixelMagnet > 0) {
     const move = (e: PointerEvent) => {
       const r = el.getBoundingClientRect();
       inst.pointer = { x: e.clientX - r.left, y: e.clientY - r.top };

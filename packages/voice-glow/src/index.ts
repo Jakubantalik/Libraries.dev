@@ -1,9 +1,6 @@
 export { VoiceBeam } from './VoiceBeam';
 export { default } from './VoiceBeam';
 
-/** Whether this build carries the surface looks (`look="dots"` / `"lines"`) — not released yet. */
-export const VOICE_SURFACE_LOOKS: boolean = __VOICE_SURFACE__;
-
 export { useMicrophone } from './useMicrophone';
 export type { UseMicrophoneOptions, UseMicrophoneResult, MicrophoneState } from './useMicrophone';
 
@@ -25,6 +22,9 @@ export type {
   VoiceBeamMotion,
   VoiceThemeColors,
 } from './types';
+
+/* Looks that plug in as objects (Libraries Pro's mosaic, dots and lines). */
+export type { VoiceLook, VoicePixelLook, VoicePixelKit, VoiceSurfaceLook, VoiceSurfaceFrame, VoiceLookConfig } from './look';
 
 export { themePresets, voicePalettes, voiceLobes, LOBE_SPACING, LOBE_SPAN } from './styles';
 export type { VoiceLobe } from './styles';

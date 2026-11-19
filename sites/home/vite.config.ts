@@ -59,6 +59,47 @@ function stampSharedAssets() {
   };
 }
 
+/* Libraries Pro runtime modules on the dev server. The live Studio fetches
+   Pro code (voice-glow's mosaic, dots and lines, its emotion model) from the
+   API for signed-in Pro accounts (src/studio/pro-runtime.tsx); on a dev
+   server it reads the build in a local libraries-pro checkout instead, at
+   /__pro/<library>.js. LIBRARIES_PRO_DIR points at the checkout, else the
+   nearest "libraries-pro" folder beside a parent of this one. Nothing is
+   served without one, and never from a production build. */
+function findLibrariesPro(): string | null {
+  if (process.env.LIBRARIES_PRO_DIR) return process.env.LIBRARIES_PRO_DIR;
+  for (let dir = __dirname; ; ) {
+    const candidate = resolve(dir, "libraries-pro");
+    if (existsSync(resolve(candidate, "content", "libraries"))) return candidate;
+    const up = resolve(dir, "..");
+    if (up === dir) return null;
+    dir = up;
+  }
+}
+
+function proRuntimeDev() {
+  return {
+    name: "pro-runtime-dev",
+    apply: "serve" as const,
+    configureServer(server: { middlewares: { use: (path: string, fn: (req: { url?: string }, res: import("node:http").ServerResponse, next: () => void) => void) => void } }) {
+      server.middlewares.use("/__pro/", (req, res, next) => {
+        const m = /^\/?([a-z0-9-]{1,40})\.js$/.exec((req.url || "").split("?")[0]);
+        const pro = findLibrariesPro();
+        const file = m && pro ? resolve(pro, "content", "libraries", m[1], "web", "dist", `${m[1]}.js`) : null;
+        if (!file || !existsSync(file)) {
+          res.statusCode = 404;
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify({ error: "content_not_found", note: "Build it in libraries-pro: node content/libraries/<library>/web/build.mjs" }));
+          return;
+        }
+        res.setHeader("content-type", "text/javascript; charset=utf-8");
+        res.setHeader("cache-control", "no-store");
+        res.end(readFileSync(file));
+      });
+    },
+  };
+}
+
 /* Local-only additions — extra pages, aliases — from an untracked
    vite.local.mjs beside this file, when one exists (see .gitignore). */
 const localFile = resolve(__dirname, "vite.local.mjs");
@@ -66,7 +107,7 @@ const local = existsSync(localFile) ? (await import(pathToFileURL(localFile).hre
 
 // Multi-page static site: every top-level .html file is an entry.
 export default mergeConfig(defineConfig({
-  plugins: [react(), stampSharedAssets()],
+  plugins: [react(), stampSharedAssets(), proRuntimeDev()],
   server: {
     // Honour PORT so a busy 5173 reassigns cleanly — several sites in this
     // repo are often run side by side (matches the gooey site's config).

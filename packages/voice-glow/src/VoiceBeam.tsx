@@ -49,6 +49,20 @@ const CANVAS_FILTER = (() => {
   return !!ctx && typeof (ctx as { filter?: unknown }).filter === 'string';
 })();
 
+/* Mosaic, dots and lines moved to Libraries Pro in 0.5.0 as look objects;
+   their old names draw the glow. Said once per name, not every render. */
+const warnedLooks = new Set<string>();
+function warnLook(name: string): void {
+  if (warnedLooks.has(name) || typeof console === 'undefined') return;
+  warnedLooks.add(name);
+  console.warn(
+    `voice-glow: look="${name}" is not built in; drawing the glow. Built in: "glow", "dither". ` +
+      (name === 'mosaic' || name === 'dots' || name === 'lines'
+        ? 'Mosaic, dots and lines are Libraries Pro looks since 0.5.0: pass the look object (look={mosaic}).'
+        : 'Other looks plug in as objects (VoiceLook).')
+  );
+}
+
 function useSystemTheme(): 'dark' | 'light' {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -217,14 +231,18 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
 
     // The type preset supplies the geometry defaults; an explicit prop
     // wins; `scale` then multiplies every pixel dimension as one.
-    // Mosaic and dither carry their own tuning on top of the type's.
-    const d = resolveVoiceDefaults(type, resolvedTheme, __VOICE_SURFACE__ ? lookProp : 'glow');
+    // The pixel looks carry their own tuning on top of the type's.
+    // A look plugs in as an object (look.ts); the built-in ones are names,
+    // and a name this build does not have is the glow.
+    const lookPlugin = typeof lookProp === 'object' && lookProp !== null ? lookProp : null;
+    const look = lookPlugin ? lookPlugin.name : lookProp === 'dither' ? 'dither' : 'glow';
+    if (!lookPlugin && lookProp !== look) warnLook(String(lookProp));
+    const d = resolveVoiceDefaults(type, resolvedTheme, lookPlugin ?? look);
     const sc = Math.max(0.05, scaleProp ?? d.scale);
     const glowSize = glowSizeProp ?? d.glowSize;
     const pixelSize = pixelSizeProp ?? d.pixelSize;
-    // The mosaic's bigger glyphs read a lighter pull as strong as the dither's.
-    const pixelMagnet = pixelMagnetProp ?? (lookProp === 'mosaic' ? 0.4 : 0.7);
-    const pixelGlow = pixelGlowProp ?? pixelGlowDefault(type, lookProp);
+    const pixelMagnet = pixelMagnetProp ?? (lookPlugin?.kind === 'pixel' ? lookPlugin.magnet ?? 0.7 : 0.7);
+    const pixelGlow = pixelGlowProp ?? pixelGlowDefault(type, look);
     const pixelDust = pixelDustProp ?? pixelDustDefault(type);
     const pixelDome = pixelDomeProp ?? pixelDomeDefault(type);
     const strokeOpacityMul = strokeOpacityProp ?? d.strokeOpacity;
@@ -284,13 +302,12 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       ro.observe(el);
       return () => ro.disconnect();
     }, []);
-    // Dots and lines are one surface, painted on a canvas instead of the glow's layers.
-    // Not released yet: without the build switch every look is the glow.
-    const look = __VOICE_SURFACE__ ? lookProp : 'glow';
-    const isSurface = __VOICE_SURFACE__ && (look === 'dots' || look === 'lines');
-    // Mosaic and dither: the glow itself, sampled onto the same canvas.
-    const isPixel = __VOICE_SURFACE__ && (look === 'mosaic' || look === 'dither');
+    // A surface look paints its own canvas instead of the glow's layers.
+    const isSurface = lookPlugin?.kind === 'surface';
+    // The dither and the plugged-in pixel looks: the glow itself, sampled onto the same canvas.
+    const isPixel = look === 'dither' || lookPlugin?.kind === 'pixel';
     const onCanvas = isSurface || isPixel;
+    const engine = isPixel ? 'pixel' : isSurface ? 'surface' : 'glow';
     // The WebKit gate is about the SVG warp's cost; the surface has no warp.
     const distortion = onCanvas ? 0 : IS_WEBKIT && hostArea > WEBKIT_WARP_MAX_AREA ? 0 : distortionBase;
 
@@ -322,7 +339,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
       }
     }, [active, isActive, isFading]);
 
-    // Mosaic and dither: as the effect closes, a few pixels fly into the
+    // The pixel looks: as the effect closes, a few pixels fly into the
     // element that closed it; as it opens again, a few fly out of it to
     // their places. A layout effect, so a close runs while the driver still
     // has this instance — before any passive effect's cleanup.
@@ -418,7 +435,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
           softness,
           distortion: distortion > 0,
           scale: sc,
-          look,
+          look: engine,
         }),
       [
         id,
@@ -450,7 +467,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         rangeHeight,
         softness,
         distortion > 0,
-        look,
+        engine,
       ]
     );
 
@@ -504,6 +521,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         reducedMotion,
         paused,
         look,
+        lookPlugin,
         // The pixel looks paint the palette themselves: the variant's
         // colours with any custom ones in their slots, as the stylesheet has.
         palette: voicePalettes[colorVariant][resolvedTheme].map((c, i) => {
@@ -591,6 +609,7 @@ export const VoiceBeam = forwardRef<HTMLDivElement, VoiceBeamProps>(
         reducedMotion,
         paused,
         look,
+        lookPlugin,
         pixelSize,
         pixelGlow,
         pixelDust,
