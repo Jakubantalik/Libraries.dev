@@ -1,5 +1,6 @@
 import AVFoundation
 import Accelerate
+import CoreAudio
 import Observation
 import os
 
