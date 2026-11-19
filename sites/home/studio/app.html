@@ -357,7 +357,10 @@
     .st-main .pg-stage:not([data-device="phone"])::after { content: none; }
     /* Tall enough for the phone and, under it, Play (playground.css keeps
        60px below the phone for it, and as much above, the phone centred). */
-    .st-main .pg-stage[data-device="phone"] { min-height: calc(var(--phone-h) + 120px); }
+    .st-main .pg-stage[data-device="phone"]:not([data-phone-dock]) { min-height: calc(var(--phone-h) + 120px); }
+    /* A docked phone (playground.css) keeps its own short stage, its top
+       cropped; the code moves up under it, the card's spare room below. */
+    .st-main .pg-stage[data-device="phone"][data-phone-dock] { min-height: 0; align-self: start; padding: 0 0 var(--phone-foot); }
     /* ── Preview column as one card (the transitions.dev Studio layout) ──
        The bar, the stage and the code sit on a single panel-coloured card
        that runs the panel's full height: the bar is the card's header (9px
@@ -370,6 +373,9 @@
         grid-template-rows: auto 1fr auto;
         min-height: calc(100dvh - 68px - 24px);
       }
+      /* A docked phone's short stage: the code follows it, the spare row last. */
+      .st-main .pg:has(> .pg-stage[data-device="phone"][data-phone-dock]) { grid-template-rows: auto auto 1fr; }
+      .st-main .pg:has(> .pg-stage[data-device="phone"][data-phone-dock]) > .pg-snippet { align-self: start; }
       .st-main .pg::before {
         content: "";
         grid-column: 1;

@@ -1120,6 +1120,41 @@ html[data-theme="light"] .pg-stage[data-device="phone"] {
 .pg-meter { bottom: 64px; width: 120px; }
 .pg-stage[data-device="phone"] > .pg-meter { bottom: calc(50% - var(--phone-h) / 2 + 10px); width: 84px; }
 
+/* Docked phone (Voice, Border beam, Thinking orbs: data-phone-dock="bottom"):
+   the phone rises off the stage's top, its top 30% cropped, with Play under
+   it, and the component sits at the foot of its screen, where a composer, a
+   recording pill or an assistant's orb lives. Voice's phone screen
+   (.mock-phone-host) fills the phone instead. */
+.pg-stage[data-device="phone"][data-phone-dock="bottom"] {
+  /* Play's room under the phone (12px gap, the 32px button, 16px margin),
+     and the component's gap above the screen's foot. */
+  --phone-foot: 60px;
+  --phone-inset: 28px;
+  height: calc(var(--phone-h) * 0.7 + var(--phone-foot));
+  min-height: 0;
+  padding: 0 0 var(--phone-foot);
+  align-items: flex-end;
+}
+/* Over the detail pages' own stage size and padding (#playground .pg-stage). */
+#playground .pg-stage[data-device="phone"][data-phone-dock="bottom"] { min-height: 0; padding: 0 0 var(--phone-foot); }
+.pg-stage[data-device="phone"][data-phone-dock="bottom"]::before {
+  top: auto;
+  bottom: var(--phone-foot);
+  transform: translateX(-50%);
+}
+.pg-stage[data-device="phone"][data-phone-dock="bottom"]::after {
+  top: calc(100% - var(--phone-foot) - var(--phone-h) + var(--phone-bezel) + 11px);
+  transform: translateX(-50%);
+}
+/* The content runs at 0.7 zoom, so its margin is set in its own units. */
+.pg-stage[data-device="phone"][data-phone-dock="bottom"] > :not(.pg-play):not(.pg-toolbar):not(.pg-meter):not(.mock-phone-host) {
+  margin-bottom: calc(var(--phone-inset) / 0.7);
+}
+/* Over examples.css's centring of the phone screen on a phone stage. */
+.pg-stage[data-device="phone"][data-phone-dock="bottom"] > .mock-phone-host { align-self: flex-end; }
+.pg-stage[data-device="phone"][data-phone-dock="bottom"] > .pg-play { bottom: 16px; }
+.pg-stage[data-device="phone"][data-phone-dock="bottom"] > .pg-meter { bottom: calc(var(--phone-foot) + 10px); }
+
 /* ── Studio control tokens ────────────────────────────────────
    Light values follow transitions.dev's page palette (--bg / --card-bg
    / --chip-bg) and refine's card + pill button: a white surface on a

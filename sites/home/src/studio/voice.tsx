@@ -861,7 +861,7 @@ export function VoiceStudio({ visible = true, theme = "dark" }: { visible?: bool
   return (
     <div className="pg">
       <StageBar library="Voice" prompt={{ pkg: "voice-glow", docsPath: "/studio/app.html#voice", snippet, platforms }} agent={{ libraryId: "voice", params: agentParams, labels: VOICE_PARAM_LABELS, onApply: applyAgentParams }} />
-      <div className="pg-stage" ref={stageRef}>
+      <div className="pg-stage" data-phone-dock="bottom" ref={stageRef}>
         {visible && (
           <VoiceBeam
             type={type}

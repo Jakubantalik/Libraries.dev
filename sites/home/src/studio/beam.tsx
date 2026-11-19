@@ -307,7 +307,7 @@ export function BeamStudio({ visible = true, theme = "dark" }: { visible?: boole
     <>
       <div className="pg">
         <StageBar library="Border beam" prompt={{ pkg: "border-beam", docsPath: "/beam.html", snippet, platforms }} agent={{ libraryId: "beam", params: agentParams, labels: BEAM_PARAM_LABELS, onApply: applyAgentParams }} />
-        <div className="pg-stage">
+        <div className="pg-stage" data-phone-dock="bottom">
           {visible && (
           <BorderBeam
             size={size}

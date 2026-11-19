@@ -343,7 +343,7 @@ export function OrbStudio({ visible = true, theme = "dark" }: { visible?: boolea
   return (
     <div className="pg">
       <StageBar library="Thinking orbs" prompt={{ pkg: "thinking-orbs", docsPath: "/orbs.html", snippet, platforms }} agent={{ libraryId: "orb", params: agentParams, labels: ORB_PARAM_LABELS, onApply: applyAgentParams }} />
-      <div className="pg-stage">
+      <div className="pg-stage" data-phone-dock="bottom">
         {/* key remounts the canvas on state/size change, matching the live playground */}
         {visible && (
           <ThinkingOrb

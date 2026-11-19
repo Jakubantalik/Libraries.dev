@@ -150,7 +150,7 @@ function BeamPlayground() {
       <p className="detail-playground-label">Playground</p>
 
       <div className="pg">
-        <div className="pg-stage" id="playground-stage">
+        <div className="pg-stage" id="playground-stage" data-phone-dock="bottom">
           <BorderBeam
             size={size}
             colorVariant={colorVariant}
