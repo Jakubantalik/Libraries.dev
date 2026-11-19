@@ -1,8 +1,8 @@
-# Surface looks — not released yet
+# Surface looks — on the site, not on npm yet
 
-`look="dots"`, `look="lines"`, `look="mosaic"` and `look="dither"` are built and working but **not shipped**:
-the default build (npm, the libraries.dev site and Studio) compiles them out.
-They ship after the SwiftUI Voice release. To work on them locally:
+`look="dots"`, `look="lines"`, `look="mosaic"` and `look="dither"` are live on libraries.dev and in the
+Studio since 2026-11-19: the site's deploy (`.github/workflows/deploy-home.yml`) builds voice-glow with
+`VOICE_SURFACE=1`. The default build, and so the npm package, still compiles them out. To work on them locally:
 
 ```bash
 VOICE_SURFACE=1 npm run build:voice   # then start the home dev server; the Studio shows Dots / Lines
