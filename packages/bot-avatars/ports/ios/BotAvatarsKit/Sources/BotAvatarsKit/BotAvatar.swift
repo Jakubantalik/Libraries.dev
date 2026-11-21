@@ -46,7 +46,8 @@ public struct BotAvatar: View {
     public var spread: Double = 1.55
     /// Touch play: a tap makes the avatar hop and turn right round, and
     /// while a finger drags over it the eyes and head follow the finger (it
-    /// stands in for the web's pointer). Default true.
+    /// stands in for the web's pointer). On the Mac a click is the tap and
+    /// the mouse over it is the pointer. Default true.
     public var interactive: Bool = true
     /// The surface the avatar sits on; `nil` (auto) reads the colour scheme.
     /// Resolved but unused by the drawing, as on the web.
@@ -110,11 +111,7 @@ private struct BotAvatarBody: View {
             })
             .contentShape(Rectangle())
             .onTapGesture { if props.interactive && !props.paused { model.sim.poke() } }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .global)
-                    .onChanged { v in if props.interactive { BotAvatarPointer.shared.location = v.location } }
-                    .onEnded { _ in BotAvatarPointer.shared.location = nil }
-            )
+            .modifier(BotAvatarPointerInput(enabled: props.interactive))
             .onChange(of: props, initial: true) { _, p in model.apply(p) }
             .onDisappear { model.stop() }
             .accessibilityLabel(label)
@@ -283,19 +280,40 @@ final class BotAvatarModel {
 
 /* ── the pointer over a larger surface ─────────────────────────────── */
 
-private struct BotAvatarPointerModifier: ViewModifier {
+/// A drag over the view is the pointer; on the Mac, so is the mouse
+/// hovering over it.
+private struct BotAvatarPointerInput: ViewModifier {
+    var enabled = true
+    /* where this view's hover last put the pointer */
+    @State private var hovered: CGPoint?
+
     func body(content: Content) -> some View {
-        content.simultaneousGesture(
-            DragGesture(minimumDistance: 0, coordinateSpace: .global)
-                .onChanged { v in BotAvatarPointer.shared.location = v.location }
-                .onEnded { _ in BotAvatarPointer.shared.location = nil }
-        )
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                    .onChanged { v in if enabled { BotAvatarPointer.shared.location = v.location } }
+                    .onEnded { _ in BotAvatarPointer.shared.location = nil }
+            )
+            #if os(macOS)
+            .onContinuousHover(coordinateSpace: .global) { phase in
+                switch phase {
+                case .active(let p):
+                    guard enabled else { return }
+                    BotAvatarPointer.shared.location = p
+                    hovered = p
+                case .ended:
+                    /* an enclosing hover may have moved the pointer on since */
+                    if BotAvatarPointer.shared.location == hovered { BotAvatarPointer.shared.location = nil }
+                    hovered = nil
+                }
+            }
+            #endif
     }
 }
 
 public extension View {
-    /// While a finger drags over this view, every `interactive` avatar
-    /// within three head widths of it follows the finger — the web's
-    /// pointer play over a whole page.
-    func botAvatarPointer() -> some View { modifier(BotAvatarPointerModifier()) }
+    /// While a finger drags over this view (or, on the Mac, the mouse moves
+    /// over it), every `interactive` avatar within three head widths of it
+    /// follows — the web's pointer play over a whole page.
+    func botAvatarPointer() -> some View { modifier(BotAvatarPointerInput()) }
 }

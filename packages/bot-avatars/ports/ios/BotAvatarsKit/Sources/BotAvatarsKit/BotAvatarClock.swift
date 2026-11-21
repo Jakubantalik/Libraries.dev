@@ -1,6 +1,9 @@
 import Foundation
 import QuartzCore
 import Observation
+#if os(macOS)
+import AppKit
+#endif
 
 /// One frame loop for every avatar on screen (the web's ticker): a
 /// CADisplayLink that advances each subscribed avatar's rig and then bumps
@@ -40,7 +43,13 @@ public final class BotAvatarClock {
         if link != nil { return }
         let proxy = LinkProxy { [weak self] link in self?.step(link) }
         self.proxy = proxy
+        #if os(macOS)
+        /* AppKit hands out display links per screen; the main one paces
+           every window, and dt is measured, so motion stays true elsewhere */
+        guard let l = NSScreen.main?.displayLink(target: proxy, selector: #selector(LinkProxy.fire(_:))) else { return }
+        #else
         let l = CADisplayLink(target: proxy, selector: #selector(LinkProxy.fire(_:)))
+        #endif
         l.add(to: .main, forMode: .common)
         link = l
         last = 0

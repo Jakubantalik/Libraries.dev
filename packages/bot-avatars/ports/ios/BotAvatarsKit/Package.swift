@@ -5,6 +5,7 @@ let package = Package(
     name: "BotAvatarsKit",
     platforms: [
         .iOS(.v17),
+        .macOS(.v14),
     ],
     products: [
         .library(name: "BotAvatarsKit", targets: ["BotAvatarsKit"])
