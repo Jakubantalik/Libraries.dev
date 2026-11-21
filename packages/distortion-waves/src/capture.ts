@@ -175,6 +175,19 @@ let TRANSFORM = -1;
 let TRANSFORM_ORIGIN = -1;
 let PERSPECTIVE_ORIGIN = -1;
 let APPEARANCE = -1;
+/* Width properties whose CSS initial value is `medium` (3px) once their paired
+   `*-style` is not `none`/`hidden`. Skipping `0px` because it matches a bare
+   element's computed width turns Tailwind Preflight's `border: 0 solid` into a
+   3px border inside the SVG snapshot (Issue #30). */
+let PAIRED_STYLE: number[] = [];
+const WIDTH_TO_STYLE: Record<string, string> = {
+  "border-top-width": "border-top-style",
+  "border-right-width": "border-right-style",
+  "border-bottom-width": "border-bottom-style",
+  "border-left-width": "border-left-style",
+  "outline-width": "outline-style",
+  "column-rule-width": "column-rule-style",
+};
 /* The box of a control: what tells a styled one from a bare one, and what a
    styled one must carry whole. */
 let STYLES_BOX: number[] = [];
@@ -233,6 +246,10 @@ function setup(): boolean {
     PERSPECTIVE_ORIGIN = non.indexOf("perspective-origin");
     APPEARANCE = non.indexOf("appearance");
     if (APPEARANCE < 0) APPEARANCE = non.indexOf("-webkit-appearance");
+    PAIRED_STYLE = non.map((n) => {
+      const styleProp = WIDTH_TO_STYLE[n];
+      return styleProp ? non.indexOf(styleProp) : -1;
+    });
     const edge = /^border-(?:top|right|bottom|left)-(?:width|style|color)$/;
     const fill = /^background-(?:color|image)$/;
     const pad = /^padding-(?:top|right|bottom|left)$/;
@@ -638,7 +655,14 @@ function pseudo(el: Element, which: "::before" | "::after", mine: string[], w: W
   const d = DIV.non;
   for (let i = 0; i < NON.length; i++) {
     let v = ps.getPropertyValue(NON[i]);
-    if (v === d[i]) continue;
+    const pairIdx = PAIRED_STYLE[i];
+    const hasActiveStyle =
+      pairIdx >= 0 &&
+      (() => {
+        const sv = ps.getPropertyValue(NON[pairIdx]);
+        return sv !== "" && sv !== "none" && sv !== "hidden";
+      })();
+    if (v === d[i] && !hasActiveStyle) continue;
     if (FOLLOWS[i] && v === color) continue;
     if (v.indexOf("url(") >= 0) v = embedURLs(v, w);
     css += `${NON[i]}:${v};`;
@@ -732,7 +756,14 @@ function element(el: Element, parent: string[] | null, parentNS: string | null, 
   for (let i = 0; i < NON.length; i++) {
     let v = cs.getPropertyValue(NON[i]);
     const d = dN[i];
-    const plain = tN[i] === d && !(boxed && IN_BOX[i]);
+    const pairIdx = PAIRED_STYLE[i];
+    const hasActiveStyle =
+      pairIdx >= 0 &&
+      (() => {
+        const sv = cs.getPropertyValue(NON[pairIdx]);
+        return sv !== "" && sv !== "none" && sv !== "hidden";
+      })();
+    const plain = tN[i] === d && !(boxed && IN_BOX[i]) && !hasActiveStyle;
     if (i === TRANSFORM && shift) {
       // A scrolled parent: its children are moved by hand.
       v = v === "none" ? shift : `${shift} ${v}`;
