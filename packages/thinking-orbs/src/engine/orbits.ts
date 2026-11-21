@@ -43,10 +43,12 @@ export const frameOrbits: ModeFrame = (size, t, o) => {
     // ghost path
     for (let k = 0; k < ghostN; k++) {
       const a = (k / ghostN) * 2 * Math.PI;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
       const [px, py, z] = pt(
-        (ux * Math.cos(a) + vx * Math.sin(a)) * ro,
-        (uy * Math.cos(a) + vy * Math.sin(a)) * ro,
-        (uz * Math.cos(a) + vz * Math.sin(a)) * ro
+        (ux * ca + vx * sa) * ro,
+        (uy * ca + vy * sa) * ro,
+        (uz * ca + vz * sa) * ro
       );
       const depth = (z / ro + 1) / 2;
       dots.push({
@@ -61,10 +63,12 @@ export const frameOrbits: ModeFrame = (size, t, o) => {
     // the particles doing the work
     for (let m = 0; m < particles; m++) {
       const a = t * speed + (m / particles) * 2 * Math.PI + h2 * 6;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
       const [px, py, z] = pt(
-        (ux * Math.cos(a) + vx * Math.sin(a)) * ro,
-        (uy * Math.cos(a) + vy * Math.sin(a)) * ro,
-        (uz * Math.cos(a) + vz * Math.sin(a)) * ro
+        (ux * ca + vx * sa) * ro,
+        (uy * ca + vy * sa) * ro,
+        (uz * ca + vz * sa) * ro
       );
       const depth = (z / ro + 1) / 2;
       dots.push({
