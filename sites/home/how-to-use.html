@@ -23,7 +23,7 @@
   <meta name="color-scheme" content="dark" />
 
   <title>How to use Libraries.dev with your coding agent | Libraries.dev</title>
-  <meta name="description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any of the seven Libraries.dev effects." />
+  <meta name="description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any Libraries.dev library or model." />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="googlebot" content="index, follow" />
@@ -45,7 +45,7 @@
   <meta property="og:url" content="https://libraries.dev/how-to-use" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="How to use Libraries.dev with your coding agent" />
-  <meta property="og:description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any of the seven Libraries.dev effects." />
+  <meta property="og:description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any Libraries.dev library or model." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
@@ -53,7 +53,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
   <meta name="twitter:title" content="How to use Libraries.dev with your coding agent" />
-  <meta name="twitter:description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any of the seven Libraries.dev effects." />
+  <meta name="twitter:description" content="Copy a library&#x27;s prompt, paste it into Claude Code, Cursor or Codex, and make it yours: the three steps to shipping any Libraries.dev library or model." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -356,6 +356,7 @@
 
     /* Library reference table */
     .howto-table-wrap { overflow-x: auto; }
+    .howto-table-wrap--models { margin-top: 24px; }
     /* Separate + zero spacing, and the rule as an inset shadow: Safari's
        collapsed-border rounding renders a 1px alpha hairline lighter than
        Chromium does, and this keeps it out of that algorithm. */
@@ -667,7 +668,7 @@
     </div>
 
     <section class="home-section" aria-labelledby="howto-libs-title">
-      <h2 class="home-section-title" id="howto-libs-title">The seven libraries</h2>
+      <h2 class="home-section-title" id="howto-libs-title">Nine libraries and three models</h2>
       <div class="howto-table-wrap">
         <table class="howto-table">
           <thead>
@@ -713,6 +714,44 @@
               <td><code>voice-glow</code></td>
               <td>Sound-reactive glow along the bottom edge of an input</td>
             </tr>
+            <tr>
+              <td><a href="/voice-ring.html">Voice ring</a></td>
+              <td><code>voice-ring</code></td>
+              <td>Voice-reactive ring of light at the centre of a voice screen</td>
+            </tr>
+            <tr>
+              <td><a href="/waves.html">Distortion waves</a></td>
+              <td><code>distortion-waves</code></td>
+              <td>Colourful wave that carries one view into another</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="howto-table-wrap howto-table-wrap--models">
+        <table class="howto-table">
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Kit</th>
+              <th scope="col">What it reads</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="/adaptive-ui.html">Adaptive UI</a></td>
+              <td><code>React kit</code></td>
+              <td>The user's mood: frustrated, confused or lost</td>
+            </tr>
+            <tr>
+              <td><a href="/voice-position.html">Voice position</a></td>
+              <td><code>VoicePositionKit</code></td>
+              <td>Where a voice is around an iPhone, and how far off</td>
+            </tr>
+            <tr>
+              <td><a href="/magnetic.html">Magnetic UI</a></td>
+              <td><code>magnetkit</code></td>
+              <td>A real magnet beside the phone, and air taps</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -727,7 +766,7 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p>React 18 or newer. Each library is a standalone package with zero runtime dependencies, except Image generation which also needs <code>three</code> as a peer dependency. All seven together weigh under 110&nbsp;KB gzipped.</p>
+            <p>React 18 or newer. Each library is a standalone package with zero runtime dependencies, except Image generation which also needs <code>three</code> as a peer dependency. Each one is 8 to 64&nbsp;KB gzipped, and you install only the ones you use. The models are free with an account: Adaptive UI for React, Voice position for SwiftUI, Magnetic UI for React, SwiftUI and Android.</p>
           </div></div>
         </div>
 

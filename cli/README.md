@@ -1,11 +1,13 @@
 # libraries-dev
 
 Installs the Libraries.dev agent skill. The skill teaches your coding agent
-(Claude Code, Cursor, Codex and others that read skills) to use the seven
-Libraries.dev libraries correctly and to suggest where each one fits in your
-project:
+(Claude Code, Cursor, Codex and others that read skills) to use the nine
+Libraries.dev libraries and three on-device models correctly and to suggest
+where each one fits in your project:
 
-Border beam, Thinking orbs, Gooey, Voice, Bot avatars, Liquid metal, Image.
+- Libraries: Border beam, Thinking orbs, Gooey, Voice, Voice ring, Distortion
+  waves, Bot avatars, Liquid metal, Image.
+- Models: Adaptive UI, Voice position, Magnetic UI.
 
 ## Free skill
 

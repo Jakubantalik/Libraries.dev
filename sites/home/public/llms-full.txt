@@ -1,4 +1,4 @@
-# Libraries.dev: full library references
+# Libraries.dev: full library and model references
 
 <!-- Border Beam (border-beam). Live playground: https://libraries.dev/beam. npm: https://www.npmjs.com/package/border-beam -->
 
@@ -1092,6 +1092,235 @@ Tune it visually in the Studio at https://libraries.dev/studio, or install the P
 
 ---
 
+<!-- Voice Ring (voice-ring). Live playground: https://libraries.dev/voice-ring. npm: https://www.npmjs.com/package/voice-ring -->
+
+# Voice ring
+
+A voice-reactive ring of light for AI voice interfaces (`voice-ring`, component `VoiceRing`): a few rings lean off the view axis and bundle into a glassy ribbon, a spectrum runs around it, and the voice bends every ring together. It takes the colour of the voice's emotion and leans toward whoever is speaking. Two types: `ring` (the default) and `mono`, two loops of grey tube that a voice opens into a turning globe. React and SwiftUI.
+
+## When to use
+
+### Where it goes
+
+- **The centre of a voice screen**: a full-screen or sheet voice mode where the ring is the main thing on screen while the assistant listens, thinks and speaks.
+- **An assistant's presence**: the ring stands for the voice agent, idle until spoken to.
+
+More situations it fits:
+
+- A voice call with an AI, with `state` following the conversation: `listening` while the user talks, `processing` while the reply is made, `speaking` while it plays.
+- Visualising the assistant's own speech by feeding a level getter from the audio player.
+- A room with several speakers, where the ring leans toward the one talking (`direction`).
+
+### When not to use
+
+- A glow along a chat input or the bottom of a screen. That is **Voice** (`voice-glow`).
+- Small inline indicators or lists of many instances. It is a centrepiece; each instance draws a canvas.
+- Loading states with no voice in the flow. Use **Thinking orbs**.
+
+## Install
+
+```bash
+npm install voice-ring
+```
+
+```tsx
+import { VoiceRing, useMicrophone } from 'voice-ring';
+```
+
+- React 18+. A 2D canvas with a small WebGL pass for the edge lens.
+- SwiftUI (iOS 17+ / macOS 14+), Swift Package Manager: `.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")` and `.product(name: "VoiceRingKit", package: "Libraries.dev")`.
+
+## Basic usage
+
+```tsx
+import { VoiceRing, useMicrophone } from 'voice-ring';
+
+function VoiceScreen() {
+  const mic = useMicrophone();
+  return (
+    <>
+      <VoiceRing size={240} state="listening" stream={mic.stream} />
+      <button onClick={mic.start}>Listen</button>
+    </>
+  );
+}
+
+// Drive it yourself instead of the microphone (0–1, read every frame):
+<VoiceRing size={240} state="speaking" level={() => player.level} />
+```
+
+```swift
+import VoiceRingKit
+
+struct VoiceScreen: View {
+    @State private var meter = VoiceMeter()
+
+    var body: some View {
+        VoiceRing(state: .listening, source: .meter(meter), size: 240)
+            .task { try? await meter.start() }   // asks for the microphone
+    }
+}
+```
+
+## Options (free)
+
+| Prop | Values | Notes |
+|---|---|---|
+| `type` | `ring` (default), `mono` | `VoiceRing(.mono, …)` in SwiftUI. |
+| `state` | `idle`, `listening`, `speaking`, `processing` | Wire it to the conversation's real status. |
+| `stream` | `MediaStream` | The microphone, or any stream with an audio track. |
+| `level` | number 0–1, or a getter read every frame | Instead of `stream`, for example TTS playback. |
+| `emotion` | `positive`, `negative`, `calm` | Shifts the spectrum toward its colour. |
+| `direction` | −1 left … 1 right, a number or a getter | A browser microphone is mono, so the side comes from you: a stereo capture, a diarised speaker, or where that person sits in your UI. On iPhone, the **Voice position** model supplies it. |
+| `hoverBend` | `true` (0.55) or 0–1 | While `idle` or `processing`, the ring bends toward a nearby cursor. Desktop only; off with reduced motion. |
+| `sensitivity` | number, default 0.85 | How strongly the voice bends the rings. |
+| `speed`, `theme` (`auto`, `dark`, `light`), `paused` | | |
+
+## Accessibility & performance
+
+- Decorative: keep a text status ("Listening…") and a visible microphone control.
+- Pause it (`paused`) when its screen is hidden; one instance per screen.
+- Reduced motion turns `hoverBend` off.
+
+## Common mistakes
+
+- Using it as a composer glow. That is Voice (`voice-glow`).
+- Hard-coding `state="listening"`. Follow the real conversation state.
+- Expecting `direction` from a browser microphone alone; browsers record in mono.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+|---|---|
+| Full-screen voice routes: `/voice`, `VoiceMode`, `VoiceScreen`, `CallScreen` | `<VoiceRing>` as the screen's centrepiece, `state` from the call. |
+| Realtime voice SDKs: `openai` realtime, `@livekit`, `vapi`, `retell`, `elevenlabs` conversational | `listening` / `processing` / `speaking` from the SDK's events. |
+| An orb or blob standing for the assistant (`AssistantOrb`, `AgentBlob`, Lottie "siri" animations) | Replace it with `VoiceRing`. |
+| TTS playback (`speechSynthesis`, an `<audio>` element for replies) | `state="speaking"` with `level` from the player. |
+
+## Go further (Pro)
+
+- The emotion model for SwiftUI (`VoiceRingEmotion`): the tone of the voice and its words colour the ring.
+- Every ring, ribbon, spectrum and lens setting in the Studio at https://libraries.dev/studio, or the Pro skill.
+
+---
+
+<!-- Distortion Waves (distortion-waves). Live playground: https://libraries.dev/waves. npm: https://www.npmjs.com/package/distortion-waves -->
+
+# Distortion waves
+
+A colourful distortion wave that carries one view into another (`distortion-waves`, component `DistortionWave`): it opens from a button, an edge or an avatar with a quick pull toward the source, a soft swell with progressive blur and chromatic aberration, and colour that stays on the edges, with a hairline on the glass, after the middle has cleared. React and SwiftUI.
+
+Three types:
+
+- **Vertical**: up the view from a button at the bottom.
+- **Horizontal**: across the view from a tall source at the left.
+- **Center**: a ring out from an avatar or icon, round a sheet or card.
+
+## When to use
+
+### Where it goes
+
+- **A confirmation that turns into its result**: Confirm → receipt, Send → sent, Pay → paid. The wave opens from the button that was pressed.
+- **A step that hands over to the next screen** in a short flow (a sheet, a card, a checkout), where the change should feel like one motion.
+
+More situations it fits:
+
+- An avatar or icon that opens into a card or sheet (`type="center"`).
+- A side panel or rail that sweeps its content across (`type="horizontal"`).
+- Reversing back to the first view (`revealed={false}` collapses the wave into its source).
+
+### When not to use
+
+- Route changes across a whole app, or long scrolling pages. It pictures the element, so keep it to a card, sheet or screen-sized view.
+- Waits or loading. Use **Thinking orbs** or **Border beam**.
+- Many waves at once. One wave at a time per screen.
+
+## Install
+
+```bash
+npm install distortion-waves
+```
+
+```tsx
+import { DistortionWave } from 'distortion-waves';
+```
+
+- React 18+. One clear WebGL 2 canvas over your own markup, in Chrome, Safari and Firefox. Without WebGL 2, and with reduced motion, it is a crossfade.
+- SwiftUI (iOS 17+), Swift Package Manager: `.product(name: "DistortionWavesKit", package: "Libraries.dev")` from `https://github.com/Jakubantalik/Libraries.dev`.
+
+## Basic usage
+
+```tsx
+import { useRef, useState } from 'react';
+import { DistortionWave } from 'distortion-waves';
+
+function Transfer() {
+  const [sent, setSent] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+
+  return (
+    <DistortionWave
+      revealed={sent}
+      source={button}
+      revealedContent={<Receipt />}
+      overlay={
+        <button ref={button} onClick={() => setSent(true)}>
+          Confirm
+        </button>
+      }
+      style={{ width: 620, borderRadius: 28, overflow: 'hidden' }}
+    >
+      <Review />
+    </DistortionWave>
+  );
+}
+```
+
+Setting `revealed` runs the wave forwards; setting it back to `false` collapses it into its source. Both views are your own DOM, laid on top of each other; the element takes the size of the larger. Give them an opaque background. The wave bends a picture of the views taken just before the run, so animation inside a view stands still while the wave passes; put the button that starts it, a spinner or a video in `overlay`, which stays live above the wave.
+
+## Options (free)
+
+| Prop | Values | Notes |
+|---|---|---|
+| `children` | `ReactNode` | The view that shows first. |
+| `revealedContent` | `ReactNode` | The view the wave leaves behind. Without one the wave passes over `children` and leaves them as they were. |
+| `overlay` | `ReactNode` | Stays above the wave, unbent, over both views. |
+| `revealed` | `boolean` | Which view shows; changing it runs the wave. Leave it out to drive the wave with the handle's `play()`. |
+| `type` | `vertical` (default), `horizontal`, `center` | The shape of the front. |
+| `source` | element, ref or `{ x, y, w, h }` | Where the wave starts. Default: the control last pressed. |
+| `palette` | `colorful`, `green`, `ocean`, `sunset`, `mono`, or `#RRGGBB` | The colours. |
+| `reducedMotion` | `system` (default), `always`, `never` | When to crossfade instead. |
+| `onFinish` | `(revealed) => void` | Called when a wave ends. |
+
+Handle (`ref`): `play()`, `reverse()`, `reset()`, `await prepare()`. Without React: `new WaveController(root, content, revealedOrNull)`.
+
+## Accessibility & performance
+
+- Reduced motion crossfades instead of waving.
+- Images from another origin without CORS, closed shadow roots and `iframe`s cannot be pictured; mark anything to leave out with `data-dw-skip`.
+- A `<canvas data-dw-live>` inside a view is read every frame, so the wave bends what it shows as it animates. Keep these small.
+
+## Common mistakes
+
+- Transparent views: the wave bends what is behind them too. Give each view an opaque background.
+- The pressed button inside `children`: it freezes in the picture. Put it in `overlay`.
+- Wrapping a whole page. Wrap the card or sheet that changes.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+|---|---|
+| Confirm/success swaps: `isConfirmed`, `setSent`, `orderPlaced`, a receipt or "Payment sent" view replacing a form | `DistortionWave` with `revealed` from that flag, `source` the confirm button. |
+| `AnimatePresence`, `framer-motion` crossfades between two views of one card | `vertical` from the bottom button, or `center` from an avatar. |
+| Avatar or icon that opens a profile card or sheet | `type="center"`, `source` the avatar. |
+| Checkout, transfer, booking or send flows with a final step | The last step's button reveals the result. |
+
+## Go further (Pro)
+
+- The wave's numbers (travel, swell, blur, aberration, edge, particles), custom palettes and the Pro wave types, in the Studio at https://libraries.dev/studio or through the Pro skill.
+
+---
+
 <!-- Bot Avatars (bot-avatars). Live playground: https://libraries.dev/bots. npm: https://www.npmjs.com/package/bot-avatars -->
 
 # Bot avatars
@@ -1841,3 +2070,261 @@ Only animate while working. Use when: the card stays mounted after the job ends.
 - Rebuilding the effect's shader (cell shape, mosaic layout, colour field) through the agent.
 
 Tune it visually in the Studio at https://libraries.dev/studio, or install the Pro skill.
+
+---
+
+<!-- Adaptive UI (beta), an on-device model. Page and downloads: https://libraries.dev/adaptive-ui -->
+
+# Adaptive UI (model, beta)
+
+Interfaces that read the user's mood. One small on-device model (`AdaptiveUI.json`, 142 KB, 32 KB gzipped) reads frustration, confusion, or when someone is lost, from how they move the pointer, press, scroll and type, and tells your React components, so the screen can bring forward what helps. No LLM, no server, nothing leaves the page. Distributed as a React kit (TypeScript source) plus the model, both downloads from https://libraries.dev/adaptive-ui (free account); not on npm.
+
+## Moods
+
+- **Frustrated**: fighting the interface: pressing a locked or disabled control, quick repeated presses on one spot or on nothing, the pointer shaken back and forth, a field typed and sent the same way after it failed. A blocked step reads as frustrated.
+- **Confused**: unsure what to do next, from the pointer's speed and path alone: circling one spot or hovering round a control without pressing it, slowing down and turning back.
+- **Lost**: looking for something: returning to the same few places without pressing, opening section after section, scrolling back and forth.
+- **Away**: not looking (tab hidden, pointer out of the window, nothing moving). A plain rule; don't react to it.
+
+## When to use
+
+### Where it goes
+
+- **A step that can block**: a disabled submit or Pay button behind a checkbox, a form with strict formats, a buried setting. When the user struggles, bring forward the thing that unlocks the step.
+- **Hints and ways out** that should only appear when someone is stuck: a "Need help?" link on a slow wait, a highlighted section in a long menu.
+
+### When not to use
+
+- To block, punish or move things from under the pointer. Keep every reaction small and reversible.
+- As analytics. It reads in the browser and sends nothing; it is for the UI to respond in the moment.
+
+## Install
+
+1. Ask the user to download both from https://libraries.dev/adaptive-ui (Install tab, free account): `AdaptiveUI-React-0.4.zip`, unzipped into `src/adaptive-ui/`, and `AdaptiveUI-0.4.zip`, with `AdaptiveUI.json` placed next to the kit.
+2. Import the model so it ships inside the bundle (needs `resolveJsonModule`). React 18+, no other dependency.
+
+## Basic usage
+
+```tsx
+import { useState } from 'react';
+import { AdaptiveProvider, useAdaptive } from './adaptive-ui';
+import model from './adaptive-ui/AdaptiveUI.json';
+
+// One provider per page; the components that adapt sit inside it.
+export function Checkout() {
+  return (
+    <AdaptiveProvider model={model}>
+      <PayForm />
+    </AdaptiveProvider>
+  );
+}
+
+function PayForm() {
+  const { mood } = useAdaptive();
+  const [agreed, setAgreed] = useState(false);
+  // 1 neutral, 2 confused or lost, 3 frustrated; agreed, nothing is locked
+  const state = agreed ? 1 : mood === 'frustrated' ? 3 : mood === 'confused' || mood === 'lost' ? 2 : 1;
+
+  return (
+    <form data-state={state}>
+      <button disabled={!agreed}>Pay $97.54</button>
+      <label className="terms">
+        <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+        I agree to the terms of sale and the return policy
+      </label>
+    </form>
+  );
+}
+```
+
+```css
+form[data-state="2"] button:disabled,
+form[data-state="3"] button:disabled { opacity: 0.2; }   /* the locked Pay steps back */
+form[data-state="3"] .terms { color: #e8e8e8; }          /* what unlocks it comes forward */
+.hint { opacity: var(--adaptive, 0); }                   /* or blend by the reaction, 0 … 1 */
+```
+
+## Readings
+
+| Field | What it is |
+|---|---|
+| `mood` | `"frustrated"`, `"confused"`, `"lost"` or `"away"`; null while calm or without input. A mood holds 1 s before it fades. |
+| `reaction` | How strongly the UI should react, 0…1: from 0.30 of the reading, full at the 0.65 alert line; rises in about 0.1 s, eases back over a few seconds once calm. Also set as `--adaptive` for the CSS inside the provider. |
+| `score` | The strength behind the mood, 0…1. |
+| `probabilities` | `none`, `blocked`, `lost`, `confused`, `waiting`, `frustrated`, summing to 1; null without input or a model. |
+| `fast`, `fastKind` | The fast signals, 0…1: `"shake"`, `"orbit"`, `"rage"` or `"disabled"`. |
+| `isModelLoaded` | Without the model only the fast signals and away work. |
+
+Props: `model`, `baselineKey` (default `"adaptive-baseline"`; `null` keeps the person's pace in memory), `reactTo` (default frustrated, confused and lost). `data-adaptive-ignore` on an element skips it. Without React: `createAdaptive({ model, onReading }).start()`.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+|---|---|
+| Disabled submit or Pay buttons gated by a checkbox (`disabled={!agreed}`, `!acceptedTerms`) | State 2 dims the locked button; state 3 lifts what unlocks it. |
+| Forms with strict validation (`pattern=`, date masks, `aria-invalid`) | Show the format hint when confused. |
+| Long settings pages, nested menus, docs sidebars | Highlight search or the likely section when lost. |
+| Slow saves or payments with spinners | A "Need help?" way out when frustrated during the wait. |
+
+## License
+
+The kit's code is MIT. The model is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; a commercial release needs Pro or Business. Ship it inside the app's bundle only, never on its own.
+
+Docs: https://libraries.dev/adaptive-ui
+
+---
+
+<!-- Voice Position (beta), an on-device model. Page and downloads: https://libraries.dev/voice-position -->
+
+# Voice position (model, beta)
+
+Interfaces that know where the voice is. One tiny on-device model (`VoicePosition.mfxl`, 1.6 KB) listens through the iPhone's built-in stereo microphones and tells your views whether the user speaks from the left, ahead or the right, and, on a desk, from a small or a large distance. No calibration needed. SwiftUI only (VoicePositionKit); input for any view, and for **Voice ring**.
+
+## When to use
+
+### Where it goes
+
+- **Voice interfaces on iPhone** that should turn toward the speaker: slide a panel toward them, lean **Voice ring** toward the voice, pick who is talking.
+- **Distance-aware layouts**: make the interface bigger for someone across the room.
+
+### When not to use
+
+- The web or Android. Browsers and the Simulator record in mono; AirPods and other Bluetooth microphones too.
+- Several people speaking at once, noisy rooms, landscape. Not covered yet.
+
+## Install
+
+```swift
+// Package.swift, or in Xcode: File › Add Package Dependencies… (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+.product(name: "VoicePositionKit", package: "Libraries.dev")
+```
+
+iOS 17+, iPhone. Add `NSMicrophoneUsageDescription` to Info.plist. Download `VoicePosition.mfxl` from https://libraries.dev/voice-position (Model only tab, free account) and add it to the app target; it loads from `Bundle.main`. Never commit it to a public repository.
+
+## Basic usage
+
+```swift
+import SwiftUI
+import VoicePositionKit
+
+struct SpeakerDot: View {
+    @State private var voice = VoicePosition()
+
+    var body: some View {
+        let size: CGFloat = voice.distance == .large ? 48 : 24
+        Circle()
+            .frame(width: size, height: size)
+            .offset(x: (voice.pan ?? 0) * 120)     // −1 left … 1 right
+            .animation(.spring, value: voice.pan)
+            .task { try? await voice.start() }      // asks for the microphone
+    }
+}
+
+// With Voice ring, sharing one microphone:
+VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
+    .task { try? await voice.start(meter) }
+```
+
+Readings: `pan` (−1…1, nil while quiet), `side` (`.left`, `.ahead`, `.right`), `distance` (`.small`, `.large`, from about 70 cm; desk only), `distanceBelief`, `soundsFar`, `probabilities`, `pose` (`.hand`, `.desk`), `level`, `isModelLoaded`. Set `readsDistance = false` while the app's own voice plays.
+
+## Good to know
+
+- It settles on a side about 0.65 s into a clear voice and passes through the centre when switching; short or doubtful sounds don't move it.
+- Without the model, `await voice.calibrate(.left)`, `.ahead` and `.right` (three seconds of voice each) calibrate the side for the current pose.
+- Beta: trained and tested on iPhone 15 Pro. Other iPhones place their microphones differently; check both sides and calibrate if one reads weak.
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+|---|---|
+| SwiftUI voice screens using `AVAudioEngine`, `SFSpeechRecognizer` | `VoicePosition` for the speaker's side; pair with Voice ring. |
+| `VoiceRingKit` already in the app | Pass `direction: voice.pan` to `VoiceRing`. |
+
+## License
+
+VoicePositionKit is MIT. The model is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping it in a commercial app needs Pro or Business. Ship it inside the app only.
+
+Docs: https://libraries.dev/voice-position
+
+---
+
+<!-- Magnetic UI, an on-device model. Page and downloads: https://libraries.dev/magnetic -->
+
+# Magnetic UI (model)
+
+A real magnet moves the interface. One small on-device model reads the phone's magnetometer and reports where a magnet is, whether it is really there, and air taps. It is input, not an effect: pair it with any view. React on the web (`magnetkit`), SwiftUI and Android (MagnetKit), React Native.
+
+## When to use
+
+### Where it goes
+
+- **Playful, physical interactions**: a magnet held beside the phone pulls a header, chips or cards toward it, and they spring back when it leaves.
+- **Hands-off input**: air taps over the screen to open a menu or confirm, without touching the glass.
+
+### When not to use
+
+- As the only way to do something. Most people have no magnet at hand; keep touch and pointer paths.
+- On iPhone browsers: the web kit needs an Android phone running the Magnet Bridge app.
+
+## Install
+
+React (web):
+
+```bash
+npm install magnetkit
+```
+
+React 18+. Browsers can't read the raw magnetometer, so the [Magnet Bridge app](https://libraries.dev/downloads/MagnetBridge.apk) (Android 10+) runs the model on the phone and serves its answers to sites the visitor allows. Your site ships no model file. Android Chrome asks once to allow local network access.
+
+SwiftUI (iOS 17+): `.product(name: "MagnetKit", package: "Libraries.dev")` from `https://github.com/Jakubantalik/Libraries.dev`, then add `Magnet.mfxl` (download at https://libraries.dev/magnetic, Model only tab, free account) to the app target. Android and React Native: see the page's Install tab.
+
+## Basic usage (React)
+
+```tsx
+import { useRef, useState } from 'react';
+import { MagnetCalibration, useMagnetBridge, useMagnetGestures, useMagneticPull } from 'magnetkit';
+
+export function Header() {
+  const ref = useRef<HTMLElement>(null);
+  const { state, connect, calibrated } = useMagnetBridge();
+  const [calibrating, setCalibrating] = useState(false);
+
+  useMagneticPull(ref);   // everything marked data-magnetic is pulled and springs back
+  useMagnetGestures((g) => { if (g.g === 'tap') openMenu(); });
+
+  return (
+    <header ref={ref}>
+      <a data-magnetic href="/">Home</a>
+      <a data-magnetic href="/docs">Docs</a>
+      {state !== 'open' ? <button onClick={connect}>Connect magnet</button>
+        : !calibrated ? <button onClick={() => setCalibrating(true)}>Calibrate</button> : null}
+      <MagnetCalibration open={calibrating} onClose={() => setCalibrating(false)} />
+    </header>
+  );
+}
+```
+
+- `useMagnet()` gives the latest reading as state; `useMagnetFrame(cb)` every reading without rendering. Positions are screen dp: `getMagnetBridge().toClient(p)` turns them into page px.
+- `useMagneticPull(ref, { selector, stiffness, damping, force, reach })` tunes the springs; it stays off with reduced motion.
+- `calibrate(bridge, { onUpdate })` runs a calibration headless (once per phone and magnet, about 10 s).
+- `simulateMagnetWithPointer()` lets the pointer play the magnet while you develop without a phone.
+
+## Accessibility & performance
+
+- Motion stays off with reduced motion. Never make a magnet the only path to an action.
+- The model runs on the phone; the page only receives readings (about 50 a second).
+
+## Detecting a fit in a codebase
+
+| Signal to grep for | Suggest |
+|---|---|
+| Playful marketing headers, chip rows, sticker or toy UIs | `useMagneticPull` on the header, `data-magnetic` on the chips. |
+| `DeviceMotionEvent`, `Magnetometer` (Generic Sensor API) experiments | MagnetKit: browsers can't read the raw magnetometer; the bridge app does. |
+| Native iOS/Android apps with gesture experiments | MagnetKit (SwiftUI, Android) with the model in the app. |
+
+## License
+
+The kit's code is MIT. The model, `Magnet.mfxl`, is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping it in a commercial app needs Pro or Business. On the web the model runs inside the Magnet Bridge app, so a website needs no model license of its own.
+
+Docs: https://libraries.dev/magnetic

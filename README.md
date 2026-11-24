@@ -1,6 +1,6 @@
 # Libraries.dev
 
-**High-crafted UI libraries for AI agents.** Seven React libraries for the effects that make an interface feel alive: a beam of light travelling a card's border, orbs that think while a model works, bot avatars with living faces, shapes that merge like liquid, a glow that rises with your voice, brushed metal that catches the light, and an image loader that dissolves a pixel mosaic into a real photo.
+**High-crafted UI libraries and models for AI agents.** Nine libraries for the effects that make an interface feel alive, and three on-device models that let it respond to the person using it. The libraries: a beam of light travelling a card's border, orbs that think while a model works, bot avatars with living faces, shapes that merge like liquid, a glow that rises with your voice, brushed metal that catches the light, and an image loader that dissolves a pixel mosaic into a real photo.
 
 Each one installs from npm and drops into your app as a single component that wraps the element you already have. Your markup keeps its semantics, the effect renders around or behind it, and the whole thing is tuned by props rather than hand-written WebGL.
 
