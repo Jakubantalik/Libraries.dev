@@ -1092,7 +1092,7 @@
     </header>
 
     <header class="header">
-      <p class="hero-badge" id="installs-badge"><span id="installs-count">2,300,000+</span><span class="hero-badge-dim">installs</span></p>
+      <p class="hero-badge" id="installs-badge"><span id="installs-count">20,800,000+</span><span class="hero-badge-dim">installs</span></p>
       <h1 class="title">Libraries and models for next-gen UI</h1>
       <p class="subtitle">Libraries and ML models, ready to use with your agents.</p>
       <div class="skill-cta-row">
@@ -1644,8 +1644,18 @@
       var START = "2026-01-01"; // earlier than the first package (2026-04-12)
       var MAX_MONTHS = 17;      // one under npm's limit, to stay clear of edges
 
+      /* The last two digits roll up (pro-client.js, the sign-up box's number),
+       * once, as the page opens. That script is deferred, so a cached number
+       * waits for it at its round hundred. */
       function paint(n) {
-        badge.textContent = n.toLocaleString("en-US");
+        badge.style.fontVariantNumeric = "tabular-nums";
+        badge.textContent = (n - (n % 100)).toLocaleString("en-US");
+        function roll() {
+          if (window.LibrariesPro && window.LibrariesPro.rollNumber) window.LibrariesPro.rollNumber(badge, n);
+          else badge.textContent = n.toLocaleString("en-US");
+        }
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", roll);
+        else roll();
       }
       function iso(d) {
         return d.toISOString().slice(0, 10);

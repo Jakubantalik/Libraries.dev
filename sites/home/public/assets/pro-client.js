@@ -87,6 +87,7 @@
     get ppp() { return state.ppp; },
     get team() { return team; },
     get presets() { return presets; },
+    rollNumber: rollNumber,
   };
 
   // ── Purchasing-power parity ───────────────────────────────────────────────────
@@ -485,9 +486,180 @@
   }
 
   // ── Sign-in modal ──────────────────────────────────────────────────────────
+  // ── Spinning counter (transitions-dev 26) ─────────────────────────────────────
+  // The Transitions.dev sign-up box's number: each digit is a drum of 0-9 that
+  // rolls to its target and lands with a spring. The leading digits stay still;
+  // the last two roll up from 0. Used by the sign-up box each time it opens and
+  // by the home page's installs badge, once, as the page opens (index.html).
+  var REEL = { step: 50 * Math.PI / 180, enterMs: 120, fadeEnd: 1.8, landAt: 0.6, arriveAt: 0.29, clearMs: 200,
+    stepDur: 130, stagger: 90, sideScale: 0.7, sideOpacity: 0.17, centerScale: 0.9, anticDur: 100, anticScale: 0.94, landDur: 740, landPeak: 1.03 };
+  function reelBezier(x1, y1, x2, y2) {
+    function at(a, b, t) { return 3 * a * t * (1 - t) * (1 - t) + 3 * b * t * t * (1 - t) + t * t * t; }
+    return function (x) {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      var lo = 0, hi = 1, t = x;
+      for (var i = 0; i < 20; i++) { if (at(x1, x2, t) < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+      return at(y1, y2, t);
+    };
+  }
+  var reelEase = reelBezier(0.35, -0.02, 0.43, 1);
+  function reelSmooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+  function reelWave(s) { return s >= 1 ? 0 : Math.exp(-3 * s) * Math.cos(3 * Math.PI * s) * (1 - s); }
+  var REEL_TROUGH = (function () { var low = 0; for (var i = 1; i < 400; i++) low = Math.min(low, reelWave(i / 400)); return -low; })();
+  function reelRest(col, digit) {
+    col.cells.forEach(function (cell, d) {
+      cell.style.transform = "none"; cell.style.filter = "none"; cell.style.zIndex = "";
+      cell.style.opacity = d === digit ? "1" : "0";
+    });
+  }
+  function reelLook(dist, middle) {
+    var angle = Math.min(dist * REEL.step, Math.PI / 2);
+    var face = (Math.cos(angle) - Math.cos(REEL.step)) / (1 - Math.cos(REEL.step));
+    return {
+      angle: angle,
+      scale: REEL.sideScale + (middle - REEL.sideScale) * face,
+      back: dist <= 1 ? 1 + (REEL.sideOpacity - 1) * dist : REEL.sideOpacity * (1 - (dist - 1) / (REEL.fadeEnd - 1)),
+    };
+  }
+  function reelPlace(col, pos, spread, middle, o, land) {
+    var radius = o.offset / Math.sin(REEL.step);
+    col.cells.forEach(function (cell, d) {
+      var p = (((d - pos) % 10) + 10) % 10;
+      if (p > 5) p -= 10;
+      var dist = Math.abs(p);
+      if (dist >= REEL.fadeEnd) { cell.style.opacity = "0"; return; }
+      var l = reelLook(dist, middle);
+      var y = (p < 0 ? 1 : -1) * radius * Math.sin(l.angle);
+      var blur = (o.centerBlur + (o.sideBlur - o.centerBlur) * Math.min(dist, 1)) * spread;
+      var away = Math.max(0, Math.min(1, (dist - 0.3) / 0.5));
+      var opacity = l.back * (1 - (1 - spread) * away);
+      var scale = l.scale, z = 100 - Math.round(dist * 10);
+      if (land && d === col.digit) { y = y * land.arrive + land.lift; scale = land.scale; opacity = land.opacity; z = 200; }
+      cell.style.transform = "translateY(" + y.toFixed(2) + "px) scale(" + scale.toFixed(4) + ")";
+      cell.style.filter = blur > 0.01 ? "blur(" + blur.toFixed(2) + "px)" : "none";
+      cell.style.opacity = opacity.toFixed(3);
+      cell.style.zIndex = String(z);
+    });
+  }
+  function injectReelStyle() {
+    if (document.getElementById("tp-reel-base")) return;
+    var s = document.createElement("style");
+    s.id = "tp-reel-base";
+    s.textContent =
+      // Boxes take the text's own line height, so the number keeps the baseline
+      // of the word beside it.
+      ".tp-reel{display:inline-flex;align-items:baseline;font-variant-numeric:tabular-nums}" +
+      ".tp-reel-col{position:relative;display:inline-block}" +
+      ".tp-reel-sizer{visibility:hidden}" +
+      ".tp-reel-digit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;will-change:transform,filter,opacity}" +
+      ".tp-reel-sep{display:inline-block}";
+    document.head.appendChild(s);
+  }
+  // Writes n into el, rolling its last two digits. The drums are only there
+  // while they move: at rest el holds plain text again.
+  function rollNumber(el, n) {
+    injectReelStyle();
+    if (el.__reelStop) el.__reelStop();
+    var str = n.toLocaleString("en-US");
+    el.classList.add("tp-reel");
+    function settle() {
+      el.__reelStop = null;
+      el.removeAttribute("role");
+      el.removeAttribute("aria-label");
+      el.textContent = str;
+    }
+    if (n % 100 === 0 || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) { settle(); return; }
+    var fromStr = (n - (n % 100)).toLocaleString("en-US");
+    el.replaceChildren();
+    var cols = [];
+    [].forEach.call(str, function (ch, i) {
+      if (ch === fromStr[i]) {
+        var still = document.createElement("span");
+        still.className = "tp-reel-sep";
+        still.setAttribute("aria-hidden", "true");
+        still.textContent = ch;
+        el.appendChild(still);
+        return;
+      }
+      var col = document.createElement("span");
+      col.className = "tp-reel-col";
+      var sizer = document.createElement("span");
+      sizer.className = "tp-reel-sizer";
+      sizer.textContent = "0";
+      col.appendChild(sizer);
+      var cells = [];
+      for (var d = 0; d < 10; d++) {
+        var cell = document.createElement("span");
+        cell.className = "tp-reel-digit";
+        cell.setAttribute("aria-hidden", "true");
+        cell.textContent = String(d);
+        col.appendChild(cell);
+        cells.push(cell);
+      }
+      el.appendChild(col);
+      cols.push({ cells: cells, digit: +ch, from: +fromStr[i] });
+    });
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", str);
+    cols.forEach(function (c) { reelRest(c, c.from); });
+    // Lengths are in em, so they follow the text size.
+    var fs = parseFloat(getComputedStyle(el).fontSize) || 13;
+    var o = { offset: 0.52 * fs, sideBlur: Math.max(0.067 * fs, 0.171 * fs - 2.1), centerBlur: 0.042 * fs, anticLift: 0.125 * fs };
+    var t0 = performance.now(), raf = 0;
+    function tick() {
+      var t = performance.now() - t0, running = false;
+      cols.forEach(function (c, order) {
+        if (c.done) return;
+        var local = t - order * REEL.stagger;
+        if (local <= 0) { running = true; return; }
+        var total = (c.digit - c.from + 10) % 10;
+        var pos = c.from + total * reelEase(local / (total * REEL.stepDur));
+        var enter = Math.min(1, local / REEL.enterMs);
+        if (c.landAt === undefined && c.from + total - pos < REEL.landAt) c.landAt = t;
+        var since = c.landAt === undefined ? -1 : t - c.landAt;
+        if (since >= REEL.anticDur + REEL.landDur) { reelRest(c, c.digit); c.done = true; return; }
+        running = true;
+        var middle = 1 + (REEL.centerScale - 1) * enter, spread = enter, land = null;
+        if (since >= 0) {
+          if (!c.landFrom) c.landFrom = reelLook(c.from + total - pos, middle);
+          var arrive = 1 - reelSmooth(since / (REEL.anticDur + REEL.landDur * REEL.arriveAt));
+          if (since < REEL.anticDur) {
+            var a = reelSmooth(since / REEL.anticDur);
+            land = { scale: c.landFrom.scale + (REEL.anticScale - c.landFrom.scale) * a, lift: -o.anticLift * a, opacity: c.landFrom.back + (1 - c.landFrom.back) * a, arrive: arrive };
+          } else {
+            var sp = since - REEL.anticDur, sn = sp / REEL.landDur, w = reelWave(sn);
+            land = { scale: sn < 1 / 6 ? 1 + (REEL.anticScale - 1) * w : 1 - ((REEL.landPeak - 1) * w) / REEL_TROUGH, lift: -o.anticLift * w, opacity: 1, arrive: arrive };
+            spread = 1 - Math.min(1, sp / REEL.clearMs);
+          }
+        }
+        reelPlace(c, pos, spread, middle, o, land);
+      });
+      if (running) raf = requestAnimationFrame(tick);
+      else settle();
+    }
+    el.__reelStop = function () { cancelAnimationFrame(raf); };
+    tick();
+  }
+
   // Minimal, reusable email → magic-link dialog (placeholder styling; restyle later).
   // Replaces the old prompt()/alert() flow. Injected once, reused across pages.
   var modalEl = null, lastFocus = null;
+
+  // The sign-up box's members count. Asked for as a signed-out page loads, so
+  // the box opens with its line in place; a public number, so local dev reads
+  // production's too.
+  var people = 0, onPeople = null;
+  function loadPeople() {
+    fetch("https://api.libraries.dev/stats", { priority: "low" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.users) return;
+        people = d.users;
+        if (onPeople) onPeople();
+      })
+      .catch(function () {});
+  }
 
   var modalOpts = {};
   function ensureAuthModal() {
@@ -504,6 +676,9 @@
       '<div class="tp-modal-backdrop" data-tp-close></div>' +
       '<div class="tp-modal-card" role="dialog" aria-modal="true" aria-labelledby="tp-modal-title">' +
         '<button type="button" class="tp-modal-x" aria-label="Close" data-tp-close>&times;</button>' +
+        // Sign-up only: how many people are on Libraries.dev (GET /stats), as in
+        // the Transitions.dev box; its last two digits roll in on each opening.
+        '<p class="tp-modal-people" data-people hidden><span data-people-num></span><span class="tp-modal-people-dim">members</span></p>' +
         '<p class="tp-modal-intro" id="tp-modal-title">Enter your email address' +
           '<span class="tp-modal-intro-muted" data-step-sub>The one you used at checkout.</span></p>' +
         '<form class="tp-modal-form" novalidate>' +
@@ -544,11 +719,24 @@
     var emailForm = modalEl.querySelector(".tp-modal-form:not(.tp-modal-code-form)");
     var codeFormEl = modalEl.querySelector(".tp-modal-code-form");
     var titleEl = modalEl.querySelector(".tp-modal-intro");
+    var peopleEl = modalEl.querySelector("[data-people]");
+    var peopleNum = modalEl.querySelector("[data-people-num]");
+    var peopleWanted = false;
+    function paintPeople(show) {
+      peopleWanted = show;
+      peopleEl.hidden = !(show && people);
+      if (show && people) rollNumber(peopleNum, people);
+    }
+    onPeople = function () {
+      if (peopleWanted && !modalEl.hasAttribute("hidden")) paintPeople(true);
+    };
+    if (!people) loadPeople();
     function showStep(step, email) {
       var code = step === "code";
       emailForm.hidden = code;
       codeFormEl.hidden = !code;
       modalEl.querySelector("[data-promo]").hidden = code || !modalOpts.signup;
+      paintPeople(!code && !!modalOpts.signup);
       titleEl.firstChild.nodeValue = code ? "Enter one-time password" : (modalOpts.title || "Enter your email address");
       var sub = titleEl.querySelector("[data-step-sub]");
       if (sub) sub.textContent = code
@@ -717,6 +905,10 @@
       ".tp-modal-x:hover{opacity:.9}" +
       ".tp-modal-x:active{scale:.9}" +
       ".tp-modal-intro{margin:0;font-size:16px;line-height:24.2px;font-weight:400;padding-right:20px}" +
+      // Members: plain muted text, number and word in one color.
+      ".tp-modal-people{margin:0 0 -19px;color:#8a8a8a;font-size:13px;font-weight:400;line-height:16px;font-variant-numeric:tabular-nums}" +
+      ".tp-modal-people[hidden]{display:none}" +
+      ".tp-modal-people-dim{margin-left:4px}" +
       // pre-line: a sub-line may set its own break ("\n").
       ".tp-modal-intro-muted{color:#8a8a8a;display:block;white-space:pre-line}" +
       ".tp-modal-form{display:flex;flex-direction:column;gap:12px}" +
@@ -891,6 +1083,7 @@
     }
     mountProBadges();
     wireProCopy();
+    if (!state.authenticated) loadPeople();
     refreshMe();
     refreshGeo();
   }

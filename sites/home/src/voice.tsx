@@ -169,11 +169,12 @@ function PhoneExample() {
   );
 }
 
+/* The chat example wears the dither look, next to the phone's glow. */
 function ChatExample() {
   const [ref, scale] = useFitScale();
   return (
     <div ref={ref} className="voice-fit">
-      <VoiceBeam type="default" level={demoGetter} theme="dark" scale={scale}>
+      <VoiceBeam type="default" look="dither" pixelMagnet={0} level={demoGetter} theme="dark" scale={scale}>
         <ChatInputMock listening />
       </VoiceBeam>
     </div>
