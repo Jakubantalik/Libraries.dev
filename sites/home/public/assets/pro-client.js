@@ -421,8 +421,11 @@
     var body = { email: (email || "").trim() };
     if (deviceCode) body.device_code = deviceCode;
     if (inviteToken) body.invite_token = inviteToken;
-    // `promo`: signed up from a box that says we send product email.
-    if (extra && extra.signup) { body.signup = extra.signup; body.promo = true; }
+    // `promo`: the sign-up box's email choice, false = refused.
+    if (extra && extra.signup) {
+      body.signup = extra.signup;
+      if (typeof extra.promo === "boolean") body.promo = extra.promo;
+    }
     return apiJSON("/auth/code/request", "POST", body);
   }
   // Exchange email + typed code for a session in THIS browser.
@@ -521,7 +524,10 @@
         '</form>' +
         '<p class="tp-modal-note" role="status" hidden></p>' +
         '<p class="tp-modal-foot">No access? <a href="pro.html">Get Pro</a></p>' +
-        '<p class="tp-modal-legal"><span data-promo-line hidden>We\u2019ll email you about new releases and plans. Unsubscribe anytime. </span>By continuing, you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> ' +
+        // Sign-up only: the right to refuse product email, offered as the
+        // address is given (privacy.html).
+        '<label class="tp-modal-choice" data-promo hidden><input type="checkbox" /><span>Don\u2019t email me about new releases and plans</span></label>' +
+        '<p class="tp-modal-legal">By continuing, you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> ' +
           'and acknowledge our <a href="/privacy.html" target="_blank" rel="noopener">Privacy policy</a>.</p>' +
       "</div>";
     document.body.appendChild(modalEl);
@@ -542,6 +548,7 @@
       var code = step === "code";
       emailForm.hidden = code;
       codeFormEl.hidden = !code;
+      modalEl.querySelector("[data-promo]").hidden = code || !modalOpts.signup;
       titleEl.firstChild.nodeValue = code ? "Enter one-time password" : (modalOpts.title || "Enter your email address");
       var sub = titleEl.querySelector("[data-step-sub]");
       if (sub) sub.textContent = code
@@ -588,7 +595,10 @@
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setError(true); input.focus(); return; }
       setError(false);
       btn.disabled = true; btn.textContent = "Sending…";
-      magicLink(email, null, null, { signup: modalOpts.signup })
+      magicLink(email, null, null, {
+        signup: modalOpts.signup,
+        promo: !modalEl.querySelector("[data-promo] input").checked,
+      })
         .then(function (data) {
           // apiJSON resolves on any status, so a refusal arrives here, not in
           // .catch — without this the modal promised an email that was never
@@ -655,7 +665,6 @@
     lastFocus = document.activeElement;
     setModalNote(m.querySelector(".tp-modal-note"), "", "");
     m.querySelector(".tp-modal-foot").hidden = !!modalOpts.signup;
-    m.querySelector("[data-promo-line]").hidden = !modalOpts.signup;
     if (opts && opts.email) m.querySelector("#tp-modal-email").value = opts.email;
     if (m.__showStep) m.__showStep(opts && opts.step === "code" ? "code" : "email", opts && opts.email);
     m.classList.remove("is-closing");
@@ -748,6 +757,12 @@
       ".tp-modal-foot a{color:inherit;font-weight:500;text-decoration:none}" +
       ".tp-modal-foot a:hover{text-decoration:underline}" +
       'html[data-theme="dark"] .tp-modal-foot{color:#e5e5e5}' +
+      // Sign-up's email choice, sitting with the legal line under it.
+      ".tp-modal-choice{display:flex;align-items:center;gap:8px;width:fit-content;margin:-12px 0 0;font-size:12px;line-height:17px;color:#767676;cursor:pointer}" +
+      ".tp-modal-choice[hidden]{display:none}" +
+      ".tp-modal-choice input{flex:none;width:14px;height:14px;margin:0;accent-color:#17181c;cursor:pointer}" +
+      'html[data-theme="dark"] .tp-modal-choice{color:#8a8a8a}' +
+      'html[data-theme="dark"] .tp-modal-choice input{accent-color:#f2f2f2;color-scheme:dark}' +
       // Terms and Privacy, on both steps. Pulled up to sit with what it follows.
       ".tp-modal-legal{margin:-12px 0 0;font-size:12px;line-height:17px;color:#767676}" +
       ".tp-modal-legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}" +
