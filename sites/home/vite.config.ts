@@ -135,6 +135,7 @@ export default mergeConfig(defineConfig({
         magnetic: resolve(__dirname, "magnetic.html"),
         "voice-position": resolve(__dirname, "voice-position.html"),
         "mood-recognition": resolve(__dirname, "mood-recognition.html"),
+        download: resolve(__dirname, "download.html"),
         voice: resolve(__dirname, "voice.html"),
         "voice-ring": resolve(__dirname, "voice-ring.html"),
         waves: resolve(__dirname, "waves.html"),

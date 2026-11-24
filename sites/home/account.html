@@ -4546,7 +4546,7 @@
       display: flex; align-items: center; width: 100%; height: 32px; padding: 0 12px;
       border: 0; background: transparent; border-radius: 12px; cursor: pointer;
       font-family: var(--font-sans); font-weight: 400; font-size: 13px; line-height: 16px;
-      color: var(--text); text-align: left;
+      color: var(--text); text-align: left; text-decoration: none; box-sizing: border-box; white-space: nowrap;
     }
     /* The base `display: flex` outranks the [hidden] UA rule, so hide explicitly
        (e.g. Members is hidden for solo plans; Cancel/Adjust for lifetime). */
@@ -4921,6 +4921,7 @@
         <nav class="account-sidebar-nav">
           <button type="button" class="account-nav-item is-active" data-acc-tab="account">Account</button>
           <button type="button" class="account-nav-item" data-acc-tab="members" id="acc-nav-members" hidden>Members</button>
+          <a class="account-nav-item" href="/download.html">Download models</a>
         </nav>
       </aside>
 
@@ -5087,7 +5088,7 @@
       var TP = window.LibrariesPro;
       var el = function (id) { return document.getElementById(id); };
       var tabs = { account: el("acc-tab-account"), members: el("acc-tab-members") };
-      var navBtns = Array.prototype.slice.call(document.querySelectorAll(".account-nav-item"));
+      var navBtns = Array.prototype.slice.call(document.querySelectorAll(".account-nav-item[data-acc-tab]"));
 
       function setNote(id, msg, kind) {
         var n = el(id); if (!n) return;

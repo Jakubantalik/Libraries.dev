@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- First-paint guard. Firefox has painted a frame before the stylesheets
+       applied on cached navigations (brand mark at full width, skip link in
+       view, menus open). These few rules make that frame harmless; site.css
+       overrides every one of them once it lands. -->
+  <style>
+    .skip-link { position: absolute; left: -9999px; }
+    .brand-mark svg, .footer-brand-logo svg { width: 22px; height: 14px; }
+    .mobile-menu, .mobile-menu-backdrop, .tl-menu, .t-dropdown { display: none; }
+  </style>
+  <!-- Paint gate. Firefox has painted before the external stylesheets applied
+       on navigation, so the body stays invisible on the site's ground until
+       every local sheet has loaded (script below); a 1.5s timeout reveals it
+       regardless, so a failed sheet can never leave the page blank. -->
+  <style>
+    html { background: #121212; }
+    html:not(.css-ready) body { visibility: hidden; }
+  </style>
+  <meta name="color-scheme" content="dark" />
+
+  <title>Download models | Libraries.dev</title>
+  <meta name="description" content="Download every Libraries.dev on-device model: Magnetic UI, Voice position and Mood recognition. Free with an account." />
+  <meta name="author" content="Libraries.dev" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#121212" />
+
+  <link rel="canonical" href="https://libraries.dev/download" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/favicon.svg" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Libraries.dev" />
+  <meta property="og:url" content="https://libraries.dev/download" />
+  <meta property="og:title" content="Download models · Libraries.dev" />
+  <meta property="og:description" content="Download every Libraries.dev on-device model: Magnetic UI, Voice position and Mood recognition. Free with an account." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
+  <meta name="twitter:title" content="Download models · Libraries.dev" />
+  <meta name="twitter:description" content="Download every Libraries.dev on-device model: Magnetic UI, Voice position and Mood recognition. Free with an account." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/Saans-Medium.woff2" crossorigin />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <link rel="stylesheet" href="/assets/nav-products.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/playground.css" />
+  <style>
+    .dl-meta { margin-top: 8px !important; color: var(--text-muted) !important; font-size: 13px !important; line-height: 20px !important; }
+    .dl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+    .dl-btn {
+      display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border: 0; border-radius: 999px;
+      background: var(--text); color: var(--bg); font: 500 13px/1 var(--font-sans); cursor: pointer;
+      transition: scale 120ms cubic-bezier(0.22, 1, 0.36, 1), opacity 120ms ease;
+    }
+    .dl-btn:active { scale: 0.96; }
+    .dl-btn:focus-visible, .dl-link:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+    .docs-prose a.dl-btn { text-decoration: none; color: var(--text); }
+    .dl-btn--quiet { background: var(--chip-bg); color: var(--text); }
+    .docs-prose a.dl-link { margin-left: 8px; font-size: 13px; line-height: 20px; }
+    .dl-beta {
+      display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; vertical-align: 1px;
+      background: var(--chip-bg); color: var(--text-muted); font-size: 11px; font-weight: 500; line-height: 16px;
+    }
+    /* The model an email link points at (/download#magnet). */
+    .dl-card { scroll-margin-top: 96px; }
+    .dl-card:target { box-shadow: inset 0 0 0 1.5px var(--text-faint); }
+    @media (prefers-reduced-motion: reduce) { .dl-btn { transition: none; } }
+  </style>
+  <script>
+    (function () {
+      var h = document.documentElement;
+      var links = [].slice.call(document.querySelectorAll('link[rel="stylesheet"][href^="/assets/"]'));
+      var reveal = function () { h.classList.add("css-ready"); };
+      if (!links.length) return reveal();
+      var pending = links.length;
+      var done = function () { if (--pending <= 0) reveal(); };
+      links.forEach(function (l) {
+        if (l.sheet) return done();
+        l.addEventListener("load", done);
+        l.addEventListener("error", done);
+      });
+      setTimeout(reveal, 1500);
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#docs">Skip to content</a>
+  <main id="main" class="app">
+    <header class="site-nav">
+      <div class="site-nav-inner">
+        <div class="site-nav-left">
+          <a class="brand" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <nav class="site-nav-menu" aria-label="Primary">
+            <div class="nav-products" data-nav-products>
+              <button type="button" class="nav-pill nav-products-btn nav-pill--active" aria-haspopup="menu" aria-expanded="false" aria-controls="nav-products-menu">Products<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.46967 6.46967C4.76256 6.17678 5.23744 6.17678 5.53033 6.46967L8 8.93934L10.4697 6.46967C10.7626 6.17678 11.2374 6.17678 11.5303 6.46967C11.8232 6.76256 11.8232 7.23744 11.5303 7.53033L8.53033 10.5303C8.23744 10.8232 7.76256 10.8232 7.46967 10.5303L4.46967 7.53033C4.17678 7.23744 4.17678 6.76256 4.46967 6.46967Z"/></svg></button>
+              <div class="tl-menu t-dropdown nav-products-menu" id="nav-products-menu" role="menu" aria-label="Products">
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/beam.html"><span class="nav-products-name">Libraries</span><span class="nav-products-hint">UI effects for AI interfaces</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/magnetic.html" aria-current="page"><span class="nav-products-name">Models<span class="nav-new-badge">New</span></span><span class="nav-products-hint">On-device models for iOS and Android</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/skill.html"><span class="nav-products-name">Skill</span><span class="nav-products-hint">Teach your coding agent every library</span></a>
+              </div>
+            </div>
+            <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
+            <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
+          </nav>
+        </div>
+        <div class="site-nav-right">
+          <a class="nav-get-pro" href="/pro.html"><span class="nav-get-pro-label"><span class="nav-get-pro-word">Get </span>Pro</span></a>
+          <a
+            class="icon-btn-pill"
+            id="gh-stars-btn"
+            href="https://github.com/Jakubantalik/Libraries.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub repository — star count"
+            data-loading="true"
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="pill-label" id="gh-stars-count">—</span>
+          </a>
+          <div class="pm-anchor" id="more-anchor">
+            <button type="button" class="icon-btn" id="more-btn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 8C6.66667 7.26362 7.26362 6.66667 8 6.66667C8.73638 6.66667 9.33333 7.26362 9.33333 8C9.33333 8.73638 8.73638 9.33333 8 9.33333C7.26362 9.33333 6.66667 8.73638 6.66667 8Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 3.33333C6.66667 2.59695 7.26362 2 8 2C8.73638 2 9.33333 2.59695 9.33333 3.33333C9.33333 4.06971 8.73638 4.66667 8 4.66667C7.26362 4.66667 6.66667 4.06971 6.66667 3.33333Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 12.6667C6.66667 11.9303 7.26362 11.3333 8 11.3333C8.73638 11.3333 9.33333 11.9303 9.33333 12.6667C9.33333 13.403 8.73638 14 8 14C7.26362 14 6.66667 13.403 6.66667 12.6667Z" fill="currentColor"/>
+              </svg>
+            </button>
+            <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn nav-burger"
+            id="nav-burger"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="nav-burger-box" aria-hidden="true">
+              <span class="nav-burger-line nav-burger-line--top"></span>
+              <span class="nav-burger-line nav-burger-line--bottom"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+        <ul class="mobile-menu-list">
+          <li class="mobile-menu-group" aria-hidden="true">Products</li>
+          <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--2" href="/magnetic.html">Models<span class="nav-new-badge">New</span></a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--6 mobile-menu-link--pro" href="/pro.html">Get Pro</a></li>
+        </ul>
+        <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
+      </nav>
+    </header>
+
+    <div class="docs" id="docs">
+      <aside class="docs-sidebar">
+        <div class="docs-group docs-group--links">
+          <div class="docs-group-label">Getting started</div>
+          <a class="docs-link docs-link--muted" href="/introduction.html">Introduction</a>
+          <a class="docs-link docs-link--muted" href="/accessibility.html">Accessibility</a>
+        </div>
+        <div class="docs-group">
+          <div class="docs-group-label">Libraries</div>
+          <nav class="docs-list" aria-label="Libraries">
+            <a class="docs-link" href="/beam.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-beam.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Border beam</a>
+            <a class="docs-link" href="/orbs.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-orbs.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Thinking orbs</a>
+            <a class="docs-link" href="/gooey.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-gooey.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Gooey</a>
+            <a class="docs-link" href="/voice.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice</a>
+            <a class="docs-link" href="/voice-ring.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-voice-ring.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice ring</a>
+            <a class="docs-link" href="/waves.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-distortion-waves.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Distortion waves</a>
+            <a class="docs-link" href="/bots.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-avatars.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Bot avatars</a>
+            <a class="docs-link" href="/metal.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-metal.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Metal</a>
+            <a class="docs-link" href="/image.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-image.png" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Image</a>
+          </nav>
+        </div>
+        <div class="docs-group">
+          <div class="docs-group-label">Models</div>
+          <nav class="docs-list" aria-label="Models">
+            <a class="docs-link" href="/magnetic.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-magnetic.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Magnetic UI</a>
+            <a class="docs-link" href="/voice-position.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice position</a>
+            <a class="docs-link" href="/mood-recognition.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-mood.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Mood recognition</a>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="docs-main is-doc">
+        <header class="detail-head">
+          <div class="detail-titles">
+            <h1 class="detail-title">Download models</h1>
+            <p class="detail-sub">Every on-device model, free with an account.</p>
+          </div>
+        </header>
+
+        <div class="detail-body docs-prose">
+          <p class="dl-lede">Each download is a .zip. Every model comes with its license.</p>
+          <div class="docs-cards" id="dl-list">
+            <section class="docs-card dl-card" id="magnet" aria-labelledby="magnet-title">
+              <h3 id="magnet-title">Magnetic UI</h3>
+              <p>Reads the phone's magnetometer and tells your views where the magnet is, whether it is really there, and when it taps the air.</p>
+              <p class="dl-meta"><code>Magnet.mfxl</code> · v1.0 · 2 MB · iOS 17+ and Android 10+</p>
+              <div class="dl-actions">
+                <button type="button" class="dl-btn" data-download="magnet">Download model</button>
+                <a class="dl-btn dl-btn--quiet" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app (Android)</a>
+                <a class="dl-link" href="/magnetic.html">Install guide</a>
+              </div>
+            </section>
+            <section class="docs-card dl-card" id="position" aria-labelledby="position-title">
+              <h3 id="position-title">Voice position<span class="dl-beta">Beta</span></h3>
+              <p>Listens through the iPhone's built-in stereo microphones and tells your views which side the voice is on, and how far off.</p>
+              <p class="dl-meta"><code>VoicePosition.mfxl</code> · v2.0 beta · 1.6 KB · iPhone with iOS 17+</p>
+              <div class="dl-actions">
+                <button type="button" class="dl-btn" data-download="position">Download model</button>
+                <a class="dl-link" href="/voice-position.html">Install guide</a>
+              </div>
+            </section>
+            <section class="docs-card dl-card" id="mood" aria-labelledby="mood-title">
+              <h3 id="mood-title">Mood recognition<span class="dl-beta">Beta</span></h3>
+              <p>Reads frustration, confusion, or when someone is lost, from how they move the pointer, press, scroll and type.</p>
+              <p class="dl-meta"><code>MoodRecognition.json</code> · v0.4 beta · 142 KB · web, React kit for React 18+</p>
+              <div class="dl-actions">
+                <button type="button" class="dl-btn" data-download="mood">Download model</button>
+                <button type="button" class="dl-btn dl-btn--quiet" data-download="mood-react">Download React kit</button>
+                <a class="dl-link" href="/mood-recognition.html">Install guide</a>
+              </div>
+            </section>
+          </div>
+
+          <h2>License</h2>
+          <p>
+            Models are free for development, prototypes, and personal or non-commercial apps.
+            Shipping one in a paid or client app needs <a href="/pro.html">Pro</a>, or Business for a
+            company. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a>
+            has the full terms.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="footer-brand-logo" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <p class="footer-tagline">Libraries and models for next-gen UI</p>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <p class="footer-col-title">Libraries</p>
+            <a href="/beam.html">Border beam</a>
+            <a href="/orbs.html">Thinking orbs</a>
+            <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/voice-ring.html">Voice ring</a>
+            <a href="/waves.html">Distortion waves</a>
+            <a href="/bots.html">Bot avatars</a>
+            <a href="/metal.html">Metal</a>
+            <a href="/image.html">Image</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Product</p>
+            <a href="/">Home</a>
+            <a href="/studio.html">Studio</a>
+            <a href="/pro.html">Get Pro</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Legal &amp; Account</p>
+            <a href="/pro.html" id="footer-signin">Sign in</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="mailto:jakubja@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-byline">
+        <p class="footer-credit"><span class="footer-muted">Created by</span><a class="footer-name" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer">Jakub Antalik</a></p>
+        <p class="footer-thanks">Made with help from <a href="https://x.com/a_brinza" target="_blank" rel="noopener noreferrer">Alexandr Brinza</a> (Orbs)</p>
+      </div>
+    </footer>
+  </main>
+
+  <script src="/assets/site.js" defer></script>
+  <script src="/assets/nav-products.js" defer></script>
+  <script src="/assets/pro-client.js" defer></script>
+  <script>
+    // Every file needs a free account. Signed out, the sign-in box opens in
+    // free-account mode and the download starts once the code is in.
+    (function () {
+      var NAMES = { magnet: "Magnetic UI", position: "Voice position", mood: "Mood recognition", "mood-react": "Mood recognition" };
+      [].forEach.call(document.querySelectorAll("[data-download]"), function (btn) {
+        btn.addEventListener("click", function () {
+          var pro = window.LibrariesPro;
+          if (!pro) return;
+          var id = btn.getAttribute("data-download");
+          var go = function () { location.href = pro.apiBase + "/models/" + id; };
+          if (pro.state.authenticated) { go(); return; }
+          pro.signIn({
+            signup: "model:" + id,
+            title: "Download " + NAMES[id],
+            sub: "Free account: we email you a code, no password.",
+            onSignedIn: go
+          });
+        });
+      });
+    })();
+  </script>
+  <!-- GoatCounter: privacy-friendly page views, no cookies. -->
+  <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

@@ -200,6 +200,20 @@
         signout.remove();
       }
 
+      // "Download models" between Account and Sign out.
+      var dl = document.getElementById("pm-downloads");
+      if (state.authenticated && !dl) {
+        dl = document.createElement("a");
+        dl.className = "tl-menu-item";
+        dl.id = "pm-downloads";
+        dl.href = "/download.html";
+        dl.setAttribute("role", "menuitem");
+        dl.innerHTML = '<span class="tl-menu-item-label">Download models</span>';
+        signin.parentNode.insertBefore(dl, signin.nextSibling);
+      } else if (!state.authenticated && dl) {
+        dl.remove();
+      }
+
       // "Join for free" first in the menu, above "Sign in", while signed out:
       // a free account (signup "site"), no purchase needed.
       var signup = document.getElementById("pm-signup");
@@ -355,6 +369,8 @@
     setBusy(cta, true);
     var promo = urlPromoCode();
     if (promo) payload.code = promo;
+    // Bought from this version of the site (privacy.html: product email).
+    payload.promo = true;
     apiJSON("/checkout", "POST", payload)
       .then(function (data) {
         if (data && data.url) location.href = data.url;
@@ -405,7 +421,8 @@
     var body = { email: (email || "").trim() };
     if (deviceCode) body.device_code = deviceCode;
     if (inviteToken) body.invite_token = inviteToken;
-    if (extra && extra.signup) body.signup = extra.signup;
+    // `promo`: signed up from a box that says we send product email.
+    if (extra && extra.signup) { body.signup = extra.signup; body.promo = true; }
     return apiJSON("/auth/code/request", "POST", body);
   }
   // Exchange email + typed code for a session in THIS browser.
@@ -504,6 +521,8 @@
         '</form>' +
         '<p class="tp-modal-note" role="status" hidden></p>' +
         '<p class="tp-modal-foot">No access? <a href="pro.html">Get Pro</a></p>' +
+        '<p class="tp-modal-legal"><span data-promo-line hidden>We\u2019ll email you about new releases and plans. Unsubscribe anytime. </span>By continuing, you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> ' +
+          'and acknowledge our <a href="/privacy.html" target="_blank" rel="noopener">Privacy policy</a>.</p>' +
       "</div>";
     document.body.appendChild(modalEl);
 
@@ -636,6 +655,7 @@
     lastFocus = document.activeElement;
     setModalNote(m.querySelector(".tp-modal-note"), "", "");
     m.querySelector(".tp-modal-foot").hidden = !!modalOpts.signup;
+    m.querySelector("[data-promo-line]").hidden = !modalOpts.signup;
     if (opts && opts.email) m.querySelector("#tp-modal-email").value = opts.email;
     if (m.__showStep) m.__showStep(opts && opts.step === "code" ? "code" : "email", opts && opts.email);
     m.classList.remove("is-closing");
@@ -728,6 +748,12 @@
       ".tp-modal-foot a{color:inherit;font-weight:500;text-decoration:none}" +
       ".tp-modal-foot a:hover{text-decoration:underline}" +
       'html[data-theme="dark"] .tp-modal-foot{color:#e5e5e5}' +
+      // Terms and Privacy, on both steps. Pulled up to sit with what it follows.
+      ".tp-modal-legal{margin:-12px 0 0;font-size:12px;line-height:17px;color:#767676}" +
+      ".tp-modal-legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}" +
+      ".tp-modal-legal a:hover{color:#17181c}" +
+      'html[data-theme="dark"] .tp-modal-legal{color:#8a8a8a}' +
+      'html[data-theme="dark"] .tp-modal-legal a:hover{color:#f2f2f2}' +
       // Error-state-shake (transitions-dev 12) on invalid submit.
       ".tp-modal-input.is-shaking{animation:tp-shake 280ms linear}" +
       "@keyframes tp-shake{" +
