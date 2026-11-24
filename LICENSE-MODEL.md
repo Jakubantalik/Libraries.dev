@@ -1,23 +1,24 @@
 # Libraries.dev Model License
 
-Version 1.2 · Effective 5 November 2026
+Version 1.3 · Effective 23 November 2026
 
 Copyright (c) 2026 Jakub Antalik. All rights reserved except as granted below.
 
 This license covers the machine-learning models published by Libraries.dev:
-the magnet model behind Magnetic UI (`Magnet.mfxl`) and the Voice position
+the magnet model behind Magnetic UI (`Magnet.mfxl`), the Voice position
 model (`VoicePosition.mfxl`, called Voice direction and `VoiceDirection.mfxl`
-up to its version 1.0). The source code around a model (MagnetKit for
-iOS and Android, VoiceRingKit and VoicePositionKit, and the other
-Libraries.dev packages) is MIT and is not covered here; this license applies
-only to the model files.
+up to its version 1.0) and the Adaptive UI model (`AdaptiveUI.json`). The
+source code around a model (MagnetKit for iOS and Android, VoiceRingKit and
+VoicePositionKit, the Adaptive UI React kit, and the other Libraries.dev
+packages) is MIT and is not covered here; this license applies only to the
+model files.
 
 ## 1. Definitions
 
 - **Model**: a model file published by Libraries.dev (for example
-  `Magnet.mfxl` or `VoicePosition.mfxl`), its weights and parameters, and
-  any copy, conversion, quantization, compression, fine-tune or other
-  derivative of them.
+  `Magnet.mfxl`, `VoicePosition.mfxl` or `AdaptiveUI.json`), its weights
+  and parameters, and any copy, conversion, quantization, compression,
+  fine-tune or other derivative of them.
 - **You**: the individual, or the company or organization, that downloads or
   uses the Model.
 - **Plan**: an active Libraries.dev Pro or Business subscription, a Pro
@@ -101,7 +102,8 @@ the license ends, you must stop distributing new copies of the Model. Sections
 THE MODEL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE, ACCURACY AND NON-INFRINGEMENT. The Model
-estimates physical quantities from sensor readings and can be wrong. Do not
+estimates physical quantities from sensor readings, or how a person is doing
+from how they use an interface, and can be wrong. Do not
 rely on it where an error could cause injury, damage or financial loss.
 
 ## 8. Limitation of liability
@@ -119,7 +121,7 @@ MIT License. Every copy obtained from Libraries.dev after that, and every later
 version of the Model, is licensed under this license only.
 
 `VoicePosition.mfxl`, under either of its names, has never been published under
-any other license.
+any other license. Neither has `AdaptiveUI.json`.
 
 ## 10. Changes to this license
 
@@ -128,6 +130,7 @@ to Model versions released after it is published; the version you received
 with a Model continues to apply to that Model version. Version 1.1 adds the
 Voice direction model, and limits the Model rights of Pro Lifetime purchased
 from 27 October 2026 to 12 months from purchase (section 3); Pro Lifetime
-purchased earlier keeps every Model. It changes no other term of version 1.0.
+purchased earlier keeps every Model. It changes no other term of version 1.0. Version 1.3 adds the Adaptive UI
+model, and changes no other term.
 
-Questions or Enterprise licensing: jakub@libraries.dev
+Questions or Enterprise licensing: jakubja@gmail.com

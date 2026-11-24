@@ -1087,17 +1087,10 @@ html[data-theme="dark"] .skill-btn--secondary:active {
   gap: 24px;
   align-items: start;
 }
-/* Rows of three: every library a third of the row, Beam and Orb included,
-   so the nine libraries fill three rows with nothing left over. The cards
-   drop their fixed 320px so the tracks size them. */
+/* Rows of three: every card a third of the row, libraries and models
+   alike, so the nine libraries and three models fill four rows with nothing
+   left over. The cards drop their fixed 320px so the tracks size them. */
 .cards > .lib-card { width: auto; grid-column: span 2; }
-/* Only on the six-track layout (the narrow grids below set their own
-   spans): the two models sit as a wide pair, half the row each, one row
-   above the last. */
-@media (min-width: 1101px) {
-  .cards > .lib-card[data-lib="magnetic"],
-  .cards > .lib-card[data-lib="voice-position"] { grid-column: span 3; }
-}
 /* The stage is absolutely placed, so it needs both insets to follow a
    card that is no longer a fixed width. */
 .cards > .lib-card .card-stage { right: 12px; width: auto; max-width: none; }

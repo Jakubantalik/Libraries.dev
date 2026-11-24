@@ -502,7 +502,9 @@
       --mdl-glow: rgba(255, 255, 255, 0.14); --mdl-device: #1f1f1f;
     }
     .mdl-art { position: absolute; left: 50%; top: 50%; width: 472px; height: 254px; translate: -50% -50%; scale: var(--mdl-scale); }
-    @media (max-width: 1100px) { .mdl { --mdl-scale: 0.72; } }
+    /* At a regular card's 296px stage the artboard shows at 72%; a single
+       column on phones has room for 80%. */
+    .mdl { --mdl-scale: 0.72; }
     @media (max-width: 740px) { .mdl { --mdl-scale: 0.8; } }
 
     /* Magnetic UI: the magnet, flat north and south, and its field */
@@ -1334,6 +1336,20 @@
         </div>
       </article>
 
+      <article class="card lib-card" data-lib="adaptive-ui" data-kind="model">
+        <a class="lib-card-hit" href="/adaptive-ui.html" aria-label="Adaptive UI"></a>
+        <div class="card-stage">
+          <div class="adth" data-adaptive-thumb="field"></div>
+        </div>
+        <div class="lib-meta">
+          <span class="lib-ico lib-ico--tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="24" height="24" viewBox="7.5 6.5 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_ad_card)"><g opacity="0.7"><path d="M8.5 10.5V7.5H11.5M18.5 7.5H21.5V10.5M8.5 17.5V20.5H11.5M21.5 17.5V20.5H18.5" stroke="url(#paint0_linear_ad_card)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.1 9.6V17.4L14.1 15.6L15.4 18.3L16.7 17.7L15.5 15.1L18.2 15Z" fill="url(#paint0_linear_ad_card)" stroke="url(#paint0_linear_ad_card)" stroke-width="1.2" stroke-linejoin="round"/></g></g><defs><filter id="filter0_ii_ad_card" x="7.5" y="6.5" width="15" height="15" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.4"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_ad_card"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.2"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_ad_card" result="effect2_innerShadow_ad_card"/></filter><linearGradient id="paint0_linear_ad_card" x1="10.5" y1="21" x2="16.5" y2="1.5" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
+          <span class="lib-meta-text">
+            <span class="lib-name">Adaptive UI</span>
+            <span class="lib-desc">Interfaces that read the user's mood</span>
+          </span>
+        </div>
+      </article>
+
       <article class="card lib-card" data-lib="avatars" data-kind="library">
         <a class="lib-card-hit" href="/bots.html" aria-label="Bot avatars playground"></a>
         <div class="card-stage">
@@ -2014,6 +2030,8 @@
   <script src="/assets/site.js" defer></script>
   <script src="/assets/nav-products.js" defer></script>
   <script src="/assets/pro-client.js" defer></script>
+  <!-- Adaptive UI's card: the cursor HUD on a simulated pointer. -->
+  <script type="module" src="/src/adaptive-thumb.ts"></script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
   <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>

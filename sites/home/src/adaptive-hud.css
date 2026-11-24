@@ -1,0 +1,202 @@
+/* The Adaptive UI lab's cursor HUD (frustration-ui, lab/adaptive.css), for
+   src/adaptive-hud.ts: drawn inside a stage rather than over the window,
+   always in its dark-screen styling. Used by the page's showcase and the
+   home card. */
+
+.au-hud {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --hud-ink: #f2f2f2;
+  --hud-accent: var(--hud-ink);
+  --hud-halo: rgb(7 7 7 / 0.9);
+  --hud-glow: #070707;
+  --hud-paper: #0d0d0d;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--hud-ink);
+  font: 500 9px/11px 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: opacity 150ms ease-out;
+}
+
+.au-hud.is-away {
+  opacity: 0;
+}
+
+.au-hud .hud-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.au-hud .hud-halo {
+  fill: none;
+  stroke: var(--hud-halo);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.au-hud .hud-ink {
+  fill: none;
+  stroke: var(--hud-ink);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  transition: stroke 200ms var(--ease-out);
+}
+
+/* the cursor's corner brackets: half strength, always ink, whatever the mood */
+.au-hud .hud-reticle {
+  opacity: 0.5;
+}
+
+.au-hud .hud-scan .hud-ink,
+.au-hud .hud-dust .hud-ink {
+  stroke-width: 0.75;
+}
+
+/* each dust box's tie back to the brackets: a hairline over a thin halo */
+.au-hud .hud-dust .hud-tie .hud-ink {
+  stroke-width: 0.5;
+}
+
+.au-hud .hud-dust .hud-tie .hud-halo {
+  stroke-width: 1.5;
+}
+
+.au-hud .hud-scan-dots {
+  fill: var(--hud-ink);
+}
+
+.au-hud .hud-scan,
+.au-hud .hud-scan-dots {
+  opacity: 0.78;
+}
+
+.au-hud .hud-trail {
+  opacity: 0.6;
+}
+
+.au-hud .hud-red-dots {
+  fill: #ff3b30;
+}
+
+/* click wave: tiny filled ink squares over a thin halo */
+.au-hud .hud-wave .hud-halo {
+  stroke-width: 1.5;
+}
+
+.au-hud .hud-wave .hud-ink {
+  fill: var(--hud-ink);
+  stroke: none;
+}
+
+.au-hud .hud-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  gap: 1px;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px var(--hud-glow),
+    0 0 3px var(--hud-glow);
+  will-change: transform;
+}
+
+/* the mood on an ink chip, 25% larger than the rest of the readout */
+.au-hud .hud-l1 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: max-content;
+  margin-left: -3.75px;
+  padding: 1.25px 5px;
+  font-size: 11.25px;
+  line-height: 13.75px;
+  background: var(--hud-ink);
+  color: var(--hud-paper);
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.au-hud .hud-mark {
+  width: 6.25px;
+  height: 6.25px;
+  border: 1px solid currentColor;
+  transition:
+    background-color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out);
+}
+
+.au-hud .hud-label.is-mood .hud-mark {
+  border-color: var(--hud-accent);
+  background: var(--hud-accent);
+}
+
+.au-hud .hud-l2 {
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
+/* L C A F from the model and the away rule, I the fast signals; 0.30 and up go full ink */
+.au-hud .hud-vals {
+  display: flex;
+  gap: 6px;
+  margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.au-hud .hud-vals span {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.au-hud .hud-vals b {
+  font-weight: 500;
+  opacity: 0.45;
+}
+
+.au-hud .hud-vals em {
+  font-style: normal;
+  opacity: 0.6;
+}
+
+.au-hud .hud-vals em.is-hot {
+  opacity: 1;
+}
+
+/* what is being fought with, once over the alert line */
+.au-hud .hud-at {
+  margin-top: 1px;
+  opacity: 1;
+  color: var(--hud-accent);
+}
+
+.au-hud .hud-at[hidden] {
+  display: none;
+}
+
+/* over the alert line the readout glitches once */
+.au-hud .hud-label.is-glitch .hud-l1 {
+  animation: au-hud-glitch 320ms steps(1) both;
+}
+
+@keyframes au-hud-glitch {
+  0% { clip-path: inset(0 0 55% 0); transform: translateX(-3px); }
+  20% { clip-path: inset(45% 0 10% 0); transform: translateX(2px); }
+  40% { clip-path: inset(70% 0 0 0); transform: translateX(-1px); }
+  60% { clip-path: inset(10% 0 50% 0); transform: translateX(3px); }
+  80% { clip-path: inset(0); transform: translateX(-1px); }
+  100% { clip-path: inset(0); transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .au-hud .hud-label .hud-l1 {
+    animation: none !important;
+  }
+}

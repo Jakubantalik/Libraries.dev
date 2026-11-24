@@ -147,6 +147,7 @@ html[data-theme="light"] .docs-link-icon[src*="figma-distortion-waves"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-distortion-waves"] { content: url("/assets/icons/figma-distortion-waves-light.svg"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-magnetic"] { content: url("/assets/icons/figma-magnetic-light.svg"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-directional"] { content: url("/assets/icons/figma-directional-light.svg"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-adaptive"] { content: url("/assets/icons/figma-adaptive-light.svg"); }
 
 
 .docs-main { position: relative; min-width: 0; }
@@ -2576,9 +2577,9 @@ html[data-theme="dark"] .docs-prose {
 /* On a written page the subtitle is body copy, not a hero line. */
 .docs-main .detail-sub { font-size: 14px; line-height: 22px; color: #3f3f3f; }
 html[data-theme="dark"] .docs-main .detail-sub { color: #cdcdcd; }
-/* Written pages (.is-doc): the lead reads as the first paragraph, same
-   size, line and ink as the body, 12px above it like any other block. */
-.docs-main.is-doc .detail-sub { line-height: 24px; color: #3f3f3f; }
+/* Written pages (.is-doc): the lead sentence opens the page a size up from
+   the body, Inter 18px, 12px above the first paragraph. */
+.docs-main.is-doc .detail-sub { font-family: "Inter", var(--font-sans); font-size: 18px; line-height: 28px; color: #3f3f3f; opacity: 0.7; }
 html[data-theme="dark"] .docs-main.is-doc .detail-sub { color: #ededed; }
 .docs-main.is-doc .detail-body { margin-top: 12px; }
 

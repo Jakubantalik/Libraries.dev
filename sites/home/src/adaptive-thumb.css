@@ -1,0 +1,55 @@
+/* Adaptive UI's home card with the real cursor HUD (src/adaptive-thumb.ts).
+   Always the showcase's dark stage, light or dark site, since the HUD is
+   drawn for a dark screen. The artboard is the card stage's 296 × 260. */
+
+.adth {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 100% at 50% 50%, transparent 45%, #131313 90%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.07) 0.7px, transparent 1px) 0 0 / 12px 12px,
+    #131313;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.adth-art {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 296px;
+  height: 260px;
+  translate: -50% -50%;
+}
+
+.adth-arrow {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  z-index: 1;
+  transform-origin: 1.5px 1.5px;
+  transition: opacity 260ms ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.adth-arrow svg {
+  display: block;
+}
+
+/* the HUD a size down for a card */
+.adth .au-hud {
+  font-size: 7.5px;
+  line-height: 9px;
+}
+
+.adth .au-hud .hud-l1 {
+  font-size: 9.4px;
+  line-height: 11.5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adth *, .adth-arrow {
+    transition: none !important;
+  }
+}
