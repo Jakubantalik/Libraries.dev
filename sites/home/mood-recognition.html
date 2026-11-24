@@ -325,7 +325,7 @@
               <button type="button" class="nav-pill nav-products-btn nav-pill--active" aria-haspopup="menu" aria-expanded="false" aria-controls="nav-products-menu">Products<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.46967 6.46967C4.76256 6.17678 5.23744 6.17678 5.53033 6.46967L8 8.93934L10.4697 6.46967C10.7626 6.17678 11.2374 6.17678 11.5303 6.46967C11.8232 6.76256 11.8232 7.23744 11.5303 7.53033L8.53033 10.5303C8.23744 10.8232 7.76256 10.8232 7.46967 10.5303L4.46967 7.53033C4.17678 7.23744 4.17678 6.76256 4.46967 6.46967Z"/></svg></button>
               <div class="tl-menu t-dropdown nav-products-menu" id="nav-products-menu" role="menu" aria-label="Products">
                 <a class="tl-menu-item nav-products-item" role="menuitem" href="/beam.html"><span class="nav-products-name">Libraries</span><span class="nav-products-hint">UI effects for AI interfaces</span></a>
-                <a class="tl-menu-item nav-products-item" role="menuitem" href="/magnetic.html" aria-current="page"><span class="nav-products-name">Models<span class="nav-new-badge">New</span></span><span class="nav-products-hint">On-device models for iOS and Android</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/magnetic.html" aria-current="page"><span class="nav-products-name">Models<span class="nav-new-badge">New</span></span><span class="nav-products-hint">On-device intelligence for your UI</span></a>
                 <a class="tl-menu-item nav-products-item" role="menuitem" href="/skill.html"><span class="nav-products-name">Skill</span><span class="nav-products-hint">Teach your coding agent every library</span></a>
               </div>
             </div>
@@ -513,11 +513,12 @@
 
             <div class="docs-prose mui-doc">
               <h2>The model</h2>
-              <p>One model reads how someone is using the page, four times a second, and tells your UI how they are doing: frustrated, confused, lost, or fine. It is input only: pair it with any component, and let the screen bring forward what helps.</p>
+              <p>One model reads how someone is using the page, four times a second, and tells your UI how they are doing: frustrated, confused, lost, or neutral. It is input only: pair it with any component, and let the screen bring forward what helps.</p>
               <p class="mui-doc-meta"><code>MoodRecognition.json</code> · v0.4 beta · 142 KB (32 KB gzipped) · React kit · <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a></p>
 
               <h3>Moods</h3>
               <ul class="mood-list">
+                <li><strong><i style="--c: currentColor"></i>Neutral</strong> Getting on with it: moving, pressing, scrolling and typing with no sign of trouble. The starting point, and where every mood eases back to. Your UI gets <code>null</code>, so the screen stays as it is.</li>
                 <li><strong><i style="--c: #c8212b"></i>Frustrated</strong> Fighting the interface: pressing a locked or disabled control, quick repeated presses on one spot or on nothing, the pointer shaken back and forth, a field typed and sent the same way after it failed. A blocked step reads as frustrated.</li>
                 <li><strong><i style="--c: #ec8420"></i>Confused</strong> Unsure what to do next, read from how the pointer moves alone, its speed and its path: circling one spot or hovering round a control without pressing it, slowing down and turning back.</li>
                 <li><strong><i style="--c: #7b4fd6"></i>Lost</strong> Looking for something: returning to the same few places without pressing, opening section after section, scrolling back and forth, a long time since any progress.</li>
@@ -527,7 +528,7 @@
               <h3>How someone is doing</h3>
               <ul>
                 <li><strong>Reads</strong> 43 measures of the last 8 seconds, some looking back 15, 30 or 60: how the pointer moves (speed, wiggle, shaking, circling one spot, returning to the same places without pressing), presses (repeated on one spot, on nothing, on disabled controls, near misses), scrolling back and forth, typing and deleting, invalid entries, and a field typed and sent the same way after it failed.</li>
-                <li><strong>Answers</strong> How likely each reading is: fine, blocked, lost, confused, waiting or frustrated, and one score for all of them together. A new answer every 250 ms.</li>
+                <li><strong>Answers</strong> How likely each reading is: neutral, blocked, lost, confused, waiting or frustrated, and one score for all of them together. A new answer every 250 ms.</li>
                 <li><strong>Tested</strong> On real sessions from more than 10 people with planted problems (a Pay that stays locked, a strict date format, a buried setting, a silent slow save), each scored by a model that had never seen them: 48 of 60 problems caught at the alert line, and 2.3 % of calm time flagged (median person 1.5 %).</li>
               </ul>
               <h3>The obvious cases, at once</h3>
@@ -750,7 +751,7 @@ function predict(x: number[]) {
               <ul>
                 <li><strong>Pro</strong> One person, such as a solo builder or freelancer: unlimited products, client work included. Pro Lifetime covers the same for 12 months from purchase, every model and kit included; after that, shipped builds stay live and a new release with a model or a kit needs a subscription (bought before 27 October 2026: every model and kit, no end date).</li>
                 <li><strong>Business</strong> A company or organization: unlimited products.</li>
-                <li><strong>Enterprise</strong> Terms set by a separate written agreement, for example custom training or volume deals. <a href="mailto:jakubja@gmail.com">jakubja@gmail.com</a></li>
+                <li><strong>Enterprise</strong> Terms set by a separate written agreement, for example custom training or volume deals. <a href="mailto:hello@libraries.dev">hello@libraries.dev</a></li>
               </ul>
               <p>Builds released while your plan was active may stay available after it ends. A new release, including an update that ships the model or a kit, needs an active plan.</p>
               <h2>Conditions</h2>
@@ -765,7 +766,7 @@ function predict(x: number[]) {
                 <li><strong>Ownership</strong> The model and the kits stay Libraries.dev&#x27;s. Your products, code and data stay yours.</li>
                 <li><strong>Breaches</strong> The license ends if it is broken, and comes back if the breach is fixed within 30 days.</li>
                 <li><strong>No warranty</strong> The model estimates how someone is doing from how they use an interface, and can be wrong. Don&#x27;t rely on it where an error could cause injury, damage or financial loss.</li>
-                <li><strong>Versions</strong> <code>MoodRecognition.json</code> v0.4 is a beta; check it on the screens you ship. The model has only ever been published under the Model License. The React kit 0.4 was MIT on 24 November 2026; copies obtained then stay MIT, every later version is under the Model License.</li>
+                <li><strong>Versions</strong> <code>MoodRecognition.json</code> v0.4 is a beta; check it on the screens you ship. The model and the React kit 0.5 are both under the Model License.</li>
               </ul>
               <p>This is a summary. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">full Model License</a> is what applies; plans are on <a href="/pro.html">Pricing</a>.</p>
             </div>
@@ -799,6 +800,8 @@ pace in memory), reactTo (default ["frustrated", "confused", "lost"]).
 Without React: createMoodReader({ model, scope, onReading }).start().
 
 Moods:
+- neutral: getting on with it, no sign of trouble; given as mood null, so leave
+  the screen as it is
 - frustrated: fighting the interface (pressing a locked or disabled control,
   rapid presses on one spot or on nothing, shaking the pointer, retyping what
   failed); a blocked step reads as frustrated
@@ -811,8 +814,8 @@ Moods:
   a plain rule, don't react to it
 
 Readings (update about every 66 ms):
-- mood: one of the above or null (null while calm or without input; a mood
-  holds 1 s before fading)
+- mood: "frustrated", "confused", "lost", "away" or null (null while neutral or
+  without input; a mood holds 1 s before fading)
 - reaction: 0-1, how strongly the UI should react: from 0.30 of the reading,
   full at the 0.65 alert line; rises in ~0.1 s, eases back over a few seconds
   once calm (about half a minute while the pointer rests); away doesn't raise

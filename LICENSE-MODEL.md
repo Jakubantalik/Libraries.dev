@@ -153,4 +153,4 @@ Version 1.4 renames that model Mood recognition, and changes no other term.
 Version 1.5 brings the Kits, MIT until then, under this license, and changes no
 term for the Models.
 
-Questions or Enterprise licensing: jakubja@gmail.com
+Questions or Enterprise licensing: hello@libraries.dev

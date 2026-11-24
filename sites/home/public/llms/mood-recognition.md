@@ -6,6 +6,7 @@ Interfaces that read the user's mood. One small on-device model (`MoodRecognitio
 
 ## Moods
 
+- **Neutral**: getting on with it: moving, pressing, scrolling and typing with no sign of trouble. The starting point, and where every mood eases back to. Given as `mood: null`; leave the screen as it is.
 - **Frustrated**: fighting the interface: pressing a locked or disabled control, quick repeated presses on one spot or on nothing, the pointer shaken back and forth, a field typed and sent the same way after it failed. A blocked step reads as frustrated.
 - **Confused**: unsure what to do next, from the pointer's speed and path alone: circling one spot or hovering round a control without pressing it, slowing down and turning back.
 - **Lost**: looking for something: returning to the same few places without pressing, opening section after section, scrolling back and forth.
