@@ -1,6 +1,6 @@
-// Adaptive UI, without a framework: one reading of how someone is doing, every 66 ms.
+// Mood recognition, without a framework: one reading of how someone is doing, every 66 ms.
 //
-// Two sources feed it. The model (AdaptiveUI.json) reads the last 8 s of input and says how
+// Two sources feed it. The model (MoodRecognition.json) reads the last 8 s of input and says how
 // likely each reading is; the fast signals read the last second or two and see shaking,
 // circling, rapid presses and presses on disabled controls within a few hundred ms. Away is a
 // plain rule. The reading names one mood, holds it a second once it shows, then eases back, and
@@ -19,7 +19,7 @@ import { fastSignals, type FastKind } from './core/fast'
 export type Mood = 'frustrated' | 'confused' | 'lost' | 'away'
 export type { FastKind }
 
-export type AdaptiveReading = {
+export type MoodReading = {
   /** The mood the reading names, or null while calm or without input. Blocked reads as frustrated. */
   mood: Mood | null
   /** How strongly the UI should react, 0..1. */
@@ -35,8 +35,8 @@ export type AdaptiveReading = {
   isModelLoaded: boolean
 }
 
-export type AdaptiveOptions = {
-  /** The model, AdaptiveUI.json, as imported. Without it, only the fast signals and away work. */
+export type MoodOptions = {
+  /** The model, MoodRecognition.json, as imported. Without it, only the fast signals and away work. */
   model?: unknown
   /** Read only what happens inside this element. Default: the whole page, as the model was
    * trained; a scope drops pointer moves over everything else, which can hide a shake. */
@@ -46,7 +46,7 @@ export type AdaptiveOptions = {
   /** The moods the reaction rises for. Default: frustrated, confused and lost. */
   reactTo?: readonly Mood[]
   /** Called with every new reading. */
-  onReading?: (reading: AdaptiveReading) => void
+  onReading?: (reading: MoodReading) => void
 }
 
 export const READING_MS = 66
@@ -94,10 +94,10 @@ function asModel(model: unknown): ModelJson | null {
   return (model as { format?: unknown }).format === 'fx-gbdt-1' ? (model as ModelJson) : null
 }
 
-export function createAdaptive(opts: AdaptiveOptions = {}) {
+export function createMoodReader(opts: MoodOptions = {}) {
   const reactTo = opts.reactTo ?? DEFAULT_REACT
   const recorder = new Recorder({ keepMs: ERROR_WINDOW_MS + 5000, scope: opts.scope })
-  const baselineKey = opts.baselineKey === undefined ? 'adaptive-baseline' : opts.baselineKey
+  const baselineKey = opts.baselineKey === undefined ? 'mood-baseline' : opts.baselineKey
 
   let model: ModelJson | null = asModel(opts.model)
   let detector: Detector | null = null
@@ -106,11 +106,11 @@ export function createAdaptive(opts: AdaptiveOptions = {}) {
       // The detector's 250 ms step keeps the person's own pace current; readings come from sample().
       detector = createDetector({ model, recorder, baselineKey })
     } catch (err) {
-      console.error('adaptive-ui: this model does not match the kit, so only the fast signals run.', err)
+      console.error('mood-recognition: this model does not match the kit, so only the fast signals run.', err)
       model = null
     }
   } else if (opts.model) {
-    console.error('adaptive-ui: the model is not an AdaptiveUI.json file, so only the fast signals run.')
+    console.error('mood-recognition: the model is not an MoodRecognition.json file, so only the fast signals run.')
   }
 
   let timer = 0
@@ -122,7 +122,7 @@ export function createAdaptive(opts: AdaptiveOptions = {}) {
   let level = 0
   let levelPeakAt = 0
   let outAt: number | null = null
-  let reading: AdaptiveReading = {
+  let reading: MoodReading = {
     mood: null,
     reaction: 0,
     score: 0,
@@ -261,7 +261,7 @@ export function createAdaptive(opts: AdaptiveOptions = {}) {
       window.removeEventListener('focus', back)
       document.removeEventListener('pointermove', back)
     },
-    get reading(): AdaptiveReading {
+    get reading(): MoodReading {
       return reading
     },
     /** Call when the app moves to a new step or route: the model reads it as progress. */
@@ -271,4 +271,4 @@ export function createAdaptive(opts: AdaptiveOptions = {}) {
   }
 }
 
-export type Adaptive = ReturnType<typeof createAdaptive>
+export type MoodReader = ReturnType<typeof createMoodReader>

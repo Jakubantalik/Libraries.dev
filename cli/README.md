@@ -7,7 +7,7 @@ where each one fits in your project:
 
 - Libraries: Border beam, Thinking orbs, Gooey, Voice, Voice ring, Distortion
   waves, Bot avatars, Liquid metal, Image.
-- Models: Adaptive UI, Voice position, Magnetic UI.
+- Models: Mood recognition, Voice position, Magnetic UI.
 
 ## Free skill
 

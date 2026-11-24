@@ -61,7 +61,7 @@ function saveBaseline(key: string | null, base: Baseline): void {
 
 export function createDetector(opts: DetectorOptions) {
   checkModel(opts.model, FEATURES)
-  const key = opts.baselineKey === undefined ? 'adaptive-baseline' : opts.baselineKey
+  const key = opts.baselineKey === undefined ? 'mood-baseline' : opts.baselineKey
   const owned = !opts.recorder
   const recorder = opts.recorder ?? new Recorder({ keepMs: ERROR_WINDOW_MS + 5000 })
   const base = loadBaseline(key)

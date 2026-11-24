@@ -1,9 +1,9 @@
 /* The Adaptive UI lab's cursor HUD (frustration-ui, lab/adaptive.css), for
-   src/adaptive-hud.ts: drawn inside a stage rather than over the window,
+   src/mood-hud.ts: drawn inside a stage rather than over the window,
    always in its dark-screen styling. Used by the page's showcase and the
    home card. */
 
-.au-hud {
+.mood-hud {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --hud-ink: #f2f2f2;
   --hud-accent: var(--hud-ink);
@@ -22,11 +22,11 @@
   transition: opacity 150ms ease-out;
 }
 
-.au-hud.is-away {
+.mood-hud.is-away {
   opacity: 0;
 }
 
-.au-hud .hud-svg {
+.mood-hud .hud-svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -34,14 +34,14 @@
   overflow: visible;
 }
 
-.au-hud .hud-halo {
+.mood-hud .hud-halo {
   fill: none;
   stroke: var(--hud-halo);
   stroke-width: 2.5;
   stroke-linejoin: round;
 }
 
-.au-hud .hud-ink {
+.mood-hud .hud-ink {
   fill: none;
   stroke: var(--hud-ink);
   stroke-width: 1;
@@ -50,52 +50,52 @@
 }
 
 /* the cursor's corner brackets: half strength, always ink, whatever the mood */
-.au-hud .hud-reticle {
+.mood-hud .hud-reticle {
   opacity: 0.5;
 }
 
-.au-hud .hud-scan .hud-ink,
-.au-hud .hud-dust .hud-ink {
+.mood-hud .hud-scan .hud-ink,
+.mood-hud .hud-dust .hud-ink {
   stroke-width: 0.75;
 }
 
 /* each dust box's tie back to the brackets: a hairline over a thin halo */
-.au-hud .hud-dust .hud-tie .hud-ink {
+.mood-hud .hud-dust .hud-tie .hud-ink {
   stroke-width: 0.5;
 }
 
-.au-hud .hud-dust .hud-tie .hud-halo {
+.mood-hud .hud-dust .hud-tie .hud-halo {
   stroke-width: 1.5;
 }
 
-.au-hud .hud-scan-dots {
+.mood-hud .hud-scan-dots {
   fill: var(--hud-ink);
 }
 
-.au-hud .hud-scan,
-.au-hud .hud-scan-dots {
+.mood-hud .hud-scan,
+.mood-hud .hud-scan-dots {
   opacity: 0.78;
 }
 
-.au-hud .hud-trail {
+.mood-hud .hud-trail {
   opacity: 0.6;
 }
 
-.au-hud .hud-red-dots {
+.mood-hud .hud-red-dots {
   fill: #ff3b30;
 }
 
 /* click wave: tiny filled ink squares over a thin halo */
-.au-hud .hud-wave .hud-halo {
+.mood-hud .hud-wave .hud-halo {
   stroke-width: 1.5;
 }
 
-.au-hud .hud-wave .hud-ink {
+.mood-hud .hud-wave .hud-ink {
   fill: var(--hud-ink);
   stroke: none;
 }
 
-.au-hud .hud-label {
+.mood-hud .hud-label {
   position: absolute;
   top: 0;
   left: 0;
@@ -109,7 +109,7 @@
 }
 
 /* the mood on an ink chip, 25% larger than the rest of the readout */
-.au-hud .hud-l1 {
+.mood-hud .hud-l1 {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -124,7 +124,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.au-hud .hud-mark {
+.mood-hud .hud-mark {
   width: 6.25px;
   height: 6.25px;
   border: 1px solid currentColor;
@@ -133,60 +133,60 @@
     border-color 200ms var(--ease-out);
 }
 
-.au-hud .hud-label.is-mood .hud-mark {
+.mood-hud .hud-label.is-mood .hud-mark {
   border-color: var(--hud-accent);
   background: var(--hud-accent);
 }
 
-.au-hud .hud-l2 {
+.mood-hud .hud-l2 {
   opacity: 0.55;
   font-variant-numeric: tabular-nums;
 }
 
 /* L C A F from the model and the away rule, I the fast signals; 0.30 and up go full ink */
-.au-hud .hud-vals {
+.mood-hud .hud-vals {
   display: flex;
   gap: 6px;
   margin-top: 1px;
   font-variant-numeric: tabular-nums;
 }
 
-.au-hud .hud-vals span {
+.mood-hud .hud-vals span {
   display: inline-flex;
   gap: 2px;
 }
 
-.au-hud .hud-vals b {
+.mood-hud .hud-vals b {
   font-weight: 500;
   opacity: 0.45;
 }
 
-.au-hud .hud-vals em {
+.mood-hud .hud-vals em {
   font-style: normal;
   opacity: 0.6;
 }
 
-.au-hud .hud-vals em.is-hot {
+.mood-hud .hud-vals em.is-hot {
   opacity: 1;
 }
 
 /* what is being fought with, once over the alert line */
-.au-hud .hud-at {
+.mood-hud .hud-at {
   margin-top: 1px;
   opacity: 1;
   color: var(--hud-accent);
 }
 
-.au-hud .hud-at[hidden] {
+.mood-hud .hud-at[hidden] {
   display: none;
 }
 
 /* over the alert line the readout glitches once */
-.au-hud .hud-label.is-glitch .hud-l1 {
-  animation: au-hud-glitch 320ms steps(1) both;
+.mood-hud .hud-label.is-glitch .hud-l1 {
+  animation: mood-hud-glitch 320ms steps(1) both;
 }
 
-@keyframes au-hud-glitch {
+@keyframes mood-hud-glitch {
   0% { clip-path: inset(0 0 55% 0); transform: translateX(-3px); }
   20% { clip-path: inset(45% 0 10% 0); transform: translateX(2px); }
   40% { clip-path: inset(70% 0 0 0); transform: translateX(-1px); }
@@ -196,7 +196,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .au-hud .hud-label .hud-l1 {
+  .mood-hud .hud-label .hud-l1 {
     animation: none !important;
   }
 }

@@ -15,7 +15,7 @@
    showcase's own clock, so pausing holds it. It is always on a dark screen,
    so it always wears the lab's dark styling. */
 
-import "./adaptive-hud.css";
+import "./mood-hud.css";
 
 const WINDOW_MS = 8000;
 export type HudMood = "lost" | "confused" | "away" | "frustrated";
@@ -152,7 +152,7 @@ function clearance(b: Box, cx: number, cy: number, r: number): number {
 
 export function createHud(container: HTMLElement, size: () => { w: number; h: number }) {
   const root = document.createElement("div");
-  root.className = "hud au-hud is-dark is-away";
+  root.className = "hud mood-hud is-dark is-away";
   root.setAttribute("aria-hidden", "true");
 
   const svg = document.createElementNS(SVG, "svg");

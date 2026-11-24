@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-/* The parts of the models' live readouts (Voice position, Adaptive UI):
+/* The parts of the models' live readouts (Voice position, Mood recognition):
    text that decodes into place, a confidence meter of fine dots and a
    running clock. Their styles are the .vp-* readout rules in
    voice-position.css. */

@@ -16,9 +16,9 @@
       "autoPort": true
     },
     {
-      "name": "adaptive-kit",
+      "name": "mood-kit",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "-w", "adaptive-ui-kit"],
+      "runtimeArgs": ["run", "dev", "-w", "mood-recognition-kit"],
       "port": 5290,
       "autoPort": true
     },

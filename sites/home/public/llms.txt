@@ -20,7 +20,7 @@ Install a library with `npm install <package>` and read its reference before wri
 
 Model files are downloads with a free account, shipped inside the app under the Libraries.dev Model License (free for development and non-commercial apps; a commercial release needs Pro or Business).
 
-- [Adaptive UI (beta)](https://libraries.dev/llms/adaptive-ui.md): Reads the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, in the browser; a React kit tells components when to bring forward what helps. Page: https://libraries.dev/adaptive-ui
+- [Mood recognition (beta)](https://libraries.dev/llms/mood-recognition.md): Reads the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, in the browser; a React kit tells components when to bring forward what helps. Page: https://libraries.dev/mood-recognition
 - [Voice Position (beta)](https://libraries.dev/llms/voice-position.md): Which side of an iPhone a voice comes from and how far off it is, from the built-in stereo microphones. SwiftUI. Page: https://libraries.dev/voice-position
 - [Magnetic UI](https://libraries.dev/llms/magnetic-ui.md): A real magnet pulls the interface and air taps act as input, from the phone's magnetometer. React (via the Magnet Bridge app), SwiftUI, Android, React Native. Page: https://libraries.dev/magnetic
 

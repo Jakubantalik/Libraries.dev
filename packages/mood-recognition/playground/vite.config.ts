@@ -5,10 +5,10 @@ import { resolve } from "node:path";
 
 /* The kit's playground. The model is never committed to this repo: on the
    dev server it is read from a local frustration-ui checkout (or
-   ADAPTIVE_MODEL, a path to AdaptiveUI.json) and served at /model.json.
+   MOOD_MODEL, a path to MoodRecognition.json) and served at /model.json.
    Without one the playground runs on the fast signals alone. */
 function findModel(): string | null {
-  if (process.env.ADAPTIVE_MODEL) return process.env.ADAPTIVE_MODEL;
+  if (process.env.MOOD_MODEL) return process.env.MOOD_MODEL;
   for (let dir = __dirname; ; ) {
     const candidate = resolve(dir, "frustration-ui", "models", "frustration.json");
     if (existsSync(candidate)) return candidate;
@@ -23,7 +23,7 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: "adaptive-model",
+      name: "mood-model",
       apply: "serve",
       configureServer(server) {
         server.middlewares.use("/model.json", (_req, res) => {

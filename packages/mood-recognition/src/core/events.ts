@@ -72,7 +72,7 @@ const INTERACTIVE = [
 ].join(',')
 const DISABLED = ':disabled, [aria-disabled="true"]'
 const FIELD = 'input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), textarea, select, [contenteditable=""], [contenteditable="true"]'
-const IGNORE = '[data-adaptive-ignore]'
+const IGNORE = '[data-mood-ignore]'
 
 /** FNV-1a 32-bit. */
 export function hash(s: string): number {

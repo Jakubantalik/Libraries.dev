@@ -1,14 +1,14 @@
-/* Adaptive UI's home card, with the real cursor HUD (src/adaptive-hud.ts)
+/* Mood recognition's home card, with the real cursor HUD (src/mood-hud.ts)
    on a simulated pointer, sized for a card's 296 × 260 stage. The HUD alone
    on the dot field: a calm stroke, circling one spot (confused), a shake
    with presses on nothing (frustrated), then calm again.
 
-   Mount with <div class="adth" data-adaptive-thumb="field">. It runs on its
+   Mount with <div class="mood-thumb" data-mood-thumb="field">. It runs on its
    own clock, pauses off screen, and with reduced motion holds one telling
    frame. More scripts can sit beside FIELD in SCRIPTS. */
 
-import { createHud, type HudMood, type HudReading } from "./adaptive-hud";
-import "./adaptive-thumb.css";
+import { createHud, type HudMood, type HudReading } from "./mood-hud";
+import "./mood-thumb.css";
 
 const W = 296;
 const H = 260;
@@ -118,12 +118,12 @@ const ARROW =
   '<svg width="14" height="17" viewBox="0 0 18 22" fill="none"><path d="M1.5 1.5v15.2l4.1-3.7 2.6 5.6 2.9-1.3-2.5-5.5h5.6L1.5 1.5Z" fill="#f8f8f8" stroke="#0d0d0d" stroke-width="1.2" stroke-linejoin="round"/></svg>';
 
 function mount(host: HTMLElement): void {
-  const script = SCRIPTS[host.dataset.adaptiveThumb ?? ""];
+  const script = SCRIPTS[host.dataset.moodThumb ?? ""];
   if (!script) return;
-  const art = el("adth-art", host);
-  art.dataset.kind = host.dataset.adaptiveThumb;
+  const art = el("mood-thumb-art", host);
+  art.dataset.kind = host.dataset.moodThumb;
   script.build(art);
-  const arrow = el("adth-arrow", art);
+  const arrow = el("mood-thumb-arrow", art);
   arrow.innerHTML = ARROW;
   const hud = createHud(art, () => ({ w: W, h: H }));
 
@@ -165,4 +165,4 @@ function mount(host: HTMLElement): void {
   requestAnimationFrame(draw);
 }
 
-document.querySelectorAll<HTMLElement>("[data-adaptive-thumb]").forEach(mount);
+document.querySelectorAll<HTMLElement>("[data-mood-thumb]").forEach(mount);

@@ -1,22 +1,23 @@
 # Libraries.dev Model License
 
-Version 1.3 · Effective 23 November 2026
+Version 1.4 · Effective 24 November 2026
 
 Copyright (c) 2026 Jakub Antalik. All rights reserved except as granted below.
 
 This license covers the machine-learning models published by Libraries.dev:
 the magnet model behind Magnetic UI (`Magnet.mfxl`), the Voice position
 model (`VoicePosition.mfxl`, called Voice direction and `VoiceDirection.mfxl`
-up to its version 1.0) and the Adaptive UI model (`AdaptiveUI.json`). The
-source code around a model (MagnetKit for iOS and Android, VoiceRingKit and
-VoicePositionKit, the Adaptive UI React kit, and the other Libraries.dev
-packages) is MIT and is not covered here; this license applies only to the
-model files.
+up to its version 1.0) and the Mood recognition model (`MoodRecognition.json`,
+called Adaptive UI and `AdaptiveUI.json` when first published on 24 November
+2026). The source code around a model (MagnetKit for iOS and Android,
+VoiceRingKit and VoicePositionKit, the Mood recognition React kit, and the
+other Libraries.dev packages) is MIT and is not covered here; this license
+applies only to the model files.
 
 ## 1. Definitions
 
 - **Model**: a model file published by Libraries.dev (for example
-  `Magnet.mfxl`, `VoicePosition.mfxl` or `AdaptiveUI.json`), its weights
+  `Magnet.mfxl`, `VoicePosition.mfxl` or `MoodRecognition.json`), its weights
   and parameters, and any copy, conversion, quantization, compression,
   fine-tune or other derivative of them.
 - **You**: the individual, or the company or organization, that downloads or
@@ -120,8 +121,8 @@ of a repository under the MIT License. Copies obtained in that period keep the
 MIT License. Every copy obtained from Libraries.dev after that, and every later
 version of the Model, is licensed under this license only.
 
-`VoicePosition.mfxl`, under either of its names, has never been published under
-any other license. Neither has `AdaptiveUI.json`.
+Neither `VoicePosition.mfxl` nor `MoodRecognition.json`, under any of their
+names, has ever been published under any other license.
 
 ## 10. Changes to this license
 
@@ -130,7 +131,8 @@ to Model versions released after it is published; the version you received
 with a Model continues to apply to that Model version. Version 1.1 adds the
 Voice direction model, and limits the Model rights of Pro Lifetime purchased
 from 27 October 2026 to 12 months from purchase (section 3); Pro Lifetime
-purchased earlier keeps every Model. It changes no other term of version 1.0. Version 1.3 adds the Adaptive UI
-model, and changes no other term.
+purchased earlier keeps every Model. It changes no other term of version 1.0.
+Version 1.3 adds the Adaptive UI model, and changes no other term. Version 1.4
+renames that model Mood recognition, and changes no other term.
 
 Questions or Enterprise licensing: jakubja@gmail.com

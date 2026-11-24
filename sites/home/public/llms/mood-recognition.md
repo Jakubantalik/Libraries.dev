@@ -1,6 +1,8 @@
-# Adaptive UI (model, beta)
+<!-- Mood recognition (beta), an on-device model. Page and downloads: https://libraries.dev/mood-recognition -->
 
-Interfaces that read the user's mood. One small on-device model (`AdaptiveUI.json`, 142 KB, 32 KB gzipped) reads frustration, confusion, or when someone is lost, from how they move the pointer, press, scroll and type, and tells your React components, so the screen can bring forward what helps. No LLM, no server, nothing leaves the page. Distributed as a React kit (TypeScript source) plus the model, both downloads from https://libraries.dev/adaptive-ui (free account); not on npm.
+# Mood recognition (model, beta)
+
+Interfaces that read the user's mood. One small on-device model (`MoodRecognition.json`, 142 KB, 32 KB gzipped) reads frustration, confusion, or when someone is lost, from how they move the pointer, press, scroll and type, and tells your React components, so the screen can bring forward what helps. No LLM, no server, nothing leaves the page. Distributed as a React kit (TypeScript source) plus the model, both downloads from https://libraries.dev/mood-recognition (free account); not on npm.
 
 ## Moods
 
@@ -23,27 +25,27 @@ Interfaces that read the user's mood. One small on-device model (`AdaptiveUI.jso
 
 ## Install
 
-1. Ask the user to download both from https://libraries.dev/adaptive-ui (Install tab, free account): `AdaptiveUI-React-0.4.zip`, unzipped into `src/adaptive-ui/`, and `AdaptiveUI-0.4.zip`, with `AdaptiveUI.json` placed next to the kit.
+1. Ask the user to download both from https://libraries.dev/mood-recognition (Install tab, free account): `MoodRecognition-React-0.4.zip`, unzipped into `src/mood-recognition/`, and `MoodRecognition-0.4.zip`, with `MoodRecognition.json` placed next to the kit.
 2. Import the model so it ships inside the bundle (needs `resolveJsonModule`). React 18+, no other dependency.
 
 ## Basic usage
 
 ```tsx
 import { useState } from 'react';
-import { AdaptiveProvider, useAdaptive } from './adaptive-ui';
-import model from './adaptive-ui/AdaptiveUI.json';
+import { MoodProvider, useMood } from './mood-recognition';
+import model from './mood-recognition/MoodRecognition.json';
 
 // One provider per page; the components that adapt sit inside it.
 export function Checkout() {
   return (
-    <AdaptiveProvider model={model}>
+    <MoodProvider model={model}>
       <PayForm />
-    </AdaptiveProvider>
+    </MoodProvider>
   );
 }
 
 function PayForm() {
-  const { mood } = useAdaptive();
+  const { mood } = useMood();
   const [agreed, setAgreed] = useState(false);
   // 1 neutral, 2 confused or lost, 3 frustrated; agreed, nothing is locked
   const state = agreed ? 1 : mood === 'frustrated' ? 3 : mood === 'confused' || mood === 'lost' ? 2 : 1;
@@ -64,7 +66,7 @@ function PayForm() {
 form[data-state="2"] button:disabled,
 form[data-state="3"] button:disabled { opacity: 0.2; }   /* the locked Pay steps back */
 form[data-state="3"] .terms { color: #e8e8e8; }          /* what unlocks it comes forward */
-.hint { opacity: var(--adaptive, 0); }                   /* or blend by the reaction, 0 … 1 */
+.hint { opacity: var(--mood, 0); }                   /* or blend by the reaction, 0 … 1 */
 ```
 
 ## Readings
@@ -72,13 +74,13 @@ form[data-state="3"] .terms { color: #e8e8e8; }          /* what unlocks it come
 | Field | What it is |
 |---|---|
 | `mood` | `"frustrated"`, `"confused"`, `"lost"` or `"away"`; null while calm or without input. A mood holds 1 s before it fades. |
-| `reaction` | How strongly the UI should react, 0…1: from 0.30 of the reading, full at the 0.65 alert line; rises in about 0.1 s, eases back over a few seconds once calm. Also set as `--adaptive` for the CSS inside the provider. |
+| `reaction` | How strongly the UI should react, 0…1: from 0.30 of the reading, full at the 0.65 alert line; rises in about 0.1 s, eases back over a few seconds once calm. Also set as `--mood` for the CSS inside the provider. |
 | `score` | The strength behind the mood, 0…1. |
 | `probabilities` | `none`, `blocked`, `lost`, `confused`, `waiting`, `frustrated`, summing to 1; null without input or a model. |
 | `fast`, `fastKind` | The fast signals, 0…1: `"shake"`, `"orbit"`, `"rage"` or `"disabled"`. |
 | `isModelLoaded` | Without the model only the fast signals and away work. |
 
-Props: `model`, `baselineKey` (default `"adaptive-baseline"`; `null` keeps the person's pace in memory), `reactTo` (default frustrated, confused and lost). `data-adaptive-ignore` on an element skips it. Without React: `createAdaptive({ model, onReading }).start()`.
+Props: `model`, `baselineKey` (default `"mood-baseline"`; `null` keeps the person's pace in memory), `reactTo` (default frustrated, confused and lost). `data-mood-ignore` on an element skips it. Without React: `createMoodReader({ model, onReading }).start()`.
 
 ## Detecting a fit in a codebase
 
@@ -93,4 +95,4 @@ Props: `model`, `baselineKey` (default `"adaptive-baseline"`; `null` keeps the p
 
 The kit's code is MIT. The model is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; a commercial release needs Pro or Business. Ship it inside the app's bundle only, never on its own.
 
-Docs: https://libraries.dev/adaptive-ui
+Docs: https://libraries.dev/mood-recognition

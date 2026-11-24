@@ -1,15 +1,15 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AdaptiveProvider, useAdaptive } from "../src";
+import { MoodProvider, useMood } from "../src";
 
 /* The lab's Pay screen on the kit: confused or lost steps the locked Pay
    back (state 2); frustrated also brings the terms forward (state 3). */
 function PayForm() {
-  const reading = useAdaptive();
+  const reading = useMood();
   const [agreed, setAgreed] = useState(false);
   const { mood } = reading;
   const state = agreed ? 1 : mood === "frustrated" ? 3 : mood === "confused" || mood === "lost" ? 2 : 1;
-  (window as unknown as { __adaptive?: unknown }).__adaptive = reading;
+  (window as unknown as { __mood?: unknown }).__mood = reading;
   return (
     <>
       <form className="pay" data-state={state} onSubmit={(e) => e.preventDefault()}>
@@ -19,7 +19,7 @@ function PayForm() {
           I agree to the terms of sale and the return policy
         </label>
       </form>
-      <pre data-adaptive-ignore>{JSON.stringify({ state, ...reading, probabilities: undefined }, null, 2)}</pre>
+      <pre data-mood-ignore>{JSON.stringify({ state, ...reading, probabilities: undefined }, null, 2)}</pre>
     </>
   );
 }
@@ -35,9 +35,9 @@ function App() {
   }, []);
   if (!ready) return null;
   return (
-    <AdaptiveProvider model={model} baselineKey={null}>
+    <MoodProvider model={model} baselineKey={null}>
       <PayForm />
-    </AdaptiveProvider>
+    </MoodProvider>
   );
 }
 

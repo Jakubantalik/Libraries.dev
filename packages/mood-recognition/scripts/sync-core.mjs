@@ -36,7 +36,7 @@ const FILES = ["events.ts", "features.ts", "fast.ts", "model.ts", "detector.ts"]
 const PATCHES = {
   "events.ts": [
     // The kit's own attribute for parts of the page it should not read.
-    ["const IGNORE = '[data-frustration-ignore]'", "const IGNORE = '[data-adaptive-ignore]'"],
+    ["const IGNORE = '[data-frustration-ignore]'", "const IGNORE = '[data-mood-ignore]'"],
     // A scope: the provider reads only what happens inside its own element.
     [
       "  onEvent?: (e: RawEvent) => void\n}",
@@ -49,7 +49,7 @@ const PATCHES = {
       "    if (!(target instanceof Element)) return false\n    if (this.scope && !this.scope.contains(target)) return true\n    return target.closest(IGNORE) !== null",
     ],
   ],
-  "detector.ts": [["'frustration-baseline'", "'adaptive-baseline'"]],
+  "detector.ts": [["'frustration-baseline'", "'mood-baseline'"]],
 };
 
 const HEADER = (file) =>

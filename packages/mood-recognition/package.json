@@ -1,8 +1,8 @@
 {
-  "name": "adaptive-ui-kit",
+  "name": "mood-recognition-kit",
   "version": "0.4.0",
   "private": true,
-  "description": "Adaptive UI React kit: notices when someone is frustrated, confused or lost from how they use the page, with an on-device model. Shipped as a source download from libraries.dev, not on npm.",
+  "description": "Mood recognition React kit: notices when someone is frustrated, confused or lost from how they use the page, with an on-device model. Shipped as a source download from libraries.dev, not on npm.",
   "type": "module",
   "scripts": {
     "dev": "vite --config playground/vite.config.ts",

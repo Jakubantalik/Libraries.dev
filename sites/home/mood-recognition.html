@@ -22,14 +22,14 @@
   </style>
   <meta name="color-scheme" content="dark" />
 
-  <title>Adaptive UI (beta): on-device model that notices frustration, for React | Libraries.dev</title>
+  <title>Mood recognition (beta): on-device model that reads the user's mood, for React | Libraries.dev</title>
   <meta
     name="description"
-    content="Adaptive UI (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped."
+    content="Mood recognition (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped."
   />
   <meta
     name="keywords"
-    content="adaptive ui, frustration detection, rage clicks, user frustration, confused users, behavioral model, on-device model, react, adaptive interface, ux"
+    content="mood recognition, user mood, adaptive ui, frustration detection, rage clicks, user frustration, confused users, behavioral model, on-device model, react, adaptive interface, ux"
   />
   <meta name="author" content="Libraries.dev" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -40,27 +40,27 @@
   <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
   <meta name="application-name" content="Libraries.dev" />
 
-  <link rel="canonical" href="https://libraries.dev/adaptive-ui" />
-  <link rel="alternate" hreflang="en" href="https://libraries.dev/adaptive-ui" />
-  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/adaptive-ui" />
+  <link rel="canonical" href="https://libraries.dev/mood-recognition" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/mood-recognition" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/mood-recognition" />
 
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Libraries.dev" />
-  <meta property="og:url" content="https://libraries.dev/adaptive-ui" />
+  <meta property="og:url" content="https://libraries.dev/mood-recognition" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Adaptive UI (beta): on-device model that notices frustration, for React" />
-  <meta property="og:description" content="Adaptive UI (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped." />
+  <meta property="og:title" content="Mood recognition (beta): on-device model that reads the user's mood, for React" />
+  <meta property="og:description" content="Mood recognition (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
-  <meta name="twitter:title" content="Adaptive UI (beta): on-device model that notices frustration, for React" />
-  <meta name="twitter:description" content="Adaptive UI (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped." />
+  <meta name="twitter:title" content="Mood recognition (beta): on-device model that reads the user's mood, for React" />
+  <meta name="twitter:description" content="Mood recognition (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -118,15 +118,15 @@
       box-shadow: var(--material-shadow);
     }
 
-    /* Adaptive UI is a model, not a component: no playground, so the
+    /* Mood recognition is a model, not a component: no playground, so the
        preview is a live, simulated showcase on the stage card (the dark Pay
-       screen and its two states, src/adaptive-ui.tsx), then the model. */
+       screen and its two states, src/mood-recognition.tsx), then the model. */
     /* The title tile matches the other libraries' tiles (#222 with a faint
        edge), not Metal's lighter CSS tile. */
     .detail-head .detail-tile { background: #222222; box-shadow: inset 0 0 0 0.5px #303030; }
     /* Moods: each name with the square mark the cursor HUD gives it. */
-    .au-moods strong { margin-right: 2px; }
-    .au-moods strong i { display: inline-block; width: 7px; height: 7px; margin-right: 7px; background: var(--c); vertical-align: 0.08em; }
+    .mood-list strong { margin-right: 2px; }
+    .mood-list strong i { display: inline-block; width: 7px; height: 7px; margin-right: 7px; background: var(--c); vertical-align: 0.08em; }
     .mui-stage {
       position: relative;
       display: flex;
@@ -268,10 +268,10 @@
   "@graph": [
     {
       "@type": "SoftwareSourceCode",
-      "@id": "https://libraries.dev/adaptive-ui#model",
-      "name": "Adaptive UI",
-      "description": "Adaptive UI (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped.",
-      "url": "https://libraries.dev/adaptive-ui",
+      "@id": "https://libraries.dev/mood-recognition#model",
+      "name": "Mood recognition",
+      "description": "Mood recognition (beta): a small on-device model that reads how the pointer, presses, scrolling and typing behave and tells your React UI when someone is frustrated, confused or lost, so the screen can adapt. No LLM, no server, nothing leaves the page. 32 KB gzipped.",
+      "url": "https://libraries.dev/mood-recognition",
       "codeRepository": "https://github.com/Jakubantalik/Libraries.dev",
       "programmingLanguage": [
         "TypeScript"
@@ -297,8 +297,8 @@
         {
           "@type": "ListItem",
           "position": 2,
-          "name": "Adaptive UI",
-          "item": "https://libraries.dev/adaptive-ui"
+          "name": "Mood recognition",
+          "item": "https://libraries.dev/mood-recognition"
         }
       ]
     }
@@ -448,7 +448,7 @@
           <nav class="docs-list" aria-label="Models">
             <a class="docs-link" href="/magnetic.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-magnetic.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Magnetic UI</a>
             <a class="docs-link" href="/voice-position.html"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-directional.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Voice position</a>
-            <a class="docs-link is-active" href="/adaptive-ui.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-adaptive.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Adaptive UI</a>
+            <a class="docs-link is-active" href="/mood-recognition.html" aria-current="page"><span class="docs-link-ico"><img class="docs-link-icon" src="/assets/icons/figma-mood.svg" alt="" width="18" height="18" loading="lazy" decoding="async" /></span>Mood recognition</a>
           </nav>
         </div>
       </aside>
@@ -466,7 +466,7 @@
         <header class="detail-head">
           <div class="detail-titles">
             <span class="detail-icon detail-tile" aria-hidden="true"><svg shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" width="24" height="24" viewBox="7.5 6.5 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_ii_ad_head)"><g opacity="0.7"><path d="M8.5 10.5V7.5H11.5M18.5 7.5H21.5V10.5M8.5 17.5V20.5H11.5M21.5 17.5V20.5H18.5" stroke="url(#paint0_linear_ad_head)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.1 9.6V17.4L14.1 15.6L15.4 18.3L16.7 17.7L15.5 15.1L18.2 15Z" fill="url(#paint0_linear_ad_head)" stroke="url(#paint0_linear_ad_head)" stroke-width="1.2" stroke-linejoin="round"/></g></g><defs><filter id="filter0_ii_ad_head" x="7.5" y="6.5" width="15" height="15" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="0.4"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.29 0"/><feBlend mode="normal" in2="shape" result="effect1_innerShadow_ad_head"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="0.2"/><feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.35 0"/><feBlend mode="normal" in2="effect1_innerShadow_ad_head" result="effect2_innerShadow_ad_head"/></filter><linearGradient id="paint0_linear_ad_head" x1="10.5" y1="21" x2="16.5" y2="1.5" gradientUnits="userSpaceOnUse"><stop stop-color="#737373"/><stop offset="1" stop-color="#CBCBCB" stop-opacity="0.9"/></linearGradient></defs></svg></span>
-            <h1 class="detail-title">Adaptive UI<span class="dv-beta">Beta</span></h1>
+            <h1 class="detail-title">Mood recognition<span class="dv-beta">Beta</span></h1>
             <p class="detail-sub">Interfaces that read the user's mood. One small on-device model reads frustration, confusion, or when someone is lost, from how they move the pointer, press, scroll and type, and tells your UI, so the screen can bring forward what helps. No LLM, no server, nothing leaves the page.</p>
           </div>
 
@@ -506,18 +506,18 @@
             <!-- Showcase: the lab's dark Pay screen driven by a simulated
                  pointer that presses the locked Pay and shakes, with a live
                  readout of what the model reads and the screen's two states
-                 (src/adaptive-ui.tsx). -->
+                 (src/mood-recognition.tsx). -->
             <div class="mui-stage">
-              <div id="adaptive-demo"></div>
+              <div id="mood-demo"></div>
             </div>
 
             <div class="docs-prose mui-doc">
               <h2>The model</h2>
               <p>One model reads how someone is using the page, four times a second, and tells your UI how they are doing: frustrated, confused, lost, or fine. It is input only: pair it with any component, and let the screen bring forward what helps.</p>
-              <p class="mui-doc-meta"><code>AdaptiveUI.json</code> · v0.4 beta · 142 KB (32 KB gzipped) · React kit · <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a></p>
+              <p class="mui-doc-meta"><code>MoodRecognition.json</code> · v0.4 beta · 142 KB (32 KB gzipped) · React kit · <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a></p>
 
               <h3>Moods</h3>
-              <ul class="au-moods">
+              <ul class="mood-list">
                 <li><strong><i style="--c: #c8212b"></i>Frustrated</strong> Fighting the interface: pressing a locked or disabled control, quick repeated presses on one spot or on nothing, the pointer shaken back and forth, a field typed and sent the same way after it failed. A blocked step reads as frustrated.</li>
                 <li><strong><i style="--c: #ec8420"></i>Confused</strong> Unsure what to do next, read from how the pointer moves alone, its speed and its path: circling one spot or hovering round a control without pressing it, slowing down and turning back.</li>
                 <li><strong><i style="--c: #7b4fd6"></i>Lost</strong> Looking for something: returning to the same few places without pressing, opening section after section, scrolling back and forth, a long time since any progress.</li>
@@ -558,7 +558,7 @@
 
           <div class="detail-panel detail-panel--code" data-detail-panel="code" data-gated hidden>
           <div class="mui-gate" data-mui-gate>
-            <p class="mui-gate-title">Install Adaptive UI<span class="mui-gate-sub">The React kit, usage and the model are free with an account.</span></p>
+            <p class="mui-gate-title">Install Mood recognition<span class="mui-gate-sub">The React kit, usage and the model are free with an account.</span></p>
             <button type="button" class="mui-gate-btn" data-mui-gate-open>Get it for free</button>
           </div>
           <div class="st-stage-panel">
@@ -570,31 +570,31 @@
             <div class="st-code-group">
               <span class="st-code-title">Download</span>
               <div class="mui-live-actions">
-                <button type="button" class="mui-live-btn" data-au-download="kit">Download React kit</button>
-                <button type="button" class="mui-live-btn" data-au-download="model">Download model</button>
+                <button type="button" class="mui-live-btn" data-mood-download="kit">Download React kit</button>
+                <button type="button" class="mui-live-btn" data-mood-download="model">Download model</button>
               </div>
-              <span class="st-code-note">Beta. <code>AdaptiveUI-React-0.4.zip</code>: the kit's TypeScript source and its MIT license. Unzip it into your app, for example as <code>src/adaptive-ui/</code>. <code>AdaptiveUI-0.4.zip</code>: the model (<code>AdaptiveUI.json</code>) and its license. Put the model next to the kit and import it, so it ships inside your bundle. React 18+, no other dependency.</span>
+              <span class="st-code-note">Beta. <code>MoodRecognition-React-0.4.zip</code>: the kit's TypeScript source and its MIT license. Unzip it into your app, for example as <code>src/mood-recognition/</code>. <code>MoodRecognition-0.4.zip</code>: the model (<code>MoodRecognition.json</code>) and its license. Put the model next to the kit and import it, so it ships inside your bundle. React 18+, no other dependency.</span>
             </div>
 
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
               <div class="code-block">
               <pre id="usage-code">import { useState } from &quot;react&quot;;
-import { AdaptiveProvider, useAdaptive } from &quot;./adaptive-ui&quot;;
-import model from &quot;./adaptive-ui/AdaptiveUI.json&quot;;
+import { MoodProvider, useMood } from &quot;./mood-recognition&quot;;
+import model from &quot;./mood-recognition/MoodRecognition.json&quot;;
 
 // One provider per page; the components that adapt sit inside it.
 export function Checkout() {
   return (
-    &lt;AdaptiveProvider model={model}&gt;
+    &lt;MoodProvider model={model}&gt;
       &lt;PayForm /&gt;
-    &lt;/AdaptiveProvider&gt;
+    &lt;/MoodProvider&gt;
   );
 }
 
 function PayForm() {
   // mood: &quot;frustrated&quot; | &quot;confused&quot; | &quot;lost&quot; | &quot;away&quot; | null
-  const { mood } = useAdaptive();
+  const { mood } = useMood();
   const [agreed, setAgreed] = useState(false);
   // 1 neutral, 2 confused or lost, 3 frustrated; agreed, nothing is locked
   const state = agreed ? 1 : mood === &quot;frustrated&quot; ? 3 : mood === &quot;confused&quot; || mood === &quot;lost&quot; ? 2 : 1;
@@ -629,8 +629,8 @@ form[data-state=&quot;3&quot;] button:disabled { opacity: 0.2; }
 form[data-state=&quot;3&quot;] .terms { color: #e8e8e8; }
 
 /* Or blend a calm and an emphatic style by the reaction, 0 … 1,
-   which the provider sets as --adaptive for everything inside it. */
-.hint { opacity: var(--adaptive, 0); }</pre>
+   which the provider sets as --mood for everything inside it. */
+.hint { opacity: var(--mood, 0); }</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy style example">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -648,7 +648,7 @@ form[data-state=&quot;3&quot;] .terms { color: #e8e8e8; }
                   <thead><tr><th>Field</th><th>What it is</th></tr></thead>
                   <tbody>
                     <tr><td><code>mood</code></td><td><code>&quot;frustrated&quot;</code>, <code>&quot;confused&quot;</code>, <code>&quot;lost&quot;</code> or <code>&quot;away&quot;</code>; null while calm or without input. Blocked reads as frustrated. A mood holds for a second before it fades.</td></tr>
-                    <tr><td><code>reaction</code></td><td>How strongly the UI should react, 0 … 1: from 0.30 of the reading, full at the 0.65 alert line. Rises in about 0.1 s, eases back over a few seconds once calm. Away doesn't raise it. Also set as <code>--adaptive</code> for the CSS inside the provider.</td></tr>
+                    <tr><td><code>reaction</code></td><td>How strongly the UI should react, 0 … 1: from 0.30 of the reading, full at the 0.65 alert line. Rises in about 0.1 s, eases back over a few seconds once calm. Away doesn't raise it. Also set as <code>--mood</code> for the CSS inside the provider.</td></tr>
                     <tr><td><code>score</code></td><td>The strength behind the mood, 0 … 1: the higher of the model and the fast signals.</td></tr>
                     <tr><td><code>probabilities</code></td><td>The model's belief in each reading: <code>none</code>, <code>blocked</code>, <code>lost</code>, <code>confused</code>, <code>waiting</code> and <code>frustrated</code>, summing to 1; null without input or a model.</td></tr>
                     <tr><td><code>fast</code></td><td>The fast signals, 0 … 1, and <code>fastKind</code>: <code>&quot;shake&quot;</code>, <code>&quot;orbit&quot;</code>, <code>&quot;rage&quot;</code> or <code>&quot;disabled&quot;</code>; null when none.</td></tr>
@@ -661,12 +661,12 @@ form[data-state=&quot;3&quot;] .terms { color: #e8e8e8; }
             <div class="st-code-group">
               <span class="st-code-title">Good to know</span>
               <ul class="mui-list">
-                <li>It reads the whole page, as the model was trained, wherever the provider sits. Mark parts it should skip, such as your own help panel, with <code>data-adaptive-ignore</code>. Use one provider per page.</li>
+                <li>It reads the whole page, as the model was trained, wherever the provider sits. Mark parts it should skip, such as your own help panel, with <code>data-mood-ignore</code>. Use one provider per page.</li>
                 <li>It reads positions, timings and element facts (a button, disabled, invalid), never text, field values or the screen. Nothing leaves the page.</li>
                 <li>Everyone moves at their own pace. It starts from typical values and learns the person's own pointer speed and presses as they go, kept in <code>localStorage</code>; <code>baselineKey={null}</code> keeps it in memory only. <code>reactTo</code> picks the moods the reaction rises for (frustrated, confused and lost by default).</li>
                 <li>React to frustrated, confused and lost, not to away: someone away isn't looking. Keep the reaction small and reversible: bring forward what unlocks, a hint or a way out, never block or move things from under the pointer.</li>
                 <li>The model reads an 8 second window, so slow patterns, like getting lost, take a few seconds to show. The fast signals see shaking and repeated presses within a few hundred milliseconds.</li>
-                <li>Without React: <code>createAdaptive({ model, scope, onReading }).start()</code>.</li>
+                <li>Without React: <code>createMoodReader({ model, scope, onReading }).start()</code>.</li>
                 <li>Beta: trained on simulated people and real sessions of more than 10 people, on mouse, trackpad and touch. Short lost searches can stay under the line, and a blocked checkout is often read as lost.</li>
               </ul>
             </div>
@@ -675,9 +675,9 @@ form[data-state=&quot;3&quot;] .terms { color: #e8e8e8; }
             <div class="st-code-group">
               <span class="st-code-title">Download</span>
               <div class="mui-live-actions">
-                <button type="button" class="mui-live-btn" data-au-download="model">Download model</button>
+                <button type="button" class="mui-live-btn" data-mood-download="model">Download model</button>
               </div>
-            <span class="st-code-note"><code>AdaptiveUI-0.4.zip</code>: the model (<code>AdaptiveUI.json</code>, 142 KB, 32 KB gzipped, v0.4 beta) and its license. Gradient-boosted trees over 43 behaviour measures, with six outputs: none, blocked, lost, confused, waiting and frustrated. The React kit measures the features and runs it for you.</span>
+            <span class="st-code-note"><code>MoodRecognition-0.4.zip</code>: the model (<code>MoodRecognition.json</code>, 142 KB, 32 KB gzipped, v0.4 beta) and its license. Gradient-boosted trees over 43 behaviour measures, with six outputs: none, blocked, lost, confused, waiting and frustrated. The React kit measures the features and runs it for you.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">License</span>
@@ -686,7 +686,7 @@ form[data-state=&quot;3&quot;] .terms { color: #e8e8e8; }
             <div class="st-code-group">
               <span class="st-code-title">Run it (TypeScript)</span>
               <div class="code-block">
-              <pre>import model from &quot;./AdaptiveUI.json&quot;;
+              <pre>import model from &quot;./MoodRecognition.json&quot;;
 
 // Each tree adds to one class; a softmax of the sums gives the probabilities.
 function predict(x: number[]) {
@@ -720,7 +720,7 @@ function predict(x: number[]) {
             <div class="st-code-group">
               <span class="st-code-title">The file</span>
               <ul class="mui-list">
-                <li><code>AdaptiveUI.json</code> Plain JSON, <code>format</code> "fx-gbdt-1": <code>name</code>, <code>version</code>, <code>data</code> (what it was trained on), <code>trained</code>, <code>features</code> (43 names, in order), <code>classes</code> (none, blocked, lost, confused, waiting, frustrated), <code>windowMs</code> (8,000), <code>stepMs</code> (250) and <code>trees</code>.</li>
+                <li><code>MoodRecognition.json</code> Plain JSON, <code>format</code> "fx-gbdt-1": <code>name</code>, <code>version</code>, <code>data</code> (what it was trained on), <code>trained</code>, <code>features</code> (43 names, in order), <code>classes</code> (none, blocked, lost, confused, waiting, frustrated), <code>windowMs</code> (8,000), <code>stepMs</code> (250) and <code>trees</code>.</li>
                 <li><code>trees</code> 360 trees, as flat arrays: <code>c</code> the class it adds to, and per node <code>f</code> the feature (−1 for a leaf), <code>t</code> the threshold (left when the value is at most it), <code>l</code> and <code>r</code> the children, <code>v</code> the leaf value and <code>m</code> where a missing value goes (1 left).</li>
                 <li><code>features</code> Pointer (speed, wiggle, straightness, jerk, shaking, circling, revisits), presses (repeated, on nothing, on disabled controls, near misses), scrolling, keys and deletes, invalid entries, retyping, time since progress, and the person's own pace against their baseline.</li>
               </ul>
@@ -736,8 +736,8 @@ function predict(x: number[]) {
             <div class="docs-prose mui-doc mui-doc--license">
               <h2>Two licenses</h2>
               <ul>
-                <li><strong>The model</strong> <code>AdaptiveUI.json</code>, its trees and values, and any copy, conversion, quantization or fine-tune of them: the <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>.</li>
-                <li><strong>The code</strong> The Adaptive UI React kit and the loader on this page: MIT, free for any use.</li>
+                <li><strong>The model</strong> <code>MoodRecognition.json</code>, its trees and values, and any copy, conversion, quantization or fine-tune of them: the <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>.</li>
+                <li><strong>The code</strong> The Mood recognition React kit and the loader on this page: MIT, free for any use.</li>
               </ul>
               <h2>Free, no plan needed</h2>
               <ul>
@@ -765,7 +765,7 @@ function predict(x: number[]) {
                 <li><strong>Ownership</strong> The model stays Libraries.dev&#x27;s. Your products, code and data stay yours.</li>
                 <li><strong>Breaches</strong> The license ends if it is broken, and comes back if the breach is fixed within 30 days.</li>
                 <li><strong>No warranty</strong> The model estimates how someone is doing from how they use an interface, and can be wrong. Don&#x27;t rely on it where an error could cause injury, damage or financial loss.</li>
-                <li><strong>Versions</strong> <code>AdaptiveUI.json</code> v0.4 is a beta; check it on the screens you ship. It has only ever been published under the Model License, so there is no MIT copy. Each version keeps the license it shipped with.</li>
+                <li><strong>Versions</strong> <code>MoodRecognition.json</code> v0.4 is a beta; check it on the screens you ship. It has only ever been published under the Model License, so there is no MIT copy. Each version keeps the license it shipped with.</li>
               </ul>
               <p>This is a summary. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">full Model License</a> is what applies; plans are on <a href="/pro.html">Pricing</a>.</p>
             </div>
@@ -778,25 +778,25 @@ function predict(x: number[]) {
          rather than a <script>: script content is raw text, so the
          escaped tags below would reach the clipboard still escaped. -->
     <pre id="agent-prompt" hidden>
-Add Adaptive UI (beta) from Libraries.dev to my React app: a UI that notices when
+Add Mood recognition (beta) from Libraries.dev to my React app: a UI that notices when
 the user is frustrated, confused or lost, read on-device from how the pointer,
 presses, scrolling and typing behave, and adapts the screen to help.
 
 Install: the React kit and the model are downloads, not npm packages. Ask the
-user to download both from https://libraries.dev/adaptive-ui (Install tab, free
-account): AdaptiveUI-React-0.4.zip (the kit's TypeScript source, MIT) unzipped
-into src/adaptive-ui/, and AdaptiveUI-0.4.zip (AdaptiveUI.json) placed next to
+user to download both from https://libraries.dev/mood-recognition (Install tab, free
+account): MoodRecognition-React-0.4.zip (the kit's TypeScript source, MIT) unzipped
+into src/mood-recognition/, and MoodRecognition-0.4.zip (MoodRecognition.json) placed next to
 it. Import the model so it ships inside the bundle (needs resolveJsonModule).
 React 18+, no other deps.
 
 Usage:
-import { AdaptiveProvider, useAdaptive } from "./adaptive-ui";
-import model from "./adaptive-ui/AdaptiveUI.json";
-&lt;AdaptiveProvider model={model}&gt;...&lt;/AdaptiveProvider&gt;   // one per page; reads the whole page
-const { mood, reaction } = useAdaptive();
-Props: model, baselineKey (default "adaptive-baseline"; null keeps the person's
+import { MoodProvider, useMood } from "./mood-recognition";
+import model from "./mood-recognition/MoodRecognition.json";
+&lt;MoodProvider model={model}&gt;...&lt;/MoodProvider&gt;   // one per page; reads the whole page
+const { mood, reaction } = useMood();
+Props: model, baselineKey (default "mood-baseline"; null keeps the person's
 pace in memory), reactTo (default ["frustrated", "confused", "lost"]).
-Without React: createAdaptive({ model, scope, onReading }).start().
+Without React: createMoodReader({ model, scope, onReading }).start().
 
 Moods:
 - frustrated: fighting the interface (pressing a locked or disabled control,
@@ -816,22 +816,22 @@ Readings (update about every 66 ms):
 - reaction: 0-1, how strongly the UI should react: from 0.30 of the reading,
   full at the 0.65 alert line; rises in ~0.1 s, eases back over a few seconds
   once calm (about half a minute while the pointer rests); away doesn't raise
-  it. The provider also sets it as --adaptive for the CSS inside it.
+  it. The provider also sets it as --mood for the CSS inside it.
 - score: 0-1, the strength behind the mood (higher of model and fast signals)
 - probabilities: none, blocked, lost, confused, waiting, frustrated (sum to 1),
   or null without input or a model
 - fast / fastKind: instant signals 0-1, "shake" | "orbit" | "rage" | "disabled"
 - isModelLoaded
-data-adaptive-ignore on an element skips it (e.g. your own help panel).
+data-mood-ignore on an element skips it (e.g. your own help panel).
 
 How to adapt: keep it small and reversible: bring forward what unlocks the
 blocked step, show a hint or a way out; never block or move things from under
 the pointer. A pattern with three states, for a Pay locked behind a terms box:
 state = agreed ? 1 : mood === "frustrated" ? 3 : mood === "confused" || mood === "lost" ? 2 : 1
 state 2: the locked Pay steps back (opacity 0.2); state 3: the terms that
-unlock it also brighten. Or blend styles by var(--adaptive, 0).
+unlock it also brighten. Or blend styles by var(--mood, 0).
 
-The model (AdaptiveUI.json v0.4 beta, 142 KB / 32 KB gzipped; 360
+The model (MoodRecognition.json v0.4 beta, 142 KB / 32 KB gzipped; 360
 gradient-boosted trees over 43 behaviour measures of the last 8 s, a new answer
 every 250 ms) runs in the browser: no LLM, no server, no network request. It
 reads positions, timings and element facts, never text or field values. Beta:
@@ -842,7 +842,7 @@ the line; a blocked checkout is often read as lost. Model License: free for
 development and non-commercial apps; a commercial release needs Libraries.dev
 Pro or Business. Never commit the model to a public repo or serve it as a
 standalone download.
-Docs: https://libraries.dev/adaptive-ui
+Docs: https://libraries.dev/mood-recognition
     </pre>
 
     <footer class="footer">
@@ -907,7 +907,7 @@ Docs: https://libraries.dev/adaptive-ui
       var gate = document.querySelector("[data-mui-gate]");
       var content = panel && panel.querySelector(".st-stage-panel");
       var prompt = document.querySelector(".detail-prompt");
-      var downloads = document.querySelectorAll("[data-au-download]");
+      var downloads = document.querySelectorAll("[data-mood-download]");
       if (!panel || !gate || !content) return;
 
       function setGated(on) {
@@ -933,8 +933,8 @@ Docs: https://libraries.dev/adaptive-ui
       function signIn(then) {
         if (!window.LibrariesPro) return;
         window.LibrariesPro.signIn({
-          signup: "model:adaptive",
-          title: "Install Adaptive UI",
+          signup: "model:mood",
+          title: "Install Mood recognition",
           sub: "Free account: we email you a code, no password.",
           onSignedIn: function () { setGated(false); if (then) then(); }
         });
@@ -947,18 +947,18 @@ Docs: https://libraries.dev/adaptive-ui
         e.preventDefault();
         e.stopImmediatePropagation();
       }, true);
-      // The model (/models/adaptive) and the React kit (/models/adaptive-react),
+      // The model (/models/mood) and the React kit (/models/mood-react),
       // each a .zip with its license.
       [].forEach.call(downloads, function (btn) {
         btn.addEventListener("click", function () {
-          var id = btn.getAttribute("data-au-download") === "kit" ? "adaptive-react" : "adaptive";
+          var id = btn.getAttribute("data-mood-download") === "kit" ? "mood-react" : "mood";
           var go = function () { location.href = window.LibrariesPro.apiBase + "/models/" + id; };
           if (signedIn()) go(); else signIn(go);
         });
       });
     })();
   </script>
-  <script type="module" src="/src/adaptive-ui.tsx"></script>
+  <script type="module" src="/src/mood-recognition.tsx"></script>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
   <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>

@@ -1,6 +1,6 @@
 ---
 name: libraries-dev
-description: Use the Libraries.dev UI effect libraries and on-device models correctly and find where they fit in a project. Covers the libraries Border beam (border-beam), Thinking orbs (thinking-orbs), Gooey (liquid-gooey), Voice (voice-glow), Voice ring (voice-ring), Distortion waves (distortion-waves), Bot avatars (bot-avatars), Liquid metal (metal-fx) and Image (img-fx), and the models Magnetic UI (magnetkit), Voice position (VoicePositionKit) and Adaptive UI (React kit). Use when adding an AI thinking or loading state, a glowing or animated border around an input or card, a voice or microphone visualizer, a voice assistant's ring, a transition from one view into another, an animated bot or agent avatar, a liquid metal button or badge, an image generation placeholder or reveal, a gooey blob or liquid menu, a UI that reacts to user frustration or confusion, a voice that turns the UI toward the speaker, or a magnet that moves the UI, or when the user mentions libraries.dev or any of these packages. Also "review my project for libraries.dev", "where could I use these effects", and the commands libraries reveal, libraries review, libraries apply.
+description: Use the Libraries.dev UI effect libraries and on-device models correctly and find where they fit in a project. Covers the libraries Border beam (border-beam), Thinking orbs (thinking-orbs), Gooey (liquid-gooey), Voice (voice-glow), Voice ring (voice-ring), Distortion waves (distortion-waves), Bot avatars (bot-avatars), Liquid metal (metal-fx) and Image (img-fx), and the models Magnetic UI (magnetkit), Voice position (VoicePositionKit) and Mood recognition (React kit). Use when adding an AI thinking or loading state, a glowing or animated border around an input or card, a voice or microphone visualizer, a voice assistant's ring, a transition from one view into another, an animated bot or agent avatar, a liquid metal button or badge, an image generation placeholder or reveal, a gooey blob or liquid menu, a UI that reacts to user frustration or confusion, a voice that turns the UI toward the speaker, or a magnet that moves the UI, or when the user mentions libraries.dev or any of these packages. Also "review my project for libraries.dev", "where could I use these effects", and the commands libraries reveal, libraries review, libraries apply.
 ---
 
 # Libraries.dev
@@ -31,7 +31,7 @@ Input, not effects: each reads a signal on the device and tells your UI.
 
 | Model | Install | Use it for | Reference |
 | --- | --- | --- | --- |
-| **Adaptive UI** (beta) | React kit + `AdaptiveUI.json`, downloads (free account) | Reading the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, so the UI brings forward what helps. | [12-adaptive-ui.md](references/12-adaptive-ui.md) |
+| **Mood recognition** (beta) | React kit + `MoodRecognition.json`, downloads (free account) | Reading the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, so the UI brings forward what helps. | [12-mood-recognition.md](references/12-mood-recognition.md) |
 | **Voice position** (beta) | `VoicePositionKit` (SwiftUI) + `VoicePosition.mfxl` | Which side of an iPhone a voice comes from, and how far off it is. | [11-voice-position.md](references/11-voice-position.md) |
 | **Magnetic UI** | `magnetkit` (React, via the Magnet Bridge app), MagnetKit (SwiftUI, Android) | A real magnet that pulls the UI, and air taps. | [10-magnetic-ui.md](references/10-magnetic-ui.md) |
 
@@ -72,7 +72,7 @@ toggles and route changes are short; if you cannot tell, say so):
 - **A confirm or send step that turns into its result** (receipt, "Sent",
   "Paid"), or an avatar that opens into a card → **Distortion waves**.
 - **A step that can block the user** (a disabled Pay behind a terms box,
-  strict formats, a buried setting) → **Adaptive UI**: bring forward what
+  strict formats, a buried setting) → **Mood recognition**: bring forward what
   unlocks it when the user is confused or frustrated.
 - **Anything avatar related for a bot or agent** → **Bot avatars**, state from
   the agent's real status.
@@ -139,7 +139,7 @@ input", "use libraries.dev here".
 3. Install the package with the project's package manager (lockfile tells
    you which: `pnpm-lock.yaml`, `yarn.lock`, `bun.lockb`, else npm). Show the
    command and wait for the user's go-ahead first (see Safety).
-   For a model, follow its reference: the model file (and the Adaptive UI
+   For a model, follow its reference: the model file (and the Mood recognition
    kit) is a download the user fetches from libraries.dev with a free account;
    never fetch it yourself or commit it to a public repository.
 4. Import and place the component exactly as the reference's Basic usage

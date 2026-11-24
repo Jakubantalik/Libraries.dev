@@ -1,8 +1,8 @@
-/* Adaptive UI's home card with the real cursor HUD (src/adaptive-thumb.ts).
+/* Mood recognition's home card with the real cursor HUD (src/mood-thumb.ts).
    Always the showcase's dark stage, light or dark site, since the HUD is
    drawn for a dark screen. The artboard is the card stage's 296 × 260. */
 
-.adth {
+.mood-thumb {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -14,7 +14,7 @@
   font-family: Inter, system-ui, sans-serif;
 }
 
-.adth-art {
+.mood-thumb-art {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -23,7 +23,7 @@
   translate: -50% -50%;
 }
 
-.adth-arrow {
+.mood-thumb-arrow {
   position: absolute;
   left: -1.5px;
   top: -1.5px;
@@ -33,23 +33,23 @@
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
-.adth-arrow svg {
+.mood-thumb-arrow svg {
   display: block;
 }
 
 /* the HUD a size down for a card */
-.adth .au-hud {
+.mood-thumb .mood-hud {
   font-size: 7.5px;
   line-height: 9px;
 }
 
-.adth .au-hud .hud-l1 {
+.mood-thumb .mood-hud .hud-l1 {
   font-size: 9.4px;
   line-height: 11.5px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adth *, .adth-arrow {
+  .mood-thumb *, .mood-thumb-arrow {
     transition: none !important;
   }
 }

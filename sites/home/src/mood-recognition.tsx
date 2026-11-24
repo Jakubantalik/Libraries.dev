@@ -1,12 +1,12 @@
 import { type CSSProperties, type RefObject, StrictMode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createHud, type HudMood, type HudReading } from "./adaptive-hud";
+import { createHud, type HudMood, type HudReading } from "./mood-hud";
 import "./voice-position.css";
-import "./adaptive-ui.css";
+import "./mood-recognition.css";
 
-/* Adaptive UI page — the showcase on the stage card: the lab's dark Pay
+/* Mood recognition page — the showcase on the stage card: the lab's dark Pay
    screen (frustration-ui, lab/adaptive.ts, "Transaction") with the lab's
-   cursor HUD (src/adaptive-hud.ts), driven by a simulated pointer instead
+   cursor HUD (src/mood-hud.ts), driven by a simulated pointer instead
    of the visitor's. Someone circles the locked Pay, unsure: the HUD reads
    confused and the screen moves from state 1 (neutral) to state 2: the
    locked Pay steps back, so it stops looking like the next step. They press
@@ -200,7 +200,7 @@ function frameAt(t: number): Frame {
 
 const sameFrame = (a: Frame, b: Frame) => a.ui === b.ui && a.agreed === b.agreed && a.paid === b.paid && a.resetting === b.resetting;
 
-function AdaptiveDemo() {
+function MoodDemo() {
   const box = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const pointer = useRef<HTMLDivElement>(null);
@@ -273,9 +273,9 @@ function AdaptiveDemo() {
   const locked = !frame.agreed;
 
   return (
-    <div className="vp-fit au-fit" ref={box} data-paused-by-user={paused} style={{ height: STAGE_H * scale }}>
+    <div className="vp-fit mood-fit" ref={box} data-paused-by-user={paused} style={{ height: STAGE_H * scale }}>
       <div
-        className="vp-stage au-stage"
+        className="vp-stage mood-stage"
         ref={stage}
         data-paused={still}
         role="img"
@@ -283,44 +283,44 @@ function AdaptiveDemo() {
         style={{ width: w, height: STAGE_H, transform: scale < 1 ? `scale(${scale})` : undefined } as CSSProperties}
       >
         <div
-          className="au-screen"
+          className="mood-screen"
           data-state={frame.ui}
           data-resetting={frame.resetting}
           style={{ left: l.screen.x, top: l.screen.y, width: SCREEN_W, height: SCREEN_H }}
           aria-hidden="true"
         >
-          <div className="au-pay" data-agreed={frame.agreed} style={{ left: l.form.x - l.screen.x, top: l.form.y - l.screen.y, width: FORM_W }}>
-            <span className="au-btn" data-locked={locked} data-paid={frame.paid}>
-              <span className="au-btn-label">Pay $97.54</span>
-              <span className="au-btn-label au-btn-paid">
+          <div className="mood-pay" data-agreed={frame.agreed} style={{ left: l.form.x - l.screen.x, top: l.form.y - l.screen.y, width: FORM_W }}>
+            <span className="mood-btn" data-locked={locked} data-paid={frame.paid}>
+              <span className="mood-btn-label">Pay $97.54</span>
+              <span className="mood-btn-label mood-btn-paid">
                 <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.92 7.44 5.83 11.08 11.08 2.92" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 Paid
               </span>
             </span>
-            <span className="au-terms">
-              <span className="au-box">
+            <span className="mood-terms">
+              <span className="mood-box">
                 <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.92 7.44 5.83 11.08 11.08 2.92" stroke="#2C2C2C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </span>
-              <span className="au-terms-text">I agree to the terms of sale and the return policy</span>
+              <span className="mood-terms-text">I agree to the terms of sale and the return policy</span>
             </span>
           </div>
         </div>
 
-        <div className="au-states" style={{ left: l.screen.x, top: l.screen.y + SCREEN_H + 18, width: SCREEN_W }} aria-hidden="true">
-          <span className="au-states-key">UI STATE</span>
-          <span className="au-state" data-on={frame.ui === 1}>
+        <div className="mood-states" style={{ left: l.screen.x, top: l.screen.y + SCREEN_H + 18, width: SCREEN_W }} aria-hidden="true">
+          <span className="mood-states-key">UI STATE</span>
+          <span className="mood-state" data-on={frame.ui === 1}>
             <i>1</i>Neutral
           </span>
-          <span className="au-state" data-on={frame.ui === 2}>
+          <span className="mood-state" data-on={frame.ui === 2}>
             <i>2</i>Confused
           </span>
-          <span className="au-state" data-on={frame.ui === 3}>
+          <span className="mood-state" data-on={frame.ui === 3}>
             <i>3</i>Frustrated
           </span>
         </div>
 
-        <div className="au-pointer" ref={pointer} aria-hidden="true">
-          <svg className="au-arrow" width="18" height="22" viewBox="0 0 18 22" fill="none">
+        <div className="mood-pointer" ref={pointer} aria-hidden="true">
+          <svg className="mood-arrow" width="18" height="22" viewBox="0 0 18 22" fill="none">
             <path d="M1.5 1.5v15.2l4.1-3.7 2.6 5.6 2.9-1.3-2.5-5.5h5.6L1.5 1.5Z" fill="#f8f8f8" stroke="#0d0d0d" strokeWidth="1.2" strokeLinejoin="round" />
           </svg>
         </div>
@@ -340,11 +340,11 @@ function AdaptiveDemo() {
   );
 }
 
-const rootEl = document.getElementById("adaptive-demo");
+const rootEl = document.getElementById("mood-demo");
 if (rootEl) {
   createRoot(rootEl).render(
     <StrictMode>
-      <AdaptiveDemo />
+      <MoodDemo />
     </StrictMode>
   );
 }

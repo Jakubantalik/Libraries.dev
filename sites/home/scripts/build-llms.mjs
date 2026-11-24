@@ -37,7 +37,7 @@ const LIBS = [
 // The on-device models: input for a UI, not effects. Their files are
 // downloads (free account), never npm packages.
 const MODELS = [
-  { file: "12-adaptive-ui.md", slug: "adaptive-ui", name: "Adaptive UI (beta)", page: "adaptive-ui", line: "Reads the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, in the browser; a React kit tells components when to bring forward what helps." },
+  { file: "12-mood-recognition.md", slug: "mood-recognition", name: "Mood recognition (beta)", page: "mood-recognition", line: "Reads the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, in the browser; a React kit tells components when to bring forward what helps." },
   { file: "11-voice-position.md", slug: "voice-position", name: "Voice Position (beta)", page: "voice-position", line: "Which side of an iPhone a voice comes from and how far off it is, from the built-in stereo microphones. SwiftUI." },
   { file: "10-magnetic-ui.md", slug: "magnetic-ui", name: "Magnetic UI", page: "magnetic", line: "A real magnet pulls the interface and air taps act as input, from the phone's magnetometer. React (via the Magnet Bridge app), SwiftUI, Android, React Native." },
 ];

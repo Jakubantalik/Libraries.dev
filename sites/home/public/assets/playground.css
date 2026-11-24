@@ -147,7 +147,7 @@ html[data-theme="light"] .docs-link-icon[src*="figma-distortion-waves"],
 html[data-theme="light"] .st-lib-ico img[src*="figma-distortion-waves"] { content: url("/assets/icons/figma-distortion-waves-light.svg"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-magnetic"] { content: url("/assets/icons/figma-magnetic-light.svg"); }
 html[data-theme="light"] .docs-link-icon[src*="figma-directional"] { content: url("/assets/icons/figma-directional-light.svg"); }
-html[data-theme="light"] .docs-link-icon[src*="figma-adaptive"] { content: url("/assets/icons/figma-adaptive-light.svg"); }
+html[data-theme="light"] .docs-link-icon[src*="figma-mood"] { content: url("/assets/icons/figma-mood-light.svg"); }
 
 
 .docs-main { position: relative; min-width: 0; }

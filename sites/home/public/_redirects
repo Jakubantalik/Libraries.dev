@@ -17,6 +17,12 @@
 /voice-direction       /voice-position  301
 /voice-direction.html  /voice-position  301
 
+# The Adaptive UI model became Mood recognition on 24 November 2026, the day
+# it was published.
+/adaptive-ui          /mood-recognition          301
+/adaptive-ui.html     /mood-recognition          301
+/llms/adaptive-ui.md  /llms/mood-recognition.md  301
+
 # The Distortion waves page moved from /distortion-waves to /waves on
 # 10 November 2026.
 /distortion-waves       /waves  301
