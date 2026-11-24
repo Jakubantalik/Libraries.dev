@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Jakub Antalik. Libraries.dev Model License, see LICENSE-MODEL.md.
 /* Magnet Bridge client: the Android app that runs the magnet model on the
    phone and serves its answers on ws://127.0.0.1:47613 (Chrome's own
    Magnetometer API cannot be switched on). Positions arrive in screen dp,

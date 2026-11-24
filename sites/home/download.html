@@ -248,7 +248,7 @@
         </header>
 
         <div class="detail-body docs-prose">
-          <p class="dl-lede">Each download is a .zip. Every model comes with its license.</p>
+          <p class="dl-lede">Each download is a .zip. Every model and kit comes with its license.</p>
           <div class="docs-cards" id="dl-list">
             <section class="docs-card dl-card" id="magnet" aria-labelledby="magnet-title">
               <h3 id="magnet-title">Magnetic UI</h3>
@@ -256,6 +256,10 @@
               <p class="dl-meta"><code>Magnet.mfxl</code> · v1.0 · 2 MB · iOS 17+ and Android 10+</p>
               <div class="dl-actions">
                 <button type="button" class="dl-btn" data-download="magnet">Download model</button>
+                <button type="button" class="dl-btn dl-btn--quiet" data-download="magnet-ios">iOS kit</button>
+                <button type="button" class="dl-btn dl-btn--quiet" data-download="magnet-android">Android kit</button>
+                <button type="button" class="dl-btn dl-btn--quiet" data-download="magnet-react">React kit</button>
+                <button type="button" class="dl-btn dl-btn--quiet" data-download="magnet-react-native">React Native kit</button>
                 <a class="dl-btn dl-btn--quiet" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app (Android)</a>
                 <a class="dl-link" href="/magnetic.html">Install guide</a>
               </div>
@@ -266,6 +270,7 @@
               <p class="dl-meta"><code>VoicePosition.mfxl</code> · v2.0 beta · 1.6 KB · iPhone with iOS 17+</p>
               <div class="dl-actions">
                 <button type="button" class="dl-btn" data-download="position">Download model</button>
+                <button type="button" class="dl-btn dl-btn--quiet" data-download="position-ios">iOS kit</button>
                 <a class="dl-link" href="/voice-position.html">Install guide</a>
               </div>
             </section>
@@ -283,8 +288,8 @@
 
           <h2>License</h2>
           <p>
-            Models are free for development, prototypes, and personal or non-commercial apps.
-            Shipping one in a paid or client app needs <a href="/pro.html">Pro</a>, or Business for a
+            Models and their kits are free for development, prototypes, and personal or non-commercial apps.
+            Shipping them in a paid or client app needs <a href="/pro.html">Pro</a>, or Business for a
             company. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a>
             has the full terms.
           </p>
@@ -347,7 +352,7 @@
     // Every file needs a free account. Signed out, the sign-in box opens in
     // free-account mode and the download starts once the code is in.
     (function () {
-      var NAMES = { magnet: "Magnetic UI", position: "Voice position", mood: "Mood recognition", "mood-react": "Mood recognition" };
+      var NAMES = { magnet: "Magnetic UI", position: "Voice position", mood: "Mood recognition" };
       [].forEach.call(document.querySelectorAll("[data-download]"), function (btn) {
         btn.addEventListener("click", function () {
           var pro = window.LibrariesPro;
@@ -357,7 +362,7 @@
           if (pro.state.authenticated) { go(); return; }
           pro.signIn({
             signup: "model:" + id,
-            title: "Download " + NAMES[id],
+            title: "Download " + NAMES[id.split("-")[0]],
             sub: "Free account: we email you a code, no password.",
             onSignedIn: go
           });

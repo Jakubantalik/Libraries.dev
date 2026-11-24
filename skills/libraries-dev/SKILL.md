@@ -32,13 +32,13 @@ Input, not effects: each reads a signal on the device and tells your UI.
 | Model | Install | Use it for | Reference |
 | --- | --- | --- | --- |
 | **Mood recognition** (beta) | React kit + `MoodRecognition.json`, downloads (free account) | Reading the user's mood (frustrated, confused, lost) from the pointer, presses, scrolling and typing, so the UI brings forward what helps. | [12-mood-recognition.md](references/12-mood-recognition.md) |
-| **Voice position** (beta) | `VoicePositionKit` (SwiftUI) + `VoicePosition.mfxl` | Which side of an iPhone a voice comes from, and how far off it is. | [11-voice-position.md](references/11-voice-position.md) |
-| **Magnetic UI** | `magnetkit` (React, via the Magnet Bridge app), MagnetKit (SwiftUI, Android) | A real magnet that pulls the UI, and air taps. | [10-magnetic-ui.md](references/10-magnetic-ui.md) |
+| **Voice position** (beta) | `VoicePositionKit` (SwiftUI) + `VoicePosition.mfxl`, downloads (free account) | Which side of an iPhone a voice comes from, and how far off it is. | [11-voice-position.md](references/11-voice-position.md) |
+| **Magnetic UI** | MagnetKit (React via the Magnet Bridge app, React Native, SwiftUI, Android) + `Magnet.mfxl`, downloads (free account) | A real magnet that pulls the UI, and air taps. | [10-magnetic-ui.md](references/10-magnetic-ui.md) |
 
-Model files are never on npm or in a public repository: the user downloads
-them from the model's page with a free account and ships them inside the app
-(Libraries.dev Model License: free for development and non-commercial apps; a
-commercial release needs Pro or Business).
+Models and their kits are never on npm or in a public repository: the user
+downloads them from the model's page with a free account and ships them inside
+the app (Libraries.dev Model License: free for development and non-commercial
+apps; a commercial release needs Pro or Business).
 
 Docs and live playgrounds: https://libraries.dev (one detail page per library and model).
 

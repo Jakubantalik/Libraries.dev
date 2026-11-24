@@ -1,16 +1,16 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-// The SwiftUI port of Voice ring, and the kits around it:
+// The SwiftUI port of Voice ring, and the emotion kit beside it:
 //
 // - VoiceRingKit      — the ring (`VoiceRing`), with the meter and moods.
 // - VoiceRingEmotion  — on-device emotion: the voice's tone (emotion2vec+)
 //   and its words (GoEmotions), as in VoiceGlow Pro. Models from the app.
-// - VoicePositionKit — where the voice is, its side and distance, read by the
-//   Voice position model (VoicePosition.mfxl, licensed separately, from the app).
 //
 // VoiceCore holds what they share — the engine, the painters, the stereo
 // microphone, the voice follower, mood colours — and is re-exported by each.
+// VoicePositionKit (where the voice is, its side and distance) builds on
+// VoiceCore too; it is a download from libraries.dev/voice-position.
 // The repository's root Package.swift points at these same sources; keep
 // the two in step.
 let package = Package(
@@ -19,15 +19,13 @@ let package = Package(
     products: [
         .library(name: "VoiceRingKit", targets: ["VoiceRingKit"]),
         .library(name: "VoiceRingEmotion", targets: ["VoiceRingEmotion"]),
-        .library(name: "VoicePositionKit", targets: ["VoicePositionKit"]),
+        .library(name: "VoiceCore", targets: ["VoiceCore"]),
     ],
     targets: [
         // the edge refraction is a Metal shader, compiled into the bundle
         .target(name: "VoiceCore", resources: [.process("Render/Refract.metal")]),
         .target(name: "VoiceRingKit", dependencies: ["VoiceCore"]),
         .target(name: "VoiceRingEmotion", dependencies: ["VoiceCore"]),
-        .target(name: "VoicePositionKit", dependencies: ["VoiceCore"]),
-        .testTarget(name: "VoiceRingKitTests", dependencies: ["VoiceCore", "VoiceRingKit", "VoicePositionKit"],
-                    resources: [.copy("Fixtures")]),
+        .testTarget(name: "VoiceRingKitTests", dependencies: ["VoiceCore", "VoiceRingKit"]),
     ]
 )

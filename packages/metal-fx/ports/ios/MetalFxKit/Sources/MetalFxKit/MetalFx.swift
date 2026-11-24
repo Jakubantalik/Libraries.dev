@@ -20,7 +20,7 @@ public final class MetalFxModel: ObservableObject {
     /// Text / badge anchors: the whole box is metal (a masked sheet), not a band.
     var isSheet = false
     var tiltAttached = false
-    var magnetAttached = false
+    var magnetAttached: (any MetalMagnetProvider)?
     var registeredID: String?
 
     public init() {}
@@ -108,8 +108,8 @@ public enum MetalBendSource {
     case none
     /// The phone's tilt (CoreMotion gravity).
     case tilt
-    /// A real magnet near the phone (the magnetometer): the magnet plays the
-    /// desktop cursor — the web's hover bend toward it.
+    /// A real magnet near the phone: the magnet plays the desktop cursor — the
+    /// web's hover bend toward it. Read from `MetalMagnet.provider` (MagnetKit).
     case magnet
     /// A finger, exactly like the desktop hover. Needs `.metalPointerTracking()` on a root view.
     case pointer
@@ -226,7 +226,7 @@ public struct MetalFx<Content: View>: View {
             .onDisappear {
                 if let id = model.registeredID { MetalFrameStore.shared.unregister(id, model: model) }
                 if model.tiltAttached { MetalTiltSource.shared.detach(); model.tiltAttached = false }
-                if model.magnetAttached { MagnetSource.shared.detach(); model.magnetAttached = false }
+                if let magnet = model.magnetAttached { magnet.detach(); model.magnetAttached = nil }
             }
     }
 }
@@ -245,9 +245,12 @@ extension MetalFx {
             if wantTilt { MetalTiltSource.shared.attach() } else { MetalTiltSource.shared.detach() }
             model.tiltAttached = wantTilt
         }
-        if wantMagnet != model.magnetAttached {
-            if wantMagnet { MagnetSource.shared.attach() } else { MagnetSource.shared.detach() }
-            model.magnetAttached = wantMagnet
+        // Detaches the provider it attached, even if the app has set another since.
+        let magnet = wantMagnet ? MetalMagnet.provider : nil
+        if magnet !== model.magnetAttached {
+            model.magnetAttached?.detach()
+            magnet?.attach()
+            model.magnetAttached = magnet
         }
         model.bend.reset()
     }
@@ -336,7 +339,7 @@ struct MetalFxFrame: View {
             let tiltV = MetalTiltSource.shared.tilt(now: now)
             return model.bend.step(now: now, tilt: tiltV, size: size, radius: radius, cfg: bendConfig)
         case .magnet:
-            let s = MagnetSource.shared.sample(center: model.frame.mfxCenter, now: now)
+            let s = MetalMagnet.provider?.sample(center: model.frame.mfxCenter, now: now) ?? MetalMagnetSample.none
             return model.bend.stepMagnet(now: now, sample: s, size: size, radius: radius, cfg: bendConfig)
         case .pointer:
             let local = MetalPointerSource.shared.location.map { CGPoint(x: $0.x - model.frame.minX, y: $0.y - model.frame.minY) }

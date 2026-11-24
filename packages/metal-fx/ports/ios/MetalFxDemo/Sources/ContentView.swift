@@ -1,7 +1,7 @@
 import SwiftUI
 import MetalFxKit
 
-/// The metal-fx v2 demo page's cards, on the phone: the magnet demos, the
+/// The metal-fx v2 demo page's cards, on the phone: the
 /// composer with its send button (reflecting onto the Auto chip), "Plan Pro"
 /// and "Live mode · New". Tilt the phone to bend the rings; in the
 /// Simulator, drag the tilt pad.
@@ -13,10 +13,6 @@ struct ContentView: View {
     @State private var glowGain = 1.0
     /// Launch arguments for headless checks: `-focus edge -holdTilt YES -glowGain 2`.
     @State private var focus = UserDefaults.standard.string(forKey: "focus") ?? "all"
-    @State private var showFerro = false
-    @State private var showEmail = false
-    @State private var showFollow = false
-    @State private var showWallet = false
 
     private let page = Color(hex: 0x0F0F0F)
     private let card = Color(hex: 0x171717)
@@ -25,24 +21,6 @@ struct ContentView: View {
     private let secondary = Color(hex: 0x999999)
 
     var body: some View {
-        if focus == "ferro" {
-            FerrofluidView()
-        } else if focus == "email" {
-            MagnetEmailView()
-        } else if focus == "follow" {
-            MagnetFollowView()
-        } else if focus == "wallet" {
-            MagnetWalletView()
-        } else {
-            page_
-                .fullScreenCover(isPresented: $showFerro) { FerrofluidView(onClose: { showFerro = false }) }
-                .fullScreenCover(isPresented: $showEmail) { MagnetEmailView(onClose: { showEmail = false }) }
-                .fullScreenCover(isPresented: $showFollow) { MagnetFollowView(onClose: { showFollow = false }) }
-                .fullScreenCover(isPresented: $showWallet) { MagnetWalletView(onClose: { showWallet = false }) }
-        }
-    }
-
-    private var page_: some View {
         ScrollView {
             VStack(spacing: 12) {
                 if focus == "composer" {
@@ -50,10 +28,6 @@ struct ContentView: View {
                     controls
                 } else {
                     header
-                    ferroCard
-                    emailCard
-                    followCard
-                    walletCard
                     composerCard
                     planProCard
                     liveModeCard
@@ -78,78 +52,6 @@ struct ContentView: View {
             Text("metal-fx v2 · SwiftUI").font(.system(size: 15)).foregroundStyle(secondary)
         }
         .padding(.vertical, 24)
-    }
-
-    /// Entry to the magnet demo.
-    private var ferroCard: some View {
-        Button { showFerro = true } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Ferrofluid").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                    Text("Bring a magnet close — the ring bends toward it").font(.system(size: 13)).foregroundStyle(secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(secondary)
-            }
-            .padding(.horizontal, 20)
-            .frame(height: 84)
-            .background(card, in: RoundedRectangle(cornerRadius: 26))
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Entry to the Follow demo (the locator network).
-    private var followCard: some View {
-        Button { showFollow = true } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Follow").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                    Text("A metal ring follows a magnet over the screen").font(.system(size: 13)).foregroundStyle(secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(secondary)
-            }
-            .padding(.horizontal, 20)
-            .frame(height: 84)
-            .background(card, in: RoundedRectangle(cornerRadius: 26))
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Entry to the Magnetic UI demo (Figma wallet screen whose elements feel the magnet).
-    private var walletCard: some View {
-        Button { showWallet = true } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Magnetic UI").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                    Text("Every element is pulled toward a magnet near the phone").font(.system(size: 13)).foregroundStyle(secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(secondary)
-            }
-            .padding(.horizontal, 20)
-            .frame(height: 84)
-            .background(card, in: RoundedRectangle(cornerRadius: 26))
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Entry to the Continue button demo (the Figma screen with the metal arrow).
-    private var emailCard: some View {
-        Button { showEmail = true } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Continue button").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                    Text("The arrow button follows a magnet").font(.system(size: 13)).foregroundStyle(secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(secondary)
-            }
-            .padding(.horizontal, 20)
-            .frame(height: 84)
-            .background(card, in: RoundedRectangle(cornerRadius: 26))
-        }
-        .buttonStyle(.plain)
     }
 
     private var composerCard: some View {

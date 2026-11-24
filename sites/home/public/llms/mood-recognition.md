@@ -25,7 +25,7 @@ Interfaces that read the user's mood. One small on-device model (`MoodRecognitio
 
 ## Install
 
-1. Ask the user to download both from https://libraries.dev/mood-recognition (Install tab, free account): `MoodRecognition-React-0.4.zip`, unzipped into `src/mood-recognition/`, and `MoodRecognition-0.4.zip`, with `MoodRecognition.json` placed next to the kit.
+1. Ask the user to download both from https://libraries.dev/mood-recognition (Install tab, free account): `MoodRecognition-React-0.5.zip`, unzipped into `src/mood-recognition/`, and `MoodRecognition-0.4.zip`, with `MoodRecognition.json` placed next to the kit.
 2. Import the model so it ships inside the bundle (needs `resolveJsonModule`). React 18+, no other dependency.
 
 ## Basic usage
@@ -93,6 +93,6 @@ Props: `model`, `baselineKey` (default `"mood-baseline"`; `null` keeps the perso
 
 ## License
 
-The kit's code is MIT. The model is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; a commercial release needs Pro or Business. Ship it inside the app's bundle only, never on its own.
+The kit and the model are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; a commercial release needs Pro or Business. Ship them inside the app's bundle only, never on their own.
 
 Docs: https://libraries.dev/mood-recognition

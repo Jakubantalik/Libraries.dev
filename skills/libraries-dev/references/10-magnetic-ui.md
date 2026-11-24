@@ -16,15 +16,17 @@ A real magnet moves the interface. One small on-device model reads the phone's m
 
 ## Install
 
-React (web):
+The kits are downloads, not npm or GitHub packages: ask the user to download theirs from https://libraries.dev/magnetic (Install tab, free account) and unzip it into the project.
+
+React (web), `MagnetKit-React-0.2.zip`:
 
 ```bash
-npm install magnetkit
+npm install ./magnetkit
 ```
 
 React 18+. Browsers can't read the raw magnetometer, so the [Magnet Bridge app](https://libraries.dev/downloads/MagnetBridge.apk) (Android 10+) runs the model on the phone and serves its answers to sites the visitor allows. Your site ships no model file. Android Chrome asks once to allow local network access.
 
-SwiftUI (iOS 17+): `.product(name: "MagnetKit", package: "Libraries.dev")` from `https://github.com/Jakubantalik/Libraries.dev`, then add `Magnet.mfxl` (download at https://libraries.dev/magnetic, Model only tab, free account) to the app target. Android and React Native: see the page's Install tab.
+SwiftUI (iOS 17+), `MagnetKit-iOS-0.2.zip`: add the folder as a local package (`.package(path: "../MagnetKit")`), then add `Magnet.mfxl` (downloaded from the same page) to the app target. Android and React Native: see the page's Install tab.
 
 ## Basic usage (React)
 
@@ -72,6 +74,6 @@ export function Header() {
 
 ## License
 
-The kit's code is MIT. The model, `Magnet.mfxl`, is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping it in a commercial app needs Pro or Business. On the web the model runs inside the Magnet Bridge app, so a website needs no model license of its own.
+The kits and the model, `Magnet.mfxl`, are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps and sites; shipping them commercially needs Pro or Business. Never commit either to a public repository. On the web the model runs inside the Magnet Bridge app.
 
 Docs: https://libraries.dev/magnetic

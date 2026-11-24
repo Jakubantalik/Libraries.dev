@@ -25,10 +25,10 @@ let package = Package(
         .library(name: "VoiceGlowKit", targets: ["VoiceGlowKit"]),
         .library(name: "BotAvatarsKit", targets: ["BotAvatarsKit"]),
         .library(name: "MetalFxKit", targets: ["MetalFxKit"]),
-        .library(name: "MagnetKit", targets: ["MagnetKit"]),
         .library(name: "VoiceRingKit", targets: ["VoiceRingKit"]),
         .library(name: "VoiceRingEmotion", targets: ["VoiceRingEmotion"]),
-        .library(name: "VoicePositionKit", targets: ["VoicePositionKit"]),
+        // What VoicePositionKit, a separate download, reads its microphone from.
+        .library(name: "VoiceCore", targets: ["VoiceCore"]),
         .library(name: "DistortionWavesKit", targets: ["DistortionWavesKit"]),
     ],
     targets: [
@@ -57,21 +57,13 @@ let package = Package(
         ),
         .target(
             name: "MetalFxKit",
-            dependencies: ["MagnetKit"],
             path: "packages/metal-fx/ports/ios/MetalFxKit/Sources/MetalFxKit",
             resources: [.process("MetalFxShaders.metal")]
         ),
-        // The sensor around the magnet model (Magnetic UI), a library of its own;
-        // MetalFxKit's `source: .magnet` rings read it. The model itself
-        // (Magnet.mfxl) is licensed separately and loaded from the host app.
-        .target(
-            name: "MagnetKit",
-            path: "packages/metal-fx/ports/ios/MagnetKit/Sources/MagnetKit"
-        ),
-        // Voice ring: the ring, and the kits around it, on one shared core
-        // (the engine, the stereo meter, moods). The Voice position model
-        // (VoicePosition.mfxl) is licensed separately and loaded from the
-        // host app; the emotion models come from the app too.
+        // Voice ring: the ring, and the emotion kit beside it, on one shared
+        // core (the engine, the stereo meter, moods). The emotion models come
+        // from the host app. VoicePositionKit, which tells where a voice is, is
+        // a download from libraries.dev/voice-position and builds on VoiceCore.
         .target(
             name: "VoiceCore",
             path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceCore",
@@ -86,11 +78,6 @@ let package = Package(
             name: "VoiceRingEmotion",
             dependencies: ["VoiceCore"],
             path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoiceRingEmotion"
-        ),
-        .target(
-            name: "VoicePositionKit",
-            dependencies: ["VoiceCore"],
-            path: "packages/voice-ring/ports/ios/VoiceRingKit/Sources/VoicePositionKit"
         ),
         // Distortion waves: SwiftUI only, no web package.
         .target(

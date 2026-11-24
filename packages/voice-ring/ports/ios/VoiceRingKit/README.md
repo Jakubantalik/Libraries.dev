@@ -73,10 +73,11 @@ Open Source License, roberta-base-go_emotions under MIT; credit both.
 **Direction (Voice position).** On iPhone the meter records in stereo, and
 the Voice position model (beta) reads which side the voice comes from,
 with no calibration, and on a desk how far off it is (`voice.distance`). It is trained and tested on an iPhone 15 Pro (upright and
-flat on a desk) so far; on other iPhones, calibrate. Download `VoicePosition.mfxl` from
+flat on a desk) so far; on other iPhones, calibrate. Download VoicePositionKit
+and `VoicePosition.mfxl` from
 [libraries.dev/voice-position](https://libraries.dev/voice-position.html)
-(free account) and add it to your app target, then read the ring's meter
-with `VoicePosition` and pass the side in. Without the file,
+(free account), add the kit as a local package and the model to your app target,
+then read the ring's meter with `VoicePosition` and pass the side in. Without the file,
 `voice.calibrate(_:)` (a few seconds of voice from the left, ahead and the
 right) does the same for the pose it was made in.
 
@@ -100,15 +101,14 @@ you pass, and nil leans nowhere. Pass it only while listening: while the
 assistant speaks, the mics hear the phone's own speaker
 (`direction: state == .listening ? voice.pan : nil`).
 
-The model is under the
+VoicePositionKit and the model are under the
 [Libraries.dev Model License](../../../../../LICENSE-MODEL.md): free for
-development, prototypes and non-commercial apps; shipping it in a commercial
-app needs Pro or Business. Ship the file inside your app only, never in a
-public repository.
+development, prototypes and non-commercial apps; shipping them in a commercial
+app needs Pro or Business. Ship them inside your app only, never in a public
+repository.
 
 ## Tests
 
 ```bash
 swift test
-VOICE_POSITION_MODEL=/path/to/VoicePosition.mfxl swift test   # also checks the model against training
 ```

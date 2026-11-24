@@ -301,7 +301,7 @@
         "Swift"
       ],
       "runtimePlatform": "iOS",
-      "license": "https://opensource.org/licenses/MIT",
+      "license": "https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md",
       "isAccessibleForFree": true,
       "author": {
         "@type": "Person",
@@ -607,9 +607,12 @@
           </div>
           <div class="detail-platform" data-platform="react">
             <div class="st-code-group">
-              <span class="st-code-title">Installation</span>
+              <span class="st-code-title">Download and install</span>
+              <div class="mui-live-actions">
+                <button type="button" class="mui-live-btn" data-model-download="magnet-react">Download React kit</button>
+              </div>
               <div class="code-block">
-              <pre>npm install magnetkit</pre>
+              <pre>npm install ./magnetkit</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -618,7 +621,7 @@
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">React 18+. Browsers can't read the raw magnetometer, so on the web the kit talks to the <a class="mui-live-link" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app</a> (Android 10+), which runs the model on the phone and serves its answers to sites you allow. Your site ships no model file. Android Chrome asks once to allow local network access.</span>
+            <span class="st-code-note"><code>MagnetKit-React-0.2.zip</code>: unzip it into your project, then install the folder. React 18+. Browsers can't read the raw magnetometer, so on the web the kit talks to the <a class="mui-live-link" href="/downloads/MagnetBridge.apk" download>Magnet Bridge app</a> (Android 10+), which runs the model on the phone and serves its answers to sites you allow. Your site ships no model file. Android Chrome asks once to allow local network access.</span>
             </div>
 
             <div class="st-code-group">
@@ -702,17 +705,21 @@ if (import.meta.env.DEV) simulateMagnetWithPointer();</pre>
 
             <div class="st-code-group">
               <span class="st-code-title">License</span>
-              <span class="st-code-note">The kit's code is MIT. The model runs inside the Magnet Bridge app, so a website needs no model license of its own.</span>
+              <span class="st-code-note">The kit is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial sites. A commercial site needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship it inside your site only, never in a public repository. The model runs inside the Magnet Bridge app.</span>
             </div>
           </div>
           <div class="detail-platform" data-platform="swift" hidden>
             <div class="st-code-group">
-              <span class="st-code-title">Installation</span>
+              <span class="st-code-title">Download and install</span>
+              <div class="mui-live-actions">
+                <button type="button" class="mui-live-btn" data-model-download="magnet-ios">Download MagnetKit</button>
+                <button type="button" class="mui-live-btn" data-model-download="magnet">Download model</button>
+              </div>
               <div class="code-block">
-              <pre id="install-code">// Package.swift, or in Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
-.package(url: &quot;https://github.com/Jakubantalik/Libraries.dev&quot;, branch: &quot;main&quot;)
+              <pre id="install-code">// Package.swift, or in Xcode: File › Add Package Dependencies… › Add Local…
+.package(path: &quot;../MagnetKit&quot;)
 // …and in your target&#x27;s dependencies:
-.product(name: &quot;MagnetKit&quot;, package: &quot;Libraries.dev&quot;)</pre>
+&quot;MagnetKit&quot;</pre>
               <button type="button" class="code-copy" data-copy-static aria-label="Copy install command">
                 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -721,7 +728,7 @@ if (import.meta.env.DEV) simulateMagnetWithPointer();</pre>
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">iOS 17+, iPhone. MagnetKit is a library of its own; no other library needed. Then add the model: download <code>Magnet.mfxl</code> from the Model tab and add it to your app target. It loads on first use.</span>
+            <span class="st-code-note"><code>MagnetKit-iOS-0.2.zip</code>: a Swift package. Unzip it beside your project and add it as a local package. iOS 17+, iPhone; no other library needed. Then add the model: unzip <code>Magnet.mfxl</code> and add it to your app target. It loads on first use.</span>
             </div>
 
             <div class="st-code-group">
@@ -778,8 +785,10 @@ MagnetSource.shared.addGestureHandler { gesture in
 let r = MagnetSource.shared.reading(now: now)
 card.offset(x: r.toward.dx * r.pull * 24, y: r.toward.dy * r.pull * 24)
 
-// Metal's liquid rings read it for you:
-import MetalFxKit   // brings MagnetKit along
+// Metal's liquid rings read it for you: add Extras/MetalFxMagnet.swift
+// to your app target, and once, in your App's init:
+// MetalMagnet.provider = MagnetSource.shared
+import MetalFxKit
 MetalFx(variant: .circle, source: .magnet) {
     Image(systemName: &quot;arrow.right&quot;).frame(width: 52, height: 52)
 }</pre>
@@ -833,9 +842,13 @@ MetalFx(variant: .circle, source: .magnet) {
           </div>
           <div class="detail-platform" data-platform="rn" hidden>
             <div class="st-code-group">
-              <span class="st-code-title">Installation</span>
+              <span class="st-code-title">Download and install</span>
+              <div class="mui-live-actions">
+                <button type="button" class="mui-live-btn" data-model-download="magnet-react-native">Download React Native kit</button>
+                <button type="button" class="mui-live-btn" data-model-download="magnet">Download model</button>
+              </div>
               <div class="code-block">
-              <pre>npx expo install react-native-magnetkit
+              <pre>npm install ./react-native-magnetkit
 
 // app.json: the plugin copies the model into the iOS and Android apps.
 {
@@ -853,7 +866,7 @@ npx expo run:ios   // or run:android; a development build, not Expo Go</pre>
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">Expo SDK 52+, iOS 17+ and Android 10+. An Expo module around MagnetKit, the same Swift and Kotlin as the native tabs. Download <code>Magnet.mfxl</code> from the Model tab into <code>assets/</code> first. Bare React Native: run <code>npx install-expo-modules</code>, then add <code>Magnet.mfxl</code> to the iOS target's Copy Bundle Resources and to <code>android/app/src/main/assets</code>.</span>
+            <span class="st-code-note"><code>MagnetKit-React-Native-0.2.zip</code>: unzip it into your project, then install the folder, with <code>Magnet.mfxl</code> in <code>assets/</code>. Expo SDK 52+, iOS 17+ and Android 10+. An Expo module around MagnetKit, the same Swift and Kotlin as the native tabs. Bare React Native: run <code>npx install-expo-modules</code>, then add <code>Magnet.mfxl</code> to the iOS target's Copy Bundle Resources and to <code>android/app/src/main/assets</code>.</span>
             </div>
 
             <div class="st-code-group">
@@ -924,25 +937,25 @@ useMagnetFrame((f) =&gt; glow.setValue(f.pull * f.presence));</pre>
                 <li><code>MagneticView</code> runs its physics on the JS thread and moves through Animated values, so nothing re-renders. Tune it with <code>getMagneticField()</code>; it stays put with reduced motion.</li>
                 <li>The sensor runs only while something listens: a hook, a <code>MagneticView</code> or <code>Magnet.addFrameListener</code>.</li>
                 <li><code>Magnet.zero()</code> takes a new zero with no magnet near; MagSafe accessories, steel tables and laptops shift it.</li>
-                <li>A working example app: <code>packages/metal-fx/ports/react-native/magnet-example</code> in the repository.</li>
               </ul>
             </div>
 
             <div class="st-code-group">
               <span class="st-code-title">License</span>
-              <span class="st-code-note">The kit's code is MIT. The model is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping it in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship the file inside your app only, never in a public repository.</span>
+              <span class="st-code-note">The kit and the model are under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping them in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship them inside your app only, never in a public repository.</span>
             </div>
           </div>
           <div class="detail-platform" data-platform="android" hidden>
             <div class="st-code-group">
-              <span class="st-code-title">Installation</span>
+              <span class="st-code-title">Download and install</span>
+              <div class="mui-live-actions">
+                <button type="button" class="mui-live-btn" data-model-download="magnet-android">Download MagnetKit</button>
+                <button type="button" class="mui-live-btn" data-model-download="magnet">Download model</button>
+              </div>
               <div class="code-block">
-              <pre>// Get the code: clone Libraries.dev (or add it as a git submodule) next to your app.
-git submodule add https://github.com/Jakubantalik/Libraries.dev libraries-dev
-
+              <pre>// Unzip the kit into your project, beside app/.
 // settings.gradle.kts
 include(":magnetkit")
-project(":magnetkit").projectDir = file("libraries-dev/packages/metal-fx/ports/android/magnetkit")
 
 // app/build.gradle.kts
 dependencies { implementation(project(":magnetkit")) }</pre>
@@ -954,7 +967,7 @@ dependencies { implementation(project(":magnetkit")) }</pre>
                 <svg class="icon-check" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.46889L6.26923 11.58L12.5 4.58" /></svg>
               </button>
             </div>
-            <span class="st-code-note">Android 10+ (minSdk 29), Kotlin. The same model file as on iPhone and the same code around it, ported line by line: download <code>Magnet.mfxl</code> from the Model tab and put it in your app's <code>src/main/assets/</code>. It reads the uncalibrated magnetometer, so Android's own calibration can't slowly cancel a nearby magnet. Tested on a Pixel 9a through the Magnet Bridge app.</span>
+            <span class="st-code-note">Android 10+ (minSdk 29), Kotlin. The same model file as on iPhone and the same code around it, ported line by line: unzip <code>Magnet.mfxl</code> into your app's <code>src/main/assets/</code>. It reads the uncalibrated magnetometer, so Android's own calibration can't slowly cancel a nearby magnet. Tested on a Pixel 9a through the Magnet Bridge app.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">Usage</span>
@@ -1008,13 +1021,13 @@ magnet.addGestureListener { g -&gt;
             <div class="st-code-group">
               <span class="st-code-title">Download</span>
               <div class="mui-live-actions">
-                <button type="button" class="mui-live-btn" id="mui-model-download">Download model</button>
+                <button type="button" class="mui-live-btn" data-model-download="magnet">Download model</button>
               </div>
             <span class="st-code-note"><code>Magnet-1.0.zip</code>: the model (<code>Magnet.mfxl</code>, 2 MB, v1.0) and its license. One file, three parts: <code>locator</code> (where the magnet is), <code>presence</code> (is it really there) and <code>tap</code> (air taps). Small fully connected networks in half precision; each part's header lists its inputs, outputs and constants.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">License</span>
-              <span class="st-code-note">MagnetKit's code is MIT. The model is under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping it in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship the file inside your app only, never in a public repository.</span>
+              <span class="st-code-note">The kit and the model are under the <a class="mui-live-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development, prototypes and non-commercial apps. Shipping them in a commercial app needs <a class="mui-live-link" href="/pro.html">Pro or Business</a>. Ship them inside your app only, never in a public repository.</span>
             </div>
             <div class="st-code-group">
               <span class="st-code-title">Run it (Python + NumPy)</span>
@@ -1099,38 +1112,38 @@ print(locate([64.4, -96.6, -60.8], strength=6500, face=1))   # ≈ [1.94, -3.02,
                account needed). The full text ships in every model download. -->
           <div class="detail-panel" data-detail-panel="license" hidden>
             <div class="docs-prose mui-doc mui-doc--license">
-              <h2>Two licenses</h2>
+              <h2>One license</h2>
               <ul>
                 <li><strong>The model</strong> <code>Magnet.mfxl</code>, its weights, and any copy, conversion, quantization or fine-tune of them: the <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>.</li>
-                <li><strong>The code</strong> MagnetKit for iOS and Android, <code>magnetkit</code> for React, <code>react-native-magnetkit</code> and the loader on this page: MIT, free for any use.</li>
+                <li><strong>The kits</strong> MagnetKit for iOS, Android, React (<code>magnetkit</code>) and React Native (<code>react-native-magnetkit</code>), and the loader on this page, and any copy or change of their code: the same license.</li>
               </ul>
               <h2>Free, no plan needed</h2>
               <ul>
                 <li>Development, testing and evaluation.</li>
                 <li>Prototypes, demos and internal tools that are not released to the public.</li>
-                <li>Personal and non-commercial projects, open-source projects that earn no revenue included, with the model kept inside the app.</li>
+                <li>Personal and non-commercial projects, open-source projects that earn no revenue included, with the model and the kit kept inside the app.</li>
               </ul>
               <h2>Commercial release</h2>
-              <p>A product that contains or loads the model, made available outside your own team (App Store, a public TestFlight, a website, a delivery to a client), when it is sold, earns revenue (ads, subscriptions, in-app purchases), is built for a client or is used in a business. It needs a plan held by you:</p>
+              <p>A product that contains or loads the model, or contains a kit, made available outside your own team (App Store, a public TestFlight, a website, a delivery to a client), when it is sold, earns revenue (ads, subscriptions, in-app purchases), is built for a client or is used in a business. It needs a plan held by you:</p>
               <ul>
-                <li><strong>Pro</strong> One person, such as a solo builder or freelancer: unlimited products, client work included. Pro Lifetime covers the same for 12 months from purchase, every model included; after that, shipped builds stay live and a new release with a model needs a subscription (bought before 27 October 2026: every model, no end date).</li>
+                <li><strong>Pro</strong> One person, such as a solo builder or freelancer: unlimited products, client work included. Pro Lifetime covers the same for 12 months from purchase, every model and kit included; after that, shipped builds stay live and a new release with a model or a kit needs a subscription (bought before 27 October 2026: every model and kit, no end date).</li>
                 <li><strong>Business</strong> A company or organization: unlimited products.</li>
                 <li><strong>Enterprise</strong> Terms set by a separate written agreement, for example custom training or volume deals. <a href="mailto:jakubja@gmail.com">jakubja@gmail.com</a></li>
               </ul>
-              <p>Builds released while your plan was active may stay available after it ends. A new release, including an update that ships the model, needs an active plan.</p>
+              <p>Builds released while your plan was active may stay available after it ends. A new release, including an update that ships the model or a kit, needs an active plan.</p>
               <h2>Conditions</h2>
               <ul>
-                <li>Ship the model only inside the product that uses it, such as your app bundle. Never on its own: no public repository, model hub or download link.</li>
-                <li>Don&#x27;t sublicense, sell, rent or lend the model.</li>
-                <li>Don&#x27;t use the model, its weights or its outputs to train, fine-tune, distil or evaluate a model that does the same job, other than for your own product under this license.</li>
+                <li>Ship the model and the kit only inside the product that uses them, such as your app bundle. Never on their own: no public repository, package registry, model hub or download link.</li>
+                <li>Don&#x27;t sublicense, sell, rent or lend the model or a kit.</li>
+                <li>Don&#x27;t use the model, its weights or its outputs to train, fine-tune, distil or evaluate a model that does the same job, or a kit to build one, other than for your own product under this license.</li>
                 <li>Keep the license and copyright notice that come with it. Every download includes <code>LICENSE-MODEL.md</code>.</li>
               </ul>
               <h2>Good to know</h2>
               <ul>
-                <li><strong>Ownership</strong> The model stays Libraries.dev&#x27;s. Your products, code and data stay yours.</li>
+                <li><strong>Ownership</strong> The model and the kits stay Libraries.dev&#x27;s. Your products, code and data stay yours.</li>
                 <li><strong>Breaches</strong> The license ends if it is broken, and comes back if the breach is fixed within 30 days.</li>
                 <li><strong>No warranty</strong> The model estimates from sensor readings and can be wrong. Don&#x27;t rely on it where an error could cause injury, damage or financial loss.</li>
-                <li><strong>Earlier copies</strong> <code>Magnet.mfxl</code> v1.0 was in the public repository under MIT from 20 to 24 October 2026; copies obtained then stay MIT. Every copy since, and every later version, is under the Model License only.</li>
+                <li><strong>Earlier copies</strong> <code>Magnet.mfxl</code> v1.0 was in the public repository under MIT from 20 to 24 October 2026; copies obtained then stay MIT. Every copy since, and every later version, is under the Model License only. The kits were MIT until 24 November 2026 (on npm up to 0.1.0); copies obtained then stay MIT, every later version is under the Model License.</li>
               </ul>
               <p>This is a summary. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">full Model License</a> is what applies; plans are on <a href="/pro.html">Pricing</a>.</p>
             </div>
@@ -1147,8 +1160,10 @@ Add MagnetKit from Libraries.dev to my SwiftUI app: views that react to a
 magnet near the iPhone, using its on-device magnet model.
 
 Install (Swift Package Manager, iOS 17+):
-.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
-.product(name: "MagnetKit", package: "Libraries.dev")
+MagnetKit is a download, not on GitHub: ask the user to download
+MagnetKit-iOS-0.2.zip from https://libraries.dev/magnetic (Install tab, free
+account), unzip it beside the project and add it as a local package:
+.package(path: "../MagnetKit"), "MagnetKit" in the target.
 
 Setup (once):
 import MagnetKit
@@ -1182,9 +1197,9 @@ physics and real magnet sessions, run on device with Accelerate, no permission p
 where the magnet is, whether it is really there, and air taps. It is NOT in the
 package: ask the user to download Magnet.mfxl from https://libraries.dev/magnetic.html
 (Model tab, free account) and add it to the app target (iOS) or src/main/assets
-(Android); MagnetModel.bundled loads it from there. Never commit it to a public
-repo. Model License: free for development and non-commercial apps; a commercial
-release needs Libraries.dev Pro or Business.
+(Android); MagnetModel.bundled loads it from there. Never commit the model or the
+kit to a public repo. Model License, both: free for development and
+non-commercial apps; a commercial release needs Libraries.dev Pro or Business.
 Config: locatorMode .network (default) or .dipole (physics; needs magnetFace),
 deskPrior, presenceModel, tapModel, gestureSwipeSpeed.
 
@@ -1200,7 +1215,9 @@ Docs: https://libraries.dev/magnetic.html
 Add Magnetic UI from Libraries.dev to my React website: elements that a real
 magnet beside an Android phone pulls, through the on-device magnet model.
 
-Install: npm install magnetkit   (React 18+)
+Install: the kit is a download, not on npm. Ask the user to download
+MagnetKit-React-0.2.zip from https://libraries.dev/magnetic (Install tab, free
+account) and unzip it into the project, then npm install ./magnetkit (React 18+).
 
 How it works: browsers can't read the raw magnetometer, so the Magnet Bridge
 app (Android 10+, https://libraries.dev/downloads/MagnetBridge.apk) runs the
@@ -1232,7 +1249,9 @@ Off with prefers-reduced-motion. Headless calibration: calibrate(bridge, { onUpd
 Development without a phone: simulateMagnetWithPointer() makes the pointer
 the magnet (press and hold).
 
-License: the kit is MIT; the model runs inside the Magnet Bridge app.
+License: the kit is under the Libraries.dev Model License, free for development
+and non-commercial sites; a commercial site needs Libraries.dev Pro or Business.
+Never commit it to a public repo. The model runs inside the Magnet Bridge app.
 Docs: https://libraries.dev/magnetic
     </pre>
     <pre id="agent-prompt-rn" hidden>
@@ -1241,17 +1260,20 @@ real magnet beside the phone pulls, through the on-device magnet model
 (MagnetKit for iOS and Android, as an Expo module).
 
 Install:
-npx expo install react-native-magnetkit
+the kit is a download, not on npm. Ask the user to download
+MagnetKit-React-Native-0.2.zip from https://libraries.dev/magnetic (Install tab,
+free account) and unzip it into the project, then
+npm install ./react-native-magnetkit
 app.json: "plugins": [["react-native-magnetkit", { "model": "./assets/Magnet.mfxl" }]]
 Then a development build (npx expo run:ios / run:android), not Expo Go.
 Bare React Native: npx install-expo-modules first, then add Magnet.mfxl to the
 iOS target's Copy Bundle Resources and android/app/src/main/assets.
 
-The model (Magnet.mfxl v1.0, 2 MB) is NOT in the npm package: ask the user to
+The model (Magnet.mfxl v1.0, 2 MB) is NOT in the kit: ask the user to
 download it from https://libraries.dev/magnetic (Model tab, free account) into
-assets/. Never commit it to a public repo. Model License: free for development
-and non-commercial apps; a commercial release needs Libraries.dev Pro or
-Business. Magnet.hasModel() checks it is there.
+assets/. Never commit the model or the kit to a public repo. Model License, both:
+free for development and non-commercial apps; a commercial release needs
+Libraries.dev Pro or Business. Magnet.hasModel() checks it is there.
 
 import { Magnet, MagnetCalibration, MagneticView, useMagnet, useMagnetFrame, useMagnetGestures } from "react-native-magnetkit";
 
@@ -1325,7 +1347,7 @@ Docs: https://libraries.dev/magnetic
   <script src="/assets/pro-client.js" defer></script>
   <script>
     // Free-account wall. Install & Usage, the Copy prompt and the model
-    // download all need an account (any email; it's free). Signed out, the
+    // and kit downloads all need an account (any email; it's free). Signed out, the
     // panel shows blurred under a card and the sign-in box opens in
     // free-account mode. Once signed in everything unlocks in place.
     (function () {
@@ -1333,7 +1355,7 @@ Docs: https://libraries.dev/magnetic
       var gate = document.querySelector("[data-mui-gate]");
       var content = panel && panel.querySelector(".st-stage-panel");
       var prompt = document.querySelector(".detail-prompt");
-      var download = document.getElementById("mui-model-download");
+      var downloads = document.querySelectorAll("[data-model-download]");
       if (!panel || !gate || !content) return;
 
       function setGated(on) {
@@ -1373,9 +1395,13 @@ Docs: https://libraries.dev/magnetic
         e.preventDefault();
         e.stopImmediatePropagation();
       }, true);
-      if (download) download.addEventListener("click", function () {
-        var go = function () { location.href = window.LibrariesPro.apiBase + "/models/magnet"; };
-        if (signedIn()) go(); else signIn(go);
+      // The model and its kits (/models/<id>), each a .zip with its license.
+      [].forEach.call(downloads, function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-model-download");
+          var go = function () { location.href = window.LibrariesPro.apiBase + "/models/" + id; };
+          if (signedIn()) go(); else signIn(go);
+        });
       });
     })();
   </script>

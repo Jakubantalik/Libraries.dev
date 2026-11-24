@@ -53,7 +53,7 @@ Each package's README documents its props.
 
 **Commercial projects?** The libraries are MIT — use them anywhere, including commercial work. Pro content (Studio exports, Pro presets and recipes) is licensed to you or your team under the plan you buy, for unlimited projects.
 
-**What about the models?** The code around them (MagnetKit for iOS and Android) is MIT. The model files themselves, starting with `Magnet.mfxl` for Magnetic UI, are under the [Libraries.dev Model License](LICENSE-MODEL.md): free for development, prototypes and non-commercial apps; shipping one in a commercial app needs Pro or Business. They are downloaded from libraries.dev and never committed to this repo.
+**What about the models?** The models and the kits that run them (MagnetKit, VoicePositionKit, the Mood recognition kit) are under the [Libraries.dev Model License](LICENSE-MODEL.md), not MIT: free for development, prototypes and non-commercial apps; shipping them in a commercial app needs Pro or Business. Both are downloaded from [libraries.dev](https://libraries.dev/download) with a free account and are never committed to this repo.
 
 ## Working in this repo
 

@@ -27,7 +27,7 @@ MetalBadge("New")                                  // the white pill with a meta
 | `<MetalBadge>`                | `MetalBadge(_:…)`                        |
 | `reflectionTargets`           | `MetalReflectionScope { }` (automatic), `.metalReflection(of:strength:style:)` |
 | `useMetalBend` (cursor)       | `tilt: true` (CoreMotion gravity), `source: .pointer` (finger) |
-| —                             | `source: .magnet` (magnetometer)         |
+| —                             | `source: .magnet` (from a provider)       |
 | glow (halo + catch-light)     | `glow`, `glowGain`, `MetalGlowConfig`    |
 | `innerShadow`                 | `innerShadow: true`                      |
 | cursor light                  | — (no pointer on a phone)                |
@@ -42,15 +42,13 @@ is held still. Tune with `MetalBendConfig`; drive it by hand (Simulator,
 tests) through `MetalTiltSource.shared.override`.
 
 ### Magnet
-The magnet comes from MagnetKit (`../MagnetKit`), a library of its own —
-the sensor, the zero, the magnet model and gestures live there; `import
-MetalFxKit` brings it along. `MetalFx(source: .magnet)` bends the ring
-toward a real magnet near the phone with the desktop hover bend. The iPhone's magnetometer reads how the
-magnet bends the field (no permission needed); against a baseline taken
-with no magnet near, the change gives a closeness (a log scale from the
-3 µT noise floor up to `fullScale`, 60 µT by default — a small fridge
-magnet held close; raise it for neodymium), a bearing (rough until
-trained, see below) and the magnet's face.
+`MetalFx(source: .magnet)` bends the ring toward a real magnet near the phone
+with the desktop hover bend. MetalFxKit has no magnet code of its own: it asks
+`MetalMagnet.provider` every frame.
+[MagnetKit](https://libraries.dev/magnetic), a separate download under the
+Libraries.dev Model License, comes with the file that makes it the provider
+(`Extras/MetalFxMagnet.swift`); any other source that conforms to
+`MetalMagnetProvider` works too. Without one, `.magnet` rings hold their shape.
 
 - **Bend:** the web's `useMetalBend`, ported line for line, with the magnet
   as the cursor. A virtual pointer sits on the line toward the magnet and
@@ -58,57 +56,9 @@ trained, see below) and the magnet's face.
   `magnetGain`); a repelling face presses it in through the edge instead,
   so the metal recoils. Same springs, liquid stretch, lag and envelope, so
   it wobbles back when the magnet leaves.
-- **Bearing:** a flat magnet on the table sits slightly below the sensor,
-  so the direction toward it is `sign(Bz) · B_xy`. That survives flipping
-  the magnet (both components flip), while `sign(Bz)` gives the face:
-  `polarity: .auto` attracts with the north face up and repels with the
-  south face up (`invertPolarity` swaps them). Held high above the phone
-  the vertical component reverses, so `.auto` flips there too — use
-  `.attract` if that matters.
-- **Calibration:** `MagnetSource.shared.calibrate()` with no magnet
-  near (it also runs on first attach). It re-zeroes by itself once the
-  phone settles in a new pose (`autoRecalibrate`). MagSafe accessories,
-  steel tables, laptops and speakers shift the baseline: recalibrate there.
-  Flat on a table is the steady case.
-- **Trained directions (recommended):** the sensor sits somewhere other
-  than the ring (each model differs), so the raw bearing is off by 20–40°
-  for a magnet beside the phone. Record what the field looks like with the
-  magnet at a few spots around the phone (`config.templates`, one
-  `MagnetTemplate(angle:field:)` per spot; the demo's "Train
-  directions" walks through 8). The reading is matched against the
-  trained spots by its field direction (vertical part down-weighted,
-  `templateVerticalWeight`) and its log strength (`templateStrengthWeight`)
-  — a softmax on the squared distance — and their angles are averaged;
-  the reversed field is tried too, so a flipped magnet is told apart from
-  one on the far side. Slow drift is re-zeroed while the field is weak and
-  steady (`driftSeconds`); on a real phone ~4.5 µT was left behind after a
-  magnet came close, as large as a far magnet's signal. Matching the
-  3-D shape matters: on a real iPhone 15 Pro the magnetometer sits near the
-  top, so a magnet anywhere along the bottom or right puts an almost
-  vertical field on it (in-plane part 14–18 %), and interpolating on that
-  in-plane direction landed >100° off for a fifth to a third of readings
-  there; the 3-D match (how vertical the field is says how far the magnet
-  is from the sensor) never did, at ~15° mean error
-  (`templateSharpness` 80). Spots that look alike to the sensor blend: on
-  that phone "right" and "below the bottom-right corner" read nearly the
-  same, so either bends a corner ring down-right.
-  Rings follow the side of the phone the magnet is on (the bearing
-  from `config.templateOrigin`, the point the angles were measured from).
-  Give the templates a `distance` too and the source estimates the magnet's
-  position (`reading.position`); `aimRadius` lets rings near it aim at it.
-  It is off by default: on that iPhone the spots along the bottom and right
-  read alike, so the estimate was a blend that landed beside a bottom-right
-  button and pulled it left or up. Following the side, the same readings
-  bend it down-right every time.
-- **Sensor spot:** alternatively set `config.sensorPosition` (window
-  points) to aim each ring at the estimated magnet position; find it by
-  sliding a magnet over the back and watching for the peak.
 - **Other drivers:** `source: .pointer` is the finger as the desktop cursor
   (install `.metalPointerTracking()` on a root view); `source:
-  .manual(driver)` takes any field (`MetalMagnetDriver` — audio bass, a
-  game). `MagnetSource.shared.simulatedField` feeds a raw field, and
-  `MagnetSimulator.field(magnet:sensor:northUp:)` computes a dipole's,
-  which is how the demo's draggable puck works in the Simulator.
+  .manual(driver)` takes any field (`MetalMagnetDriver`: audio bass, a game).
 
 Bigger rings want bigger numbers: `MetalBendConfig.default.scaled(k)`
 multiplies every length (the web's are tuned for a 40-pt button).

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Jakub Antalik. Libraries.dev Model License, see LICENSE-MODEL.md.
 /* The Magnetic UI physics, ported from Magnetic Home (Android) / the iOS
    wallet demo: every element is a small rigid body on a stiff damped string
    to its place. A magnet beside the phone (not over the glass) pulls each by

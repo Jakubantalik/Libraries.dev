@@ -16,13 +16,16 @@ Interfaces that know where the voice is. One tiny on-device model (`VoicePositio
 
 ## Install
 
+The kit and the model are downloads: ask the user to download both from https://libraries.dev/voice-position (Install tab, free account). Unzip `VoicePositionKit-iOS-0.2.zip` beside the project and add it as a local package:
+
 ```swift
-// Package.swift, or in Xcode: File › Add Package Dependencies… (Branch: main)
-.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
-.product(name: "VoicePositionKit", package: "Libraries.dev")
+// Package.swift, or in Xcode: File › Add Package Dependencies… › Add Local…
+.package(path: "../VoicePositionKit")
+// in the target's dependencies
+"VoicePositionKit"
 ```
 
-iOS 17+, iPhone. Add `NSMicrophoneUsageDescription` to Info.plist. Download `VoicePosition.mfxl` from https://libraries.dev/voice-position (Model only tab, free account) and add it to the app target; it loads from `Bundle.main`. Never commit it to a public repository.
+iOS 17+, iPhone. Add `NSMicrophoneUsageDescription` to Info.plist. Add `VoicePosition.mfxl` to the app target; it loads from `Bundle.main`. Never commit the kit or the model to a public repository.
 
 ## Basic usage
 
@@ -65,6 +68,6 @@ Readings: `pan` (−1…1, nil while quiet), `side` (`.left`, `.ahead`, `.right`
 
 ## License
 
-VoicePositionKit is MIT. The model is under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping it in a commercial app needs Pro or Business. Ship it inside the app only.
+VoicePositionKit and the model are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping them in a commercial app needs Pro or Business. Ship them inside the app only.
 
 Docs: https://libraries.dev/voice-position

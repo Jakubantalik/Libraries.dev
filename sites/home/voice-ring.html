@@ -531,8 +531,9 @@ VoiceRing(state: .listening, source: .meter(meter), mood: emotion.mood)
             <div class="st-code-group">
               <span class="st-code-title">Connect a model: Voice position</span>
               <div class="code-block">
-              <pre>// 1. Download VoicePosition.mfxl (free account) and add it to your app target.
-// 2. Add VoicePositionKit, read the meter the ring listens to, pass the side in:
+              <pre>// 1. Download VoicePositionKit and VoicePosition.mfxl (free account): the kit as a
+//    local package, the model in your app target.
+// 2. Read the meter the ring listens to, pass the side in:
 //    no calibration (beta: tested on iPhone 15 Pro; on other iPhones, calibrate).
 import VoiceRingKit
 import VoicePositionKit
@@ -566,7 +567,7 @@ VoiceRing(state: .listening, source: .meter(meter), direction: voice.pan)
             </div>
             <div class="st-code-group">
               <span class="st-code-title">License</span>
-              <span class="st-code-note">VoiceRingKit, VoiceRingEmotion and VoicePositionKit are MIT. The models are licensed apart from the code: emotion2vec+ under the FunASR Model Open Source License (keep its credit in your app&#x27;s acknowledgements), roberta-base-go_emotions under MIT, and the Voice position model under the <a class="vr-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development and non-commercial apps, a commercial release needs <a class="vr-link" href="/pro.html">Pro or Business</a>.</span>
+              <span class="st-code-note">VoiceRingKit and VoiceRingEmotion are MIT. The emotion models are licensed apart from the code: emotion2vec+ under the FunASR Model Open Source License (keep its credit in your app&#x27;s acknowledgements), roberta-base-go_emotions under MIT. Voice position, VoicePositionKit and its model, is under the <a class="vr-link" href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Libraries.dev Model License</a>: free for development and non-commercial apps, a commercial release needs <a class="vr-link" href="/pro.html">Pro or Business</a>.</span>
             </div>
           </div>
           </div>
@@ -648,19 +649,18 @@ pass mood: emotion.mood. Needs Emotion2Vec.mlpackage (emotion2vec+, FunASR
 Model License) and optionally TextEmotion.mlpackage + TextEmotionTokenizer in
 the app target; ask the user for them (they come with Libraries.dev Pro).
 
-Direction (Voice position model): ask the user to download
+Direction (Voice position): ask the user to download VoicePositionKit and
 VoicePosition.mfxl from https://libraries.dev/voice-position.html (free
-account) and add it to the app target, plus
-.product(name: "VoicePositionKit", package: "Libraries.dev"):
+account), add the kit as a local package and the model to the app target:
 @State var meter = VoiceMeter(); @State var voice = VoicePosition();
 .task { try? await voice.start(meter) }; pass source: .meter(meter),
 direction: voice.pan. No calibration (beta: tested on iPhone 15 Pro; on other
 iPhones use voice.calibrate(.left / .ahead / .right)). VoiceRingKit alone has
-no direction code; direction: is nil unless you pass it. Never commit the model to a
-public repo. Model License: free for development and non-commercial apps; a
-commercial release needs Libraries.dev Pro or Business.
+no direction code; direction: is nil unless you pass it. Never commit the model or
+VoicePositionKit to a public repo. Model License, both: free for development and
+non-commercial apps; a commercial release needs Libraries.dev Pro or Business.
 
-The kit is MIT. Docs: https://libraries.dev/voice-ring.html
+VoiceRingKit is MIT. Docs: https://libraries.dev/voice-ring.html
     </pre>
 
     <footer class="footer">
