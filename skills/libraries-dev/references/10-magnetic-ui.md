@@ -74,6 +74,6 @@ export function Header() {
 
 ## License
 
-The kits and the model, `Magnet.mfxl`, are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps and sites; shipping them commercially needs Pro or Business. Never commit either to a public repository. On the web the model runs inside the Magnet Bridge app.
+The kits and the model, `Magnet.mfxl`, are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps and sites; shipping them commercially needs Pro (up to 10,000 monthly users per product) or Business (up to 50,000); Enterprise above. Never commit either to a public repository. On the web the model runs inside the Magnet Bridge app.
 
 Docs: https://libraries.dev/magnetic

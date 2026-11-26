@@ -1,6 +1,6 @@
 # Libraries.dev Model License
 
-Version 1.5 · Effective 24 November 2026
+Version 1.6 · Effective 26 November 2026
 
 Copyright (c) 2026 Jakub Antalik. All rights reserved except as granted below.
 
@@ -39,6 +39,10 @@ VoiceRingKit and MetalFxKit) are MIT and are not covered here.
   a website, a customer delivery or any other channel), when the product is
   sold, earns revenue (including ads, subscriptions or in-app purchases), is
   built for a client, or is used in the course of a business.
+- **Monthly Users**: the number of different people who use a product in a
+  calendar month: visitors for a website, active users for an app. All the
+  platforms, apps and domains of one product count together. Use the count
+  from your analytics, or a fair estimate when you have none.
 - **Licensor**: Jakub Antalik, the author of Libraries.dev.
 
 ## 2. Free use
@@ -69,6 +73,23 @@ A Commercial Release requires a Plan held by you:
   every Model and Kit with no end date, whenever it is released.
 - **Business** covers a company or organization for unlimited products.
 - **Enterprise** terms are set by a separate written agreement.
+
+Pro and Pro Lifetime cover products with up to 10,000 Monthly Users, and
+Business products with up to 50,000. When a product that contains or loads a
+Model has more Monthly Users than your Plan covers in two calendar months in a
+row, it needs a Plan that covers that size within 60 days: Business up to
+50,000, and above that an Enterprise agreement or a plan for that size listed
+on the Libraries.dev pricing page. Your Plan keeps covering the product during
+those 60 days.
+
+These Monthly Users limits do not apply to:
+
+- a lifetime plan (Pro Lifetime, or a team lifetime plan) purchased before
+  27 October 2026;
+- Pro Lifetime purchased from 27 October 2026 up to 25 November 2026, for its
+  12 months;
+- a Pro or Business subscription started before 26 November 2026, for as long
+  as it renews without a break.
 
 Builds of a product released while your Plan was active may stay available
 after the Plan ends. A new Commercial Release (including an update that ships
@@ -143,14 +164,17 @@ later version of a Kit is licensed under this license only.
 ## 10. Changes to this license
 
 The Licensor may publish new versions of this license. A new version applies
-to Model and Kit versions released after it is published; the version you
-received with a Model or a Kit continues to apply to that version. Version 1.1
+to Model and Kit versions released after it is published, and to every copy
+obtained from Libraries.dev after it is published; a copy you obtained earlier
+keeps the version it came with. Version 1.1
 adds the Voice direction model, and limits the Model rights of Pro Lifetime
 purchased from 27 October 2026 to 12 months from purchase (section 3); Pro
 Lifetime purchased earlier keeps every Model. It changes no other term of
 version 1.0. Version 1.3 adds the Adaptive UI model, and changes no other term.
 Version 1.4 renames that model Mood recognition, and changes no other term.
 Version 1.5 brings the Kits, MIT until then, under this license, and changes no
-term for the Models.
+term for the Models. Version 1.6 defines Monthly Users and limits Pro and Pro
+Lifetime to products with up to 10,000 of them and Business to products with up
+to 50,000, except for the plans listed in section 3; it changes no other term.
 
 Questions or Enterprise licensing: hello@libraries.dev

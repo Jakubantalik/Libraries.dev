@@ -73,7 +73,7 @@ ${LIBS.map((l) => `- [${l.name} (${l.pkg})](${SITE}/llms/${l.pkg}.md): ${l.line}
 
 ## Models
 
-Models and their kits are downloads with a free account, shipped inside the app under the Libraries.dev Model License (free for development and non-commercial apps; a commercial release needs Pro or Business).
+Models and their kits are downloads with a free account, shipped inside the app under the Libraries.dev Model License (free for development and non-commercial apps; a commercial release needs Pro up to 10,000 monthly users or Business up to 50,000, Enterprise above).
 
 ${MODELS.map((m) => `- [${m.name}](${SITE}/llms/${m.slug}.md): ${m.line} Page: ${SITE}/${m.page}`).join("\n")}
 

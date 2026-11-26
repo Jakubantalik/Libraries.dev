@@ -38,7 +38,7 @@ Input, not effects: each reads a signal on the device and tells your UI.
 Models and their kits are never on npm or in a public repository: the user
 downloads them from the model's page with a free account and ships them inside
 the app (Libraries.dev Model License: free for development and non-commercial
-apps; a commercial release needs Pro or Business).
+apps; a commercial release needs Pro up to 10,000 monthly users or Business up to 50,000, Enterprise above).
 
 Docs and live playgrounds: https://libraries.dev (one detail page per library and model).
 

@@ -94,6 +94,6 @@ Props: `model`, `baselineKey` (default `"mood-baseline"`; `null` keeps the perso
 
 ## License
 
-The kit and the model are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; a commercial release needs Pro or Business. Ship them inside the app's bundle only, never on their own.
+The kit and the model are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; a commercial release needs Pro (up to 10,000 monthly users per product) or Business (up to 50,000); Enterprise above. Ship them inside the app's bundle only, never on their own.
 
 Docs: https://libraries.dev/mood-recognition

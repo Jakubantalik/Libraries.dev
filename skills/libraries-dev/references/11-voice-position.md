@@ -68,6 +68,6 @@ Readings: `pan` (−1…1, nil while quiet), `side` (`.left`, `.ahead`, `.right`
 
 ## License
 
-VoicePositionKit and the model are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping them in a commercial app needs Pro or Business. Ship them inside the app only.
+VoicePositionKit and the model are under the Libraries.dev Model License: free for development, prototypes and non-commercial apps; shipping them in a commercial app needs Pro (up to 10,000 monthly users per product) or Business (up to 50,000); Enterprise above. Ship them inside the app only.
 
 Docs: https://libraries.dev/voice-position

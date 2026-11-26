@@ -4460,33 +4460,41 @@
     html[data-theme="dark"] .pro-price-cta:hover { background: #e8e8e8; }
     html[data-theme="dark"] .pro-price-cta:active { background: #d8d8d8; }
 
-    /* ── Purchasing-power-parity bar (Figma 2361:84298) — an informational gray
-          bar below the pricing card; the discount auto-applies at checkout. ─── */
-    .pro-ppp { width: fit-content; max-width: 100%; margin: 0 auto; }
-    .pro-ppp[hidden] { display: none; }
-    .pro-ppp-bar {
-      display: flex; align-items: center; justify-content: center;
-      height: 28px; padding: 0 14px; border-radius: 24px;
-      background: #f6f6f6; color: #737373;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04), inset 0 -1px 0 0 rgba(0, 0, 0, 0.03);
-      font-family: var(--font-sans); font-size: 13px; line-height: 18px;
-      white-space: nowrap; text-align: center;
-      overflow: hidden; text-overflow: ellipsis;
+    /* ── Enterprise row: the card surface, as wide as the three cards above,
+          text on the left and the CTA on the right; stacks on narrow screens. */
+    .pro-enterprise {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      width: 100%;
+      max-width: calc(3 * 325px + 2 * 16px);
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow:
+        var(--card-shadow),
+        inset 0 0 0 1px var(--card-border),
+        inset 0 -1px 0 0 var(--card-border),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+      padding: 20px;
     }
-    html[data-theme="dark"] .pro-ppp-bar {
-      background: rgba(255, 255, 255, 0.05); color: #9a9a9a;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 -1px 0 0 rgba(255, 255, 255, 0.04);
+    .pro-enterprise-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .pro-enterprise-desc { margin: 0; max-width: 640px; font-size: 13px; line-height: 18px; color: var(--text-muted); text-wrap: pretty; }
+    .pro-enterprise .pro-price-cta { flex: none; width: auto; padding: 0 20px; }
+    /* Under Lifetime it dims and the CTA goes inert, like the Business card. */
+    .pro-enterprise { transition: opacity 200ms var(--ease-smooth-out); }
+    .pro-enterprise[data-disabled="true"] { opacity: 0.4; }
+    .pro-enterprise[data-disabled="true"] .pro-price-cta { pointer-events: none; cursor: default; }
+    @media (prefers-reduced-motion: reduce) {
+      .pro-enterprise { transition: none; }
     }
-    /* Reveal with the same blur-rise the page uses for content. */
-    @media (prefers-reduced-motion: no-preference) {
-      .pro-ppp:not([hidden]) .pro-ppp-bar {
-        animation: pro-ppp-rise 420ms var(--ease-smooth-out) both;
-      }
-      @keyframes pro-ppp-rise {
-        from { opacity: 0; transform: translateY(6px); filter: blur(4px); }
-        to   { opacity: 1; transform: none; filter: blur(0); }
-      }
+    @media (max-width: 900px) {
+      .pro-enterprise { max-width: 325px; flex-direction: column; align-items: stretch; gap: 20px; }
+      .pro-enterprise .pro-price-cta { width: 100%; }
     }
+    @media (max-width: 640px) {
+      .pro-enterprise { max-width: none; }
+    }
+
 
     /* ── Customer logos (Figma 2626:1382) ──────────────────────────
        Label + one centred row. Every logo asset is a near-black glyph
@@ -5160,9 +5168,6 @@
       .pro-price-card { width: 100%; }
       .pro-price-grid { grid-template-columns: minmax(0, 1fr); }
       .cmdk-overlay { padding: 8vh 12px 12px; }
-      /* Parity bar: let the sentence wrap to two centred lines instead
-         of clipping off the right edge. */
-      .pro-ppp-bar { white-space: normal; height: auto; min-height: 28px; padding: 5px 14px; }
       /* The "2 months free" / "pay once" notes sit to the RIGHT of the
          billing toggle on desktop (left:100%), which reaches past a phone
          viewport and gives the whole page a horizontal scroll. Drop them
@@ -5397,7 +5402,7 @@
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>All libraries, free variants</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Install guides and copy-ready code for every library</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Access to all models<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="Which models?" aria-describedby="tip-free-models">i</button><span class="cmp-tip" id="tip-free-models" role="tooltip">On-device models for iOS and Android: download each one with its license, plus the install guide and agent prompt.</span></span></span></li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Model license for personal and non-commercial use<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the free model license cover?" aria-describedby="tip-free-model-license">i</button><span class="cmp-tip" id="tip-free-model-license" role="tooltip">Build, prototype and ship personal or non-commercial apps. Shipping a model in a commercial app needs Pro or Business.</span></span></span></li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Model license for personal and non-commercial use<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the free model license cover?" aria-describedby="tip-free-model-license">i</button><span class="cmp-tip" id="tip-free-model-license" role="tooltip">Build, prototype and ship personal or non-commercial apps. Shipping a model in a commercial app needs Pro (up to 10,000 monthly users) or Business (up to 50,000), or Enterprise above that.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Agent skill for Claude Code, Cursor and Codex</li>
           </ul>
           <a class="pro-price-cta" href="#" data-plan="free">Join for free</a>
@@ -5416,7 +5421,7 @@
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for solo builders and freelancers</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-libs>All libraries, Pro presets and variants</span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Studio access: deep customization of all nine libraries, with an AI coding agent</li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-models>Models for commercial use: ship them in paid and client apps</span><span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the commercial model license cover?" aria-describedby="tip-pro-models">i</button><span class="cmp-tip" id="tip-pro-models" role="tooltip" data-price-models-tip>Ship Magnetic UI and every future model in apps you sell or build for clients, for as long as your plan is active.</span></span></span></li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-models>Models in paid and client apps, up to 10k monthly users each</span><span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the commercial model license cover?" aria-describedby="tip-pro-models">i</button><span class="cmp-tip" id="tip-pro-models" role="tooltip" data-price-models-tip>Ship every model, new ones included, in apps you sell or build for clients, up to 10,000 monthly users per app, for as long as your plan is active. Bigger apps need Business or Enterprise.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text"><span class="pro-credit-text p6-text" data-price-credit>Studio AI agent: 300 credits each month</span><span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="How far do credits go?" aria-describedby="tip-credit-pro">i</button><span class="cmp-tip" id="tip-credit-pro" role="tooltip" data-price-credit-tip>About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Pro agent skill with extended knowledge of every library and variant</li>
             <li class="pro-feature" data-hide-lifetime><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Every future library and update, free</li>
@@ -5438,7 +5443,7 @@
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>License for companies and teams, 3 seats included</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>All libraries, Pro presets and variants</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Everything in Pro, for every seat</li>
-            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Models for commercial use across your company’s apps<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the commercial model license cover?" aria-describedby="tip-biz-models">i</button><span class="cmp-tip" id="tip-biz-models" role="tooltip">Ship Magnetic UI and every future model in any product your company releases, for as long as your plan is active.</span></span></span></li>
+            <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Models in your company’s apps, up to 50k monthly users each<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="What does the commercial model license cover?" aria-describedby="tip-biz-models">i</button><span class="cmp-tip" id="tip-biz-models" role="tooltip">Ship every model, new ones included, in any product your company releases, up to 50,000 monthly users per product, for as long as your plan is active. Bigger products need Enterprise.</span></span></span></li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>MCP server: use it in your coding agent</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span>Priority support</li>
             <li class="pro-feature"><span class="pro-feature-check" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5L4 7L8 3" /></svg></span><span class="pro-feature-text">Extra Studio AI agent credits: 800 per seat each month (Pro has 300)<span class="cmp-info"><button type="button" class="cmp-info-btn" aria-label="How far do credits go?" aria-describedby="tip-credit-biz">i</button><span class="cmp-tip" id="tip-credit-biz" role="tooltip">About 400 edits a month for each seat. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st.</span></span></span></li>
@@ -5447,9 +5452,16 @@
           <a class="pro-price-cta" href="mailto:jakubja@gmail.com?subject=Libraries%20Business" data-plan="team">Get Business</a>
         </div>
       </div>
-      <!-- Purchasing-power-parity bar (Figma 2361:84298) — sits below the card,
-           filled by pro-client.js when the visitor's country qualifies. -->
-      <div class="pro-ppp" id="pro-ppp" hidden></div>
+      <!-- Enterprise: the models only, for products past the monthly users
+           Pro (10,000) and Business (50,000) cover, and for teams that need a signed
+           agreement. One wide row under the three cards (Model License 1.6). -->
+      <div class="pro-enterprise">
+        <div class="pro-enterprise-text">
+          <span class="pro-price-plan-name">Enterprise</span>
+          <p class="pro-enterprise-desc">The models and their kits under a signed agreement, for apps over 50,000 monthly users and for banks, health and government teams that can’t send data out.</p>
+        </div>
+        <a class="pro-price-cta" href="mailto:hello@libraries.dev?subject=Libraries.dev%20Enterprise">Contact us</a>
+      </div>
     </div>
 
     <!-- ─── Customer logos (as transitions.dev/pro) ─────────────────
@@ -5601,7 +5613,17 @@
             <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
           </button>
           <div class="t-acc-panel"><div class="t-acc-panel-inner">
-            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. Because the Studio's AI agent runs on live AI, Lifetime includes a limited amount of it: 100 credits a month, up to 3,000 in total. For models, Lifetime includes 12 months of commercial use from purchase, covering every model, new ones included. After that, apps you already shipped stay live, and a new release that ships a model needs a Pro or Business subscription. Lifetime bought before 27 October 2026 covers every model. Business is monthly or annual only.</p>
+            <p><strong>Pro</strong> is an individual license for solo builders and freelancers: one seat for one person across all of their projects, including client work. <strong>Business</strong> is for any company or organization, whatever its size, including a company of one: $29/mo (or $290/yr) with 3 seats for people in the same organization, each seat beyond 3 an extra $9/mo, plus the team MCP server, priority support and more Studio AI agent credits per seat. Prefer to pay once? <strong>Lifetime</strong> is a one-time $149 purchase of Pro: the Studio, variants, the Pro skill and every future update, for as long as the service runs. Because the Studio's AI agent runs on live AI, Lifetime includes a limited amount of it: 100 credits a month, up to 3,000 in total. For models, Lifetime includes 12 months of commercial use from purchase, covering every model, new ones included, in apps up to 10,000 monthly users. After that, apps you already shipped stay live, and a new release that ships a model needs a Pro or Business subscription. Lifetime bought before 27 October 2026 covers every model. Lifetime doesn't include Business seats or the team MCP server, Enterprise, or services billed by usage. Business is monthly or annual only.</p>
+          </div></div>
+        </div>
+
+        <div class="t-acc" data-open="false">
+          <button class="t-acc-head" type="button" aria-expanded="false">
+            <span>Is there a limit on the models?</span>
+            <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
+          </button>
+          <div class="t-acc-panel"><div class="t-acc-panel-inner">
+            <p>Pro and Lifetime cover shipping the models in apps and sites with up to 10,000 monthly users each, and Business up to 50,000: the different people who use one product in a month, across all its platforms. When a product passes its plan's limit in two months in a row, it needs a bigger plan within 60 days: Business up to 50,000, <strong>Enterprise</strong> above that. Enterprise covers the models and their kits under a signed agreement, and suits teams that can't send data out, such as banks, health and government: the models run on the device and nothing leaves it. The limit doesn't apply to lifetime plans bought before 27 October 2026, to Lifetime bought from then until 25 November 2026 for its 12 months, or to a Pro or Business subscription started before 26 November 2026 for as long as it renews. The <a href="https://github.com/Jakubantalik/Libraries.dev/blob/main/LICENSE-MODEL.md">Model License</a> has the full terms; write to <a href="mailto:hello@libraries.dev">hello@libraries.dev</a> for Enterprise.</p>
           </div></div>
         </div>
 
@@ -5718,11 +5740,11 @@
           lifetime: { v: "$0", per: "forever", seat: "Free forever, no card needed" }
         },
         solo: {
-          monthly: { v: "$9", per: "/mo", seat: "Billed monthly", libs: "All libraries, Pro presets and variants", models: "Models for commercial use: ship them in paid and client apps", modelsTip: "Ship Magnetic UI and every future model in apps you sell or build for clients, for as long as your plan is active.", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
-          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free", libs: "All libraries, Pro presets and variants", models: "Models for commercial use: ship them in paid and client apps", modelsTip: "Ship Magnetic UI and every future model in apps you sell or build for clients, for as long as your plan is active.", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
+          monthly: { v: "$9", per: "/mo", seat: "Billed monthly", libs: "All libraries, Pro presets and variants", models: "Models in paid and client apps, up to 10k monthly users each", modelsTip: "Ship every model, new ones included, in apps you sell or build for clients, up to 10,000 monthly users per app, for as long as your plan is active. Bigger apps need Business or Enterprise.", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
+          annual:  { v: "$90", per: "/yr", seat: "Billed yearly, two months free", libs: "All libraries, Pro presets and variants", models: "Models in paid and client apps, up to 10k monthly users each", modelsTip: "Ship every model, new ones included, in apps you sell or build for clients, up to 10,000 monthly users per app, for as long as your plan is active. Bigger apps need Business or Enterprise.", credit: "Studio AI agent: 300 credits each month", tip: "About 150 edits a month. A tweak like “calmer” or “warmer” uses about 1 credit; rebuilding an effect’s core uses up to 20. Credits reset on the 1st." },
           // Lifetime buys the Studio, not live AI: agent credits are capped in
           // total. Models: 12 months of commercial use from purchase.
-          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", libs: "All libraries with Pro presets and variants, plus every future library and update, for life", models: "Models for commercial use: 12 months included", modelsTip: "Ship every model, including new ones, in paid and client apps for 12 months from purchase. After that, apps you shipped stay live; a new release with a model needs a Pro or Business subscription.", credit: "Studio AI agent: 100 credits a month, 3,000 credits in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. Once the 3,000 are used, the agent stops; the rest of the Studio keeps working." }
+          lifetime: { v: "$149", per: "once", seat: "Pay once, no renewal", libs: "All libraries with Pro presets and variants, plus every future library and update, for life", models: "Models for commercial use: 12 months included", modelsTip: "Ship every model, including new ones, in paid and client apps for 12 months from purchase, up to 10,000 monthly users per app. After that, apps you shipped stay live; a new release with a model needs a Pro or Business subscription.", credit: "Studio AI agent: 100 credits a month, 3,000 credits in total", tip: "About 50 edits a month, and around 3,000 simple edits in total. A tweak uses about 1 credit; rebuilding an effect’s core up to 20. Once the 3,000 are used, the agent stops; the rest of the Studio keeps working." }
         },
         team: {
           monthly: { v: "$29", per: "/mo", seat: "Billed monthly" },
@@ -5900,6 +5922,17 @@
             cardCta.setAttribute("tabindex", disabled ? "-1" : "0");
           }
         });
+        // Enterprise goes inert under Lifetime too: it's a yearly agreement.
+        var enterprise = document.querySelector(".pro-enterprise");
+        if (enterprise) {
+          var entOff = curBilling === "lifetime";
+          enterprise.setAttribute("data-disabled", entOff ? "true" : "false");
+          var entCta = enterprise.querySelector(".pro-price-cta");
+          if (entCta) {
+            entCta.setAttribute("aria-disabled", entOff ? "true" : "false");
+            entCta.setAttribute("tabindex", entOff ? "-1" : "0");
+          }
+        }
         priceReady = true;
         if (billing) billing.setAttribute("data-billing", curBilling);
         billingOpts.forEach(function (o) {
