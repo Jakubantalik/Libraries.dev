@@ -359,6 +359,7 @@
             <tbody>
               <tr><td>Stripe</td><td>Payments &amp; subscriptions</td><td>Email, card details (entered directly with Stripe), billing &amp; plan status</td></tr>
               <tr><td>Resend</td><td>Service and product email</td><td>Email address, message content</td></tr>
+              <tr><td>PostHog (EU Cloud)</td><td>Cookieless page analytics</td><td>Page, referrer, browser type, screen size, country. No cookies, no IP address kept, no profile of you</td></tr>
               <tr><td>Cloudflare</td><td>Hosting, database &amp; file storage</td><td>Account &amp; team data, sessions, hashed access logs, Pro content delivery, standard web-server request logs, anonymised Studio agent records</td></tr>
               <tr><td>Anthropic</td><td>Studio agent (AI model)</td><td>The text of your agent requests, the current parameter values and recent turns of that conversation — sent only when you use the Agent tab. Under Anthropic's commercial API terms this data is not used to train its models.</td></tr>
             </tbody>
@@ -476,5 +477,7 @@
   </main>
   <!-- GoatCounter: privacy-friendly page views, no cookies. -->
   <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  <!-- PostHog: page views only, no cookies (public/posthog.js). -->
+  <script src="/posthog.js" async></script>
 </body>
 </html>
