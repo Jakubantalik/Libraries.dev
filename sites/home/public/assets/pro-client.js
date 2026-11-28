@@ -824,7 +824,12 @@
           if (r && r.ok) {
             setModalNote(note, "Signed in.", "ok");
             var done = modalOpts.onSignedIn;
-            return refreshMe().then(function () { closeAuthModal(); if (done) done(); });
+            // Join for free (no action to resume) goes on to the welcome page.
+            var welcome = !done && modalOpts.signup === "site";
+            return refreshMe().then(function () {
+              if (welcome) { location.href = "/welcome.html"; return; }
+              closeAuthModal(); if (done) done();
+            });
           }
           cErr.textContent = r && r.error === "too_many_attempts"
             ? "Too many tries — request a fresh code."

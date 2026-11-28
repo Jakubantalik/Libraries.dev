@@ -148,6 +148,7 @@ export default mergeConfig(defineConfig({
         account: resolve(__dirname, "account.html"),
         activate: resolve(__dirname, "activate.html"),
         success: resolve(__dirname, "success.html"),
+        welcome: resolve(__dirname, "welcome.html"),
         terms: resolve(__dirname, "terms.html"),
         privacy: resolve(__dirname, "privacy.html")
       }

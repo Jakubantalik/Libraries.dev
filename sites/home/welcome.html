@@ -1,0 +1,4323 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- First-paint guard. Firefox has painted a frame before the stylesheets
+       applied on cached navigations (brand mark at full width, skip link in
+       view, menus open). These few rules make that frame harmless; site.css
+       overrides every one of them once it lands. -->
+  <style>
+    .skip-link { position: absolute; left: -9999px; }
+    .brand-mark svg, .footer-brand-logo svg { width: 22px; height: 14px; }
+    .mobile-menu, .mobile-menu-backdrop, .tl-menu, .t-dropdown { display: none; }
+      .footer-byline { display: flex; flex-direction: column; gap: 6px; }
+    /* A second, quieter line under the byline: 11px in the faint ink, the
+       linked name only a shade brighter on hover. */
+    .footer-thanks { margin: 0; font-size: 11px; line-height: 16px; color: color-mix(in srgb, var(--text-faint) 80%, transparent); }
+    .footer-thanks a { color: var(--text-faint); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); transition: text-decoration-color 180ms ease; }
+    .footer-thanks a:hover { text-decoration-color: currentColor; }
+  </style>
+  <!-- Paint gate. Firefox has painted before the external stylesheets applied
+       on navigation, so the body stays invisible on the site's ground until
+       every local sheet has loaded (script below); a 1.5s timeout reveals it
+       regardless, so a failed sheet can never leave the page blank. -->
+  <style>
+    html { background: #121212; }
+    html:not(.css-ready) body { visibility: hidden; }
+  </style>
+  <script>document.documentElement.classList.add("css-ready");</script>
+  <meta name="color-scheme" content="dark" />
+
+  <title>Welcome · Libraries.dev</title>
+  <meta name="description" content="Your free Libraries.dev account is ready: install the libraries and try the latest on-device models." />
+  <meta name="author" content="Libraries.dev" />
+  <meta name="robots" content="noindex" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#121212" />
+  <meta name="apple-mobile-web-app-title" content="Libraries.dev" />
+  <meta name="application-name" content="Libraries.dev" />
+
+  <link rel="canonical" href="https://libraries.dev/welcome.html" />
+  <link rel="alternate" hreflang="en" href="https://libraries.dev/welcome.html" />
+  <link rel="alternate" hreflang="x-default" href="https://libraries.dev/welcome.html" />
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/favicon.svg" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Libraries.dev" />
+  <meta property="og:url" content="https://libraries.dev/welcome.html" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Welcome · Libraries.dev" />
+  <meta property="og:description" content="Your free Libraries.dev account is ready: install the libraries and try the latest on-device models." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://libraries.dev/assets/og-image.jpg?v=2" />
+  <meta name="twitter:title" content="Welcome · Libraries.dev" />
+  <meta name="twitter:description" content="Your free Libraries.dev account is ready: install the libraries and try the latest on-device models." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <link
+    rel="preload"
+    as="font"
+    type="font/woff2"
+    href="/assets/fonts/Saans-Medium.woff2"
+    crossorigin
+  />
+
+  <style>
+    /* Saans - used for the hero eyebrow + title (Medium / 500). */
+    @font-face {
+      font-family: "Saans";
+      src: url("assets/fonts/Saans-Medium.woff2") format("woff2"),
+           url("assets/fonts/Saans-Medium.woff") format("woff");
+      font-weight: 500;
+      font-style: normal;
+      /* optional (not swap): the browser waits a brief block period for the
+         preloaded font, then renders Saans with no late swap. */
+      font-display: optional;
+    }
+
+    /* ============================================================ */
+    /* Design tokens — light (default) and dark                      */
+    /* ============================================================ */
+    :root {
+      /* Pro accents share the CTA blue (#0071fc): the nav Get Pro pill and the
+         Pro chips are tints and inks of that one hue. */
+      --pro-tint-bg: rgba(0, 113, 252, 0.10);
+      --pro-tint-bg-hover: rgba(0, 113, 252, 0.16);
+      --pro-tint-ink: #0062d6;
+      color-scheme: light;
+
+      --bg: #fdfdfd;
+      --text: #0d0d0d;
+      --text-muted: #6c6c6c;
+      --text-subtle: #767676;
+      --text-faint: #8f8f8f;
+      --text-footer-name: #4a4a4a;
+
+      --card-bg: #ffffff;
+      --card-border: rgba(0, 0, 0, 0.06);
+      --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+      /* Horizontal inset for card title block + copy control */
+      --card-pad-x: 20px;
+
+      /* Opaque equivalent of rgba(194, 194, 194, 0.1) over #ffffff
+         (≈ #f9f9f9). Kept opaque on purpose so the stage doesn't pick
+         up the card's hover tint through a translucent fill. */
+      --stage-bg: #f9f9f9;
+      --stage-border: rgba(0, 0, 0, 0.04);
+
+      --chip-bg: #f4f4f4;
+      --chip-bg-hover: #f1f1f1;
+      --chip-bg-pressed: #eae9e9;
+
+      --animate-bg: rgba(243, 243, 243, 0.9);
+      --animate-bg-tint: #bfc0cb;
+      --animate-bg-hover: #eae9e9;
+      --animate-text: #17181c;
+
+      --copy-bg: rgba(255, 255, 255, 0.9);
+      --copy-bg-tint: #bfc0cb;
+      --copy-bg-hover: #f1f1f1;
+      --copy-bg-pressed: #eae9e9;
+
+      --surface-bg: #ffffff;
+      --skeleton: #eeeeef;
+      --muted: #5e6073;
+
+      /* Inner "material" surface (Figma: node 221:2895)
+         used by dropdowns, panels, and resize cards inside demo cards */
+      --material-bg: #ffffff;
+      --material-shadow:
+        0 4px 42px 0 rgba(0, 0, 0, 0.06),
+        0 2px 6px 0 rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+
+      --icon-color: #0d0d0d;
+      --icon-color-muted: rgba(13, 13, 13, 0.6);
+
+      --label-mono: #5e6073;
+
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, monospace;
+
+      /* ========================================================== */
+      /* Prototype transition knobs (copied per prototype)          */
+      /* ========================================================== */
+
+      /* P1 — Notification badge */
+      --p1-pos-open-dur: 260ms;
+      --p1-scale-open-dur: 500ms;
+      --p1-scale-close-dur: 180ms;
+      --p1-opacity-open-dur: 400ms;
+      --p1-opacity-close-dur: 180ms;
+      --p1-blur: 2px;
+      --p1-distance-x: -8.2px;
+      --p1-distance-y: 12.4px;
+      --p1-bounce: 1.36;
+      --p1-ease-pos-open: cubic-bezier(0.22, 1, 0.36, 1);
+      --p1-ease-scale-open: cubic-bezier(0.34, 1.36, 0.64, 1);
+      --p1-ease-close: cubic-bezier(0.4, 0, 0.2, 1);
+
+      /* P2 — Menu dropdown */
+      --p2-open-dur: 250ms;
+      --p2-close-dur: 150ms;
+      --p2-pre-scale: 0.97;
+      --p2-closing-scale: 0.99;
+      /* Origin-aware: anchor the scale where the trigger sits so the
+         menu visually "grows" from the trigger (top center = button
+         sits directly above the menu). */
+      --p2-origin: top center;
+      --p2-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* P3 — Panel reveal */
+      --p3-open-dur: 400ms;
+      --p3-close-dur: 350ms;
+      --p3-panel-height: 187px;
+      /* Movement trajectory = 50% of the panel height. The panel
+         also fades opacity 0 ↔ 1 AND cross-blurs 2px ↔ 0 over the
+         same timing, so the shortened travel still reads as a full
+         open / close. */
+      --p3-translate-y: calc(var(--p3-panel-height) * 0.5);
+      --p3-blur: 2px;
+      /* Gutter inside clip so box-shadow isn’t cropped.
+         Top needs enough room for the 42px-blur shadow (blur 42 − offset 4 ≈ 38px reach);
+         sides/bottom stay slim so the stack still fits the 260px stage. */
+      /* Clip fills the full 260px stage (top:0, bottom:0) so no bare stage
+         strip shows below the panel when it's open. Top pad still sized so
+         resting panel is pushed below the button and the 38px top-reach drop
+         shadow has room above the panel. */
+      --p3-clip-pad-top: 54px;
+      --p3-clip-pad: 14px;
+      /* Vertical offset when panel is open. Positive = lift the panel
+         higher in the stage; negative = push it lower. */
+      --p3-open-lift: -28px;
+      --p3-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      /* Figma 213:1375 — Light Mode / Shadow 25.
+         Left/right/bottom of the panel are flush with the stage, where
+         `.card-stage::after` already draws a ring — so we only draw
+         the top edge here, plus the drop shadows. The top hairline is
+         drawn as an *outer* shadow (0 -1px) instead of an inset one so
+         it sits on the stage background (for contrast with other
+         material surfaces like the dropdown / modal rings) rather
+         than over the panel's own white fill where it would be barely
+         visible. */
+      --p3-shadow:
+        0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        0 2px 6px 0 rgba(0, 0, 0, 0.05),
+        0 4px 42px 0 rgba(0, 0, 0, 0.06);
+
+      /* P4 — Card resize */
+      --p4-dur: 300ms;
+      --p4-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* P5 — Hamburger ↔ Close */
+      --p5-dur: 200ms;
+      --p5-blur: 2px;
+      --p5-start-scale: 0.25;
+      --p5-ease: ease-in-out;
+
+      /* P6 — Text enter/exit */
+      --p6-dur: 150ms;
+      --p6-enter-delay: 0ms;
+      --p6-translate-y: 4px;
+      --p6-blur: 2px;
+      --p6-ease: ease-in-out;
+
+      /* P7 — Modal open/close */
+      --p7-open-dur: 250ms;
+      --p7-close-dur: 150ms;
+      --p7-scale: 0.96;
+      --p7-scale-close: 0.96;
+      --p7-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* Detail-modal motion tokens. Defaults to the P7 modal timing
+         so desktop is unchanged. Mobile overrides these to the P3
+         "Panel reveal" timing inside its own @media block, which lets
+         the JS close-timer pick the right wait via getComputedStyle. */
+      --proto-modal-open-dur:  var(--p7-open-dur);
+      --proto-modal-close-dur: var(--p7-close-dur);
+      --proto-modal-ease:      var(--p7-ease);
+
+      /* P8 — Page slide */
+      --p8-slide-dur: 200ms;
+      --p8-fade-dur: 200ms;
+      --p8-distance: 8px;
+      --p8-blur: 3px;
+      --p8-stagger: 0ms;
+      --p8-exit-enabled: 1;
+      --p8-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --p8-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* P9 — Number pop-in */
+      --p9-dur: 500ms;
+      --p9-distance: 8px;
+      --p9-stagger: 70ms;
+      --p9-blur: 2px;
+      --p9-bounce: 1.45;
+      --p9-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+      --p9-dir-x: 0;
+      --p9-dir-y: 1;
+
+      /* P10 — Success check (appear / disappear).
+         Entry composes 5 sub-transitions in parallel (fade, rotate,
+         blur, Y-bob, stroke-draw). Exit deliberately uses only 3
+         (fade, blur, stroke-undraw) so the disappearance reads as a
+         soft fade-away rather than a full reverse of the entrance. */
+      --p10-opacity-dur: 550ms;
+      --p10-rotate-dur: 550ms;
+      --p10-rotate-from: 80deg;
+      --p10-bob-dur:     450ms;
+      --p10-y-amount:    40px;
+      --p10-blur-dur:    500ms;
+      --p10-blur-from:   10px;
+      /* Exit uses its own (softer) blur amount so the disappearance
+         reads as a gentle fade rather than a full reverse of entry. */
+      --p10-blur-out-from: 4px;
+      --p10-path-dur:    550ms;
+      --p10-path-delay:  80ms;
+      --p10-out-dur:     500ms;
+      --p10-ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
+      --p10-ease-opacity: cubic-bezier(0.22, 1, 0.36, 1);
+      --p10-ease-rotate:  cubic-bezier(0.22, 1, 0.36, 1);
+      --p10-ease-bob:     cubic-bezier(0.34, 1.35, 0.64, 1);
+      --p10-ease-path:    cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* P11 — Avatar group hover spring.
+         Each neighbor at distance d from the hovered avatar lifts by
+         --p11-lift * pow(--p11-falloff, d). Lift uses --p11-ease-in
+         (clean) and the return uses --p11-ease-out (bouncy spring). */
+      --p11-lift:    -4px;
+      --p11-dur:     320ms;
+      --p11-ease-in:  cubic-bezier(0.22, 1, 0.36, 1);
+      --p11-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
+      --p11-scale:   1.05;
+      --p11-falloff: 0.45;
+
+      /* P12 — Input shake on error.
+         Four-phase translateX with a per-segment cubic-bezier per
+         keyframe stop (80 + 80 + 60 + 60 = 280ms total). After the
+         shake we hold --p12-revert-hold then fade border + message
+         back to neutral over --p12-revert-dur. */
+      --p12-shake-distance:  6px;
+      --p12-shake-overshoot: 4px;
+      --p12-shake-dur-a:     80ms;
+      --p12-shake-dur-b:     60ms;
+      --p12-shake-ease:      cubic-bezier(0.22, 1, 0.36, 1);
+      --p12-error-border:    #e23014;
+      --p12-error-text:      #d62b11;
+      --p12-revert-hold:     3000ms;
+      --p12-revert-dur:      280ms;
+    }
+
+    html[data-theme="dark"] {
+      --pro-tint-bg: rgba(0, 113, 252, 0.18);
+      --pro-tint-bg-hover: rgba(0, 113, 252, 0.26);
+      --pro-tint-ink: #7db4ff;
+      color-scheme: dark;
+
+      --bg: #121212;
+      --text: #ffffff;
+      --text-muted: rgba(202, 202, 202, 0.7);
+      --text-subtle: #767676;
+      --text-faint: #8f8f8f;
+      --text-footer-name: #e9e9e9;
+
+      --card-bg: #181818;
+      --card-border: rgba(0, 0, 0, 0.06);
+      --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+
+      --stage-bg: #131313;
+      --stage-border: rgba(255, 255, 255, 0.02);
+
+      --chip-bg: rgba(255, 255, 255, 0.07);
+      --chip-bg-hover: rgba(255, 255, 255, 0.1);
+      --chip-bg-pressed: rgba(255, 255, 255, 0.08);
+
+      /* Animate button — Figma icons 232:3561 (dark states).
+         Translucent white overlays on the card surface:
+           default 4%, hover 6%, clicked 8%, disabled 4% + 50% text. */
+      --animate-bg: rgba(255, 255, 255, 0.04);
+      --animate-bg-tint: transparent;
+      --animate-bg-hover: rgba(255, 255, 255, 0.06);
+      --animate-bg-pressed: rgba(255, 255, 255, 0.08);
+      --animate-text: #e3e3e3;
+      --animate-text-disabled: rgba(227, 227, 227, 0.5);
+
+      --copy-bg: rgba(255, 255, 255, 0.08);
+      --copy-bg-tint: transparent;
+      --copy-bg-hover: rgba(255, 255, 255, 0.10);
+      --copy-bg-pressed: rgba(255, 255, 255, 0.10);
+
+      --surface-bg: #181818;
+      --skeleton: rgba(238, 238, 239, 0.1);
+      --muted: #767676;
+
+      --material-bg: #181818;
+      --material-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+
+      --icon-color: #ededed;
+      --icon-color-muted: rgba(237, 237, 237, 0.6);
+
+      --label-mono: #5e6073;
+    }
+
+    * { box-sizing: border-box; }
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100dvh;
+    }
+
+    /* Headings balance their lines so a short last line never dangles; body
+       text uses `pretty`, which guards the orphan without equalising lengths
+       (ported by value: this page links no shared stylesheet). */
+    h1, h2, h3, h4 { text-wrap: balance; }
+    p, li, figcaption, blockquote { text-wrap: pretty; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* ─── Cross-browser text anti-aliasing ───────────────────── */
+    html {
+      -webkit-font-smoothing: antialiased;           /* Safari, Chrome (macOS/iOS) */
+      -moz-osx-font-smoothing: grayscale;            /* Firefox (macOS) */
+      font-smooth: always;                           /* legacy non-standard */
+      text-rendering: optimizeLegibility;            /* Firefox, Safari, Chrome */
+      -webkit-text-size-adjust: 100%;
+      -moz-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    /* ─── Skip link ───────────────────────────────────────────── */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      z-index: 200;
+      padding: 12px 20px;
+      border-radius: 8px;
+      background: var(--text);
+      color: var(--bg);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 16px; }
+
+    /* ─── Main container ──────────────────────────────────────── */
+    .app {
+      position: relative;
+      max-width: 1240px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0 24px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ─── Top bar (absolute action buttons) ──────────────────── */
+    .top-bar {
+      position: absolute;
+      top: 16px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 50px;
+      background: var(--chip-bg);
+      color: var(--icon-color);
+      cursor: pointer;
+      text-decoration: none;
+      padding: 0;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon-btn:hover { background: var(--chip-bg-hover); }
+    .icon-btn:active { background: var(--chip-bg-pressed); }
+    .icon-btn:focus-visible {
+      outline: 2px solid var(--icon-color);
+      outline-offset: 2px;
+    }
+
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: currentColor;
+      color: var(--icon-color-muted);
+      transition: color 0.15s ease;
+    }
+    /* (ported by value from site.css: this page links no shared sheet) */
+    /* Signed-in avatar — the 3-dot "More" button swaps to the user's initial
+       (Figma 1425:38996: #2a2a2a chip, 12px Inter Medium initial, material ring).
+       The dots stay in the DOM; the class just hides them and shows the letter. */
+    /* Light: the same raised white control every other light surface here
+       wears (tabs, the active nav row, Copy prompt) - white on the black-6%
+       ring with dark ink - rather than a black disc, which read as a hole
+       in the white top bar. Dark keeps its own block below. */
+    .icon-btn--avatar {
+      background: #ffffff;
+      color: #17181c;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+    }
+    .icon-btn--avatar:hover { background: #fafafa; }
+    .icon-btn--avatar:active { background: #f1f1f1; }
+    html[data-theme="dark"] .icon-btn--avatar {
+      background: #2a2a2a;
+      color: #e8e8e8;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+    }
+    html[data-theme="dark"] .icon-btn--avatar:hover { background: #323232; }
+    html[data-theme="dark"] .icon-btn--avatar:active { background: #262626; }
+    .icon-btn--avatar svg { display: none !important; }
+    .nav-avatar-initial {
+      display: none;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 13px;
+      text-transform: uppercase;
+    }
+    .icon-btn--avatar .nav-avatar-initial { display: block; }
+    .icon-btn svg.icon-x {
+      width: 16px;
+      height: 17px;
+    }
+    .icon-btn:hover svg { color: var(--icon-color); }
+
+    /* Mirrors the P5 "Icon swap" prototype architecture: both icons
+       live permanently in the DOM stacked on top of each other, and
+       the swap is driven by toggling a single `data-active` attribute
+       on the wrapper. This way both icons start their transitions in
+       the same frame — no per-click image decode, no asymmetric
+       enter/exit pacing. The `--p5-*` tokens are reused directly so
+       any future tweak to the prototype carries over automatically. */
+    .theme-icon-stack {
+      position: relative;
+      display: inline-flex;
+      width: 16px;
+      height: 16px;
+    }
+    .theme-icon {
+      position: absolute;
+      inset: 0;
+      width: 16px;
+      height: 16px;
+      display: block;
+      transform-origin: center;
+      pointer-events: none;
+      user-select: none;
+      transition:
+        opacity   var(--p5-dur) var(--p5-ease),
+        filter    var(--p5-dur) var(--p5-ease),
+        transform var(--p5-dur) var(--p5-ease);
+      /* Default = inactive (hidden) state, matches P5 morph-out. */
+      opacity: 0;
+      transform: scale(var(--p5-start-scale));
+    }
+    .theme-icon-moon { filter: blur(var(--p5-blur)); }
+    /* Sun is filtered to white in both states; only the blur amount
+       changes, so the inversion can't briefly reveal native colors. */
+    .theme-icon-sun  { filter: brightness(0) invert(1) blur(var(--p5-blur)); }
+
+    /* Active icon = visible at rest. */
+    .theme-icon-stack[data-active="moon"] .theme-icon-moon,
+    .theme-icon-stack[data-active="sun"]  .theme-icon-sun {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    .theme-icon-stack[data-active="moon"] .theme-icon-moon { filter: blur(0); }
+    .theme-icon-stack[data-active="sun"]  .theme-icon-sun  { filter: brightness(0) invert(1); }
+
+    .theme-toggle:hover .theme-icon-stack[data-active="moon"] .theme-icon-moon,
+    .theme-toggle:hover .theme-icon-stack[data-active="sun"]  .theme-icon-sun {
+      opacity: 1;
+    }
+
+    /* Suppresses the entry animation on first paint so the resting
+       icon doesn't appear to "fly in" when the page loads. */
+    .theme-icon-stack.no-anim .theme-icon { transition: none; }
+
+    /* ─── Site nav (shared bar: logo + menu + actions) ─────────── */
+    /* Mirrors the /index.html + /refine.html top bar. Lives as the first
+       child of .app so the brand lines up with the page content column. */
+    .site-nav {
+      position: relative;
+      z-index: 50;
+      width: 100%;
+    }
+    .site-nav-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0;
+    }
+    .site-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 34px;
+      min-width: 0;
+    }
+    .site-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 35px;
+      padding: 5px 0;
+      text-decoration: none;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      color: var(--icon-color);
+    }
+    /* Libraries scribble mark: natural 22.67×14.67 ratio in the 24px box.
+       Ported from site.css, which this page does not link. */
+    .brand-mark svg { width: 22px; height: 15px; display: block; }
+    /* Hand-drawn redraw on hover: the scribble erases itself stroke-first
+       and immediately redraws from the start, like a quick pencil pass.
+       One continuous dash slide (period 200 on a 100-length path) does
+       both halves in a single animation. */
+    .brand-draw {
+      stroke-dasharray: 100 100;
+      stroke-dashoffset: 0;
+    }
+    .brand:hover .brand-draw,
+    .footer-brand-logo:hover .brand-draw { animation: brand-redraw 1.15s ease-in-out; }
+    @keyframes brand-redraw {
+      from { stroke-dashoffset: 0; }
+      to   { stroke-dashoffset: -200; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .brand:hover .brand-draw,
+      .footer-brand-logo:hover .brand-draw { animation: none; }
+    }
+    .brand-word {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .brand-word-dim { color: var(--text-muted); }
+
+    /* Tertiary text pills — quiet by default, soft tint when active. */
+    .site-nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 50px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 16px;
+      color: var(--text-muted);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Small Pro tag riding the Studio pill (ported by value: this page links
+       no shared stylesheet). Matches site.css .nav-pill-pro. */
+    .nav-pill-pro {
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      margin-left: 6px;
+      padding: 0 6px;
+      border-radius: 50px;
+      background: var(--pro-tint-bg);
+      color: var(--pro-tint-ink);
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 14px;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+    }
+
+    /* The Studio pill carries the Pro chip, whose own rounded fill reads as
+       padding — so its right side comes in to 9px against the 14px the text-only pills
+       carry on both sides. */
+    .nav-pill:has(.nav-pill-pro) { padding-right: 9px; }
+    .nav-pill:hover { color: var(--text); background: rgba(0, 0, 0, 0.03); }
+    html[data-theme="dark"] .nav-pill:hover { background: rgba(255, 255, 255, 0.06); }
+    .nav-pill--active {
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.03);
+    }
+    html[data-theme="dark"] .nav-pill--active { background: rgba(255, 255, 255, 0.06); }
+    .nav-pill:focus-visible {
+      outline: 2px solid var(--icon-color);
+      outline-offset: 2px;
+    }
+
+    /* ─── Mobile hamburger (logram-style two-line → ✕ morph) ────── */
+    /* Hidden on desktop; the media query below flips it to inline-flex
+       and hides the .site-nav-menu pills. */
+    .nav-burger { display: none; }
+    .nav-burger-box {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      display: block;
+      color: var(--icon-color-muted);
+      transition: color 0.15s ease;
+    }
+    .nav-burger:hover .nav-burger-box { color: var(--icon-color); }
+    .nav-burger-line {
+      position: absolute;
+      left: 1px;
+      right: 1px;
+      height: 1.5px;
+      border-radius: 2px;
+      background: currentColor;
+      transform-origin: center;
+      /* Slide to centre (top), then rotate into the ✕. Calm ease-out. */
+      transition:
+        top 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.05s;
+    }
+    .nav-burger-line--top { top: 5px; }
+    .nav-burger-line--bottom { top: 9.5px; }
+    .nav-burger[aria-expanded="true"] .nav-burger-line {
+      /* Centre line of a 16px box with a 1.5px bar = (16 − 1.5)/2. */
+      top: 7.25px;
+      /* Rotate fires first on open so the lines cross as they meet. */
+      transition:
+        top 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .nav-burger[aria-expanded="true"] .nav-burger-line--top { transform: rotate(45deg); }
+    .nav-burger[aria-expanded="true"] .nav-burger-line--bottom { transform: rotate(-45deg); }
+
+    /* ─── Mobile menu overlay + blurred backdrop ───────────────── */
+    /* Backdrop: white @ 90% with a 20px blur (per design). Sits below
+       the menu list but above page content; the top bar stays clickable
+       on top of it (.site-nav-inner z-index). */
+    .mobile-menu-backdrop {
+      display: block; /* explicit, so the first-paint guard's display:none is overridden */
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.9);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0s linear 0.35s;
+    }
+    html[data-theme="dark"] .mobile-menu-backdrop {
+      background: rgba(18, 18, 18, 0.9);
+    }
+    body.menu-open .mobile-menu-backdrop {
+      opacity: 1;
+      visibility: visible;
+      transition:
+        opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0s;
+    }
+    body.menu-closing .mobile-menu-backdrop {
+      opacity: 0;
+      visibility: visible;
+      transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      padding: 88px 30px 30px;
+      visibility: hidden;
+      pointer-events: none;
+      transition: visibility 0s linear 0.4s;
+    }
+    body.menu-open .mobile-menu,
+    body.menu-closing .mobile-menu {
+      visibility: visible;
+      transition: visibility 0s;
+    }
+    body.menu-open .mobile-menu { pointer-events: auto; }
+    .mobile-menu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .mobile-menu-link {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+      /* Closed = pre-entrance (down + blurred + invisible). Opening
+         flips to resting; the stagger lands the eye top-to-bottom. */
+      opacity: 0;
+      transform: translateY(12px);
+      filter: blur(3px);
+      transition:
+        opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .mobile-menu-link--2 { transition-delay: 40ms; }
+    .mobile-menu-link--3 { transition-delay: 80ms; }
+    body.menu-open .mobile-menu-link {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+    /* Exit decouples from the stagger: one quiet 200ms fade in place,
+       no Y-return / blur, so closing doesn't replay the reveal. */
+    body.menu-closing .mobile-menu-link {
+      opacity: 0;
+      transform: translateY(0);
+      filter: blur(0);
+      transition:
+        opacity 0.2s ease,
+        transform 0s linear,
+        filter 0s linear;
+      transition-delay: 0s;
+    }
+    body.menu-open { overflow: hidden; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nav-burger-line,
+      .mobile-menu-backdrop,
+      .mobile-menu,
+      .mobile-menu-link {
+        transition: none !important;
+      }
+    }
+
+    /* ─── Header (Figma demo page + border-beam vertical rhythm) ─ */
+    .header {
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 48px;
+      padding-bottom: 53px;
+      text-align: center;
+    }
+
+    .header-icon-wrap {
+      position: relative;
+      width: 136px;
+      height: 140px;
+      margin-top: -43px;
+      margin-bottom: -27px;
+      overflow: visible;
+    }
+
+    .header-icon-img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 136px;
+      height: 140px;
+      display: block;
+      user-select: none;
+      transform-origin: center;
+      transition:
+        filter 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Hover pose is gated to pointer-capable devices so iOS Safari's
+       sticky-hover doesn't pin the icon into the hover state after a
+       tap (which would leave it permanently rotated/saturated until
+       the user taps elsewhere). On touch devices `.is-tapped` is the
+       only trigger and is added/removed by JS — the existing 500ms
+       transition on `.header-icon-img` interpolates both directions. */
+    @media (hover: hover) {
+      .header-icon-wrap:hover .header-icon-img {
+        filter: hue-rotate(60deg) saturate(1.6);
+        transform: rotate(8deg) scale(1.06);
+      }
+    }
+    .header-icon-wrap.is-tapped .header-icon-img {
+      filter: hue-rotate(60deg) saturate(1.6);
+      transform: rotate(8deg) scale(1.06);
+    }
+
+    html[data-theme="dark"] .header-icon-img--light,
+    html:not([data-theme="dark"]) .header-icon-img--dark {
+      display: none;
+    }
+
+    html:not([data-theme="dark"]) .header-icon-img--light,
+    html[data-theme="dark"] .header-icon-img--dark {
+      display: block;
+    }
+
+    /* Hero Saans display title — mirrors /refine.html. */
+    .title {
+      margin-top: 9px;
+      font-family: "Saans", var(--font-sans);
+      font-size: 36px;
+      font-weight: 500;
+      line-height: 34px;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin-top: 16px;
+      max-width: 560px;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24.2px;
+      color: var(--text-muted);
+    }
+
+    /* ─── Cards grid ──────────────────────────────────────────── */
+    .cards {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 320px);
+      justify-content: center;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ─── Card ────────────────────────────────────────────────── */
+    .card {
+      position: relative;
+      width: 320px;
+      height: 344px;
+      min-height: 344px;
+      max-height: 344px;
+      /* overflow stays `visible` so the copy tooltip can extend
+         slightly past the card's rounded corners when the label
+         swaps to its wider "Copied" state. The stage clips its
+         own content via `.card-stage { overflow: hidden }`. */
+      border-radius: 24px;
+      background-color: var(--card-bg);
+      box-shadow:
+        var(--card-shadow),
+        inset 0 0 0 1px var(--card-border),
+        inset 0 -1px 0 0 var(--card-border);
+      transition: box-shadow 0.15s ease, background-color 0.2s ease;
+    }
+
+    .card:hover {
+      background-color: color-mix(in srgb, var(--card-bg) 99%, #000 1%);
+    }
+
+    html[data-theme="dark"] .card {
+      background-color: #181818;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.07);
+    }
+    html[data-theme="dark"] .card:hover {
+      background-color: color-mix(in srgb, #181818 99.5%, #fff 0.5%);
+    }
+
+    .card-stage {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      width: 296px;
+      max-width: calc(100% - 24px);
+      height: 260px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--stage-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Ring rendered on a pseudo so it draws on top of descendants
+       (e.g. the P3 panel material) instead of being occluded by them. */
+    .card-stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 0 0 1px var(--stage-border);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    html[data-theme="dark"] .card-stage {
+      background: #131313;
+    }
+    html[data-theme="dark"] .card-stage::after {
+      box-shadow: inset 0 0 0 1px rgba(191, 192, 203, 0.08);
+    }
+
+    .card-meta {
+      position: absolute;
+      left: var(--card-pad-x);
+      bottom: 20px;
+      width: calc(100% - 2 * var(--card-pad-x) - 44px);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 18px;
+      color: var(--text);
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 13px;
+      color: var(--text-subtle);
+    }
+
+    html[data-theme="dark"] .card-title { color: #ededed; }
+    html[data-theme="dark"] .card-subtitle { color: #767676; }
+
+    .card-copy {
+      position: absolute;
+      right: var(--card-pad-x);
+      bottom: 16px;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 24px;
+      padding: 0;
+      cursor: pointer;
+      background-color: var(--copy-bg-tint);
+      background-image: linear-gradient(90deg, var(--copy-bg) 0%, var(--copy-bg) 100%);
+      color: var(--icon-color-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html[data-theme="dark"] .card-copy {
+      background-color: transparent;
+      background-image: none;
+      background: var(--copy-bg);
+    }
+
+    .card-copy:hover {
+      background-color: var(--copy-bg-tint);
+      background-image: linear-gradient(90deg, var(--copy-bg-hover) 0%, var(--copy-bg-hover) 100%);
+      color: var(--icon-color);
+    }
+    html[data-theme="dark"] .card-copy:hover {
+      background-image: none;
+      background: var(--copy-bg-hover);
+      color: var(--icon-color);
+    }
+
+    .card-copy:active {
+      background-color: var(--copy-bg-tint);
+      background-image: linear-gradient(90deg, var(--copy-bg-pressed) 0%, var(--copy-bg-pressed) 100%);
+      color: var(--icon-color);
+    }
+    html[data-theme="dark"] .card-copy:active {
+      background-image: none;
+      background: var(--copy-bg-pressed);
+      color: var(--icon-color);
+    }
+
+    .card-copy:focus-visible {
+      outline: 2px solid var(--icon-color);
+      outline-offset: 2px;
+    }
+
+    .card-copy svg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      display: block;
+      transform-origin: center;
+      will-change: opacity, transform, filter;
+      transition:
+        opacity 300ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 300ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .card-copy .icon-copy {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      filter: blur(0);
+    }
+    .card-copy .icon-check {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.25);
+      filter: blur(4px);
+      color: currentColor;
+    }
+    .card-copy[data-copied="true"] .icon-copy {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.25);
+      filter: blur(4px);
+    }
+    .card-copy[data-copied="true"] .icon-check {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      filter: blur(0);
+    }
+
+    /* ─── Copy-button tooltip ──────────────────────────────── */
+    /* Centered above the copy button in every state. The parent
+       card's `overflow: hidden` is lifted (see `.card`) so the
+       wider "Copied" state can breathe past the card edge without
+       getting clipped by the rounded-corner mask. */
+    .card-copy-tooltip {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(100% + 8px);
+      box-sizing: border-box;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 40px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 16px;
+      letter-spacing: 0;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0s linear 150ms;
+
+      /* Light theme — white pill with soft shadow (Figma 246:3650). */
+      background: #ffffff;
+      color: #17181c;
+      box-shadow:
+        0 2px 8px 0 rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 1px 1px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    html[data-theme="dark"] .card-copy-tooltip {
+      /* Dark theme — near-black pill with a glow-like shadow and
+         layered inset borders (Figma 246:3653). */
+      background: #181818;
+      color: #e3e3e3;
+      box-shadow:
+        0 1px 16px 0 rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+    }
+
+    /* Hover / focus reveal is gated to pointer-capable devices so
+       iOS Safari's "sticky hover" doesn't keep the tooltip visible
+       after a tap — on touch, the tooltip only shows in the Copied
+       state (block further below). The 50ms delay before fade-in
+       prevents quick pointer flyovers from flashing the tooltip.
+       Clicking overrides the delay so the "Copied" confirmation
+       shows instantly. */
+    @media (hover: hover) {
+      .card-copy:hover .card-copy-tooltip,
+      .card-copy:focus-visible .card-copy-tooltip,
+      .card-copy[data-copied="true"] .card-copy-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transition:
+          opacity 150ms cubic-bezier(0.22, 1, 0.36, 1) 50ms,
+          visibility 0s linear 50ms;
+      }
+      .card-copy[data-copied="true"] .card-copy-tooltip {
+        transition:
+          opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0s linear;
+      }
+    }
+    .card-copy-tooltip .tt-text {
+      display: inline-flex;
+      align-items: baseline;
+      line-height: 16px;
+    }
+
+    /* Animated segment that swaps "y" ⟷ "ied" with a 2px cross blur.
+       Its width animates between two widths measured on init (exposed
+       as --tt-w-a / --tt-w-b custom properties by the init script).
+       .tt-a stays in normal flow so the container has a real text
+       baseline for the parent's `align-items: baseline`; .tt-b is
+       absolutely positioned on top so both glyphs share the same
+       top-left anchor and cross-blur in place. */
+    .card-copy-tooltip .tt-swap {
+      position: relative;
+      display: inline-block;
+      vertical-align: baseline;
+      line-height: 16px;
+      width: var(--tt-w-a, auto);
+      transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .card-copy-tooltip .tt-swap[data-state="copied"] {
+      width: var(--tt-w-b, auto);
+    }
+
+    .card-copy-tooltip .tt-label {
+      white-space: pre;
+      transition:
+        opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: opacity, filter;
+    }
+
+    .card-copy-tooltip .tt-a {
+      display: inline-block;
+    }
+
+    .card-copy-tooltip .tt-b {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .card-copy-tooltip .tt-swap .tt-a { opacity: 1; filter: blur(0); }
+    .card-copy-tooltip .tt-swap .tt-b { opacity: 0; filter: blur(2px); }
+    .card-copy-tooltip .tt-swap[data-state="copied"] .tt-a {
+      opacity: 0;
+      filter: blur(2px);
+    }
+    .card-copy-tooltip .tt-swap[data-state="copied"] .tt-b {
+      opacity: 1;
+      filter: blur(0);
+    }
+
+    /* Touch-only devices: tooltip only appears in the Copied state
+       (triggered from JS on tap), stays stable, then fades out.
+       - text swap / label transitions are killed so the tooltip
+         fades in already reading "Copied" instead of cross-blurring
+         from "Copy code" mid-reveal.
+       - .tt-swap width is pinned to the Copied width (--tt-w-b)
+         in every state so the pill is born at the final size and
+         never snaps between widths when the attribute flips.
+       This block MUST come after the base .tt-swap / .tt-label rules
+       above — equal-specificity selectors are resolved by source
+       order, so placing the override earlier silently lets the base
+       `width: var(--tt-w-a)` / `transition: width 240ms` win. */
+    @media (hover: none) {
+      .card-copy[data-copied="true"] .card-copy-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transition:
+          opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0s linear;
+      }
+      .card-copy-tooltip .tt-swap {
+        width: var(--tt-w-b, auto);
+        transition: none;
+      }
+      .card-copy-tooltip .tt-label {
+        transition: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card-copy-tooltip,
+      .card-copy-tooltip .tt-swap,
+      .card-copy-tooltip .tt-label {
+        transition: none !important;
+      }
+    }
+
+    /* ─── Animate button (centered inside stage bottom) ──────── */
+    /* Same reset as prototypes `.btn`: no native button chrome. */
+    .btn-animate {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 20px;
+      height: 36px;
+      padding: 6px 12px;
+      border: 0;
+      border-radius: 40px;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 13px;
+      line-height: 16px;
+      color: var(--animate-text);
+      background-color: var(--animate-bg-tint);
+      background-image: linear-gradient(90deg, var(--animate-bg) 0%, var(--animate-bg) 100%);
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.15s ease, filter 0.15s ease;
+      z-index: 5;
+      flex-shrink: 0;
+    }
+    html[data-theme="dark"] .btn-animate {
+      background-color: transparent;
+      background-image: none;
+      background: var(--animate-bg);
+    }
+
+    .btn-animate:hover { filter: brightness(0.98); }
+    html[data-theme="dark"] .btn-animate:hover {
+      background: var(--animate-bg-hover);
+      filter: none;
+    }
+    html[data-theme="dark"] .btn-animate:active {
+      background: var(--animate-bg-pressed);
+      filter: none;
+    }
+    html[data-theme="dark"] .btn-animate:disabled {
+      background: var(--animate-bg);
+      color: var(--animate-text-disabled);
+      cursor: not-allowed;
+    }
+    html[data-theme="dark"] .btn-animate:disabled:hover {
+      background: var(--animate-bg);
+      color: var(--animate-text-disabled);
+    }
+    .btn-animate:active { filter: brightness(0.95); }
+    .btn-animate:focus-visible {
+      outline: 2px solid var(--animate-text);
+      outline-offset: 2px;
+    }
+
+    /* ─── Course CTA — recommended Emil Kowalski course ───────
+       70px above (after the cards grid) and 70px below (before the
+       footer) per the Figma layout. The footer's own top padding is
+       set to 0 because this section provides its own breathing room. */
+    .course-cta {
+      display: flex;
+      align-items: center;
+      gap: 21px;
+      width: 100%;
+      max-width: 720px;
+      margin: 70px auto;
+      font-family: var(--font-sans);
+      color: var(--text);
+    }
+    .course-cta-divider {
+      flex-shrink: 0;
+      width: 2px;
+      height: 78px;
+      background: #d9d9d9;
+      border-radius: 1px;
+    }
+    html[data-theme="dark"] .course-cta-divider {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    /* Desktop layout for the inner row: text fills the available
+       space and the pill button gets pushed to the right edge.
+       The wrapper exists so mobile (≤740px) can re-stack the text +
+       button vertically while the divider stays anchored on the left
+       — see the @media block below for the column override. */
+    .course-cta-inner {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .course-cta-text {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 432px;
+    }
+    .course-cta-headline {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--text);
+    }
+    /* No underline at rest; it appears on hover, like every other link. */
+    /* 50% of the text colour at rest, 100% on hover; color-mix with
+       currentColor keeps it theme-agnostic, like transitions.dev's. */
+    .course-cta-headline a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+      transition: text-decoration-color 180ms ease;
+    }
+    .course-cta-headline a:hover {
+      text-decoration-color: currentColor;
+    }
+    .course-cta-byline {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+      line-height: 18px;
+      opacity: 0.7;
+    }
+    .course-cta-name { color: var(--text); }
+    .course-cta-role { color: var(--text-muted); }
+
+    /* Pill button mirrors Figma 351:374 (Button/Small/Primary).
+       In light mode the pill is near-black with white text, mirrored
+       in dark mode (white pill, dark text). Hover lifts the surface
+       one tone instead of using opacity, so the icon stays crisp. */
+    .course-cta-button {
+      flex-shrink: 0;
+      /* Push the pill to the right edge of .course-cta-inner. The text
+         caps at max-width: 432px, so without this the leftover slack
+         lands AFTER the button instead of before it. */
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 40px;
+      padding: 6px 16px;
+      border-radius: 24px;
+      background: #101010;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 13px;
+      text-decoration: none;
+      /* Ease Out Smooth ─ cubic-bezier(0.22, 1, 0.36, 1), 200ms.
+         The arrow inside the icon shares the curve but runs at 250ms
+         so it lingers slightly longer than the button surface. */
+      transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .course-cta-button:hover { background: #2a2a2a; }
+    .course-cta-button:active { background: #000000; }
+    html[data-theme="dark"] .course-cta-button {
+      background: #ffffff;
+      color: #0d0d0d;
+    }
+    html[data-theme="dark"] .course-cta-button:hover { background: #e8e8e8; }
+    html[data-theme="dark"] .course-cta-button:active { background: #d8d8d8; }
+    .course-cta-button:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+    }
+    .course-cta-icon {
+      display: inline-flex;
+      width: 16px;
+      height: 16px;
+    }
+    .course-cta-icon svg { width: 100%; height: 100%; }
+    /* Only the arrow group (corner + diagonal line) translates on
+       hover — the surrounding "open box" frame stays anchored, so the
+       arrow visually leans up-right out of the box. */
+    .course-cta-arrow {
+      /* Smooth Out, 250ms — slightly longer than the button's bg
+         tween so the arrow has its own gentle settle on hover-in
+         and slide-back on hover-out. */
+      transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform-origin: center;
+    }
+    .course-cta-button:hover .course-cta-arrow {
+      transform: translate(1.5px, -1.5px);
+    }
+
+    /* ─── Footer (Figma 2332:3466) ────────────────────────────── */
+    .footer {
+      /* Spans the .app column like .site-nav-inner, so its edges line up
+         with the top bar's brand and actions. */
+      width: 100%;
+      margin: 112px auto 0;
+      padding: 0 0 40px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 18.2px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 260px;
+    }
+    .footer-brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.7;
+      text-decoration: none;
+      color: var(--text);
+      /* Same hover as the top-bar brand link: mark spins, whole
+         lockup gets a touch of scale (transitions live on the
+         shared .brand-mark rule; only the trigger + scale live here). */
+      transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease;
+      transform-origin: center;
+    }
+    .footer-brand-logo:hover { opacity: 1; transform: scale(1.02); }
+    @media (prefers-reduced-motion: reduce) {
+      .footer-brand-logo { transition: opacity 150ms ease; }
+      .footer-brand-logo:hover { transform: none; }
+      .footer-brand-logo:hover .brand-mark { transform: none; }
+    }
+    .footer-tagline {
+      margin: 0;
+      color: var(--text-muted);
+    }
+    .footer-cols {
+      display: flex;
+      gap: 56px;
+    }
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .footer-col-title {
+      margin: 0 0 2px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .footer-col a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 150ms var(--ease-smooth-out);
+    }
+    .footer-col a:hover { color: var(--text); }
+    .footer-credit { margin: 0; }
+    .footer-muted { color: var(--text-faint); }
+    .footer-name { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); transition: color 150ms ease, text-decoration-color 180ms ease;
+      color: var(--text-footer-name);
+      margin-left: 4px;
+    }
+    .footer-name:hover {
+      color: #0d0d0d; text-decoration-color: currentColor;
+    }
+    html[data-theme="dark"] .footer-name:hover {
+      color: #ffffff; text-decoration-color: currentColor;
+    }
+    @media (max-width: 720px) {
+      .footer-top { flex-direction: column; gap: 32px; }
+      .footer-cols { gap: 40px; flex-wrap: wrap; row-gap: 32px; }
+    }
+
+    /* ============================================================ */
+    /* Prototype stages (296×260 stage; button pinned to bottom)    */
+    /* ============================================================ */
+
+    .stage-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 56px;
+    }
+
+    /* Shared skeleton (matches prototypes.html `.sk` / `.skeleton`) */
+    .sk,
+    .skeleton {
+      background: var(--skeleton);
+      border-radius: 4px;
+    }
+
+    /* Inner surfaces (matches prototypes.html `.surface`; uses demo material tokens) */
+    .surface {
+      background: var(--material-bg);
+      border-radius: 12px;
+      box-shadow: var(--material-shadow);
+      overflow: hidden;
+    }
+
+    /* ─── Prototype 1 — Notification badge ──────────────────── */
+    /* True-centre the bell in the stage (ignore the bottom padding
+       that reserves space for the Animate button — the bell is small
+       enough to never overlap it visually). */
+    .p1-stage-inner {
+      padding-bottom: 0;
+    }
+
+    .p1-bell {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 40px;
+      background: var(--material-bg);
+      box-shadow:
+        0 1px 0 0 rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        0 2px 3px 0 rgba(0, 0, 0, 0.04);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    html[data-theme="dark"] .p1-bell {
+      background: #181818;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 0 0 rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        0 2px 3px 0 rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(196, 196, 196, 0.08);
+    }
+    .p1-bell > svg { width: 16px; height: 16px; display: block; }
+
+    /* Two-part badge: outer slides diagonally, inner scales/fades. */
+    .p1-bell .bell-badge {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      will-change: transform;
+    }
+    .p1-bell[data-badge-open="true"] .bell-badge {
+      animation: p1-badge-slide-in var(--p1-pos-open-dur) var(--p1-ease-pos-open);
+    }
+    @keyframes p1-badge-slide-in {
+      0%   { transform: translate(var(--p1-distance-x), var(--p1-distance-y)); }
+      100% { transform: translate(0, 0); }
+    }
+    .p1-bell .bell-badge-inner {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background-image: linear-gradient(-51.52deg, rgb(238, 41, 51) 13.929%, rgb(236, 2, 72) 112.7%);
+      color: #ffffff;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 11.744px;
+      line-height: 1;
+      letter-spacing: -0.1174px;
+      box-shadow:
+        0 0.338px 1.351px 0 rgba(0, 0, 0, 0.17),
+        0 0.676px 2.703px 0 rgba(0, 0, 0, 0.04),
+        inset 0 -0.338px 0 0 rgba(0, 0, 0, 0.16);
+      transform-origin: center;
+      transform: scale(1);
+      opacity: 1;
+      filter: blur(0);
+      transition:
+        transform var(--p1-scale-open-dur) var(--p1-ease-scale-open),
+        opacity var(--p1-opacity-open-dur) var(--p1-ease-scale-open),
+        filter var(--p1-scale-open-dur) var(--p1-ease-scale-open);
+      will-change: transform, opacity, filter;
+    }
+    .p1-bell[data-badge-open="false"] .bell-badge-inner {
+      transform: scale(0);
+      opacity: 0;
+      filter: blur(var(--p1-blur));
+      transition:
+        transform var(--p1-scale-close-dur) var(--p1-ease-close),
+        opacity var(--p1-opacity-close-dur) var(--p1-ease-close),
+        filter var(--p1-scale-close-dur) var(--p1-ease-close);
+    }
+
+    /* ─── Prototype 2 — Menu dropdown ────────────────────────── */
+    /* Matches prototypes.html `.p2-stage`: button above dropdown, top-aligned. */
+    .p2-stage-inner {
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding-top: 20px;
+      padding-bottom: 0;
+    }
+    .p2-stage-inner .btn-animate {
+      position: static;
+      left: auto;
+      bottom: auto;
+      transform: none;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    /* Every transform value below carries a trailing translateZ(0)
+       to pre-promote the compositor layer. Safari has a long-
+       standing quirk where the .surface box-shadow on a scale-
+       animated element paints with a delay — WebKit defers the
+       layer's paint until the transform settles, so the shadow
+       snaps in ~150-200 ms after the open animation starts.
+       translateZ(0) forces the layer to be created with paint
+       ready from frame 1 so the shadow rides in with the rest. */
+    .p2-dropdown {
+      width: 234px;
+      height: 136px;
+      position: relative;
+      padding: 8px;
+      transform-origin: var(--p2-origin);
+      transform: scale(var(--p2-pre-scale)) translateZ(0);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform var(--p2-open-dur) var(--p2-ease),
+        opacity var(--p2-open-dur) var(--p2-ease);
+    }
+    .p2-dropdown.is-open {
+      transform: scale(1) translateZ(0); opacity: 1; pointer-events: auto;
+    }
+    .p2-dropdown.is-closing {
+      transform: scale(var(--p2-closing-scale)) translateZ(0);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform var(--p2-close-dur) var(--p2-ease),
+        opacity var(--p2-close-dur) var(--p2-ease);
+    }
+    .p2-dropdown .skeleton {
+      position: absolute;
+      height: 14px;
+    }
+    .p2-dropdown .s1 {
+      left: 18px;
+      top: 23px;
+      width: 173px;
+    }
+    .p2-dropdown .s2 {
+      left: 18px;
+      top: 63px;
+      width: 131px;
+    }
+    .p2-dropdown .s3 {
+      left: 18px;
+      top: 103px;
+      width: 194px;
+    }
+
+    /* ─── Prototype 3 — Toggle panel (vertical) ──────────────── */
+    /* Absolute layout: clip fills the stage so the panel's drop shadow has
+       room above the panel; the button overlays the clip via z-index. */
+    .p3-stage-inner {
+      padding: 0;
+      gap: 0;
+    }
+    .p3-stage-inner .btn-animate {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: auto;
+      margin: 0;
+      z-index: 2;
+    }
+    /* Clips the panel so it can hide purely via translateY — no opacity
+       fade. Span the stage width exactly so overflow:hidden does not sit
+       14px past the card-stage edge (that stacked with the stage hairline
+       and read as a “double border”). Side shadow may clip slightly. */
+    .p3-panel-clip {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: auto;
+      transform: none;
+      overflow: hidden;
+      z-index: 1;
+      /* Lets 100cqh resolve to the clip height so the closed translate
+         always clears the viewport (no sliver of panel at the bottom). */
+      container-type: size;
+    }
+    .p3-panel {
+      /* Full width of the clip (= full width of the stage, which for
+         the P3 card is full width of the card itself). */
+      width: 100%;
+      height: var(--p3-panel-height);
+      margin: var(--p3-clip-pad-top) auto 0;
+      border-radius: 0;
+      background: var(--material-bg);
+      box-shadow: var(--p3-shadow);
+      position: relative;
+      /* Closed = open rest position + the 50% travel offset. The
+         panel is fully transparent at this point, so the shorter
+         travel combined with the opacity + blur fade reads cleanly
+         even though the panel never leaves the clip's viewport. */
+      transform: translateY(
+        calc(-1 * var(--p3-open-lift) + var(--p3-translate-y))
+      );
+      opacity: 0;
+      filter: blur(var(--p3-blur));
+      pointer-events: none;
+      transition:
+        transform var(--p3-close-dur) var(--p3-ease),
+        opacity   var(--p3-close-dur) var(--p3-ease),
+        filter    var(--p3-close-dur) var(--p3-ease);
+      will-change: transform, opacity, filter;
+    }
+    /* Dark mode: only the top edge + outer drop shadow. We drop the
+       side/bottom inset rings because the card-stage already draws a
+       ring along the same edges the panel meets; keeping just the top
+       1px line defines the panel's free edge under the button. Like
+       light mode, the hairline is outer (0 -1px) so it sits on the
+       dark stage background rather than over the panel's own fill. */
+    html[data-theme="dark"] .p3-panel {
+      box-shadow:
+        0 -1px 0 0 rgba(196, 196, 196, 0.12),
+        0 1px 3px 0 rgba(0, 0, 0, 0.04);
+    }
+    .p3-panel.is-open {
+      transform: translateY(calc(-1 * var(--p3-open-lift)));
+      opacity: 1;
+      filter: blur(0);
+      pointer-events: auto;
+      transition:
+        transform var(--p3-open-dur) var(--p3-ease),
+        opacity   var(--p3-open-dur) var(--p3-ease),
+        filter    var(--p3-open-dur) var(--p3-ease);
+    }
+    /* Lines + tiles are horizontally centered inside the full-width
+       panel via left:50% + translateX(-50%). Their own fixed widths
+       (173px / 226px) then read as symmetric insets from both the
+       card's left and right edges. */
+    .p3-panel .lines {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 28px;
+      width: 173px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .p3-panel .lines .l1 { height: 10px; width: 100%; }
+    .p3-panel .lines .l2 { height: 10px; width: 131px; }
+    .p3-panel .tiles {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 73px;
+      width: 226px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 17px 14px;
+    }
+    .p3-panel .tiles .tile { width: 106px; height: 46px; }
+
+    /* ─── Prototype 4 — Card resize ──────────────────────────── */
+    .p4-card {
+      width: 220px;
+      height: 112px;
+      background: var(--material-bg);
+      border-radius: 12px;
+      box-shadow: var(--material-shadow);
+      position: relative;
+      overflow: hidden;
+      transition:
+        width var(--p4-dur) var(--p4-ease),
+        height var(--p4-dur) var(--p4-ease);
+    }
+    .p4-card.is-small { width: 154px; height: 128px; }
+    .p4-card .sk {
+      position: absolute;
+      left: 14px; right: 14px;
+      background: var(--skeleton);
+      border-radius: 4px;
+    }
+    .p4-card .sk-1 { top: 14px; height: 10px; right: auto; width: calc((100% - 28px) * 0.526); }
+    .p4-card .sk-2 { top: 28px; height: 7px; }
+    .p4-card .sk-3 { top: 39px; height: 7px; }
+    .p4-card .sk-4 { top: 50px; height: 7px; right: auto; width: calc((100% - 28px) * 0.734); }
+    .p4-card .sk-5 { top: 78px; height: 7px; }
+    .p4-card .sk-6 { top: 89px; height: 7px; }
+
+    /* ─── Prototype 5 — Hamburger ↔ Close ────────────────────── */
+    /* True-centre the icon in the stage (ignore the bottom padding
+       reserved for the Animate button — the icon is small enough not
+       to overlap). */
+    .p5-stage-inner {
+      padding-bottom: 0;
+    }
+
+    .p5-icon-wrap {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      color: var(--text);
+    }
+    .p5-icon-wrap .icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition:
+        opacity var(--p5-dur) var(--p5-ease),
+        filter var(--p5-dur) var(--p5-ease),
+        transform var(--p5-dur) var(--p5-ease);
+      will-change: opacity, filter, transform;
+    }
+    .p5-icon-wrap[data-animated="false"] .icon-menu {
+      opacity: 1; filter: blur(0); transform: scale(1);
+    }
+    .p5-icon-wrap[data-animated="false"] .icon-close {
+      opacity: 0; filter: blur(var(--p5-blur)); transform: scale(var(--p5-start-scale));
+    }
+    .p5-icon-wrap[data-animated="true"] .icon-menu {
+      opacity: 0; filter: blur(var(--p5-blur)); transform: scale(var(--p5-start-scale));
+    }
+    .p5-icon-wrap[data-animated="true"] .icon-close {
+      opacity: 1; filter: blur(0); transform: scale(1);
+    }
+
+    /* ─── Prototype 6 — Status text swap ─────────────────────── */
+    /* True-centre the text in the stage (ignore the bottom padding
+       reserved for the Animate button). */
+    .p6-stage-inner {
+      padding-bottom: 0;
+    }
+
+    .p6-text {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 18px;
+      color: var(--text);
+      white-space: nowrap;
+      transform: translateY(0);
+      filter: blur(0);
+      opacity: 1;
+      transition:
+        transform var(--p6-dur) var(--p6-ease),
+        filter var(--p6-dur) var(--p6-ease),
+        opacity var(--p6-dur) var(--p6-ease);
+      will-change: transform, filter, opacity;
+    }
+    .p6-text.is-exit {
+      transform: translateY(calc(var(--p6-translate-y) * -1));
+      filter: blur(var(--p6-blur));
+      opacity: 0;
+    }
+    .p6-text.is-enter-start {
+      transform: translateY(var(--p6-translate-y));
+      filter: blur(var(--p6-blur));
+      opacity: 0;
+      transition: none;
+    }
+
+    /* ─── Prototype 7 — Modal open/close ─────────────────────── */
+    /* Same Safari shadow-paint quirk as .p2-dropdown above — see
+       that block for the full explanation. translateZ(0) on each
+       transform pre-promotes the compositor layer so the
+       box-shadow rides in with the scale animation instead of
+       snapping in late. */
+    .p7-dropdown {
+      width: 261px;
+      height: 172px;
+      background: var(--material-bg);
+      border-radius: 12px;
+      box-shadow: var(--material-shadow);
+      position: relative;
+      overflow: hidden;
+      transform-origin: center;
+      transform: scale(var(--p7-scale)) translateZ(0);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform var(--p7-open-dur) var(--p7-ease),
+        opacity var(--p7-open-dur) var(--p7-ease);
+      will-change: transform, opacity;
+    }
+    .p7-dropdown.is-open {
+      transform: scale(1) translateZ(0); opacity: 1; pointer-events: auto;
+    }
+    .p7-dropdown.is-closing {
+      transform: scale(var(--p7-scale-close)) translateZ(0);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform var(--p7-close-dur) var(--p7-ease),
+        opacity var(--p7-close-dur) var(--p7-ease);
+    }
+    .p7-dropdown .title    { position: absolute; left: 16px;  top: 29px; width: 167px; height: 14px; background: var(--skeleton); border-radius: 4px; }
+    .p7-dropdown .close-dot{ position: absolute; left: 237px; top: 8px;  width: 16px;  height: 16px; background: var(--skeleton); border-radius: 43px; }
+    .p7-dropdown .body-1,
+    .p7-dropdown .body-2,
+    .p7-dropdown .body-3   { position: absolute; left: 16px;  height: 10px; background: var(--skeleton); border-radius: 4px; }
+    .p7-dropdown .body-1   { top: 57px; width: 227px; }
+    .p7-dropdown .body-2   { top: 73px; width: 227px; }
+    .p7-dropdown .body-3   { top: 89px; width: 141px; }
+    .p7-dropdown .pill     { position: absolute; top: 135px; width: 66px; height: 21px; background: var(--skeleton); border-radius: 6px; }
+    .p7-dropdown .pill-1   { left: 107px; }
+    .p7-dropdown .pill-2   { left: 179px; }
+
+    /* ─── Prototype 8 — Token list ↔ Amount ───────────────────── */
+    /* Figma 213:1489 — modal sits 18px from left & top of the stage
+       (296×260), width 260px; same inset on the right (296−18−260=18). */
+    .p8-stage-inner {
+      position: relative;
+      padding-bottom: 0;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .p8-modal {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: 260px;
+      height: 267px;
+      background: var(--material-bg);
+      border-radius: 12px;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 2px 6px rgba(0, 0, 0, 0.05),
+        0 4px 42px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+    html[data-theme="dark"] .p8-modal {
+      box-shadow: var(--material-shadow);
+    }
+    /* Page transition: both pages animate position + blur.
+       `--p8-exit-enabled` (0/1) lets you disable the outgoing slide. */
+    .p8-modal .page-1 { --p8-from-x: calc(var(--p8-distance) * -1); }
+    .p8-modal .page-2 { --p8-from-x: var(--p8-distance); }
+    .p8-modal .page {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(calc(var(--p8-from-x, 0px) * var(--p8-exit-enabled)));
+      filter: blur(calc(var(--p8-blur) * var(--p8-exit-enabled)));
+      transition:
+        opacity var(--p8-fade-dur) var(--p8-fade-ease),
+        transform var(--p8-slide-dur) var(--p8-slide-ease),
+        filter var(--p8-slide-dur) var(--p8-slide-ease);
+      will-change: opacity, transform, filter;
+    }
+    .p8-modal[data-page="1"] .page-1,
+    .p8-modal[data-page="2"] .page-2 {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      filter: blur(0);
+      transition-delay: var(--p8-stagger);
+    }
+    .p8-modal .page-title {
+      position: absolute;
+      left: 50%;
+      top: 25px;
+      transform: translateX(-50%);
+      width: 95px;
+      height: 14px;
+      background: var(--skeleton);
+      border-radius: 4px;
+    }
+    .p8-modal .chip-btn {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 60px;
+      background: rgba(244, 244, 244, 0.5);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: background-color 120ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html[data-theme="dark"] .p8-modal .chip-btn {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .p8-modal .chip-btn:hover { background: rgba(244, 244, 244, 0.9); }
+    html[data-theme="dark"] .p8-modal .chip-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .p8-modal .chip-btn svg { display: block; }
+    .p8-modal .back-btn {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 2;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--p8-fade-dur) var(--p8-fade-ease);
+    }
+    .p8-modal[data-page="2"] .back-btn {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .p8-modal .back-btn svg {
+      transform: translateX(-1px);
+    }
+    .p8-modal .tokens {
+      position: absolute;
+      left: 8px;
+      top: 60.5px;
+      width: 244px;
+      display: flex;
+      flex-direction: column;
+    }
+    .p8-modal .token-row {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px 8px 12px;
+      border-radius: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .p8-modal .token-row:hover { background: rgba(2, 2, 2, 0.02); }
+    html[data-theme="dark"] .p8-modal .token-row:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .p8-modal .token-row:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 2px;
+    }
+    .p8-modal .token-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    /* Token chip: pure-CSS avatar matching Figma 232:3349.
+       32×32 circle · translucent brand-tinted fill (α ≈ 10.2%) · letter
+       positioned via padding (Inter 13/22, left 12 / top 4.5). Colors come
+       from two variables:
+         --token-fill-rgb : the translucent circle fill (brand tint)
+         --token-label    : the letter color (slightly darker brand color) */
+    .p8-modal .token-icon {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      box-sizing: border-box;
+      flex-shrink: 0;
+      padding: 4.5px 0 0 12px;
+      border-radius: 50%;
+      font-family: var(--font-sans);
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 22px;
+      letter-spacing: 0;
+      white-space: nowrap;
+      color: var(--token-label);
+      background-color: rgba(var(--token-fill-rgb), 0.102);
+    }
+    .p8-modal .token-icon.eth  { --token-label: #4e6cc2; --token-fill-rgb: 108, 137, 235; }
+    .p8-modal .token-icon.avax { --token-label: #c24e4e; --token-fill-rgb: 245, 118, 118; }
+    .p8-modal .token-icon.bnb  { --token-label: #c2964e; --token-fill-rgb: 235, 167,  59; }
+    .p8-modal .token-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-bottom: 4px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 22px;
+      white-space: nowrap;
+    }
+    .p8-modal .token-text .name { color: var(--text); }
+    .p8-modal .token-text .sym  { color: var(--muted); }
+    .p8-modal .amount-screen {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      top: 78px;
+      width: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-sizing: border-box;
+    }
+    .p8-modal .amount-value {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 48px;
+      line-height: 48px;
+      color: var(--text);
+      text-align: center;
+      width: 100%;
+    }
+    .p8-modal .pills {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+    .p8-modal .pill {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 27px;
+      background: #f7f7f8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 16px;
+      color: #5e6773;
+      white-space: nowrap;
+    }
+    html[data-theme="dark"] .p8-modal .pill {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+    .p8-modal .amount-available {
+      font-family: var(--font-sans);
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 18px;
+      color: var(--text);
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ─── Prototype 9 — Number pop-in ────────────────────────── */
+    /* True-centre the number in the stage (ignore the bottom padding
+       reserved for the Animate button). */
+    .p9-stage-inner {
+      padding-bottom: 0;
+    }
+
+    .p9-number {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 24px;
+      line-height: 24px;
+      color: var(--text);
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: baseline;
+      user-select: none;
+      position: relative;
+    }
+    .p9-char {
+      display: inline-block;
+      transform: translateY(0);
+      opacity: 1;
+      will-change: transform, opacity;
+    }
+    .p9-number.is-animating .p9-char {
+      animation: p9-pop-in var(--p9-dur) var(--p9-ease) both;
+    }
+    .p9-number.is-animating .p9-char[data-stagger="1"] { animation-delay: var(--p9-stagger); }
+    .p9-number.is-animating .p9-char[data-stagger="2"] { animation-delay: calc(var(--p9-stagger) * 2); }
+
+    .p9-number .p9-ghost {
+      position: absolute;
+      inset: 0;
+      display: inline-flex;
+      align-items: baseline;
+      pointer-events: none;
+    }
+    .p9-number .p9-ghost .p9-char {
+      animation: p9-pop-out var(--p9-dur) var(--p9-ease) both;
+    }
+    .p9-number .p9-ghost .p9-char[data-stagger="1"] { animation-delay: var(--p9-stagger); }
+    .p9-number .p9-ghost .p9-char[data-stagger="2"] { animation-delay: calc(var(--p9-stagger) * 2); }
+
+    @keyframes p9-pop-in {
+      0%   {
+        transform: translate(
+          calc(var(--p9-distance) * var(--p9-dir-x)),
+          calc(var(--p9-distance) * var(--p9-dir-y))
+        );
+        opacity: 0;
+        filter: blur(var(--p9-blur));
+      }
+      100% { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+    }
+    @keyframes p9-pop-out {
+      0%   { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+      100% {
+        transform: translate(
+          calc(var(--p9-distance) * var(--p9-dir-x) * -1),
+          calc(var(--p9-distance) * var(--p9-dir-y) * -1)
+        );
+        opacity: 0;
+        filter: blur(var(--p9-blur));
+      }
+    }
+
+    /* ─── Prototype 10 — Success check appear / disappear ────── */
+    /* Geometry mirrors Figma node 358:786: 48×48 disc made by the
+       wrapper (border + background + multi-layer box-shadow) with a
+       white check stroked over it via SVG. The check is drawn via
+       stroke-dashoffset; length ≈ 19.7, we use 20 with round caps
+       so a tiny overshoot is invisible. */
+    .p10-stage-inner {
+      padding-bottom: 0;
+    }
+    .p10-check {
+      width: 48px;
+      height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      /* Disc surface — Figma effect stack from node 358:786:
+           1. solid #35BA00 fill
+           2. inset hairline (5% black, 0-spread) — same visual as a
+              1px border but as a shadow layer, so it stays inside
+              the 48×48 box without box-sizing math
+           3. outer box-shadow: soft drop + softer halo
+           4. inset bottom highlight: subtle 1px line giving the disc
+              a baked-in 3D feel
+         All shadows are on the wrapper (not the SVG) so the wrapper's
+         filter:blur(...) keyframes also blur them during the
+         appear/exit transitions. */
+      border-radius: 48px;
+      background: #35BA00;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.05) inset,
+        0 1px 1px 0 rgba(0, 0, 0, 0.10),
+        0 1px 4px 0 rgba(0, 0, 0, 0.08),
+        0 -1px 1px 0 rgba(0, 0, 0, 0.09) inset;
+      transform-origin: center;
+      opacity: 0;
+      will-change: transform, opacity, filter;
+    }
+    .p10-check svg {
+      width: 48px;
+      height: 48px;
+      display: block;
+      overflow: visible;
+    }
+    .p10-check svg path {
+      stroke-dasharray: 20;
+      stroke-dashoffset: 20;
+    }
+    .p10-check[data-state="in"] {
+      animation:
+        p10-fade   var(--p10-opacity-dur) var(--p10-ease-opacity) forwards,
+        p10-rotate var(--p10-rotate-dur)  var(--p10-ease-rotate)  forwards,
+        p10-blur   var(--p10-blur-dur)    var(--p10-ease-out)     forwards,
+        p10-bob    var(--p10-bob-dur)     var(--p10-ease-bob)     forwards;
+    }
+    .p10-check[data-state="in"] svg path {
+      animation: p10-draw var(--p10-path-dur) var(--p10-ease-path) var(--p10-path-delay, 0ms) forwards;
+    }
+    /* Exit runs ONLY opacity fade on the wrapper — rotate / Y /
+       blur / path are intentionally omitted. The appearance
+       already owns the blur axis (p10-blur, 10 px → 0), so adding
+       a separate blur on the exit would double-count the soft-
+       edge effect and read as a too-mushy fade. The path (check
+       stroke) doesn't get its own exit animation; it just fades
+       out together with the wrapper. */
+    .p10-check.is-exiting {
+      animation:
+        p10-fade-out var(--p10-out-dur) var(--p10-ease-out) forwards;
+    }
+    @keyframes p10-fade     { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes p10-fade-out { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes p10-rotate {
+      from { transform: rotate(var(--p10-rotate-from)); }
+      to   { transform: rotate(0deg); }
+    }
+    @keyframes p10-blur {
+      from { filter: blur(var(--p10-blur-from)); }
+      to   { filter: blur(0); }
+    }
+    @keyframes p10-blur-out {
+      from { filter: blur(0); }
+      to   { filter: blur(var(--p10-blur-out-from)); }
+    }
+    @keyframes p10-bob {
+      from { translate: 0 var(--p10-y-amount); }
+      to   { translate: 0 0; }
+    }
+    @keyframes p10-draw     { to { stroke-dashoffset: 0; } }
+
+    /* ─── Prototype 11 — Avatar group hover spring ───────────── */
+    /* Each .p11-avatar reads two inline CSS variables that JS
+       writes on mouseenter / mouseleave of any sibling:
+         --p11-shift         per-avatar Y translation (px)
+         --p11-scale-active  scale applied to the hovered avatar
+                             only (1 for everyone else)
+       JS swaps transition-timing-function inline before each
+       phase so the lift uses --p11-ease-in (clean) and the
+       return uses --p11-ease-out (bouncy). */
+    /* P11 has no Animate button, so reclaim the 56px the stage
+       reserves for one and centre the avatars in the full stage. */
+    .p11-stage-inner {
+      padding-bottom: 0;
+    }
+    .p11-avatars {
+      display: flex;
+      align-items: center;
+    }
+    .p11-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      /* Match the stage bg so the ring around overlapping avatars
+         disappears against the surface they sit on. */
+      border: 1.5px solid var(--stage-bg);
+      margin-right: -8px;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: #eeeeef;
+      position: relative;
+      cursor: pointer;
+      transform-origin: center;
+      transform:
+        translateY(var(--p11-shift, 0px))
+        scale(var(--p11-scale-active, 1));
+      transition: transform var(--p11-dur) var(--p11-ease-in);
+      will-change: transform;
+    }
+    .p11-avatar:last-child { margin-right: 0; }
+    .p11-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+    .p11-avatar-more {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--text);
+      /* ~20% darker than the stage bg in light mode so the pill
+         reads as its own surface next to the avatars instead of
+         dissolving into the background. */
+      background: color-mix(in srgb, var(--stage-bg) 80%, #000 20%);
+      cursor: default;
+    }
+    html[data-theme="dark"] .p11-avatar {
+      background: #2a2a2a;
+    }
+    /* Inverse in dark mode: lift the pill ~20% above the stage. */
+    html[data-theme="dark"] .p11-avatar-more {
+      background: color-mix(in srgb, var(--stage-bg) 80%, #fff 20%);
+    }
+
+    /* ─── Prototype 12 — Input shake on error ─────────────────── */
+    /* Reclaim the 56px the stage reserves for the Animate button so
+       the input wrap centres in the full stage. The button stays
+       pinned to bottom: 20px and overlaps the wrap area harmlessly
+       (the wrap is only ~58px tall, button has its own backdrop). */
+    .p12-stage-inner {
+      padding-bottom: 0;
+    }
+    .p12-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 220px;
+    }
+    /* Border colors mirror Figma node 366:423 (Default / Focused /
+       Error). We use 1px width for every state — focused / error only
+       override border-color, never width, so transitioning between
+       states animates color only and never shifts the inner content. */
+    .p12-input {
+      display: flex;
+      align-items: center;
+      height: 36px;
+      padding: 4px 4px 4px 12px;
+      border-radius: 8px;
+      border: 1px solid #dcdcdc;
+      background: var(--card-bg);
+      outline: none;
+      transition:
+        border-color 150ms ease-out;
+      will-change: transform;
+    }
+    html[data-theme="dark"] .p12-input {
+      border-color: rgba(255, 255, 255, 0.14);
+      background: #1f1f1f;
+      outline: none;
+    }
+    .p12-input:focus-within {
+      border-color: #585858;
+      outline: none;
+    }
+    html[data-theme="dark"] .p12-input:focus-within {
+      border-color: rgba(255, 255, 255, 0.55);
+      outline: none;
+    }
+    .p12-input.is-error,
+    html[data-theme="dark"] .p12-input.is-error {
+      border-color: var(--p12-error-border);
+      outline: none;
+      /* Error border auto-reverts over the longer hold timer, so use
+         the slower revert duration here (matches the message fade). */
+      transition: border-color var(--p12-revert-dur, 280ms) ease-out;
+    }
+    .p12-input-el {
+      flex: 1 0 0;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text);
+      padding: 0;
+    }
+    .p12-input-el::placeholder {
+      color: var(--text-muted);
+    }
+    .p12-input-el:focus,
+    .p12-input-el:focus-visible {
+      outline: none;
+    }
+    /* Visibility transitions with a delay equal to the opacity fade
+       so the message stays "visible" for the duration of the fade-out.
+       When entering the error state we override the delay to 0 so the
+       message becomes visible immediately and only opacity animates. */
+    .p12-error-msg {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--p12-error-text);
+      margin: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity    var(--p12-revert-dur, 280ms) ease-out,
+        visibility 0s linear var(--p12-revert-dur, 280ms);
+    }
+    .p12-input-wrap.is-error .p12-error-msg {
+      opacity: 1;
+      visibility: visible;
+      transition:
+        opacity    var(--p12-revert-dur, 280ms) ease-out,
+        visibility 0s linear 0s;
+    }
+    /* Per-segment ease via animation-timing-function on each stop, so
+       each leg of the shake follows the Figma cubic-bezier curve
+       independently. The %-stops are cumulative durations as a
+       fraction of the total (80, 160, 220, 280): 28.57%, 57.14%,
+       78.57%, 100%. Recompute if any segment duration changes. */
+    .p12-input.is-shaking {
+      animation: p12-shake calc(
+          var(--p12-shake-dur-a) * 2 + var(--p12-shake-dur-b) * 2
+        ) linear;
+    }
+    @keyframes p12-shake {
+      0%      { transform: translateX(0);                                         animation-timing-function: var(--p12-shake-ease); }
+      28.57%  { transform: translateX(var(--p12-shake-distance));                 animation-timing-function: var(--p12-shake-ease); }
+      57.14%  { transform: translateX(calc(var(--p12-shake-distance) * -1));     animation-timing-function: var(--p12-shake-ease); }
+      78.57%  { transform: translateX(var(--p12-shake-overshoot));                animation-timing-function: var(--p12-shake-ease); }
+      100%    { transform: translateX(0); }
+    }
+
+    /* ============================================================ */
+    /* Responsive — mirrors border-beam demo breakpoints            */
+    /* ============================================================ */
+    @media (max-width: 1100px) {
+      .cards { grid-template-columns: repeat(2, 320px); }
+    }
+
+    @media (max-width: 740px) {
+      .cards { grid-template-columns: 320px; gap: 16px; }
+      /* Mobile re-layout uses CSS grid so the left divider can occupy
+         only the text row instead of stretching across the button row.
+         `.course-cta-inner` is `display: contents` here so its
+         children participate directly in the grid:
+           [ divider ] [ text   ]   ← row 1
+                       [ button ]   ← row 2
+         Re-enable .course-cta-inner as a flex container on desktop
+         (it stays unchanged outside this @media block). */
+      .course-cta {
+        display: grid;
+        grid-template-columns: 2px 1fr;
+        column-gap: 10px;
+        row-gap: 16px;
+        align-items: start;
+        max-width: 320px;
+        margin: 56px auto;
+      }
+      .course-cta-divider {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: stretch;
+        height: auto;
+        width: 2px;
+      }
+      .course-cta-inner {
+        display: contents;
+      }
+      .course-cta-text {
+        grid-column: 2;
+        grid-row: 1;
+        max-width: none;
+      }
+      /* Span both columns on row 2 so the pill's left edge lines up
+         with the divider's left edge (not with the text in column 2).
+         `justify-self: start` keeps the pill at its intrinsic content
+         width — without it grid items would stretch to fill the row. */
+      .course-cta-button {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: start;
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 639px) {
+      .app { padding: 0 12px 48px; }
+      /* Collapse the inline nav pills into the hamburger; the GitHub
+         pill keeps its live star count (the metric people came for). */
+      /* Scoped to the top bar — the footer keeps its full wordmark. */
+      .site-nav .brand-word { display: none; }
+      .site-nav-menu { display: none; }
+      #more-anchor { display: none; }
+      .nav-burger { display: inline-flex; }
+      .header {
+        height: auto;
+        min-height: 180px;
+        /* The bar now lives in normal flow (no absolute overlap to
+           clear), so the hero just needs a small gap below it. */
+        padding-top: 24px;
+        padding-bottom: 32px;
+        justify-content: flex-end;
+      }
+      .title { font-size: 26px; line-height: 32px; }
+      .subtitle { font-size: 15px; line-height: 22px; }
+      /* Let the subtitle wrap naturally on narrow viewports;
+         the desktop layout uses a hardcoded <br/> after "that" which
+         produces awkward extra breaks on mobile. */
+      .subtitle br { display: none; }
+      /* Cards span the full available width (viewport − 12px margins)
+         instead of the fixed 320px desktop width. */
+      .cards { grid-template-columns: 1fr; }
+      /* Compensate for mobile browsers down-sampling the backing
+         buffer used by `filter: blur()`. The same numeric radius
+         reads visually smaller on phones (especially alongside
+         animated transforms), so we lift the blur vars ~2× here.
+         Scoped to `.cards` rather than `:root` so `getComputedStyle`
+         on <html> (used by the snippet builder) still returns the
+         desktop defaults — the copied CSS stays identical regardless
+         of the device the user copied from. */
+      .cards {
+        --p1-blur: 4px;
+        --p3-blur: 4px;
+        --p5-blur: 4px;
+        --p6-blur: 4px;
+        --p9-blur: 3.5px;
+      }
+      .card { width: 100%; }
+      /* Stage stretches to equal 12px insets on both sides so the
+         prototype area follows the wider card instead of leaving a
+         large right-side gap. All inner prototypes are flex-centered
+         or auto-centered, so widening the stage is safe. */
+      .card-stage {
+        right: 12px;
+        width: auto;
+        max-width: none;
+      }
+      /* P8 modal is absolutely positioned with a fixed left offset that
+         only centers it inside the default 296px stage. Re-center it
+         within the wider mobile stage without introducing a transform
+         (the page transitions inside rely on a clean baseline). */
+      .p8-modal {
+        left: 50%;
+        margin-left: -130px;
+      }
+      .footer { padding: 0 0 24px; }
+    }
+
+    /* ─── Reduced motion ─────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+      }
+      .bell-badge,
+      .bell-badge-inner,
+      .p5-icon-wrap .icon,
+      .p6-text,
+      .p9-char,
+      .p10-check,
+      .p11-avatar,
+      .p12-input,
+      .course-cta-arrow {
+        transform: none !important;
+        filter: none !important;
+      }
+      .p10-check svg path { stroke-dashoffset: 0 !important; }
+    }
+
+    /* ─── Prototype detail modal ──────────────────────────────
+       Opens on card click, shows title + subtitle + code with
+       CSS / React tab switcher. The card itself becomes the
+       trigger (cursor: pointer), but nested buttons still keep
+       their own click behaviour (animate / toggle / etc.).
+       ---------------------------------------------------------- */
+    .card[data-proto-card] {
+      cursor: pointer;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       WIP / hidden prototypes (P10 Success check, P11 Avatar group,
+       P12 Input shake). All supporting CSS, JS handlers and modal
+       templates remain in place — only the visible cards are hidden.
+       To enable them later, delete THIS rule (one-line removal) and/or
+       drop the data-wip="true" attribute from the corresponding
+       <article class="card" data-proto-card> blocks below.
+       ──────────────────────────────────────────────────────────── */
+    .card[data-proto-card][data-wip="true"] {
+      display: none !important;
+    }
+
+    /* Desktop reuses the P7 "Modal open / close" prototype transition:
+         open  → scale(--p7-scale) → scale(1)    over --p7-open-dur
+         close → scale(1) → scale(--p7-scale-close) over --p7-close-dur
+       Mobile (≤639px) re-skins the dialog as a bottom-anchored sheet
+       with panel-reveal style fade + cross-blur and explicit Y travel:
+         open  → translateY(300px) -> rest
+         close → rest -> translateY(200px)
+       See the @media block below. */
+    .proto-modal-root {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 56px 20px 40px;
+      overflow-y: auto;
+      pointer-events: none;
+      visibility: hidden;
+    }
+    .proto-modal-root.is-open,
+    .proto-modal-root.is-closing {
+      pointer-events: auto;
+      visibility: visible;
+    }
+    .proto-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transition: opacity var(--proto-modal-open-dur) var(--proto-modal-ease);
+    }
+    .proto-modal-root.is-open .proto-modal-backdrop { opacity: 1; }
+    .proto-modal-root.is-closing .proto-modal-backdrop {
+      opacity: 0;
+      transition: opacity var(--proto-modal-close-dur) var(--proto-modal-ease);
+    }
+    .proto-modal-dialog {
+      position: relative;
+      width: 100%;
+      max-width: 720px;
+      background: var(--material-bg);
+      border-radius: 20px;
+      box-shadow:
+        0 24px 48px -16px rgba(0, 0, 0, 0.11),
+        0 2px 6px rgba(0, 0, 0, 0.03);
+      padding: 28px;
+      transform-origin: center;
+      transform: scale(var(--p7-scale));
+      opacity: 0;
+      transition:
+        transform var(--proto-modal-open-dur) var(--proto-modal-ease),
+        opacity   var(--proto-modal-open-dur) var(--proto-modal-ease);
+      will-change: transform, opacity;
+    }
+    html[data-theme="dark"] .proto-modal-dialog {
+      box-shadow:
+        0 24px 48px -16px rgba(0, 0, 0, 0.3);
+    }
+    .proto-modal-root.is-open .proto-modal-dialog {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .proto-modal-root.is-closing .proto-modal-dialog {
+      transform: scale(var(--p7-scale-close));
+      opacity: 0;
+      transition:
+        transform var(--proto-modal-close-dur) var(--proto-modal-ease),
+        opacity   var(--proto-modal-close-dur) var(--proto-modal-ease);
+    }
+    /* Close affordance — Figma "Button/Small/Tertiary/Default
+       Icon only" (255:326). 32px pill with a persistent fill at
+       rest (#f4f4f4 light, low-alpha white in dark) and a 16px X
+       icon centered. Hover/pressed darken the fill. */
+    .proto-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      padding: 6px;
+      border-radius: 24px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f4f4;
+      color: var(--icon-color);
+      transition: background-color 150ms ease, color 150ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html[data-theme="dark"] .proto-modal-close {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--icon-color);
+    }
+    .proto-modal-close:hover,
+    .proto-modal-close:active {
+      background: #eae9e9;
+      color: var(--icon-color);
+    }
+    html[data-theme="dark"] .proto-modal-close:hover,
+    html[data-theme="dark"] .proto-modal-close:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .proto-modal-close:focus-visible {
+      outline: 2px solid var(--icon-color);
+      outline-offset: 2px;
+    }
+    .proto-modal-close svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    .proto-modal-title {
+      font-family: var(--font-sans);
+      font-size: 18px;
+      line-height: 1.3;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin: 0 0 4px;
+      padding-right: 40px;
+    }
+    .proto-modal-subtitle {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin: 0 0 20px;
+    }
+    .proto-modal-tabs {
+      position: relative;
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      /* ~30% darker than --stage-bg so the pill is more visible. */
+      background: rgba(194, 194, 194, 0.13);
+      border-radius: 40px;
+      margin-bottom: 14px;
+    }
+    html[data-theme="dark"] .proto-modal-tabs {
+      background: #0d0d0d;
+    }
+    /* Sliding pill that follows the selected tab. JS reads each
+       tab's offsetLeft/offsetWidth and sets transform + width on
+       this element, so any change in tab text or font metrics is
+       handled automatically. The indicator sits *behind* the tab
+       buttons (z-index 0 vs 1) so the labels stay crisp on top. */
+    .proto-modal-tabs-indicator {
+      position: absolute;
+      top: 3px;
+      left: 0;
+      height: calc(100% - 6px);
+      width: 0;
+      background: var(--card-bg);
+      border-radius: 40px;
+      transform: translateX(0);
+      transition:
+        transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+        width     200ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+      z-index: 0;
+    }
+    html[data-theme="dark"] .proto-modal-tabs-indicator {
+      background: #242424;
+    }
+    .proto-modal-tab {
+      position: relative;
+      z-index: 1;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: 0;
+      padding: 6px 14px;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: color 150ms;
+    }
+    .proto-modal-tab:hover {
+      color: var(--text);
+    }
+    .proto-modal-tab[aria-selected="true"] {
+      color: var(--text);
+    }
+    .proto-modal-tab:focus-visible {
+      outline: 2px solid var(--text-muted);
+      outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .proto-modal-tabs-indicator {
+        transition: none;
+      }
+    }
+    /* Wrap the scrolling code area + the copy button so the copy
+       button (and its tooltip) can sit OUTSIDE the scroll container
+       — otherwise `.proto-modal-code`'s `overflow: auto` would clip
+       the tooltip when it floats above the button. */
+    .proto-modal-code-wrap {
+      position: relative;
+    }
+    .proto-modal-code {
+      position: relative;
+      z-index: 0;
+      background: var(--stage-bg);
+      border-radius: 14px;
+      padding: 0;
+      max-height: min(60vh, 520px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      /* Subtle 12px fade on scrollable edges. The two CSS variables
+         are toggled via [data-fade-top|bottom] which JS sets based on
+         scrollTop/scrollHeight, so the first/last line is only dimmed
+         when there is actually content hidden in that direction. */
+      --fade-top: 0px;
+      --fade-bottom: 0px;
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--fade-top),
+        #000 calc(100% - var(--fade-bottom)),
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--fade-top),
+        #000 calc(100% - var(--fade-bottom)),
+        transparent 100%
+      );
+    }
+    .proto-modal-code[data-fade-top="true"]    { --fade-top: 12px; }
+    .proto-modal-code[data-fade-bottom="true"] { --fade-bottom: 12px; }
+    .proto-modal-code pre {
+      margin: 0;
+      padding: 16px 56px 16px 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      tab-size: 2;
+    }
+    /* Reuses `.card-copy` (icon swap + tooltip auto-attached by
+       initCopyTooltips) but overrides the resting fill so the
+       button reads as a ghost icon, and re-anchors it to the
+       top-right of the code area. */
+    .proto-modal-copy {
+      z-index: 2;
+      top: 8px;
+      right: 8px;
+      bottom: auto;
+      background: transparent;
+      background-image: none;
+    }
+    html[data-theme="dark"] .proto-modal-copy {
+      background: transparent;
+      background-image: none;
+    }
+
+    body.is-modal-open {
+      overflow: hidden;
+    }
+
+    @media (max-width: 639px) {
+      /* Mobile presents the detail view as a bottom-anchored sheet,
+         but the open/close motion is the same P7 scale+fade used on
+         desktop — the @media block only re-skins layout (anchor,
+         margins, padding, type sizes). All transition rules live on
+         the desktop selectors so there is exactly one motion path. */
+      .proto-modal-root {
+        align-items: flex-end;
+        justify-content: stretch;
+        padding: 0;
+        overflow-y: hidden;
+      }
+      .proto-modal-dialog {
+        margin: 8px;
+        width: auto;
+        max-width: none;
+        max-height: calc(100dvh - 16px);
+        padding: 22px 20px 20px;
+        border-radius: 24px;
+      }
+      .proto-modal-title {
+        font-size: 17px;
+      }
+      .proto-modal-subtitle {
+        font-size: 13px;
+      }
+      .proto-modal-code pre {
+        font-size: 11px;
+        padding: 16px 52px 16px 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .proto-modal-backdrop,
+      .proto-modal-dialog {
+        transition: none !important;
+      }
+    }
+
+    /* ============================================================ */
+    /* Skill page                                                   */
+    /* ============================================================ */
+
+    /* Back button anchors to the top-left of the page; everything
+       else still lives in the right-side .top-bar. */
+    .top-bar-left {
+      position: absolute;
+      top: 16px;
+      left: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    /* Pill variant of .icon-btn: gains horizontal padding + a label.
+       Stays 36px tall, mirrors the .icon-btn fills so it tracks
+       theme changes automatically. */
+    .icon-btn-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      width: auto;
+      min-width: 36px;
+      padding: 0 13px;
+      border: 0;
+      border-radius: 50px;
+      background: var(--chip-bg);
+      color: var(--icon-color-muted);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn-pill:hover { background: var(--chip-bg-hover); color: var(--icon-color); }
+    .icon-btn-pill:active { background: var(--chip-bg-pressed); }
+    .icon-btn-pill:focus-visible {
+      outline: 2px solid var(--icon-color);
+      outline-offset: 2px;
+    }
+    /* Height-capped so non-square icons (e.g. the 14×16 "Skill" book)
+       keep their native aspect ratio; the 16×16 GitHub mark still
+       renders at exactly 16×16. */
+    .icon-btn-pill svg {
+      width: auto;
+      height: 16px;
+      max-width: 16px;
+      display: block;
+      color: inherit;
+      transition: color 0.15s ease;
+    }
+    .icon-btn-pill .pill-label {
+      display: inline-block;
+      color: inherit;
+    }
+    /* While stars are loading we still reserve a glyph so the pill
+       does not visually "pop" wider when the count arrives. */
+    .icon-btn-pill[data-loading="true"] .pill-label {
+      opacity: 0.5;
+    }
+
+    /* CTA row sits 22px below the subtitle. Primary pill is dark in
+       light theme and light in dark theme (mirrors the
+       .course-cta-button pattern). Secondary pill keeps a neutral
+       fill in both themes. */
+    .skill-cta-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 22px;
+    }
+    .skill-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 26px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                  color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .skill-btn--primary {
+      background: #17181c;
+      color: #ffffff;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    }
+    .skill-btn--primary:hover { background: #2a2a2a; }
+    .skill-btn--primary:active { background: #000000; }
+    html[data-theme="dark"] .skill-btn--primary {
+      background: #ffffff;
+      color: #0d0d0d;
+    }
+    html[data-theme="dark"] .skill-btn--primary:hover { background: #e8e8e8; }
+    html[data-theme="dark"] .skill-btn--primary:active { background: #d8d8d8; }
+
+    .skill-btn--secondary {
+      background: #f5f5f5;
+      color: #17181c;
+    }
+    .skill-btn--secondary:hover { background: #ececec; }
+    .skill-btn--secondary:active { background: #e0e0e0; }
+    html[data-theme="dark"] .skill-btn--secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ededed;
+    }
+    html[data-theme="dark"] .skill-btn--secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    html[data-theme="dark"] .skill-btn--secondary:active {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .skill-btn svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: currentColor;
+    }
+    .skill-btn:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+    }
+
+    /* Compare stage — side-by-side on desktop; switch toggle on mobile.
+       Desktop: both panes visible with Figma 450:547 headings above
+       each iframe. Mobile: a compact toggle drives data-active on
+       the stage and cross-fades the two stacked panes. */
+    .skill-compare-stage {
+      display: flex;
+      width: 100%;
+      max-width: 1100px;
+      margin: 32px auto 56px;
+      padding: 0 24px;
+      gap: 24px;
+      flex-direction: row;
+      justify-content: center;
+      align-items: stretch;
+      flex-wrap: wrap;
+      box-sizing: border-box;
+    }
+    /* Legacy tab row (kept for semantics/aria mapping), hidden in UI. */
+    .skill-compare-tabs {
+      display: none;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .skill-compare-tab {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .skill-compare-tab:hover { opacity: 0.9; }
+    .skill-compare-tab[aria-selected="true"] { opacity: 1; }
+    .skill-compare-tab[aria-selected="true"]:hover { opacity: 1; }
+    .skill-compare-tab:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+    /* Mobile-only switch row (replaces old tab pills on phones). */
+    .skill-compare-mobile-toggle {
+      display: none;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+    }
+    .skill-compare-mobile-label {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 22px;
+      color: var(--text-muted);
+      opacity: 0.72;
+      cursor: pointer;
+      transition: opacity 160ms ease, color 160ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .skill-compare-mobile-label[data-active="true"] {
+      opacity: 1;
+      color: var(--text);
+    }
+    .skill-compare-mobile-label:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+    .skill-compare-mobile-switch {
+      position: relative;
+      width: 34px;
+      height: 20px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+      transition: background-color 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .skill-compare-mobile-switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.12),
+        0 1px 4px rgba(0, 0, 0, 0.16);
+      transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .skill-compare-mobile-switch[aria-checked="true"] {
+      background: #35ba00;
+    }
+    .skill-compare-mobile-switch[aria-checked="true"]::after {
+      transform: translateX(14px);
+    }
+    .skill-compare-mobile-switch:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+    }
+    html[data-theme="dark"] .skill-compare-mobile-switch {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    html[data-theme="dark"] .skill-compare-mobile-switch[aria-checked="true"] {
+      background: #35ba00;
+    }
+    html[data-theme="dark"] .skill-compare-mobile-label[data-active="true"] {
+      color: #ededed;
+    }
+    .skill-compare-mobile-label[data-compare-side="on"][data-active="true"] {
+      color: #35ba00;
+    }
+    html[data-theme="dark"] .skill-compare-mobile-label[data-compare-side="on"][data-active="true"] {
+      color: #35ba00;
+    }
+    /* Desktop: panes are direct flex children of the stage. */
+    .skill-compare-panes {
+      display: contents;
+    }
+    .skill-compare-pane {
+      flex: 1 1 360px;
+      min-width: 0;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .skill-compare-pane-heading {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* Figma 450:547 / 459:1516–459:1518 — 20px status badge with
+       outer elevation + inset bezel, red (generic) or green (skill). */
+    .skill-compare-pane-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 20px;
+      flex: 0 0 20px;
+      display: inline-grid;
+      place-items: center;
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.1),
+        0 1px 4px rgba(0, 0, 0, 0.08),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.05),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.09);
+    }
+    .skill-compare-pane-badge--off { background: #f03434; }
+    .skill-compare-pane-badge--on  { background: #35ba00; }
+    .skill-compare-pane-badge svg {
+      display: block;
+      width: 10px;
+      height: 10px;
+    }
+    .skill-compare-pane-label {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 14px;
+      color: #232323;
+      letter-spacing: 0;
+      user-select: none;
+    }
+    html[data-theme="dark"] .skill-compare-pane-label { color: #ededed; }
+    .skill-compare-iframe {
+      display: block;
+      width: 100%;
+      height: 460px;
+      min-height: 460px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    /* Content sections (Installation, Try it). Each section holds
+       one label + a stack of code rows. The code row mirrors the
+       Figma 450:526 style: 40px tall, 10px radius, grey fill, mono
+       label on the left, copy affordance on the right. */
+    .skill-content {
+      width: 100%;
+      max-width: 837px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .skill-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .skill-section-title {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 24px;
+      color: var(--text);
+      margin: 0;
+    }
+    .skill-section-note {
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    /* Inline code chip inside notes — used to highlight the literal
+       verb when it shows up inside running prose (e.g. the
+       `transitions apply menu-dropdown` example under Commands).
+       Reads as a soft chip rather than raw monospace so it doesn't
+       fight the surrounding description for attention. */
+    .skill-section-note code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 18px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--text);
+    }
+    html[data-theme="dark"] .skill-section-note code {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .skill-section-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    /* Commands section: each entry is the literal `transitions …` verb
+       in a copyable code row plus a one-line description underneath.
+       The wrapper keeps the verb and its blurb visually paired so the
+       reader can scan the bold command first and then the rationale,
+       while the section's outer gap is widened so the commands
+       don't look like a tight rhythm of similar rows. */
+    #commands .skill-section-rows,
+    #installation .skill-section-rows { gap: 16px; }
+    .skill-command {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .skill-code-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 4px 8px 4px 14px;
+      border-radius: 10px;
+      background: #f7f7f7;
+      transition: background-color 150ms ease;
+    }
+    html[data-theme="dark"] .skill-code-row {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .skill-code-row code {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 22px;
+      color: #3c3c3c;
+      background: transparent;
+      padding: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    html[data-theme="dark"] .skill-code-row code {
+      color: #d6d6d6;
+    }
+    /* Re-using .card-copy keeps the icon-swap + tooltip behaviour
+       from the main page. Override the resting size + fill so the
+       button reads as ghost-style inside the row. */
+    .skill-code-row .card-copy {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      margin-right: -3px;
+      border-radius: 6px;
+      background: transparent;
+      background-image: none;
+    }
+    html[data-theme="dark"] .skill-code-row .card-copy {
+      background: transparent;
+      background-image: none;
+    }
+    .skill-code-row .card-copy:hover {
+      background-image: none;
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--icon-color);
+    }
+    html[data-theme="dark"] .skill-code-row .card-copy:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .skill-code-row .card-copy:active {
+      background-image: none;
+      background: rgba(0, 0, 0, 0.06);
+    }
+    html[data-theme="dark"] .skill-code-row .card-copy:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ─── Skill page responsive ────────────────────────────────── */
+    @media (max-width: 900px) {
+      .skill-content,
+      .skill-compare-stage { max-width: 100%; }
+    }
+    @media (max-width: 760px) {
+      .skill-compare-stage {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+      }
+      .skill-compare-tabs { display: none; }
+      .skill-compare-mobile-toggle { display: inline-flex; }
+      .skill-compare-panes {
+        display: grid;
+        width: 100%;
+        min-height: 460px;
+      }
+      .skill-compare-pane-heading--desktop { display: none; }
+      .skill-compare-pane {
+        grid-area: 1 / 1;
+        max-width: 100%;
+        width: 100%;
+        transition:
+          opacity 250ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 250ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .skill-compare-stage[data-active="off"] .skill-compare-pane--off,
+      .skill-compare-stage[data-active="on"]  .skill-compare-pane--on {
+        opacity: 1;
+        filter: blur(0);
+        pointer-events: auto;
+        visibility: visible;
+      }
+      .skill-compare-stage[data-active="on"]  .skill-compare-pane--off,
+      .skill-compare-stage[data-active="off"] .skill-compare-pane--on {
+        opacity: 0;
+        filter: blur(3px);
+        pointer-events: none;
+        visibility: hidden;
+      }
+    }
+    @media (max-width: 639px) {
+      .icon-btn-pill .pill-label { display: none; }
+      .icon-btn-pill { width: 36px; padding: 0; min-width: 36px; }
+      /* Keep the GitHub star count visible even on mobile — it's
+         the live metric the user came to see. */
+      #gh-stars-btn .pill-label { display: inline-block; }
+      #gh-stars-btn { width: auto; padding: 0 12px; }
+      .skill-header { padding-top: 64px; }
+      .skill-cta-row { flex-wrap: wrap; }
+      .skill-compare-stage { margin-bottom: 32px; padding: 0 16px; }
+      .skill-code-row { padding: 4px 6px 4px 12px; }
+      .skill-code-row code { font-size: 12px; line-height: 20px; }
+      .footer { margin-top: 64px; }
+    }
+    .brand {
+      transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform-origin: center;
+      will-change: transform;
+    }
+    .brand:hover { transform: scale(1.02); }
+    .brand-mark {
+      transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform-origin: center;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .brand, .brand-mark { transition: none; }
+      .brand:hover, .brand:hover .brand-mark { transform: none; }
+    }
+
+    /* ============================================================ */
+    /* Shared top-bar upgrade — Search / Get Pro / 3-dot menu       */
+    /* Self-contained tokens so it drops onto any page.             */
+    /* ============================================================ */
+    :root {
+      --accent: #0073e5; --accent-hover: #0064c8;
+      --accent-soft: rgba(0, 115, 229, 0.09); --accent-soft-hover: rgba(0, 115, 229, 0.15);
+      --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --menu-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.05), 0 4px 42px rgba(0,0,0,0.06);
+      --dropdown-open-dur: 250ms; --dropdown-close-dur: 150ms;
+      --dropdown-pre-scale: 0.97; --dropdown-closing-scale: 0.99;
+      --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --tl-menu-line: #f0f0f0; --nav-line: #eeeeee;
+    }
+    html[data-theme="dark"] {
+      --accent: #55cfff; --accent-hover: #74d8ff;
+      --accent-soft: rgba(85, 207, 255, 0.12); --accent-soft-hover: rgba(85, 207, 255, 0.2);
+      --menu-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.05), 0 4px 42px rgba(0,0,0,0.24);
+      --tl-menu-line: #262626; --nav-line: rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-search {
+      display: inline-flex; align-items: center; gap: 8px;
+      height: 36px; padding: 0 12px; border: 0; border-radius: 50px;
+      background: rgba(0, 0, 0, 0.03); color: #838383;
+      font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: background 150ms var(--nav-ease);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-search:hover { background: rgba(0, 0, 0, 0.06); }
+    html[data-theme="dark"] .nav-search { background: rgba(255, 255, 255, 0.05); color: #9a9a9a; }
+    html[data-theme="dark"] .nav-search:hover { background: rgba(255, 255, 255, 0.09); }
+    .nav-search svg { width: 16px; height: 16px; flex: none; }
+    .nav-search-label { line-height: 16px; }
+    .nav-search-kbd { font-size: 11px; line-height: 16px; color: rgba(131, 131, 131, 0.7); margin-left: 2px; }
+    html[data-theme="dark"] .nav-search-kbd { color: rgba(154, 154, 154, 0.7); }
+
+    .nav-get-pro {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 36px; padding: 0 16px; border: 0; border-radius: 50px;
+      background: var(--pro-tint-bg); color: var(--pro-tint-ink);
+      font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+      text-decoration: none; white-space: nowrap; cursor: pointer;
+      transition: background 150ms var(--nav-ease); -webkit-tap-highlight-color: transparent;
+    }
+    .nav-get-pro:hover { background: var(--pro-tint-bg-hover); }
+    /* The pill sets its own display, which outranks the UA's [hidden] rule —
+       pro-client.js hides it by attribute once a signed-in user is entitled. */
+    .nav-get-pro[hidden] { display: none; }
+    /* Signed in with Pro: nothing left to buy, so the pill drops the accent
+       and reads as a plain Account link (same grey as the GitHub pill). */
+    .nav-get-pro[data-state="account"] { background: var(--chip-bg); color: var(--text); }
+    .nav-get-pro[data-state="account"]:hover { background: var(--chip-bg-hover); }
+    html[data-theme="dark"] .nav-get-pro[data-state="account"] { background: var(--chip-bg); color: var(--text); }
+    html[data-theme="dark"] .nav-get-pro[data-state="account"]:hover { background: var(--chip-bg-hover); }
+
+    /* 3-dot dropdown — exact Refine tool component */
+    .pm-anchor { position: relative; display: inline-flex; }
+    .tl-menu {
+      display: block; /* explicit, so the first-paint guard's display:none is overridden */
+      position: absolute; top: calc(100% + 6px); right: 0; width: 240px; box-sizing: border-box;
+      background: #fff; border-radius: 12px; padding: 6px; box-shadow: var(--menu-shadow); z-index: 120;
+    }
+    html[data-theme="dark"] .tl-menu { background: #202020;
+      box-shadow: var(--menu-shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.03); }
+    .t-dropdown {
+      display: block; /* explicit, so the first-paint guard's display:none is overridden */
+      transform-origin: top right; transform: scale(var(--dropdown-pre-scale)); opacity: 0; pointer-events: none;
+      transition: transform var(--dropdown-open-dur) var(--dropdown-ease), opacity var(--dropdown-open-dur) var(--dropdown-ease);
+      will-change: transform, opacity;
+    }
+    .t-dropdown.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
+    .t-dropdown.is-closing { transform: scale(var(--dropdown-closing-scale)); opacity: 0; pointer-events: none;
+      transition: transform var(--dropdown-close-dur) var(--dropdown-ease), opacity var(--dropdown-close-dur) var(--dropdown-ease); }
+    .tl-menu-item { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 8px;
+      border-radius: 8px; font-size: 13px; font-weight: 400; line-height: 16px; color: #1b1b1b; cursor: pointer;
+      text-decoration: none; transition: background 0.1s ease, box-shadow 0.1s ease; }
+    .tl-menu-item:hover { background: #f4f4f5; }
+    .tl-menu-item:active { background: #ededee; }
+    html[data-theme="dark"] .tl-menu-item { color: #fbfbfb; }
+    html[data-theme="dark"] .tl-menu-item:hover { background: rgba(255, 255, 255, 0.04); }
+    html[data-theme="dark"] .tl-menu-item:active { background: rgba(255, 255, 255, 0.06); }
+    .tl-menu-item-label { flex: 1; min-width: 0; display: flex; align-items: center; }
+    .tl-menu-trail { display: flex; align-items: center; gap: 4px; flex: none; }
+    .tl-menu-value { font-size: 11px; line-height: 14px; color: #8b8b8b; }
+    .tl-menu-chevr { display: flex; flex: none; color: #696969; }
+    html[data-theme="dark"] .tl-menu-chevr { color: #8b8b8b; }
+    .tl-menu-check { display: flex; flex: none; color: #1b1b1b; }
+    html[data-theme="dark"] .tl-menu-check { color: #fbfbfb; }
+    .tl-menu-chevr svg, .tl-menu-check svg, .tl-set-back-ic svg { width: 16px; height: 16px; display: block; }
+    .pm-theme-opt .tl-menu-check { visibility: hidden; }
+    .pm-theme-opt[aria-checked="true"] .tl-menu-check { visibility: visible; }
+    .tl-menu-divider { height: 1px; background: var(--tl-menu-line); margin: 6px -6px; }
+    .tl-set-slide { position: relative; margin-left: -6px; margin-right: -6px; overflow: hidden;
+      --page-slide-dur: 250ms; --page-fade-dur: 250ms; --page-slide-distance: 8px; --page-blur: 3px;
+      --page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1); --page-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      transition: height var(--page-slide-dur) var(--page-slide-ease); }
+    .tl-set-slide .t-page[data-page-id="1"] { --t-page-from-x: calc(var(--page-slide-distance) * -1); }
+    .tl-set-slide .t-page[data-page-id="3"] { --t-page-from-x: var(--page-slide-distance); }
+    .tl-set-slide .t-page { position: absolute; top: 0; left: 0; right: 0; box-sizing: border-box;
+      padding-left: 6px; padding-right: 6px; opacity: 0; pointer-events: none;
+      transform: translateX(var(--t-page-from-x, 0px)); filter: blur(var(--page-blur));
+      transition: opacity var(--page-fade-dur) var(--page-fade-ease), transform var(--page-slide-dur) var(--page-slide-ease), filter var(--page-slide-dur) var(--page-slide-ease);
+      will-change: opacity, transform, filter; }
+    .tl-set-slide[data-page="1"] .t-page[data-page-id="1"],
+    .tl-set-slide[data-page="3"] .t-page[data-page-id="3"] {
+      opacity: 1; pointer-events: auto; transform: translateX(0); filter: blur(0); }
+    .tl-set-back { display: flex; align-items: center; gap: 4px; width: 100%; box-sizing: border-box;
+      min-height: 32px; padding: 0 8px 0 4px; border: none; background: transparent; border-radius: 8px;
+      font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 16px; color: #1b1b1b;
+      cursor: pointer; text-align: left; transition: background 0.1s ease; }
+    .tl-set-back:hover { background: #f4f4f5; }
+    html[data-theme="dark"] .tl-set-back { color: #fbfbfb; }
+    html[data-theme="dark"] .tl-set-back:hover { background: rgba(255, 255, 255, 0.04); }
+    .tl-set-back-ic { display: flex; flex: none; color: #696969; transform: scaleX(-1); }
+    html[data-theme="dark"] .tl-set-back-ic { color: #8b8b8b; }
+    .tl-set-back-title { flex: 1; min-width: 0; }
+
+    /* Command palette (⌘K) */
+    .cmdk-overlay {
+      position: fixed; inset: 0; z-index: 200; display: flex;
+      justify-content: center; align-items: flex-start; padding: 14vh 16px 16px;
+      background: rgba(15, 15, 15, 0.28);
+      -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none; transition: opacity 200ms var(--nav-ease);
+    }
+    html[data-theme="dark"] .cmdk-overlay { background: rgba(0, 0, 0, 0.5); }
+    .cmdk-overlay[data-open="true"] { opacity: 1; pointer-events: auto; }
+    .cmdk-panel {
+      width: 100%; max-width: 560px; background: #fff; border-radius: 14px;
+      box-shadow: var(--menu-shadow); overflow: hidden;
+      transform-origin: center;
+      transform: scale(var(--p7-scale)); opacity: 0;
+      transition:
+        transform var(--p7-close-dur) var(--p7-ease),
+        opacity   var(--p7-close-dur) var(--p7-ease);
+      will-change: transform, opacity;
+    }
+    html[data-theme="dark"] .cmdk-panel { background: #202020; }
+    .cmdk-overlay[data-open="true"] .cmdk-panel {
+      transform: scale(1); opacity: 1;
+      transition:
+        transform var(--p7-open-dur) var(--p7-ease),
+        opacity   var(--p7-open-dur) var(--p7-ease);
+    }
+    .cmdk-search { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--nav-line); }
+    .cmdk-search svg { width: 18px; height: 18px; flex: none; color: #8b8b8b; }
+    .cmdk-input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--text); font-family: var(--font-sans); font-size: 15px; line-height: 22px; }
+    .cmdk-input::placeholder { color: #999; }
+    .cmdk-esc { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 6px; background: rgba(0,0,0,0.04); color: #999; font-size: 11px; font-weight: 500; }
+    html[data-theme="dark"] .cmdk-esc { background: rgba(255, 255, 255, 0.08); color: #8b8b8b; }
+    .cmdk-list { max-height: 340px; overflow-y: auto; padding: 6px; }
+    .cmdk-group-label { padding: 10px 8px 4px; font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: #999; text-transform: uppercase; }
+    .cmdk-item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border: 0; width: 100%; background: none; border-radius: 9px; color: var(--text); font-family: var(--font-sans); font-size: 14px; text-align: left; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .cmdk-item:hover, .cmdk-item[data-active="true"] { background: #f4f4f5; }
+    html[data-theme="dark"] .cmdk-item:hover, html[data-theme="dark"] .cmdk-item[data-active="true"] { background: rgba(255,255,255,0.05); }
+    .cmdk-item-ic { display: inline-flex; flex: none; color: #8b8b8b; }
+    .cmdk-item-ic svg { width: 16px; height: 16px; display: block; }
+    .cmdk-item-label { flex: 1; min-width: 0; }
+    .cmdk-item-hint { flex: none; color: #999; font-size: 12px; }
+    .cmdk-empty { padding: 24px 12px; text-align: center; color: #999; font-size: 14px; }
+    @media (prefers-reduced-motion: reduce) {
+      .t-dropdown, .tl-set-slide, .tl-set-slide .t-page, .cmdk-overlay, .cmdk-panel { transition: none !important; }
+    }
+    /* Medium screens: the inline nav pills are fixed-width and begin to
+       collide with the right-side controls (~837px). Compact the controls
+       so the nav can stay inline — Search -> icon-only circle, "Get Pro" ->
+       "Pro", and the least-essential GitHub / X pills drop out. */
+    @media (max-width: 900px) {
+      .nav-search-label, .nav-search-kbd { display: none; }
+      .nav-search { width: 36px; padding: 0; gap: 0; justify-content: center; }
+      .nav-get-pro-word { display: none; }
+      .site-nav-right #gh-stars-btn,
+      .site-nav-right a[href*="x.com"] { display: none; }
+      .site-nav-right { gap: 8px; }
+      .cmdk-overlay { padding: 8vh 12px 12px; }
+    }
+    @media (max-width: 639px) {
+      .nav-get-pro { height: 34px; padding: 0 12px; }
+      /* With the nav pills collapsed into the burger the bar has room
+         again — bring the GitHub and X buttons back (they hide at
+         640-900px only to avoid overlapping the pills). */
+      .site-nav-right #gh-stars-btn,
+      .site-nav-right a[href*="x.com"] { display: inline-flex; }
+    }
+    @media (max-width: 380px) {
+      .nav-get-pro { padding: 0 10px; font-size: 13px; }
+    }
+    /* Pricing pill steps aside below 900px; Get Pro already leads here. */
+    @media (max-width: 900px) {
+      .nav-pill--pricing { display: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="/assets/nav-products.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <main id="main" class="app">
+    <header class="site-nav">
+      <div class="site-nav-inner">
+        <div class="site-nav-left">
+          <a class="brand" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <nav class="site-nav-menu" aria-label="Primary">
+            <div class="nav-products" data-nav-products>
+              <button type="button" class="nav-pill nav-products-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="nav-products-menu">Products<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4.46967 6.46967C4.76256 6.17678 5.23744 6.17678 5.53033 6.46967L8 8.93934L10.4697 6.46967C10.7626 6.17678 11.2374 6.17678 11.5303 6.46967C11.8232 6.76256 11.8232 7.23744 11.5303 7.53033L8.53033 10.5303C8.23744 10.8232 7.76256 10.8232 7.46967 10.5303L4.46967 7.53033C4.17678 7.23744 4.17678 6.76256 4.46967 6.46967Z"/></svg></button>
+              <div class="tl-menu t-dropdown nav-products-menu" id="nav-products-menu" role="menu" aria-label="Products">
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/beam.html"><span class="nav-products-name">Libraries</span><span class="nav-products-hint">UI effects for AI interfaces</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/magnetic.html"><span class="nav-products-name">Models<span class="nav-new-badge">New</span></span><span class="nav-products-hint">On-device intelligence for your UI</span></a>
+                <a class="tl-menu-item nav-products-item" role="menuitem" href="/skill.html"><span class="nav-products-name">Skill</span><span class="nav-products-hint">Teach your coding agent every library</span></a>
+              </div>
+            </div>
+            <a class="nav-pill" href="/how-to-use.html">How to use</a>
+            <a class="nav-pill nav-pill--pricing" href="/pro.html">Pricing</a>
+            <a class="nav-pill" href="/studio.html">Studio <span class="nav-pill-pro">Pro</span></a>
+          </nav>
+        </div>
+        <div class="site-nav-right">
+          <!-- Studio state only: a visitor who has just paid should never be
+               offered Pro again, so this stays hidden until entitled. -->
+          <a class="nav-get-pro" data-entitled-only hidden href="/studio/app.html"><span class="nav-get-pro-label"><span class="nav-get-pro-word">Open </span>Studio</span></a>
+          <a
+            class="icon-btn-pill"
+            id="gh-stars-btn"
+            href="https://github.com/Jakubantalik/Libraries.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub repository — star count"
+            data-loading="true"
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="pill-label" id="gh-stars-count">—</span>
+          </a>
+          <div class="pm-anchor" id="more-anchor">
+            <button type="button" class="icon-btn" id="more-btn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 8C6.66667 7.26362 7.26362 6.66667 8 6.66667C8.73638 6.66667 9.33333 7.26362 9.33333 8C9.33333 8.73638 8.73638 9.33333 8 9.33333C7.26362 9.33333 6.66667 8.73638 6.66667 8Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 3.33333C6.66667 2.59695 7.26362 2 8 2C8.73638 2 9.33333 2.59695 9.33333 3.33333C9.33333 4.06971 8.73638 4.66667 8 4.66667C7.26362 4.66667 6.66667 4.06971 6.66667 3.33333Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.66667 12.6667C6.66667 11.9303 7.26362 11.3333 8 11.3333C8.73638 11.3333 9.33333 11.9303 9.33333 12.6667C9.33333 13.403 8.73638 14 8 14C7.26362 14 6.66667 13.403 6.66667 12.6667Z" fill="currentColor"/>
+              </svg>
+            </button>
+            <div class="tl-menu t-dropdown" id="more-menu" data-origin="top-right" role="menu" aria-label="More options">
+              <div class="tl-set-slide" id="pm-slide" data-page="1">
+                <div class="t-page" data-page-id="1">
+                  <div class="tl-menu-item" id="pm-signin" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Sign in</span>
+                  </div>
+                  <div class="tl-menu-divider"></div>
+                  <div class="tl-menu-item" id="pm-feedback" role="menuitem" tabindex="0">
+                    <span class="tl-menu-item-label">Feedback</span>
+                    <span class="tl-menu-trail">
+                      <span class="tl-menu-chevr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    </span>
+                  </div>
+                  <a class="tl-menu-item" id="pm-support" href="mailto:jakubja@gmail.com" role="menuitem">
+                    <span class="tl-menu-item-label">Support</span>
+                  </a>
+                </div>
+                <div class="t-page" data-page-id="2">
+                  <button type="button" class="tl-set-back" id="pm-back">
+                    <span class="tl-set-back-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(8,8) rotate(-90) translate(-3.75,-2.25)"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732233 0.987437 -0.0732233 1.28033 0.21967L3.75 2.68934L6.21967 0.21967C6.51256 -0.0732233 6.98744 -0.0732233 7.28033 0.21967C7.57322 0.512563 7.57322 0.987437 7.28033 1.28033L4.28033 4.28033C3.98744 4.57322 3.51256 4.57322 3.21967 4.28033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="currentColor"/></g></svg></span>
+                    <span class="tl-set-back-title">Feedback</span>
+                  </button>
+                  <div class="tl-menu-divider"></div>
+                  <form class="pm-feedback" id="pm-feedback-form" novalidate>
+                    <textarea class="pm-feedback-input" rows="6" maxlength="2000" placeholder="Share your feedback, idea or comment" aria-label="Your feedback"></textarea>
+                    <input type="email" class="pm-feedback-email" maxlength="200" placeholder="Email (optional)" aria-label="Your email (optional)" autocomplete="email" spellcheck="false" />
+                    <p class="pm-feedback-note" role="status" hidden></p>
+                    <button type="submit" class="pm-feedback-btn">Send feedback</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn nav-burger"
+            id="nav-burger"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="nav-burger-box" aria-hidden="true">
+              <span class="nav-burger-line nav-burger-line--top"></span>
+              <span class="nav-burger-line nav-burger-line--bottom"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+        <ul class="mobile-menu-list">
+          <li class="mobile-menu-group" aria-hidden="true">Products</li>
+          <li><a class="mobile-menu-link mobile-menu-link--1" href="/beam.html">Libraries</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--2" href="/magnetic.html">Models<span class="nav-new-badge">New</span></a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--3" href="/skill.html">Skill</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--4" href="/how-to-use.html">How to use</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--5" href="/studio.html">Studio</a></li>
+          <li><a class="mobile-menu-link mobile-menu-link--6 mobile-menu-link--pro" data-entitled-only hidden href="/studio/app.html">Open Studio</a></li>
+        </ul>
+        <a class="mobile-menu-cta" id="mobile-signin" href="/pro.html">Sign in</a>
+      </nav>
+    </header>
+
+    <header class="header">
+      <h1 class="title">Welcome to Libraries.dev</h1>
+      <p class="subtitle">
+        Your free account is ready. Install the <a href="/#components">libraries</a>
+        from npm, try the latest on-device <a href="/magnetic.html">models</a>, or
+        hand it all to your coding agent with the <a href="/skill.html">Skill</a>.
+      </p>
+      <div class="skill-cta-row">
+        <a class="skill-btn skill-btn--primary" id="success-cta" href="/download.html">Download</a>
+        <a class="skill-btn skill-btn--secondary" id="welcome-pro" href="/pro.html">Get Pro</a>
+      </div>
+      <!-- Our other product: a banner to transitions.dev (opens in a new tab). -->
+      <a class="welcome-tdev" href="https://transitions.dev/?utm_source=libraries.dev&amp;utm_medium=welcome" target="_blank" rel="noopener">
+        <!-- The transitions.dev logo (its brand cube). -->
+        <svg class="welcome-tdev-img" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#121212"/><g transform="translate(6.2,6.2) scale(0.8167)" fill="#fff"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.85265L15.5409 3.84441L14.5604 5.58756L13 4.70985V7H11V4.70985L9.43962 5.58756L8.45909 3.84441L12 1.85265ZM17.3613 4.86837L21 6.91515V11H19V9.23205L17.0359 10.366L16.0359 8.63397L17.9804 7.51132L16.3807 6.61152L17.3613 4.86837ZM7.61925 6.61152L6.01961 7.51132L7.9641 8.63397L6.9641 10.366L5 9.23205L5 11H3L3 6.91515L6.63873 4.86837L7.61925 6.61152ZM5 13V14.7679L6.9641 13.634L7.9641 15.366L6.0196 16.4887L7.61925 17.3885L6.63873 19.1316L3 17.0848V13H5ZM21 13V17.0848L17.3613 19.1316L16.3807 17.3885L17.9804 16.4887L16.0359 15.366L17.0359 13.634L19 14.7679V13H21ZM13 17V19.2902L14.5604 18.4124L15.5409 20.1556L12 22.1473L8.45908 20.1556L9.43961 18.4124L11 19.2902V17H13Z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M15.0981 11.366L13 12.5774V15H11V12.5774L8.90192 11.366L9.90192 9.63397L12 10.8453L14.0981 9.63397L15.0981 11.366Z"/></g></svg>
+        <span class="welcome-tdev-text">
+          <span class="welcome-tdev-title">Try also Transitions.dev</span>
+          <span class="welcome-tdev-sub">AI agents for UI motion, a component builder and 43+ crafted transitions.</span>
+        </span>
+        <svg class="welcome-tdev-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 10.5l5-5m0 0H6.5m4 0v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <style>
+        /* Two small text lines beneath the shared hero — styled with the page's
+           existing tokens so they read as part of it, not a bolted-on block. */
+        /* Wraps at 460px, matching the sign-in note below it, so the copy
+           holds a tight column under the title instead of the 560px the
+           shared rule gives it. */
+        .header .subtitle { max-width: 460px; }
+        .header .subtitle a { color: var(--text); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); transition: text-decoration-color 180ms ease; }
+        .header .subtitle a:hover { text-decoration-color: currentColor; }
+        /* The homepage hero's pair (Figma 1292:4277): Sign in on the blue token
+           surface, Browse on the grey. Class doubled to outrank the page's own
+           theme-scoped .skill-btn--* rules. */
+        .header .skill-cta-row { gap: 11px; }
+        .header .skill-cta-row .skill-btn { height: 32px; font-size: 13px; line-height: 13px; font-weight: 500; }
+        .header .skill-cta-row .skill-btn.skill-btn--primary,
+        .header .skill-cta-row .skill-btn.skill-btn--secondary { padding: 0 12px; border-radius: 24px; color: #ffffff; }
+        .header .skill-cta-row .skill-btn.skill-btn--primary {
+          background: #0071fc;
+          box-shadow:
+            0 1px 3px 0 rgba(0, 0, 0, 0.04),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        .header .skill-cta-row .skill-btn.skill-btn--primary:hover { background: #1a7dff; }
+        .header .skill-cta-row .skill-btn.skill-btn--primary:active { background: #0063e0; }
+        .header .skill-cta-row .skill-btn.skill-btn--secondary {
+          background: #2a2a2a;
+          box-shadow:
+            0 1px 3px 0 rgba(0, 0, 0, 0.04),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+            inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+            inset 0 -1px 0 0 rgba(0, 0, 0, 0.06),
+            inset 0 0 0 1px rgba(196, 196, 196, 0.1);
+        }
+        .header .skill-cta-row .skill-btn.skill-btn--secondary:hover { background: #323232; }
+        .header .skill-cta-row .skill-btn.skill-btn--secondary:active { background: #262626; }
+        .header .skill-cta-row .skill-btn[hidden] { display: none; }
+        /* transitions.dev banner: a quiet card under the buttons, the logo on
+           the left, the whole card is the link. */
+        .welcome-tdev {
+          display: flex; align-items: center; gap: 16px;
+          width: min(100%, 480px); box-sizing: border-box;
+          margin: 40px auto 0; padding: 16px;
+          border-radius: 20px; background: #fff; color: var(--text); text-decoration: none; text-align: left;
+          box-shadow: 0 1px 3px rgba(0,0,0,.04), inset 0 0 0 1px rgba(0,0,0,.06), inset 0 -1px 0 0 rgba(0,0,0,.06);
+          transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        html[data-theme="dark"] .welcome-tdev { background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 0 rgba(255,255,255,.04); }
+        @media (hover: hover) and (pointer: fine) {
+          .welcome-tdev:hover { background: #fafafa; }
+          html[data-theme="dark"] .welcome-tdev:hover { background: rgba(255,255,255,.07); }
+          .welcome-tdev:hover .welcome-tdev-arrow { color: var(--text); transform: translate(1px, -1px); }
+        }
+        .welcome-tdev:active { transform: scale(0.99); }
+        .welcome-tdev:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
+        .welcome-tdev-img { flex: none; display: block; width: 48px; height: 48px; border-radius: 11px; }
+        html[data-theme="dark"] .welcome-tdev-img { box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+        .welcome-tdev-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .welcome-tdev-title { font-size: 15px; line-height: 20px; font-weight: 500; }
+        .welcome-tdev-sub { font-size: 13px; line-height: 18px; color: var(--text-muted); }
+        .welcome-tdev-arrow { flex: none; width: 16px; height: 16px; color: var(--text-muted); transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease; }
+        @media (prefers-reduced-motion: reduce) { .welcome-tdev, .welcome-tdev-arrow { transition: none; } .welcome-tdev:active { transform: none; } }
+      </style>
+    </header>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="footer-brand-logo" href="/" aria-label="Libraries.dev home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 22.6705 14.6705" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="brand-draw" d="M21.3352 10.3354L6.89079 13.3354L18.0019 7.33536L1.33524 9.33536L19.3352 1.33536L1.33524 4.33536L9.33524 1.33536" stroke="currentColor" stroke-width="2.67" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/>
+              </svg>
+            </span>
+            <span class="brand-word"><span class="brand-word-strong">Libraries</span><span class="brand-word-dim">.dev</span></span>
+          </a>
+          <p class="footer-tagline">Libraries and models for next-gen UI</p>
+        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div class="footer-col">
+            <p class="footer-col-title">Libraries</p>
+            <a href="/beam.html">Border beam</a>
+            <a href="/orbs.html">Thinking orbs</a>
+            <a href="/gooey.html">Gooey</a>
+            <a href="/voice.html">Voice</a>
+            <a href="/voice-ring.html">Voice ring</a>
+            <a href="/waves.html">Distortion waves</a>
+            <a href="/bots.html">Bot avatars</a>
+            <a href="/metal.html">Metal</a>
+            <a href="/image.html">Image</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Product</p>
+            <a href="/">Home</a>
+            <a href="/studio.html">Studio</a>
+            <a href="/how-to-use.html">How to use</a>
+            <a href="/pro.html">Get Pro</a>
+          </div>
+          <div class="footer-col">
+            <p class="footer-col-title">Legal &amp; Account</p>
+            <a href="/pro.html" id="footer-signin">Sign in</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="mailto:jakubja@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-byline">
+        <p class="footer-credit"><span class="footer-muted">Created by</span><a class="footer-name" href="https://x.com/jakubantalik" target="_blank" rel="noopener noreferrer">Jakub Antalik</a></p>
+        <p class="footer-thanks">Made with help from <a href="https://x.com/a_brinza" target="_blank" rel="noopener noreferrer">Alexandr Brinza</a> (Orbs)</p>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Shared nav behaviors (burger, 3-dot, ⌘K palette, GitHub stars). -->
+  <script src="/assets/site.js" defer></script>
+  <script src="/assets/nav-products.js" defer></script>
+  <script src="/assets/pro-client.js" defer></script>
+  <script>
+    // Get Pro only for accounts that are not on Pro yet.
+    document.addEventListener("pro:me", function (e) {
+      var pro = document.getElementById("welcome-pro");
+      if (pro) pro.hidden = !!(e.detail && e.detail.pro);
+    });
+  </script>
+
+  <!-- Celebration confetti: bursts once on load. Pieces spawn across the
+       hero title's width, fall through the full viewport, and only the
+       primary CTA pill is a physical surface — everything else falls
+       straight through and off-screen. -->
+  <canvas id="sx-confetti" aria-hidden="true"></canvas>
+  <style>
+    #sx-confetti {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 90;
+      pointer-events: none;
+    }
+  </style>
+  <script>
+  (function () {
+    var canvas = document.getElementById("sx-confetti");
+    var title = document.querySelector(".header .title");
+    var cta = document.querySelector(".skill-cta-row .skill-btn--primary");
+    var cta2 = document.querySelector(".skill-cta-row .skill-btn--secondary");
+    var iconWrap = document.querySelector(".header-icon-wrap");
+    if (!canvas || !title || !cta) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var ctx = canvas.getContext("2d");
+    var COLORS = [
+      "#ff4d67", "#ffb020", "#3b82f6", "#22c55e",
+      "#a855f7", "#f97316", "#06b6d4", "#f43f5e"
+    ];
+    var COUNT = 120, SIZE = 8, GRAVITY = 1300, SWAY = 16, RESTITUTION = 0.3;
+    var HOLD = 1600, FADE = 600;
+    /* The icon <img> is 136×140 but the visible rounded-square badge sits
+       inset inside it (transparent padding). Fractions measured from the
+       opaque bounding box of the icon PNG. */
+    var ICON_INSET = { l: 0.324, r: 0.324, t: 0.307, b: 0.354 };
+    var particles = [];
+    var running = false;
+    var lastT = 0;
+    var burstEnd = 0;
+    var fadeStart = null;
+    var vw = 0, vh = 0;
+
+    function sizeCanvas() {
+      var dpr = window.devicePixelRatio || 1;
+      vw = window.innerWidth;
+      vh = window.innerHeight;
+      canvas.width = Math.round(vw * dpr);
+      canvas.height = Math.round(vh * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    /* The physical surfaces: both CTA pills (r = half-height, so they're
+       fully rounded) and the square logo badge (r = a small corner
+       radius). Recomputed each frame so the sim tracks live layout. */
+    function getSurfaces() {
+      var out = [];
+      [cta, cta2].forEach(function (el) {
+        if (!el) return;
+        var b = el.getBoundingClientRect();
+        out.push({ left: b.left, top: b.top, right: b.right, bottom: b.bottom, r: (b.bottom - b.top) / 2 });
+      });
+      if (iconWrap) {
+        var w = iconWrap.getBoundingClientRect();
+        var il = w.left + w.width * ICON_INSET.l;
+        var ir = w.right - w.width * ICON_INSET.r;
+        var it = w.top + w.height * ICON_INSET.t;
+        var ib = w.bottom - w.height * ICON_INSET.b;
+        out.push({ left: il, top: it, right: ir, bottom: ib, r: Math.min(ir - il, ib - it) * 0.26 });
+      }
+      return out;
+    }
+    /* Rounded-rect top surface: flat between the corner-arc centers,
+       quarter-circle shoulders outside them. r = b.r (half-height for a
+       pill, corner radius for the square). */
+    function surfaceTop(x, b) {
+      if (x < b.left || x > b.right) return null;
+      var r = b.r;
+      var lc = b.left + r;
+      var rc = b.right - r;
+      if (x >= lc && x <= rc) return { y: b.top, slope: 0 };
+      var cx = x < lc ? lc : rc;
+      var dx = x - cx;
+      var root = Math.sqrt(Math.max(r * r - dx * dx, 0));
+      return { y: b.top + (r - root), slope: dx / Math.max(root, 0.001) };
+    }
+    function burst() {
+      sizeCanvas();
+      var t = title.getBoundingClientRect();
+      var spawnLeft = t.left;
+      var spawnW = Math.max(t.width, 240);
+      var now = performance.now();
+      var spawnWindow = 500;
+      particles = [];
+      fadeStart = null;
+      for (var i = 0; i < COUNT; i++) {
+        particles.push({
+          start: now + Math.random() * spawnWindow,
+          x: spawnLeft + Math.random() * spawnW,
+          y: -12 - Math.random() * 30,
+          py: -12,
+          vx: (Math.random() - 0.5) * 60,
+          vy: 40 + Math.random() * 120,
+          w: SIZE * (0.7 + Math.random() * 0.6),
+          h: SIZE * (0.5 + Math.random() * 0.5),
+          maxFall: 420 + Math.random() * 280,
+          rot: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 7,
+          tumble: Math.random() * Math.PI * 2,
+          tumbleSpeed: 4 + Math.random() * 8,
+          squish: 1,
+          phase: Math.random() * Math.PI * 2,
+          swayFreq: 2 + Math.random() * 3,
+          swayScale: 0.5 + Math.random(),
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          bounces: 0,
+          resting: false,
+          dead: false
+        });
+      }
+      burstEnd = now + spawnWindow + 100;
+      if (!running) {
+        running = true;
+        lastT = now;
+        requestAnimationFrame(frame);
+      }
+    }
+    function step(dt, now) {
+      var surfaces = getSurfaces();
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        if (p.resting || p.dead || now < p.start) continue;
+        p.py = p.y;
+        p.vy += GRAVITY * dt;
+        if (p.vy > p.maxFall) p.vy = p.maxFall;
+        p.phase += p.swayFreq * dt;
+        p.x += (p.vx + Math.cos(p.phase) * SWAY * p.swayScale) * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vr * dt;
+        p.tumble += p.tumbleSpeed * dt;
+        p.squish = 0.25 + 0.75 * Math.abs(Math.cos(p.tumble));
+        var half = p.h / 2;
+        /* Hard surfaces: the two CTA pills + the square logo badge.
+           Land on whichever the piece crosses first (topmost). */
+        if (p.vy > 0) {
+          var hit = null, hb = null;
+          for (var si = 0; si < surfaces.length; si++) {
+            var b = surfaces[si];
+            var s = surfaceTop(p.x, b);
+            if (s && p.y + half >= s.y && p.py + half <= s.y + 2) {
+              if (!hit || s.y < hit.y) { hit = s; hb = b; }
+            }
+          }
+          if (hit) {
+            if (Math.abs(hit.slope) > 0.85) {
+              var dir = p.x < (hb.left + hb.right) / 2 ? -1 : 1;
+              p.vx = dir * Math.max(Math.abs(p.vx), 50 + Math.random() * 50);
+              p.vy *= 0.35;
+              p.y = hit.y - half;
+            } else if (p.vy > 150 && p.bounces < 2) {
+              p.bounces++;
+              p.vy = -p.vy * RESTITUTION * (0.6 + Math.random() * 0.5);
+              p.vx = p.vx * 0.7 + hit.slope * 40 + (Math.random() - 0.5) * 40;
+              p.y = hit.y - half;
+            } else {
+              p.resting = true;
+              p.y = hit.y - half - 0.5;
+              p.vx = 0;
+              p.vy = 0;
+            }
+          }
+        }
+        /* No floor: anything that misses every surface falls off-screen. */
+        if (p.x < -30 || p.x > vw + 30 || p.y > vh + 30) {
+          p.dead = true;
+        }
+      }
+    }
+    function draw(alpha) {
+      ctx.clearRect(0, 0, vw, vh);
+      ctx.globalAlpha = alpha;
+      var now = performance.now();
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        if (p.dead || now < p.start) continue;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.scale(1, p.squish);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+    function frame(now) {
+      if (!running) return;
+      var remaining = Math.min((now - lastT) / 1000, 0.25);
+      lastT = now;
+      while (remaining > 0) {
+        var dt = Math.min(remaining, 1 / 60);
+        step(dt, now);
+        remaining -= dt;
+      }
+      var settled = now > burstEnd;
+      if (settled) {
+        for (var i = 0; i < particles.length; i++) {
+          if (!particles[i].resting && !particles[i].dead) { settled = false; break; }
+        }
+      }
+      if (settled && fadeStart === null) {
+        fadeStart = now + HOLD;
+      }
+      var alpha = 1;
+      if (fadeStart !== null && now >= fadeStart) {
+        alpha = 1 - (now - fadeStart) / FADE;
+        if (alpha <= 0) {
+          running = false;
+          particles = [];
+          ctx.clearRect(0, 0, vw, vh);
+          return;
+        }
+      }
+      draw(alpha);
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener("resize", function () {
+      if (running) sizeCanvas();
+    });
+    /* One celebratory burst once fonts/layout have settled. */
+    if (document.readyState === "complete") {
+      setTimeout(burst, 350);
+    } else {
+      window.addEventListener("load", function () { setTimeout(burst, 350); });
+    }
+  })();
+  </script>
+  <!-- GoatCounter: privacy-friendly page views, no cookies. -->
+  <script data-goatcounter="https://libraries.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  <!-- PostHog: page views only, no cookies (public/posthog.js). -->
+  <script src="/posthog.js" async></script>
+</body>
+</html>
