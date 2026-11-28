@@ -1,6 +1,6 @@
 # Libraries.dev Model License
 
-Version 1.6 · Effective 26 November 2026
+Version 1.7 · Effective 28 November 2026
 
 Copyright (c) 2026 Jakub Antalik. All rights reserved except as granted below.
 
@@ -111,7 +111,12 @@ not:
    Kit to build one, except for your own product under this license;
 4. remove or change this license or any copyright notice that comes with a
    Model or a Kit;
-5. use a Model or a Kit in breach of applicable law.
+5. use a Model or a Kit in breach of applicable law;
+6. use Mood recognition (`MoodRecognition.json` or its Kit) in a product, or a
+   part of a product, that is aimed at or used by people in the European Union
+   as employees at work, as job candidates in a hiring process, or as pupils or
+   students in education or training (for example a workplace tool, a
+   recruiting product or a learning platform).
 
 The model file format is documented publicly so you can inspect what you ship.
 Reading the format does not grant any right beyond this license.
@@ -176,5 +181,7 @@ Version 1.5 brings the Kits, MIT until then, under this license, and changes no
 term for the Models. Version 1.6 defines Monthly Users and limits Pro and Pro
 Lifetime to products with up to 10,000 of them and Business to products with up
 to 50,000, except for the plans listed in section 3; it changes no other term.
+Version 1.7 adds condition 6 of section 4, which applies to Mood recognition
+only, and changes no other term.
 
 Questions or Enterprise licensing: hello@libraries.dev
